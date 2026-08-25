@@ -5,25 +5,25 @@
 ```ts
 
 import type { AggregationCursor } from 'mongodb';
-import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import type { CallToolResult } from '@modelcontextprotocol/server';
 import type { Client } from '@mongodb-js/atlas-local';
 import { CliOptions } from '@mongosh/arg-parser';
 import { ConnectionInfo as ConnectionInfo_2 } from '@mongosh/arg-parser';
 import { Deployment } from '@mongodb-js/atlas-local';
 import type { Document as Document_2 } from 'mongodb';
-import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
+import type { ElicitRequestFormParams } from '@modelcontextprotocol/server';
 import { EventEmitter } from 'events';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
-import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { LoggingMessageNotification } from '@modelcontextprotocol/server';
+import { McpServer } from '@modelcontextprotocol/server';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
-import type { ProgressToken } from '@modelcontextprotocol/sdk/types.js';
-import type { RequestId } from '@modelcontextprotocol/sdk/types.js';
-import { RequestMeta } from '@modelcontextprotocol/sdk/types.js';
+import type { ProgressToken } from '@modelcontextprotocol/server';
+import type { RequestId } from '@modelcontextprotocol/server';
+import type { RequestMeta } from '@modelcontextprotocol/server';
 import type { Secret } from 'mongodb-redact';
-import type { ServerNotification } from '@modelcontextprotocol/sdk/types.js';
-import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
+import type { ServerNotification } from '@modelcontextprotocol/server';
+import type { ToolAnnotations } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import { ZodRawShape } from 'zod';
 import { ZodString } from 'zod';
@@ -2765,8 +2765,8 @@ export class StreamsBuildTool extends StreamsToolBase {
         projectId: z.ZodString;
         resource: z.ZodEnum<{
             processor: "processor";
-            workspace: "workspace";
             connection: "connection";
+            workspace: "workspace";
             privatelink: "privatelink";
         }>;
         workspaceName: z.ZodOptional<z.ZodString>;
@@ -2777,17 +2777,17 @@ export class StreamsBuildTool extends StreamsToolBase {
         }>>;
         region: z.ZodOptional<z.ZodString>;
         tier: z.ZodOptional<z.ZodEnum<{
-            SP50: "SP50";
-            SP30: "SP30";
-            SP10: "SP10";
-            SP5: "SP5";
             SP2: "SP2";
+            SP5: "SP5";
+            SP10: "SP10";
+            SP30: "SP30";
+            SP50: "SP50";
         }>>;
         includeSampleData: z.ZodOptional<z.ZodBoolean>;
         connectionName: z.ZodOptional<z.ZodString>;
         connectionType: z.ZodOptional<z.ZodEnum<{
-            Cluster: "Cluster";
             Kafka: "Kafka";
+            Cluster: "Cluster";
             S3: "S3";
             Https: "Https";
             AWSKinesisDataStreams: "AWSKinesisDataStreams";
@@ -2818,8 +2818,8 @@ export class StreamsBuildTool extends StreamsToolBase {
             dbRoleToExecute: z.ZodOptional<z.ZodObject<{
                 role: z.ZodOptional<z.ZodString>;
                 type: z.ZodOptional<z.ZodEnum<{
-                    CUSTOM: "CUSTOM";
                     BUILT_IN: "BUILT_IN";
+                    CUSTOM: "CUSTOM";
                 }>>;
             }, z.core.$strip>>;
             aws: z.ZodOptional<z.ZodObject<{
@@ -2879,8 +2879,8 @@ export class StreamsBuildTool extends StreamsToolBase {
     outputSchema: {
         resource: z.ZodEnum<{
             processor: "processor";
-            workspace: "workspace";
             connection: "connection";
+            workspace: "workspace";
             privatelink: "privatelink";
         }>;
     };

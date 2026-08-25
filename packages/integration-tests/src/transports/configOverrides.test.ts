@@ -1,7 +1,8 @@
 import { StreamableHttpRunner, MCPHttpServer } from "@mongodb-js/mcp-http-runners";
 import { SessionStore } from "@mongodb-js/mcp-core";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { McpServer } from "@modelcontextprotocol/server";
+import type { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
+import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import { describe, expect, it, afterEach, beforeEach, vi } from "vitest";
 import { defaultTestConfig } from "../integrationHelpers.js";
 import type { UserConfig } from "@mongodb-js/mcp-cli";
@@ -13,14 +14,12 @@ import type {
     TransportRequestContext,
 } from "@mongodb-js/mcp-types";
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
-import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { CliServer } from "mongodb-mcp-server";
 import { AllTools } from "mongodb-mcp-server";
 import { applyConfigOverrides } from "@mongodb-js/mcp-cli";
 import { Elicitation, connectionErrorHandler, ExportsManager } from "mongodb-mcp-server";
 import { MCPConnectionStore } from "@mongodb-js/mcp-tools-mongodb";
 import { Session } from "@mongodb-js/mcp-cli";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createTestApiClient } from "../integrationHelpers.js";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { packageInfo } from "mongodb-mcp-server";
@@ -47,7 +46,7 @@ class ConfigOverrideMCPHttpServer extends MCPHttpServer<CliServer> {
         };
         logger: CompositeLogger;
         metrics: IMetrics<DefaultMetricDefinitions>;
-        sessionStore: SessionStore<StreamableHTTPServerTransport>;
+        sessionStore: SessionStore<NodeStreamableHTTPServerTransport>;
     }) {
         super({ options, logger, metrics, sessionStore });
         this.baseConfig = baseConfig;
@@ -146,7 +145,7 @@ function createConfigOverrideRunner(baseConfig: UserConfig): Promise<{
     const logger = new CompositeLogger({ loggers: [] });
     const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
-    const sessionStore = new SessionStore<StreamableHTTPServerTransport>({
+    const sessionStore = new SessionStore<NodeStreamableHTTPServerTransport>({
         options: {
             idleTimeoutMS: baseConfig.idleTimeoutMs,
             notificationTimeoutMS: baseConfig.notificationTimeoutMs,

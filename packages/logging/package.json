@@ -30,7 +30,7 @@
   },
   "devDependencies": {
     "@mongodb-js/mcp-types": "workspace:*",
-    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/core": "^2.0.0",
     "@types/node": "^25.6.0",
     "typescript": "^5.9.2",
     "vitest": "^4.1.4"

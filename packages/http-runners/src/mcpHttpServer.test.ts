@@ -23,7 +23,7 @@ import type {
     ILogger,
 } from "@mongodb-js/mcp-types";
 import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
-import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import type { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
 
 class MockMetrics
     extends PrometheusMetrics<DefaultPrometheusMetricDefinitions>
@@ -86,8 +86,8 @@ function makeSessionStore(
     getSessionImpl: (
         sessionId: string,
         headers?: Record<string, unknown>
-    ) => Promise<StreamableHTTPServerTransport | null>
-): ISessionStore<StreamableHTTPServerTransport> {
+    ) => Promise<NodeStreamableHTTPServerTransport | null>
+): ISessionStore<NodeStreamableHTTPServerTransport> {
     return {
         getSession: vi.fn().mockImplementation(getSessionImpl),
         addSession: vi.fn().mockResolvedValue(undefined),
@@ -122,7 +122,7 @@ class TestMCPHttpServer extends MCPHttpServer {
         sessionStore,
     }: {
         logger: InMemoryLogger;
-        sessionStore: ISessionStore<StreamableHTTPServerTransport>;
+        sessionStore: ISessionStore<NodeStreamableHTTPServerTransport>;
     }) {
         super({
             options: { http: httpOptions, session: sessionOptions },
@@ -147,7 +147,7 @@ describe("MCPHttpServer x-request-id logging", () => {
     });
 
     async function startServer(
-        sessionStore: ISessionStore<StreamableHTTPServerTransport>,
+        sessionStore: ISessionStore<NodeStreamableHTTPServerTransport>,
         createServerForRequest?: () => Promise<SessionServer>
     ): Promise<void> {
         logger = new InMemoryLogger();
@@ -215,7 +215,7 @@ describe("MCPHttpServer x-request-id logging", () => {
 
     it("forwards the incoming request headers to sessionStore.addSession", async () => {
         const addSession = vi.fn().mockResolvedValue(undefined);
-        const sessionStore: ISessionStore<StreamableHTTPServerTransport> = {
+        const sessionStore: ISessionStore<NodeStreamableHTTPServerTransport> = {
             ...makeSessionStore(() => Promise.resolve(null)),
             addSession,
         };
@@ -232,7 +232,7 @@ describe("MCPHttpServer x-request-id logging", () => {
 
     it("passes the server session to sessionStore.addSession", async () => {
         const addSession = vi.fn().mockResolvedValue(undefined);
-        const sessionStore: ISessionStore<StreamableHTTPServerTransport> = {
+        const sessionStore: ISessionStore<NodeStreamableHTTPServerTransport> = {
             ...makeSessionStore(() => Promise.resolve(null)),
             addSession,
         };
@@ -277,7 +277,7 @@ describe("MCPHttpServer x-request-id logging", () => {
         const addSession = vi
             .fn()
             .mockRejectedValue(new SessionLimitExceededError("Session limit of 1 concurrent sessions reached"));
-        const sessionStore: ISessionStore<StreamableHTTPServerTransport> = {
+        const sessionStore: ISessionStore<NodeStreamableHTTPServerTransport> = {
             ...makeSessionStore(() => Promise.resolve(null)),
             addSession,
         };

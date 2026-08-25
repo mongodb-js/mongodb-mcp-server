@@ -1,4 +1,4 @@
-import type { ClientCapabilities, Implementation } from "@modelcontextprotocol/sdk/types.js";
+import type { ClientCapabilities, Implementation } from "@modelcontextprotocol/server";
 import type { ILogger, ICompositeLogger } from "./logging.js";
 import type { IMetrics, DefaultMetricDefinitions } from "./metrics.js";
 

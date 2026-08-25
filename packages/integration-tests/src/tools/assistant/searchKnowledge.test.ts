@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { CallToolResult } from "@mongodb-js/mcp-types";
+
 import {
     expectDefined,
     validateToolMetadata,
@@ -82,10 +82,10 @@ describeWithAssistant("search-knowledge", (integration) => {
 
             mockSearchResults(mockResults);
 
-            const response = (await integration.mcpClient().callTool({
+            const response = await integration.mcpClient().callTool({
                 name: "search-knowledge",
                 arguments: { query: "aggregation pipeline" },
-            })) as CallToolResult;
+            });
 
             expect(response.isError).toBeFalsy();
             expect(response.content).toBeInstanceOf(Array);
@@ -134,14 +134,14 @@ describeWithAssistant("search-knowledge", (integration) => {
 
             mockSearchResults(mockResults);
 
-            const response = (await integration.mcpClient().callTool({
+            const response = await integration.mcpClient().callTool({
                 name: "search-knowledge",
                 arguments: {
                     query: "node.js driver",
                     limit: 1,
                     dataSources: [{ name: "node-driver", versionLabel: "6.0" }],
                 },
-            })) as CallToolResult;
+            });
 
             expect(response.isError).toBeFalsy();
             expect(response.content).toBeInstanceOf(Array);
@@ -167,9 +167,9 @@ describeWithAssistant("search-knowledge", (integration) => {
         it("handles empty search results", async () => {
             mockSearchResults([]);
 
-            const response = (await integration
+            const response = await integration
                 .mcpClient()
-                .callTool({ name: "search-knowledge", arguments: { query: "nonexistent topic" } })) as CallToolResult;
+                .callTool({ name: "search-knowledge", arguments: { query: "nonexistent topic" } });
 
             expect(response.isError).toBeFalsy();
             expect(response.content).toBeInstanceOf(Array);
@@ -191,9 +191,9 @@ describeWithAssistant("search-knowledge", (integration) => {
 
             mockSearchResults(mockResults);
 
-            const response = (await integration
+            const response = await integration
                 .mcpClient()
-                .callTool({ name: "search-knowledge", arguments: { query: "test query" } })) as CallToolResult;
+                .callTool({ name: "search-knowledge", arguments: { query: "test query" } });
 
             expect(response.isError).toBeFalsy();
             expect(response.content).toHaveLength(2);
@@ -211,9 +211,9 @@ describeWithAssistant("search-knowledge", (integration) => {
         it("handles API error responses", async () => {
             mockAPIError(404, "Not Found");
 
-            const response = (await integration
+            const response = await integration
                 .mcpClient()
-                .callTool({ name: "search-knowledge", arguments: { query: "test query" } })) as CallToolResult;
+                .callTool({ name: "search-knowledge", arguments: { query: "test query" } });
 
             expect(response.isError).toBe(true);
             expectDefined(response.content);
@@ -226,9 +226,9 @@ describeWithAssistant("search-knowledge", (integration) => {
         it("handles network errors", async () => {
             mockNetworkError(new Error("Connection timeout"));
 
-            const response = (await integration
+            const response = await integration
                 .mcpClient()
-                .callTool({ name: "search-knowledge", arguments: { query: "test query" } })) as CallToolResult;
+                .callTool({ name: "search-knowledge", arguments: { query: "test query" } });
 
             expect(response.isError).toBe(true);
             expectDefined(response.content);

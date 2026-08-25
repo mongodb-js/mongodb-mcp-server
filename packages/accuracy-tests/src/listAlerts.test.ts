@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/server";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import { Matcher } from "./sdk/matcher.js";

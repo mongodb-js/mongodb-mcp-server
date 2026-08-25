@@ -2,11 +2,17 @@ import type { MockedFunction } from "vitest";
 import { vi } from "vitest";
 
 /**
- * Mock types based on the MCP SDK types, but simplified for testing
+ * Mock types based on the MCP SDK types, but simplified for testing.
+ *
+ * Values must be JSON-compatible: the v2 SDK types the `experimental` and
+ * per-capability payloads of `ClientCapabilities` as nested JSON rather than
+ * arbitrary objects, so the mock matches that shape.
  */
+type MockJsonValue = string | number | boolean | null | MockJsonValue[] | { [key: string]: MockJsonValue };
+
 export type MockClientCapabilities = {
-    [x: string]: unknown;
-    elicitation?: { [x: string]: unknown };
+    [x: string]: MockJsonValue | undefined;
+    elicitation?: Record<string, MockJsonValue>;
 };
 
 export type MockElicitResult = {

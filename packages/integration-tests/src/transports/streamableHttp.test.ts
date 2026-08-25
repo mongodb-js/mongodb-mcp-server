@@ -10,8 +10,8 @@ import {
     LogId,
 } from "@mongodb-js/mcp-core";
 import type { NegotiatedClientState, SessionCloseReason } from "@mongodb-js/mcp-types";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import type { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
+import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { defaultTestConfig, InMemoryLogger, sleep } from "../integrationHelpers.js";
 import {
@@ -24,7 +24,6 @@ import {
     type CliServer,
 } from "mongodb-mcp-server";
 import { AllTools } from "mongodb-mcp-server";
-import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { CallToolResult } from "@mongodb-js/mcp-types";
 import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import type { IncomingMessage } from "node:http";
@@ -320,7 +319,7 @@ describe("StreamableHttpRunner", () => {
         return response;
     };
 
-    const getSessionFromStore = async (sessionId: string): Promise<StreamableHTTPServerTransport | undefined> => {
+    const getSessionFromStore = async (sessionId: string): Promise<NodeStreamableHTTPServerTransport | undefined> => {
         const sessionStore = getSessionStore(runner);
         return await sessionStore.getSession(sessionId);
     };
@@ -400,18 +399,19 @@ describe("StreamableHttpRunner", () => {
                 it("should reuse existing session with the same external session ID", async () => {
                     const sessionId = "test-external-session-456";
 
-                    // First client creates the session
-                    const client1 = await connectClient({ sessionId, shouldInitialize: false });
-                    const response1 = await client1.listTools();
-                    expect(response1.tools).toBeDefined();
+                    // First request creates the session (raw non-initialize
+                    // request: the v2 SDK client strips a pre-set session id
+                    // on handshake requests, so external session ids are
+                    // exercised through the raw transport here).
+                    const response1 = await sendHttpRequest("tools/list", sessionId);
+                    expect(response1.ok).toBe(true);
 
                     const session1 = await getSessionFromStore(sessionId);
                     expect(session1).toBeDefined();
 
-                    // Second client reuses the session
-                    const client2 = await connectClient({ sessionId, shouldInitialize: false });
-                    const response2 = await client2.listTools();
-                    expect(response2.tools).toBeDefined();
+                    // Second request reuses the session
+                    const response2 = await sendHttpRequest("tools/list", sessionId);
+                    expect(response2.ok).toBe(true);
 
                     const session2 = await getSessionFromStore(sessionId);
                     expect(session2).toBe(session1);
@@ -420,22 +420,19 @@ describe("StreamableHttpRunner", () => {
                 it("should reuse existing session with the same external session ID, even after closing", async () => {
                     const sessionId = "test-external-session-456";
 
-                    // First client creates the session
-                    const client1 = await connectClient({ sessionId, shouldInitialize: false });
-                    const response1 = await client1.listTools();
-                    expect(response1.tools).toBeDefined();
+                    // First request creates the session
+                    const response1 = await sendHttpRequest("tools/list", sessionId);
+                    expect(response1.ok).toBe(true);
 
                     const session1 = await getSessionFromStore(sessionId);
                     expect(session1).toBeDefined();
 
-                    await client1.close();
+                    // No connection is held open between raw requests, so the
+                    // session is not owned by any single client; a later
+                    // request with the same id reuses the stored session.
+                    const response2 = await sendHttpRequest("tools/list", sessionId);
+                    expect(response2.ok).toBe(true);
 
-                    // Second client reuses the session
-                    const client2 = await connectClient({ sessionId, shouldInitialize: false });
-                    const response2 = await client2.listTools();
-                    expect(response2.tools).toBeDefined();
-
-                    // Verify it's the same session - the session should persist even after the first client closes
                     const session2 = await getSessionFromStore(sessionId);
                     expect(session2).toBe(session1);
                 });
@@ -475,9 +472,8 @@ describe("StreamableHttpRunner", () => {
                 it("should create session for non-initialize request with unknown session ID", async () => {
                     const sessionId = "new-session-on-non-init";
 
-                    const client = await connectClient({ sessionId: sessionId, shouldInitialize: false });
-
-                    await client.listTools();
+                    const response = await sendHttpRequest("tools/list", sessionId);
+                    expect(response.ok).toBe(true);
 
                     const session = await getSessionFromStore(sessionId);
                     expect(session).toBeDefined();
@@ -630,15 +626,15 @@ describe("StreamableHttpRunner", () => {
             describe("with ownership session store", () => {
                 const ownerStorage = new AsyncLocalStorage<string | undefined>();
 
-                class OwnershipSessionStore implements ISessionStore<StreamableHTTPServerTransport> {
-                    private readonly inner: ISessionStore<StreamableHTTPServerTransport>;
+                class OwnershipSessionStore implements ISessionStore<NodeStreamableHTTPServerTransport> {
+                    private readonly inner: ISessionStore<NodeStreamableHTTPServerTransport>;
                     private readonly sessionOwners = new Map<string, string>();
 
-                    constructor(inner: ISessionStore<StreamableHTTPServerTransport>) {
+                    constructor(inner: ISessionStore<NodeStreamableHTTPServerTransport>) {
                         this.inner = inner;
                     }
 
-                    async getSession(sessionId: string): Promise<StreamableHTTPServerTransport | undefined> {
+                    async getSession(sessionId: string): Promise<NodeStreamableHTTPServerTransport | undefined> {
                         const owner = this.sessionOwners.get(sessionId);
                         const caller = ownerStorage.getStore();
                         if (owner !== undefined && caller !== owner) {
@@ -649,7 +645,7 @@ describe("StreamableHttpRunner", () => {
 
                     async addSession(params: {
                         sessionId: string;
-                        transport: StreamableHTTPServerTransport;
+                        transport: NodeStreamableHTTPServerTransport;
                         logger: LoggerBase;
                     }): Promise<void> {
                         await this.inner.addSession(params);
@@ -696,7 +692,7 @@ describe("StreamableHttpRunner", () => {
                     const logger = new CompositeLogger({ loggers: [] });
                     const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
-                    const innerSessionStore = new SessionStore<StreamableHTTPServerTransport>({
+                    const innerSessionStore = new SessionStore<NodeStreamableHTTPServerTransport>({
                         options: {
                             idleTimeoutMS: config.idleTimeoutMs,
                             notificationTimeoutMS: config.notificationTimeoutMs,
@@ -909,7 +905,7 @@ describe("StreamableHttpRunner", () => {
             const logger = new CompositeLogger({ loggers: [] });
             const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
-            const sessionStore = new SessionStore<StreamableHTTPServerTransport>({
+            const sessionStore = new SessionStore<NodeStreamableHTTPServerTransport>({
                 options: {
                     idleTimeoutMS: config.idleTimeoutMs,
                     notificationTimeoutMS: config.notificationTimeoutMs,
@@ -968,7 +964,7 @@ describe("StreamableHttpRunner", () => {
             const logger = new CompositeLogger({ loggers: [] });
             const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
-            const sessionStore = new SessionStore<StreamableHTTPServerTransport>({
+            const sessionStore = new SessionStore<NodeStreamableHTTPServerTransport>({
                 options: {
                     idleTimeoutMS: config.idleTimeoutMs,
                     notificationTimeoutMS: config.notificationTimeoutMs,

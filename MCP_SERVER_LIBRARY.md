@@ -459,16 +459,16 @@ const standard = [...MongoDBTools, ...AtlasTools, ...AtlasLocalTools];
 
 ### `@mongodb-js/mcp-core`
 
-| Symbol                                                                                            | Description                        |
-| ------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| `ToolBase`, `ToolClass`, `ToolConstructorParams`, `ToolArgs`, `ToolResult`, `formatUntrustedData` | Custom tool authoring              |
-| `StdioRunner({ logger, server })`                                                                 | Stdio transport runner             |
-| `InMemoryTransport`                                                                               | In-memory transport for tests      |
-| `SessionStore`, `createDefaultSessionStore`                                                       | HTTP session store                 |
-| `Keychain`, `registerGlobalSecretToRedact`, `redactValues`                                        | Secret storage/redaction           |
-| `Elicitation`                                                                                     | User confirmation requests         |
-| `NoopLogger`, `NoopTelemetry`, `LoggerBase`, `CompositeLogger`                                    | Logging/telemetry primitives       |
-| `McpServer` (re-export)                                                                           | `@modelcontextprotocol/sdk` server |
+| Symbol                                                                                            | Description                    |
+| ------------------------------------------------------------------------------------------------- | ------------------------------ |
+| `ToolBase`, `ToolClass`, `ToolConstructorParams`, `ToolArgs`, `ToolResult`, `formatUntrustedData` | Custom tool authoring          |
+| `StdioRunner({ logger, server })`                                                                 | Stdio transport runner         |
+| `InMemoryTransport`                                                                               | In-memory transport for tests  |
+| `SessionStore`, `createDefaultSessionStore`                                                       | HTTP session store             |
+| `Keychain`, `registerGlobalSecretToRedact`, `redactValues`                                        | Secret storage/redaction       |
+| `Elicitation`                                                                                     | User confirmation requests     |
+| `NoopLogger`, `NoopTelemetry`, `LoggerBase`, `CompositeLogger`                                    | Logging/telemetry primitives   |
+| `McpServer` (re-export)                                                                           | `@modelcontextprotocol/server` |
 
 ### `@mongodb-js/mcp-http-runners`
 

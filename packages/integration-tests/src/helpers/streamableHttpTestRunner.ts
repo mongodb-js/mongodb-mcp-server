@@ -12,7 +12,7 @@ import {
     createDefaultMetrics,
     type DefaultPrometheusMetricDefinitions,
 } from "@mongodb-js/mcp-metrics";
-import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import type { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
 import type {
     TransportRequestContext,
     HttpServerOptions,
@@ -32,7 +32,7 @@ export type CreateStreamableHttpTestRunnerOptions = {
     /** Additional loggers to attach to the runner's composite logger. */
     loggers?: LoggerBase[];
     /** Custom session store; defaults to a plain in-memory `SessionStore`. */
-    sessionStore?: ISessionStore<StreamableHTTPServerTransport>;
+    sessionStore?: ISessionStore<NodeStreamableHTTPServerTransport>;
     /**
      * Custom per-request server factory, overriding the default
      * `createTestServer(config, { tools, metrics })` behavior (e.g. to apply
@@ -47,7 +47,7 @@ export type StreamableHttpTestRunnerComponents = {
     runner: StreamableHttpRunner<CliServer>;
     monitoringServer: MonitoringServer | undefined;
     getServerAddress: () => string;
-    getSessionStore: () => ISessionStore<StreamableHTTPServerTransport>;
+    getSessionStore: () => ISessionStore<NodeStreamableHTTPServerTransport>;
 };
 
 /**
@@ -79,7 +79,7 @@ export class TestMCPHttpServer extends MCPHttpServer<CliServer> {
         };
         logger: CompositeLogger;
         metrics: IMetrics<DefaultMetricDefinitions>;
-        sessionStore: ISessionStore<StreamableHTTPServerTransport>;
+        sessionStore: ISessionStore<NodeStreamableHTTPServerTransport>;
         tools?: AnyToolClass[];
         customMetrics?: PrometheusMetrics<DefaultPrometheusMetricDefinitions>;
         createServer?: (config: UserConfig) => Promise<CliServer>;
@@ -112,8 +112,10 @@ export function getServerAddress(runner: StreamableHttpRunner<CliServer>): strin
 }
 
 /** Returns the session store of the underlying MCP HTTP server. */
-export function getSessionStore(runner: StreamableHttpRunner<CliServer>): ISessionStore<StreamableHTTPServerTransport> {
-    return (runner as unknown as { mcpHttpServer: { sessionStore: ISessionStore<StreamableHTTPServerTransport> } })
+export function getSessionStore(
+    runner: StreamableHttpRunner<CliServer>
+): ISessionStore<NodeStreamableHTTPServerTransport> {
+    return (runner as unknown as { mcpHttpServer: { sessionStore: ISessionStore<NodeStreamableHTTPServerTransport> } })
         .mcpHttpServer.sessionStore;
 }
 
@@ -131,7 +133,7 @@ export function createStreamableHttpTestRunner(
 
     const sessionStore =
         options.sessionStore ??
-        new SessionStore<StreamableHTTPServerTransport>({
+        new SessionStore<NodeStreamableHTTPServerTransport>({
             options: {
                 idleTimeoutMS: config.idleTimeoutMs,
                 notificationTimeoutMS: config.notificationTimeoutMs,

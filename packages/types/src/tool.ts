@@ -1,4 +1,5 @@
-import { type CallToolResult, type RequestMeta } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult, RequestMeta } from "@modelcontextprotocol/server";
+
 export type { CallToolResult };
 import type { Secret } from "mongodb-redact";
 import type { IToolConfig } from "./config.js";

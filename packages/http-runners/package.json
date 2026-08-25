@@ -26,7 +26,8 @@
     "check": "tsc --build tsconfig.build.json --noEmit"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/node": "^2.0.0",
+    "@modelcontextprotocol/server": "^2.0.0",
     "@mongodb-js/mcp-core": "workspace:*",
     "express": "^5.2.1"
   },
