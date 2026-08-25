@@ -41,7 +41,7 @@ import { redact } from "mongodb-redact";
  * under `ctx.http` (see the SDK's v1 → v2 migration guide).
  */
 function toToolExecutionContext(ctx: ServerContext): ToolExecutionContext {
-    const headers: Record<string, unknown> = {};
+    const headers: Record<string, unknown> = Object.create(null);
     ctx.http?.req?.headers.forEach((value, key) => {
         headers[key] = value;
     });
