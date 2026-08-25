@@ -1,5 +1,10 @@
 import { acceptedContent, inputRequired } from "@modelcontextprotocol/server";
-import type { ElicitRequestFormParams, InputRequiredResult, InputResponses, McpServer } from "@modelcontextprotocol/server";
+import type {
+    ElicitRequestFormParams,
+    InputRequiredResult,
+    InputResponses,
+    McpServer,
+} from "@modelcontextprotocol/server";
 
 /** Read input-responses values that arrive loosely typed from the client. */
 export type ElicitationInputResponses = InputResponses | Record<string, unknown> | undefined;

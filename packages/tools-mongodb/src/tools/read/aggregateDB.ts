@@ -70,7 +70,7 @@ export class AggregateDBTool extends MongoDBToolBase {
 
             const writeStageTargets = getWriteStageTargets(pipeline, database);
             if (writeStageTargets.length > 0) {
-                const writeConfirmation = await this.confirmWriteStages(writeStageTargets, context);
+                const writeConfirmation = this.confirmWriteStages(writeStageTargets, context);
                 if (writeConfirmation) {
                     return writeConfirmation;
                 }

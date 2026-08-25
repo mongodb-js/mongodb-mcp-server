@@ -62,7 +62,7 @@ export function createMockElicitInput(): {
 
     return {
         mock: mockFn,
-        handler: async (request: MockElicitRequest) => {
+        handler: async (request: MockElicitRequest): Promise<MockElicitResult> => {
             // Record the embedded request's params so tests can assert on the
             // confirmation message / schema that reached the client.
             return mockFn(request.params);

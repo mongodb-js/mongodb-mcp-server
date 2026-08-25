@@ -54,7 +54,15 @@ describe("ListProjectsTool", () => {
         } as unknown as ITelemetry;
 
         const mockElicitation = {
-            requestConfirmation: vi.fn(),
+            supportsElicitation: (): boolean => true,
+            readConfirmation: (): boolean | undefined => true,
+            confirmationRequired: (): never => {
+                throw new Error("not implemented");
+            },
+            readInput: (): undefined => undefined,
+            inputRequired: (): never => {
+                throw new Error("not implemented");
+            },
         } as unknown as Elicitation;
 
         const params: ToolConstructorParams<IAtlasSession> = {

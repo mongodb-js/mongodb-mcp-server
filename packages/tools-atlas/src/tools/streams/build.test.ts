@@ -13,7 +13,13 @@ import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 
 describe("StreamsBuildTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
-    let mockElicitation: { requestConfirmation: ReturnType<typeof vi.fn>; requestInput: ReturnType<typeof vi.fn> };
+    let mockElicitation: {
+        supportsElicitation: ReturnType<typeof vi.fn>;
+        readInput: ReturnType<typeof vi.fn>;
+        inputRequired: ReturnType<typeof vi.fn>;
+        readConfirmation: ReturnType<typeof vi.fn>;
+        confirmationRequired: ReturnType<typeof vi.fn>;
+    };
     let tool: StreamsBuildTool;
 
     beforeEach(() => {
@@ -53,8 +59,15 @@ describe("StreamsBuildTool", () => {
         } as unknown as AtlasTelemetry;
 
         mockElicitation = {
-            requestConfirmation: vi.fn().mockResolvedValue(true),
-            requestInput: vi.fn().mockResolvedValue({ accepted: false }),
+            supportsElicitation: vi.fn().mockReturnValue(true),
+            // Default: no inputResponses yet -> the tool returns inputRequired.
+            readInput: vi.fn().mockReturnValue(undefined),
+            inputRequired: vi.fn().mockImplementation((key: string, message: string) => ({
+                resultType: "input_required",
+                inputRequests: { [key]: { method: "elicitation/create", params: { message } } },
+            })),
+            readConfirmation: vi.fn().mockReturnValue(undefined),
+            confirmationRequired: vi.fn(),
         };
 
         const params: ToolConstructorParams<IAtlasSession, DefaultPrometheusMetricDefinitions> = {
@@ -305,8 +318,23 @@ describe("StreamsBuildTool", () => {
             );
         });
 
-        it("should trigger elicitation when Kafka missing required fields", async () => {
-            mockElicitation.requestInput.mockResolvedValue({ accepted: false });
+        it("should return inputRequired when Kafka missing required fields (first entry)", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "kafka1",
+                connectionType: "Kafka",
+                connectionConfig: {},
+            });
+
+            expect(mockElicitation.readInput).toHaveBeenCalledWith(undefined, "connection-fields");
+            expect(mockElicitation.inputRequired).toHaveBeenCalled();
+            expect(result.resultType).toBe("input_required");
+            expect(mockApiClient.createStreamConnection).not.toHaveBeenCalled();
+        });
+
+        it("should report missing fields when the user declines to answer", async () => {
+            mockElicitation.readInput.mockReturnValue({ accepted: false });
 
             const result = await exec({
                 ...baseArgs,
@@ -316,41 +344,13 @@ describe("StreamsBuildTool", () => {
                 connectionConfig: {},
             });
 
-            expect(mockElicitation.requestInput).toHaveBeenCalled();
+            expect(mockElicitation.inputRequired).not.toHaveBeenCalled();
             expect((result.content[0] as { text: string }).text).toContain("missing");
             expect(mockApiClient.createStreamConnection).not.toHaveBeenCalled();
         });
 
-        it("should relate elicitation to the in-flight tool call", async () => {
-            mockElicitation.requestInput.mockResolvedValue({ accepted: false });
-            const sendNotification = vi.fn();
-
-            await tool["execute"](
-                {
-                    ...baseArgs,
-                    resource: "connection",
-                    connectionName: "kafka1",
-                    connectionType: "Kafka",
-                    connectionConfig: {},
-                } as never,
-                {
-                    signal: new AbortController().signal,
-                    requestId: 42,
-                    _meta: { progressToken: "progress-token" },
-                    sendNotification,
-                }
-            );
-
-            expect(mockElicitation.requestInput).toHaveBeenCalledWith(expect.any(String), expect.anything(), {
-                relatedRequestId: 42,
-                progressToken: "progress-token",
-                sendNotification,
-                signal: expect.any(AbortSignal) as unknown,
-            });
-        });
-
-        it("should accept elicited fields and proceed with creation", async () => {
-            mockElicitation.requestInput.mockResolvedValue({
+        it("should accept elicited fields on re-entry and proceed with creation", async () => {
+            mockElicitation.readInput.mockReturnValue({
                 accepted: true,
                 fields: {
                     bootstrapServers: "broker:9092",
@@ -455,8 +455,6 @@ describe("StreamsBuildTool", () => {
         });
 
         it("should trigger elicitation when Https url is missing", async () => {
-            mockElicitation.requestInput.mockResolvedValue({ accepted: false });
-
             const result = await exec({
                 ...baseArgs,
                 resource: "connection",
@@ -465,8 +463,8 @@ describe("StreamsBuildTool", () => {
                 connectionConfig: {},
             });
 
-            expect(mockElicitation.requestInput).toHaveBeenCalled();
-            expect((result.content[0] as { text: string }).text).toContain("missing");
+            expect(mockElicitation.readInput).toHaveBeenCalled();
+            expect(result.resultType).toBe("input_required");
             expect(mockApiClient.createStreamConnection).not.toHaveBeenCalled();
         });
     });
@@ -495,8 +493,6 @@ describe("StreamsBuildTool", () => {
         });
 
         it("should trigger elicitation when roleArn is missing", async () => {
-            mockElicitation.requestInput.mockResolvedValue({ accepted: false });
-
             const result = await exec({
                 ...baseArgs,
                 resource: "connection",
@@ -505,9 +501,8 @@ describe("StreamsBuildTool", () => {
                 connectionConfig: {},
             });
 
-            expect(mockElicitation.requestInput).toHaveBeenCalled();
-            expect((result.content[0] as { text: string }).text).toContain("missing");
-            expect((result.content[0] as { text: string }).text).toContain("IAM role ARN");
+            expect(mockElicitation.readInput).toHaveBeenCalled();
+            expect(result.resultType).toBe("input_required");
         });
     });
 
@@ -643,12 +638,11 @@ describe("StreamsBuildTool", () => {
                 }),
                 expect.anything()
             );
-            expect(mockElicitation.requestInput).not.toHaveBeenCalled();
+            expect(mockElicitation.readInput).not.toHaveBeenCalled();
+            expect(mockElicitation.inputRequired).not.toHaveBeenCalled();
         });
 
         it("should trigger elicitation when SchemaRegistry URL and auth are missing", async () => {
-            mockElicitation.requestInput.mockResolvedValue({ accepted: false });
-
             const result = await exec({
                 ...baseArgs,
                 resource: "connection",
@@ -657,8 +651,8 @@ describe("StreamsBuildTool", () => {
                 connectionConfig: {},
             });
 
-            expect(mockElicitation.requestInput).toHaveBeenCalled();
-            expect((result.content[0] as { text: string }).text).toContain("missing");
+            expect(mockElicitation.readInput).toHaveBeenCalled();
+            expect(result.resultType).toBe("input_required");
         });
     });
 

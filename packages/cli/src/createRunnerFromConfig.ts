@@ -1,4 +1,5 @@
 import { StdioRunner } from "@mongodb-js/mcp-core";
+import type { McpServer } from "@modelcontextprotocol/server";
 import type { StreamableHttpRunner } from "@mongodb-js/mcp-http-runners";
 import {
     createServerFromConfig,
@@ -25,7 +26,7 @@ export async function createRunnerFromConfig(
         // discarded probe instance first), so each call registers a fresh server.
         return new StdioRunner({
             logger: sharedServices.logger,
-            createServer: async () => {
+            createServer: async (): Promise<McpServer> => {
                 const server = createServerFromConfig({ config, sharedServices });
                 await server.register();
                 return server.mcpServer;

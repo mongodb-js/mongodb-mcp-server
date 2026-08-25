@@ -78,13 +78,17 @@ describe("Elicitation (multi-round-trip builders/readers)", () => {
 
         it("returns true when the user accepted with 'Yes'", () => {
             expect(
-                elicitation.readConfirmation({ [CONFIRMATION_INPUT_KEY]: { action: "accept", content: { confirmation: "Yes" } } })
+                elicitation.readConfirmation({
+                    [CONFIRMATION_INPUT_KEY]: { action: "accept", content: { confirmation: "Yes" } },
+                })
             ).toBe(true);
         });
 
         it("returns false when the user answered 'No'", () => {
             expect(
-                elicitation.readConfirmation({ [CONFIRMATION_INPUT_KEY]: { action: "accept", content: { confirmation: "No" } } })
+                elicitation.readConfirmation({
+                    [CONFIRMATION_INPUT_KEY]: { action: "accept", content: { confirmation: "No" } },
+                })
             ).toBe(false);
         });
 
@@ -126,11 +130,6 @@ describe("Elicitation (multi-round-trip builders/readers)", () => {
     });
 
     describe("readInput", () => {
-        const schema = {
-            type: "object" as const,
-            properties: { username: { type: "string" as const, title: "Username", description: "Your username" } },
-            required: ["username"],
-        };
         const key = "connection-fields";
 
         it("returns undefined when there are no inputResponses (first entry)", () => {
@@ -139,7 +138,10 @@ describe("Elicitation (multi-round-trip builders/readers)", () => {
 
         it("returns accepted:true with fields when the user accepts", () => {
             expect(
-                elicitation.readInput({ [key]: { action: "accept", content: { username: "admin", password: "secret" } } }, key)
+                elicitation.readInput(
+                    { [key]: { action: "accept", content: { username: "admin", password: "secret" } } },
+                    key
+                )
             ).toEqual({ accepted: true, fields: { username: "admin", password: "secret" } });
         });
 
@@ -150,7 +152,10 @@ describe("Elicitation (multi-round-trip builders/readers)", () => {
 
         it("filters out non-string field values", () => {
             expect(
-                elicitation.readInput({ [key]: { action: "accept", content: { username: "admin", count: 42, flag: true } } }, key)
+                elicitation.readInput(
+                    { [key]: { action: "accept", content: { username: "admin", count: 42, flag: true } } },
+                    key
+                )
             ).toEqual({ accepted: true, fields: { username: "admin" } });
         });
     });

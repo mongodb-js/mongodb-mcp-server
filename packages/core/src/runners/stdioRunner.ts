@@ -39,7 +39,7 @@ export class StdioRunner implements ITransportRunner {
         this.createServer = createServer;
     }
 
-    async start(): Promise<void> {
+    start(): Promise<void> {
         try {
             this.handle = serveStdio(() => this.createServer(), {
                 onerror: (error: Error) => {
@@ -58,6 +58,7 @@ export class StdioRunner implements ITransportRunner {
             });
             process.exit(1);
         }
+        return Promise.resolve();
     }
 
     /**

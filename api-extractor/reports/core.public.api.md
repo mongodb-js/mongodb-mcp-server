@@ -4,21 +4,25 @@
 
 ```ts
 
-import type { CallToolResult } from '@modelcontextprotocol/server';
+import { CallToolResult } from '@modelcontextprotocol/server';
 import type { ClientCapabilities } from '@modelcontextprotocol/server';
 import type { CloseableTransport } from '@mongodb-js/mcp-types';
 import type { ConnectionMetadata } from '@mongodb-js/mcp-types';
 import type { DefaultEventMap } from '@mongodb-js/mcp-types';
 import type { DefaultMetricDefinitions } from '@mongodb-js/mcp-types';
-import type { ElicitRequestFormParams } from '@modelcontextprotocol/server';
+import { ElicitationInputResponses } from '@mongodb-js/mcp-types';
+import { ElicitedInputResult } from '@mongodb-js/mcp-types';
+import { ElicitRequestSchema } from '@mongodb-js/mcp-types';
 import { EventEmitter } from 'events';
 import type { EventMap } from '@mongodb-js/mcp-types';
 import type { ICompositeLogger } from '@mongodb-js/mcp-types';
-import type { IElicitation } from '@mongodb-js/mcp-types';
+import { IElicitation } from '@mongodb-js/mcp-types';
 import type { IKeychain } from '@mongodb-js/mcp-types';
 import type { ILogger } from '@mongodb-js/mcp-types';
 import type { IMetrics } from '@mongodb-js/mcp-types';
 import type { Implementation } from '@modelcontextprotocol/server';
+import { InputRequiredResult } from '@modelcontextprotocol/server';
+import type { InputResponses } from '@modelcontextprotocol/server';
 import type { IResourceServer } from '@mongodb-js/mcp-types';
 import type { IResourceSession } from '@mongodb-js/mcp-types';
 import type { ISessionStore } from '@mongodb-js/mcp-types';
@@ -35,20 +39,16 @@ import { McpServer } from '@modelcontextprotocol/server';
 import type { MongoLogId } from '@mongodb-js/mcp-types';
 import type { OperationType } from '@mongodb-js/mcp-types';
 import type { PreviewFeature } from '@mongodb-js/mcp-types';
-import type { ProgressToken } from '@modelcontextprotocol/server';
 import type { ReactiveResourceOptions } from '@mongodb-js/mcp-types';
-import type { RequestId } from '@modelcontextprotocol/server';
 import type { ResourceConfiguration } from '@mongodb-js/mcp-types';
 import type { ResourceMetadata } from '@modelcontextprotocol/server';
 import { Secret } from 'mongodb-redact';
-import type { ServerNotification } from '@modelcontextprotocol/server';
 import type { SessionCloseReason } from '@mongodb-js/mcp-types';
 import type { SessionEvents } from '@mongodb-js/mcp-types';
 import type { SessionStoreConstructorArgs } from '@mongodb-js/mcp-types';
-import { StdioServerTransport } from '@modelcontextprotocol/server/stdio';
 import type { SupportedConnectionState } from '@mongodb-js/mcp-types';
 import type { TelemetryToolMetadata } from '@mongodb-js/mcp-types';
-import type { ToolAnnotations } from '@modelcontextprotocol/server';
+import { ToolAnnotations } from '@modelcontextprotocol/server';
 import type { ToolCategory } from '@mongodb-js/mcp-types';
 import type { ToolExecutionContext } from '@mongodb-js/mcp-types';
 import type { Transport } from '@modelcontextprotocol/server';
@@ -67,6 +67,8 @@ export type AnyToolClass = Omit<ToolClass<any, any>, "new"> & {
 
 // @public (undocumented)
 export const ASCII_ONLY_NON_CC_ERROR = "String cannot contain control characters or non-ASCII characters";
+
+export { CallToolResult }
 
 // @public (undocumented)
 export const CommonArgs: {
@@ -95,16 +97,18 @@ export class CompositeLogger extends LoggerBase {
 }
 
 // @public
+export const CONFIRMATION_INPUT_KEY = "confirmation";
+
+// @public
 export function createDefaultSessionStore<TTransport extends CloseableTransport = CloseableTransport, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions>(params: SessionStoreConstructorArgs<TMetrics>): SessionStore<TTransport>;
 
 // @public
 export type CreateSessionStoreFn<TTransport extends CloseableTransport = CloseableTransport, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> = (args: SessionStoreConstructorArgs<TMetrics>) => ISessionStore<TTransport>;
 
-// @public (undocumented)
-export class Elicitation {
+// @public
+export class Elicitation implements IElicitation {
     constructor(input: {
         server: McpServer["server"];
-        timeoutMs: number;
     });
     static CONFIRMATION_SCHEMA: {
         type: "object";
@@ -119,19 +123,18 @@ export class Elicitation {
         };
         required: string[];
     };
-    requestConfirmation(message: string, options?: ElicitationOptions): Promise<boolean>;
-    requestInput(message: string, schema: ElicitRequestFormParams["requestedSchema"], options?: ElicitationOptions): Promise<ElicitedInputResult>;
+    confirmationRequired(message: string): InputRequiredResult;
+    inputRequired(key: string, message: string, schema: ElicitRequestSchema): InputRequiredResult;
+    readConfirmation(inputResponses: ElicitationInputResponses_2): boolean | undefined;
+    readInput(inputResponses: ElicitationInputResponses_2, key: string): ElicitedInputResult | undefined;
     supportsElicitation(): boolean;
 }
 
-// @public (undocumented)
-export type ElicitedInputResult = {
-    accepted: true;
-    fields: Record<string, string>;
-} | {
-    accepted: false;
-    fields?: undefined;
-};
+export { ElicitationInputResponses }
+
+export { ElicitedInputResult }
+
+export { ElicitRequestSchema }
 
 // @public
 export function formatUntrustedData(description: string, ...data: string[]): {
@@ -141,6 +144,8 @@ export function formatUntrustedData(description: string, ...data: string[]): {
 
 // @public
 export function getRandomUUID(): string;
+
+export { IElicitation }
 
 // @public (undocumented)
 export class InMemoryTransport implements Transport {
@@ -164,6 +169,8 @@ export class InMemoryTransport implements Transport {
     // (undocumented)
     start(): Promise<void>;
 }
+
+export { InputRequiredResult }
 
 export { ISessionStore }
 
@@ -450,22 +457,16 @@ export function setManagedTimeout(callback: () => Promise<void> | void, timeoutM
 export function sleep(ms: number): Promise<void>;
 
 // @public
-export class StdioRunner<TServer extends {
-    connect(transport: StdioServerTransport): Promise<void>;
-    close(): Promise<void>;
-} = {
-    connect(transport: StdioServerTransport): Promise<void>;
-    close(): Promise<void>;
-}> implements ITransportRunner {
+export class StdioRunner implements ITransportRunner {
     constructor(input: {
         logger: CompositeLogger;
-        server: TServer;
+        createServer: StdioServerFactory;
     });
     close(): Promise<void>;
     // (undocumented)
-    protected readonly logger: CompositeLogger;
+    protected readonly createServer: StdioServerFactory;
     // (undocumented)
-    protected readonly server: TServer;
+    protected readonly logger: CompositeLogger;
     // (undocumented)
     start(): Promise<void>;
 }
@@ -487,15 +488,14 @@ export abstract class ToolBase<TSession extends IToolSession = IToolSession, TMe
     // (undocumented)
     disable(): void;
     protected readonly elicitation: IElicitation;
-    protected elicitationRelatedRequestId(context: ToolExecutionContext): RequestId | undefined;
     // (undocumented)
     enable(): void;
-    protected abstract execute(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    protected abstract execute(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
     protected getConfirmationMessage(args: ToolArgs<typeof ToolBase.argsShape>): string;
     // (undocumented)
     protected getConnectionInfoMetadata(connectionState?: SupportedConnectionState): ConnectionMetadata;
     protected handleError(error: unknown, args: z.infer<z.ZodObject<typeof ToolBase.argsShape>>): Promise<CallToolResult> | CallToolResult;
-    invoke(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    invoke(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
     // (undocumented)
     isEnabled(): boolean;
     // (undocumented)
@@ -509,7 +509,7 @@ export abstract class ToolBase<TSession extends IToolSession = IToolSession, TMe
     register(server: {
         mcpServer: McpServer;
     }): boolean;
-    protected requestConfirmation(message: string, context: ToolExecutionContext): Promise<boolean>;
+    protected requestConfirmation(message: string, context: ToolExecutionContext): Promise<boolean | undefined>;
     requiresConfirmation(): boolean;
     protected abstract resolveTelemetryMetadata(args: ToolArgs<typeof ToolBase.argsShape>, input: {
         result: CallToolResult;

@@ -184,24 +184,24 @@ describe("ToolBase", () => {
     });
 
     describe("requestConfirmation", () => {
-        it("reads the confirmation answer from the execution context's inputResponses", async () => {
+        it("reads the confirmation answer from the execution context's inputResponses", () => {
             mockReadConfirmation.mockReturnValue(true);
 
             const context: ToolExecutionContext = { signal: new AbortController().signal, requestId: 7 };
-            const result = await testTool["requestConfirmation"]("Custom message", context);
+            const result = testTool["requestConfirmation"]("Custom message", context);
 
             expect(result).toBe(true);
             expect(mockReadConfirmation).toHaveBeenCalledWith(undefined);
         });
 
-        it("passes inputResponses to the read helper", async () => {
+        it("passes inputResponses to the read helper", () => {
             mockReadConfirmation.mockReturnValue(undefined);
             const context: ToolExecutionContext = {
                 signal: new AbortController().signal,
                 requestId: 42,
                 inputResponses: { confirmation: { action: "accept", content: { confirmation: "Yes" } } },
             };
-            const result = await testTool["requestConfirmation"]("confirm?", context);
+            const result = testTool["requestConfirmation"]("confirm?", context);
 
             expect(result).toBeUndefined();
             expect(mockReadConfirmation).toHaveBeenCalledWith(context.inputResponses);

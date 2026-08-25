@@ -4,7 +4,7 @@ import { Keychain } from "@mongodb-js/mcp-core";
 import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import type { IAtlasSession, IAtlasConfig } from "../../atlasTool.js";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
-import type { ITelemetry, IElicitation, ICompositeLogger } from "@mongodb-js/mcp-types";
+import type { ITelemetry, ICompositeLogger } from "@mongodb-js/mcp-types";
 import { ATLAS_REGIONS, GetRegionsArgsShape, GetRegionsTool } from "./getRegions.js";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
@@ -42,8 +42,16 @@ describe("GetRegionsTool", () => {
         } as unknown as ITelemetry;
 
         const mockElicitation = {
-            requestConfirmation: vi.fn(),
-        } as unknown as IElicitation;
+            supportsElicitation: (): boolean => true,
+            readConfirmation: (): boolean | undefined => true,
+            confirmationRequired: (): never => {
+                throw new Error("not implemented");
+            },
+            readInput: (): undefined => undefined,
+            inputRequired: (): never => {
+                throw new Error("not implemented");
+            },
+        };
 
         const params: ToolConstructorParams<IAtlasSession> = {
             name: GetRegionsTool.toolName,

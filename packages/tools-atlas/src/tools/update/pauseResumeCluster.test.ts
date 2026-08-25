@@ -3,7 +3,7 @@ import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { PauseResumeClusterTool, PauseResumeClusterArgsShape } from "./pauseResumeCluster.js";
 import { z } from "zod";
 import type { IAtlasSession, IAtlasConfig } from "../../atlasTool.js";
-import type { ITelemetry, IElicitation, ICompositeLogger } from "@mongodb-js/mcp-types";
+import type { ITelemetry, ICompositeLogger } from "@mongodb-js/mcp-types";
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
@@ -77,8 +77,16 @@ describe("PauseResumeClusterTool", () => {
         } as unknown as ITelemetry;
 
         const mockElicitation = {
-            requestConfirmation: vi.fn(),
-        } as unknown as IElicitation;
+            supportsElicitation: (): boolean => true,
+            readConfirmation: (): boolean | undefined => true,
+            confirmationRequired: (): never => {
+                throw new Error("not implemented");
+            },
+            readInput: (): undefined => undefined,
+            inputRequired: (): never => {
+                throw new Error("not implemented");
+            },
+        };
 
         const params: ToolConstructorParams<IAtlasSession> = {
             name: PauseResumeClusterTool.toolName,

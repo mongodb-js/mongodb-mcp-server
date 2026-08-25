@@ -168,16 +168,16 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
      * return instead of proceeding (null means "continue"). On re-entry the
      * answer is read back from `inputResponses`.
      */
-    protected async confirmWriteStages(
+    protected confirmWriteStages(
         targets: WriteStageTarget[],
         context: ToolExecutionContext
-    ): Promise<InputRequiredResult | null> {
+    ): InputRequiredResult | null {
         if (this.requiresConfirmation()) {
             return null;
         }
 
         const message = buildWriteStageConfirmationMessage(targets);
-        const confirmed = await this.requestConfirmation(message, context);
+        const confirmed = this.requestConfirmation(message, context);
         if (confirmed === undefined) {
             return this.elicitation.confirmationRequired(message);
         }

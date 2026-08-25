@@ -67,7 +67,7 @@ function extractToolInformation(): ToolInfo[] {
                     throw new Error("not implemented");
                 },
                 readInput: () => undefined,
-            } as never,
+            },
             uiRegistry: new UIRegistry(),
             metrics,
         };

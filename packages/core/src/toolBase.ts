@@ -529,7 +529,7 @@ export abstract class ToolBase<
                 // user to confirm; on re-entry the answers are read back from
                 // `inputResponses`. On 2025-era connections the SDK's legacy
                 // shim serves the same return as real server→client requests.
-                const confirmed = await this.requestConfirmation(this.getConfirmationMessage(args), context);
+                const confirmed = this.requestConfirmation(this.getConfirmationMessage(args), context);
                 if (confirmed === undefined) {
                     return this.elicitation.confirmationRequired(this.getConfirmationMessage(args));
                 }
@@ -640,11 +640,8 @@ export abstract class ToolBase<
      * this round carries no answer yet (return
      * {@link IElicitation.confirmationRequired} instead).
      */
-    protected async requestConfirmation(
-        message: string,
-        context: ToolExecutionContext
-    ): Promise<boolean | undefined> {
-        const confirmed = await this.elicitation.readConfirmation(context.inputResponses);
+    protected requestConfirmation(message: string, context: ToolExecutionContext): boolean | undefined {
+        const confirmed = this.elicitation.readConfirmation(context.inputResponses);
         this.session.logger.info({
             id: LogId.toolConfirmationRequested,
             context: "tool",

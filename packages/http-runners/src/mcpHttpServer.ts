@@ -117,15 +117,18 @@ export abstract class MCPHttpServer<
      * transport by {@link isLegacyRequest} instead.
      */
     protected createModernHandler(): McpHttpHandler {
-        return createMcpHandler(async (ctx: McpRequestContext) => {
-            const request: TransportRequestContext = {
-                headers: Object.fromEntries(ctx.requestInfo?.headers ?? []),
-                query: ctx.requestInfo?.url
-                    ? Object.fromEntries(new URL(ctx.requestInfo.url).searchParams)
-                    : undefined,
-            };
-            return this.createModernServerInstance(request);
-        }, { legacy: "reject" });
+        return createMcpHandler(
+            async (ctx: McpRequestContext) => {
+                const request: TransportRequestContext = {
+                    headers: Object.fromEntries(ctx.requestInfo?.headers ?? []),
+                    query: ctx.requestInfo?.url
+                        ? Object.fromEntries(new URL(ctx.requestInfo.url).searchParams)
+                        : undefined,
+                };
+                return this.createModernServerInstance(request);
+            },
+            { legacy: "reject" }
+        );
     }
 
     /**

@@ -3,7 +3,7 @@ import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { CreateClusterTool, CreateClusterArgsShape } from "./createCluster.js";
 import { z } from "zod";
 import type { IAtlasSession } from "../../atlasTool.js";
-import type { ITelemetry, IElicitation, ICompositeLogger } from "@mongodb-js/mcp-types";
+import type { ITelemetry, ICompositeLogger, CallToolResult } from "@mongodb-js/mcp-types";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
@@ -63,8 +63,16 @@ describe("CreateClusterTool", () => {
         } as unknown as ITelemetry;
 
         const mockElicitation = {
-            requestConfirmation: vi.fn(),
-        } as unknown as IElicitation;
+            supportsElicitation: (): boolean => true,
+            readConfirmation: (): boolean | undefined => true,
+            confirmationRequired: (): never => {
+                throw new Error("not implemented");
+            },
+            readInput: (): undefined => undefined,
+            inputRequired: (): never => {
+                throw new Error("not implemented");
+            },
+        };
 
         const params: ToolConstructorParams<IAtlasSession> = {
             name: CreateClusterTool.toolName,
@@ -80,9 +88,13 @@ describe("CreateClusterTool", () => {
         return new CreateClusterTool(params);
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    const exec = (args: Record<string, unknown>) =>
-        tool["invoke"](z.object(CreateClusterArgsShape).strict().parse(tool.normalizeRawArgs(args)), {} as never);
+    // The invoke() result is narrowed to CallToolResult in these tests: the
+    // tools under test never return input_required.
+    const exec = async (args: Record<string, unknown>): Promise<CallToolResult> =>
+        (await tool["invoke"](
+            z.object(CreateClusterArgsShape).strict().parse(tool.normalizeRawArgs(args)),
+            {} as never
+        )) as CallToolResult;
 
     beforeEach(() => {
         tool = buildTool();

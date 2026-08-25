@@ -5,7 +5,7 @@
 ```ts
 
 import type { AggregationCursor } from 'mongodb';
-import type { CallToolResult } from '@modelcontextprotocol/server';
+import { CallToolResult } from '@modelcontextprotocol/server';
 import type { Client } from '@mongodb-js/atlas-local';
 import { CliOptions } from '@mongosh/arg-parser';
 import { ConnectionInfo as ConnectionInfo_2 } from '@mongosh/arg-parser';
@@ -15,15 +15,14 @@ import type { ElicitRequestFormParams } from '@modelcontextprotocol/server';
 import { EventEmitter } from 'events';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
+import { InputRequiredResult } from '@modelcontextprotocol/server';
+import type { InputResponses } from '@modelcontextprotocol/server';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/server';
 import { McpServer } from '@modelcontextprotocol/server';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
-import type { ProgressToken } from '@modelcontextprotocol/server';
-import type { RequestId } from '@modelcontextprotocol/server';
 import type { RequestMeta } from '@modelcontextprotocol/server';
 import type { Secret } from 'mongodb-redact';
-import type { ServerNotification } from '@modelcontextprotocol/server';
-import type { ToolAnnotations } from '@modelcontextprotocol/server';
+import { ToolAnnotations } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import { ZodRawShape } from 'zod';
 import { ZodString } from 'zod';
@@ -43,7 +42,7 @@ export class AggregateDBTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof AggregateDBTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof AggregateDBTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof AggregateDBTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof AggregateDBTool.outputSchema> | InputRequiredResult>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -99,7 +98,7 @@ export class AggregateTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof AggregateTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof AggregateTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof AggregateTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof AggregateTool.outputSchema> | InputRequiredResult>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -905,8 +904,8 @@ export class CreateClusterTool extends AtlasToolBase {
         clusterName: z.ZodString;
         provider: z.ZodEnum<{
             AWS: "AWS";
-            GCP: "GCP";
             AZURE: "AZURE";
+            GCP: "GCP";
         }>;
         regions: z.ZodArray<z.ZodString>;
         clusterType: z.ZodDefault<z.ZodEnum<{
@@ -937,8 +936,8 @@ export class CreateClusterTool extends AtlasToolBase {
         terminationProtectionEnabled: z.ZodDefault<z.ZodBoolean>;
         encryptionAtRestProvider: z.ZodOptional<z.ZodEnum<{
             AWS: "AWS";
-            GCP: "GCP";
             AZURE: "AZURE";
+            GCP: "GCP";
             NONE: "NONE";
         }>>;
     };
@@ -958,8 +957,8 @@ export class CreateClusterTool extends AtlasToolBase {
         clusterId: z.ZodOptional<z.ZodString>;
         provider: z.ZodEnum<{
             AWS: "AWS";
-            GCP: "GCP";
             AZURE: "AZURE";
+            GCP: "GCP";
         }>;
         regions: z.ZodArray<z.ZodString>;
         instanceSize: z.ZodEnum<{
@@ -990,8 +989,8 @@ export class CreateClusterTool extends AtlasToolBase {
         diskSizeGB: z.ZodOptional<z.ZodNumber>;
         encryptionAtRestProvider: z.ZodEnum<{
             AWS: "AWS";
-            GCP: "GCP";
             AZURE: "AZURE";
+            GCP: "GCP";
             NONE: "NONE";
         }>;
     };
@@ -1793,8 +1792,8 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
         clusterName: z.ZodString;
         operations: z.ZodDefault<z.ZodArray<z.ZodEnum<{
             suggestedIndexes: "suggestedIndexes";
-            slowQueryLogs: "slowQueryLogs";
             dropIndexSuggestions: "dropIndexSuggestions";
+            slowQueryLogs: "slowQueryLogs";
             schemaSuggestions: "schemaSuggestions";
         }>>>;
         since: z.ZodOptional<z.ZodString>;
@@ -1835,8 +1834,8 @@ export class GetRegionsTool extends AtlasToolBase {
     argsShape: {
         provider: z.ZodEnum<{
             AWS: "AWS";
-            GCP: "GCP";
             AZURE: "AZURE";
+            GCP: "GCP";
         }>;
     };
     // (undocumented)
@@ -1849,8 +1848,8 @@ export class GetRegionsTool extends AtlasToolBase {
     outputSchema: {
         provider: z.ZodEnum<{
             AWS: "AWS";
-            GCP: "GCP";
             AZURE: "AZURE";
+            GCP: "GCP";
         }>;
         regions: z.ZodArray<z.ZodObject<{
             name: z.ZodString;
@@ -2058,8 +2057,8 @@ export class InspectClusterTool extends AtlasToolBase {
     outputSchema: {
         name: z.ZodString;
         instanceType: z.ZodEnum<{
-            FREE: "FREE";
             DEDICATED: "DEDICATED";
+            FREE: "FREE";
             FLEX: "FLEX";
         }>;
         instanceSize: z.ZodString;
@@ -2181,8 +2180,8 @@ export class ListClustersTool extends AtlasToolBase {
         }, z.core.$strip>, z.ZodObject<{
             name: z.ZodOptional<z.ZodString>;
             instanceType: z.ZodEnum<{
-                FREE: "FREE";
                 DEDICATED: "DEDICATED";
+                FREE: "FREE";
                 FLEX: "FLEX";
             }>;
             instanceSize: z.ZodOptional<z.ZodString>;
@@ -2538,7 +2537,7 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
     // (undocumented)
     static category: ToolCategory;
     protected get config(): IMongoDBConfig;
-    protected confirmWriteStages(targets: WriteStageTarget[], context: ToolExecutionContext): Promise<void>;
+    protected confirmWriteStages(targets: WriteStageTarget[], context: ToolExecutionContext): Promise<InputRequiredResult | null>;
     protected getOperationOptions(signal?: AbortSignal): {
         signal?: AbortSignal;
         maxTimeMS?: number;
@@ -2643,8 +2642,8 @@ export const previewFeatureValues: readonly ["mcpUI"];
 export const PrivateLinkConfig: z.ZodObject<{
     provider: z.ZodEnum<{
         AWS: "AWS";
-        GCP: "GCP";
         AZURE: "AZURE";
+        GCP: "GCP";
     }>;
     region: z.ZodOptional<z.ZodString>;
     vendor: z.ZodOptional<z.ZodString>;
@@ -2774,8 +2773,8 @@ export class StreamsBuildTool extends StreamsToolBase {
         workspaceName: z.ZodOptional<z.ZodString>;
         cloudProvider: z.ZodOptional<z.ZodEnum<{
             AWS: "AWS";
-            GCP: "GCP";
             AZURE: "AZURE";
+            GCP: "GCP";
         }>>;
         region: z.ZodOptional<z.ZodString>;
         tier: z.ZodOptional<z.ZodEnum<{
@@ -2858,8 +2857,8 @@ export class StreamsBuildTool extends StreamsToolBase {
         privateLinkConfig: z.ZodOptional<z.ZodObject<{
             provider: z.ZodEnum<{
                 AWS: "AWS";
-                GCP: "GCP";
                 AZURE: "AZURE";
+                GCP: "GCP";
             }>;
             region: z.ZodOptional<z.ZodString>;
             vendor: z.ZodOptional<z.ZodString>;
@@ -2874,7 +2873,7 @@ export class StreamsBuildTool extends StreamsToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof StreamsBuildTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    protected execute(args: ToolArgs<typeof StreamsBuildTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -3197,15 +3196,14 @@ export abstract class ToolBase<TSession extends IToolSession = IToolSession, TMe
     // (undocumented)
     disable(): void;
     protected readonly elicitation: IElicitation;
-    protected elicitationRelatedRequestId(context: ToolExecutionContext): RequestId | undefined;
     // (undocumented)
     enable(): void;
-    protected abstract execute(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    protected abstract execute(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
     protected getConfirmationMessage(args: ToolArgs<typeof ToolBase.argsShape>): string;
     // (undocumented)
     protected getConnectionInfoMetadata(connectionState?: SupportedConnectionState): ConnectionMetadata;
     protected handleError(error: unknown, args: z.infer<z.ZodObject<typeof ToolBase.argsShape>>): Promise<CallToolResult> | CallToolResult;
-    invoke(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    invoke(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
     // (undocumented)
     isEnabled(): boolean;
     // (undocumented)
@@ -3219,7 +3217,7 @@ export abstract class ToolBase<TSession extends IToolSession = IToolSession, TMe
     register(server: {
         mcpServer: McpServer;
     }): boolean;
-    protected requestConfirmation(message: string, context: ToolExecutionContext): Promise<boolean>;
+    protected requestConfirmation(message: string, context: ToolExecutionContext): Promise<boolean | undefined>;
     requiresConfirmation(): boolean;
     protected abstract resolveTelemetryMetadata(args: ToolArgs<typeof ToolBase.argsShape>, input: {
         result: CallToolResult;
@@ -3264,6 +3262,7 @@ export type ToolExecutionContext = {
     _meta?: RequestMeta;
     requestId?: string | number;
     sendNotification?: (notification: unknown) => Promise<void>;
+    inputResponses?: Record<string, unknown>;
     elicitationDurationMs?: number;
 };
 
@@ -3340,8 +3339,8 @@ export class UpgradeClusterTool extends AtlasToolBase {
             M50: "M50";
             M60: "M60";
             M80: "M80";
-            M200: "M200";
             M140: "M140";
+            M200: "M200";
         }>>;
         provider: z.ZodOptional<z.ZodString>;
         region: z.ZodOptional<z.ZodString>;
