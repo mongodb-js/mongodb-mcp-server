@@ -523,12 +523,14 @@ export abstract class ToolBase<
         };
 
         try {
-            if (this.requiresConfirmation()) {
+            if (this.requiresConfirmation() && this.elicitation.supportsElicitation()) {
                 // Multi-round-trip elicitation (protocol revision 2026-07-28):
                 // the first entry returns an `inputRequired` result asking the
                 // user to confirm; on re-entry the answers are read back from
                 // `inputResponses`. On 2025-era connections the SDK's legacy
                 // shim serves the same return as real server→client requests.
+                // Clients that do not declare elicitation support proceed
+                // without prompting.
                 const confirmed = this.requestConfirmation(this.getConfirmationMessage(args), context);
                 if (confirmed === undefined) {
                     return this.elicitation.confirmationRequired(this.getConfirmationMessage(args));

@@ -1589,8 +1589,8 @@ export class ExplainTool extends MongoDBToolBase {
         explainResult: z.ZodRecord<z.ZodString, z.ZodUnknown>;
         method: z.ZodEnum<{
             find: "find";
-            count: "count";
             aggregate: "aggregate";
+            count: "count";
         }>;
         verbosity: z.ZodEnum<{
             queryPlanner: "queryPlanner";
@@ -2537,7 +2537,7 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
     // (undocumented)
     static category: ToolCategory;
     protected get config(): IMongoDBConfig;
-    protected confirmWriteStages(targets: WriteStageTarget[], context: ToolExecutionContext): Promise<InputRequiredResult | null>;
+    protected confirmWriteStages(targets: WriteStageTarget[], context: ToolExecutionContext): InputRequiredResult | null;
     protected getOperationOptions(signal?: AbortSignal): {
         signal?: AbortSignal;
         maxTimeMS?: number;
@@ -2765,30 +2765,30 @@ export class StreamsBuildTool extends StreamsToolBase {
     argsShape: {
         projectId: z.ZodString;
         resource: z.ZodEnum<{
-            processor: "processor";
             workspace: "workspace";
             connection: "connection";
+            processor: "processor";
             privatelink: "privatelink";
         }>;
         workspaceName: z.ZodOptional<z.ZodString>;
         cloudProvider: z.ZodOptional<z.ZodEnum<{
             AWS: "AWS";
-            AZURE: "AZURE";
             GCP: "GCP";
+            AZURE: "AZURE";
         }>>;
         region: z.ZodOptional<z.ZodString>;
         tier: z.ZodOptional<z.ZodEnum<{
-            SP50: "SP50";
-            SP30: "SP30";
-            SP10: "SP10";
-            SP5: "SP5";
             SP2: "SP2";
+            SP5: "SP5";
+            SP10: "SP10";
+            SP30: "SP30";
+            SP50: "SP50";
         }>>;
         includeSampleData: z.ZodOptional<z.ZodBoolean>;
         connectionName: z.ZodOptional<z.ZodString>;
         connectionType: z.ZodOptional<z.ZodEnum<{
-            Cluster: "Cluster";
             Kafka: "Kafka";
+            Cluster: "Cluster";
             S3: "S3";
             Https: "Https";
             AWSKinesisDataStreams: "AWSKinesisDataStreams";
@@ -2819,8 +2819,8 @@ export class StreamsBuildTool extends StreamsToolBase {
             dbRoleToExecute: z.ZodOptional<z.ZodObject<{
                 role: z.ZodOptional<z.ZodString>;
                 type: z.ZodOptional<z.ZodEnum<{
-                    CUSTOM: "CUSTOM";
                     BUILT_IN: "BUILT_IN";
+                    CUSTOM: "CUSTOM";
                 }>>;
             }, z.core.$strip>>;
             aws: z.ZodOptional<z.ZodObject<{
@@ -2857,8 +2857,8 @@ export class StreamsBuildTool extends StreamsToolBase {
         privateLinkConfig: z.ZodOptional<z.ZodObject<{
             provider: z.ZodEnum<{
                 AWS: "AWS";
-                AZURE: "AZURE";
                 GCP: "GCP";
+                AZURE: "AZURE";
             }>;
             region: z.ZodOptional<z.ZodString>;
             vendor: z.ZodOptional<z.ZodString>;
@@ -2879,9 +2879,9 @@ export class StreamsBuildTool extends StreamsToolBase {
     // (undocumented)
     outputSchema: {
         resource: z.ZodEnum<{
-            processor: "processor";
             workspace: "workspace";
             connection: "connection";
+            processor: "processor";
             privatelink: "privatelink";
         }>;
     };
@@ -3217,7 +3217,7 @@ export abstract class ToolBase<TSession extends IToolSession = IToolSession, TMe
     register(server: {
         mcpServer: McpServer;
     }): boolean;
-    protected requestConfirmation(message: string, context: ToolExecutionContext): Promise<boolean | undefined>;
+    protected requestConfirmation(message: string, context: ToolExecutionContext): boolean | undefined;
     requiresConfirmation(): boolean;
     protected abstract resolveTelemetryMetadata(args: ToolArgs<typeof ToolBase.argsShape>, input: {
         result: CallToolResult;

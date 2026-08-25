@@ -172,7 +172,7 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
         targets: WriteStageTarget[],
         context: ToolExecutionContext
     ): InputRequiredResult | null {
-        if (this.requiresConfirmation()) {
+        if (this.requiresConfirmation() || !this.elicitation.supportsElicitation()) {
             return null;
         }
 

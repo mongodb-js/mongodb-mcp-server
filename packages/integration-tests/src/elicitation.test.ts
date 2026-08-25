@@ -35,11 +35,13 @@ describe("Elicitation Integration Tests", () => {
                     });
 
                     expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
-                    expect(mockElicitInput.mock).toHaveBeenCalledWith({
-                        message: expect.stringContaining("You are about to drop the **test\\-db** database"),
-                        requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
-                        mode: "form",
-                    } as never);
+                    expect(mockElicitInput.mock).toHaveBeenCalledWith(
+                        expect.objectContaining({
+                            message: expect.stringContaining("You are about to drop the **test\\-db** database"),
+                            requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
+                            mode: "form",
+                        }) as never
+                    );
 
                     // Should attempt to execute (will fail due to no connection, but confirms flow worked)
                     expect(result.isError).toBe(true);
@@ -84,11 +86,15 @@ describe("Elicitation Integration Tests", () => {
                     });
 
                     expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
-                    expect(mockElicitInput.mock).toHaveBeenCalledWith({
-                        message: expect.stringContaining("You are about to drop the **test\\-collection** collection"),
-                        requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
-                        mode: "form",
-                    } as never);
+                    expect(mockElicitInput.mock).toHaveBeenCalledWith(
+                        expect.objectContaining({
+                            message: expect.stringContaining(
+                                "You are about to drop the **test\\-collection** collection"
+                            ),
+                            requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
+                            mode: "form",
+                        }) as never
+                    );
                 });
 
                 it("escapes markdown special characters in drop-collection names", async () => {
@@ -121,11 +127,13 @@ describe("Elicitation Integration Tests", () => {
                     });
 
                     expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
-                    expect(mockElicitInput.mock).toHaveBeenCalledWith({
-                        message: expect.stringContaining("You are about to delete documents"),
-                        requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
-                        mode: "form",
-                    } as never);
+                    expect(mockElicitInput.mock).toHaveBeenCalledWith(
+                        expect.objectContaining({
+                            message: expect.stringContaining("You are about to delete documents"),
+                            requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
+                            mode: "form",
+                        }) as never
+                    );
                 });
 
                 it("should request confirmation for create-db-user tool", async () => {
@@ -141,11 +149,13 @@ describe("Elicitation Integration Tests", () => {
                     });
 
                     expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
-                    expect(mockElicitInput.mock).toHaveBeenCalledWith({
-                        message: expect.stringContaining("You are about to create a database user"),
-                        requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
-                        mode: "form",
-                    } as never);
+                    expect(mockElicitInput.mock).toHaveBeenCalledWith(
+                        expect.objectContaining({
+                            message: expect.stringContaining("You are about to create a database user"),
+                            requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
+                            mode: "form",
+                        }) as never
+                    );
                 });
 
                 it("should request confirmation for create-access-list tool", async () => {
@@ -160,13 +170,15 @@ describe("Elicitation Integration Tests", () => {
                     });
 
                     expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
-                    expect(mockElicitInput.mock).toHaveBeenCalledWith({
-                        message: expect.stringContaining(
-                            "You are about to add the following entries to the access list"
-                        ),
-                        requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
-                        mode: "form",
-                    } as never);
+                    expect(mockElicitInput.mock).toHaveBeenCalledWith(
+                        expect.objectContaining({
+                            message: expect.stringContaining(
+                                "You are about to add the following entries to the access list"
+                            ),
+                            requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
+                            mode: "form",
+                        }) as never
+                    );
                 });
             });
 
@@ -244,13 +256,15 @@ describe("Elicitation Integration Tests", () => {
                 });
 
                 expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
-                expect(mockElicitInput.mock).toHaveBeenCalledWith({
-                    message: expect.stringMatching(
-                        /You are about to execute the `list-databases` tool which requires additional confirmation. Would you like to proceed\?/
-                    ),
-                    requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
-                    mode: "form",
-                } as never);
+                expect(mockElicitInput.mock).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        message: expect.stringMatching(
+                            /You are about to execute the `list-databases` tool which requires additional confirmation. Would you like to proceed\?/
+                        ),
+                        requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
+                        mode: "form",
+                    }) as never
+                );
             });
 
             it("should not request confirmation when tool is removed from default confirmationRequiredTools", async () => {
@@ -290,11 +304,13 @@ describe("Elicitation Integration Tests", () => {
                     },
                 });
 
-                expect(mockElicitInput.mock).toHaveBeenCalledWith({
-                    message: expect.stringMatching(/project.*507f1f77bcf86cd799439011/),
-                    requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
-                    mode: "form",
-                } as never);
+                expect(mockElicitInput.mock).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        message: expect.stringMatching(/project.*507f1f77bcf86cd799439011/),
+                        requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
+                        mode: "form",
+                    }) as never
+                );
             });
 
             it("should include filter details in delete-many confirmation", async () => {
@@ -310,11 +326,13 @@ describe("Elicitation Integration Tests", () => {
                     },
                 });
 
-                expect(mockElicitInput.mock).toHaveBeenCalledWith({
-                    message: expect.stringMatching(/mydb.*database/),
-                    requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
-                    mode: "form",
-                } as never);
+                expect(mockElicitInput.mock).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        message: expect.stringMatching(/mydb.*database/),
+                        requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
+                        mode: "form",
+                    }) as never
+                );
             });
         },
         {

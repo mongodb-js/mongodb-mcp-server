@@ -588,6 +588,12 @@ export class StreamsBuildTool extends StreamsToolBase {
         applyFields: (fields: Record<string, string>, config: Record<string, unknown>) => void,
         additionalNote?: string
     ): CallToolResult | InputRequiredResult | null {
+        // Clients that do not declare elicitation support cannot answer
+        // embedded requests: report the missing fields instead of eliciting.
+        if (!this.elicitation.supportsElicitation()) {
+            return StreamsBuildTool.missingFieldsResponse(connectionType, missingFields, additionalNote);
+        }
+
         const schema = StreamsBuildTool.buildElicitationSchema(connectionType, missingFields);
 
         // Re-entry: apply the answers from the previous `input_required` round

@@ -289,7 +289,6 @@ function createServerFromConfig(config: UserConfig): {
       telemetry: new NoopTelemetry(),
       elicitation: new Elicitation({
         server: mcpServer.server,
-        timeoutMs: config.elicitationTimeoutMs ?? 30_000,
       }),
       connectionErrorHandler,
       metrics,
@@ -459,16 +458,16 @@ const standard = [...MongoDBTools, ...AtlasTools, ...AtlasLocalTools];
 
 ### `@mongodb-js/mcp-core`
 
-| Symbol                                                                                            | Description                    |
-| ------------------------------------------------------------------------------------------------- | ------------------------------ |
-| `ToolBase`, `ToolClass`, `ToolConstructorParams`, `ToolArgs`, `ToolResult`, `formatUntrustedData` | Custom tool authoring          |
-| `StdioRunner({ logger, server })`                                                                 | Stdio transport runner         |
-| `InMemoryTransport`                                                                               | In-memory transport for tests  |
-| `SessionStore`, `createDefaultSessionStore`                                                       | HTTP session store             |
-| `Keychain`, `registerGlobalSecretToRedact`, `redactValues`                                        | Secret storage/redaction       |
-| `Elicitation`                                                                                     | User confirmation requests     |
-| `NoopLogger`, `NoopTelemetry`, `LoggerBase`, `CompositeLogger`                                    | Logging/telemetry primitives   |
-| `McpServer` (re-export)                                                                           | `@modelcontextprotocol/server` |
+| Symbol                                                                                            | Description                                                                                    |
+| ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `ToolBase`, `ToolClass`, `ToolConstructorParams`, `ToolArgs`, `ToolResult`, `formatUntrustedData` | Custom tool authoring                                                                          |
+| `StdioRunner({ logger, createServer })`                                                           | Stdio transport runner (`serveStdio`; `createServer` returns a registered `McpServer`)         |
+| `InMemoryTransport`                                                                               | In-memory transport for tests                                                                  |
+| `SessionStore`, `createDefaultSessionStore`                                                       | HTTP session store                                                                             |
+| `Keychain`, `registerGlobalSecretToRedact`, `redactValues`                                        | Secret storage/redaction                                                                       |
+| `Elicitation`                                                                                     | Multi-round-trip user confirmation/input (`inputRequired` builders + `inputResponses` readers) |
+| `NoopLogger`, `NoopTelemetry`, `LoggerBase`, `CompositeLogger`                                    | Logging/telemetry primitives                                                                   |
+| `McpServer` (re-export)                                                                           | `@modelcontextprotocol/server`                                                                 |
 
 ### `@mongodb-js/mcp-http-runners`
 
@@ -498,13 +497,20 @@ const standard = [...MongoDBTools, ...AtlasTools, ...AtlasLocalTools];
 
 ### Transports
 
-**Stdio:**
+**Stdio:** `StdioRunner` serves through the SDK's `serveStdio` entry (protocol revision 2026-07-28 and the 2025-era protocol). It takes a `createServer` factory that returns a **registered** `McpServer` (one per stdio connection):
 
 ```typescript
 import { StdioRunner } from "@mongodb-js/mcp-core";
-import { CliServer } from "@mongodb-js/mcp-cli";
+import { createServerFromConfig } from "@mongodb-js/mcp-cli";
 
-const runner = new StdioRunner({ logger, server: cliServer });
+const runner = new StdioRunner({
+  logger,
+  createServer: async () => {
+    const server = createServerFromConfig({ config, sharedServices });
+    await server.register(); // register tools/resources/capabilities without a transport
+    return server.mcpServer;
+  },
+});
 await runner.start();
 ```
 
