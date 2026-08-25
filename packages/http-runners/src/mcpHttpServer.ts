@@ -1,6 +1,12 @@
-import { isInitializeRequest } from "@modelcontextprotocol/server";
-import type { ClientCapabilities, Implementation } from "@modelcontextprotocol/server";
-import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
+import { isInitializeRequest, createMcpHandler, isLegacyRequest } from "@modelcontextprotocol/server";
+import type {
+    ClientCapabilities,
+    Implementation,
+    McpHttpHandler,
+    McpRequestContext,
+    McpServer,
+} from "@modelcontextprotocol/server";
+import { NodeStreamableHTTPServerTransport, toNodeHandler, toWebRequest } from "@modelcontextprotocol/node";
 import express from "express";
 import type {
     ICompositeLogger,
@@ -53,6 +59,11 @@ export type MCPHttpServerOptions<TMetrics extends DefaultMetricDefinitions = Def
 /**
  * HTTP server that handles MCP requests over HTTP using the Streamable HTTP transport.
  *
+ * Serves protocol revision 2026-07-28 through the SDK's `createMcpHandler`
+ * entry (via {@link createModernHandler}) and keeps serving 2025-era clients
+ * through the established sessionful `NodeStreamableHTTPServerTransport`
+ * wiring, routing each POST with the `isLegacyRequest` predicate — the
+ * pattern the migration guide prescribes for sessionful legacy setups.
  *
  * @example
  * ```typescript
@@ -68,6 +79,8 @@ export abstract class MCPHttpServer<
     TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > extends ExpressBasedHttpServer {
     private readonly sessionStore: ISessionStore<NodeStreamableHTTPServerTransport>;
+    /** The 2026-07-28 serving entry; modern requests are routed here. */
+    private readonly modernHandler: McpHttpHandler;
     public readonly sessionOptions: SessionManagementOptions;
     protected readonly metrics: IMetrics<TMetrics>;
     private readonly pendingInitializations = new Map<string, Promise<void>>();
@@ -83,10 +96,11 @@ export abstract class MCPHttpServer<
         this.sessionOptions = options.session;
         this.metrics = metrics;
         this.sessionStore = sessionStore;
+        this.modernHandler = this.createModernHandler();
     }
 
     public async stop(): Promise<void> {
-        await Promise.all([this.sessionStore.closeAllSessions(), super.stop()]);
+        await Promise.all([this.sessionStore.closeAllSessions(), this.modernHandler.close(), super.stop()]);
     }
 
     /**
@@ -94,6 +108,36 @@ export abstract class MCPHttpServer<
      * in subclasses to customize per-request server creation.
      */
     protected abstract createServerForRequest(request: TransportRequestContext): Promise<TServer>;
+
+    /**
+     * Builds the 2026-07-28 serving entry. One factory backs every request:
+     * it constructs a fresh server per request, registers it, and hands the
+     * underlying {@link McpServer} to `createMcpHandler`. `legacy: 'reject'`
+     * makes the entry strict — 2025-era traffic is routed to the sessionful
+     * transport by {@link isLegacyRequest} instead.
+     */
+    protected createModernHandler(): McpHttpHandler {
+        return createMcpHandler(async (ctx: McpRequestContext) => {
+            const request: TransportRequestContext = {
+                headers: Object.fromEntries(ctx.requestInfo?.headers ?? []),
+                query: ctx.requestInfo?.url
+                    ? Object.fromEntries(new URL(ctx.requestInfo.url).searchParams)
+                    : undefined,
+            };
+            return this.createModernServerInstance(request);
+        }, { legacy: "reject" });
+    }
+
+    /**
+     * Builds a registered {@link McpServer} for one modern (2026-07-28) HTTP
+     * request. The default adapts {@link createServerForRequest}; subclasses
+     * override when the modern server needs different construction.
+     */
+    protected async createModernServerInstance(request: TransportRequestContext): Promise<McpServer> {
+        const server = await this.createServerForRequest(request);
+        await server.register?.();
+        return server.mcpServer as unknown as McpServer;
+    }
 
     private reportSessionError(res: express.Response, errorCode: number): void {
         let message: string;
@@ -484,6 +528,19 @@ export abstract class MCPHttpServer<
         this.app.post(
             "/mcp",
             this.withErrorHandling(async (req: express.Request, res: express.Response) => {
+                // Modern (2026-07-28) requests carry the per-request `_meta`
+                // envelope claim; the sessionful transport serves only the
+                // 2025-era protocol, so route those to the modern handler.
+                const webRequest = await toWebRequest(req, req.body);
+                if (!(await isLegacyRequest(webRequest, req.body))) {
+                    await toNodeHandler({ fetch: (request, opts) => this.modernHandler.fetch(request, opts) })(
+                        req,
+                        res,
+                        req.body
+                    );
+                    return;
+                }
+
                 const sessionId = req.headers["mcp-session-id"];
                 if (sessionId && typeof sessionId !== "string") {
                     return this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_INVALID);

@@ -10,6 +10,13 @@ import type { ICompositeLogger } from "./logging.js";
  */
 export type SessionServer<TTransport extends Transport = Transport> = {
     connect(transport: TTransport): Promise<void>;
+    /**
+     * Registers resources, capabilities, tools, request handlers and lifecycle
+     * hooks on the underlying MCP server without connecting it to a transport.
+     * Required by the 2026-07-28 serving entries (`serveStdio`,
+     * `createMcpHandler`), which build/register instances through a factory.
+     */
+    register?(): Promise<void>;
     close(): Promise<void>;
     session: {
         logger: ICompositeLogger;

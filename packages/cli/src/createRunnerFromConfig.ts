@@ -13,7 +13,7 @@ export { createServerFromConfig, createSharedServicesFromConfig } from "./create
 export type { SharedServerServices, CreateServerServicesOptions } from "./createServerServices.js";
 export { CliMcpHttpServer, createHttpTransportRunnerFromConfig } from "./cliMcpHttpServer.js";
 
-/** Runner for the configured transport: one server for stdio, per-request servers for http. */
+/** Runner for the configured transport: one server per stdio connection, per-request servers for http. */
 export async function createRunnerFromConfig(
     options: CreateRunnerFromConfigOptions
 ): Promise<StdioRunner | StreamableHttpRunner> {
@@ -21,8 +21,16 @@ export async function createRunnerFromConfig(
     const sharedServices = await createSharedServicesFromConfig(options);
 
     if (config.transport === "stdio") {
-        const server = createServerFromConfig({ config, sharedServices });
-        return new StdioRunner({ logger: sharedServices.logger, server });
+        // The factory is invoked per stdio connection (serveStdio may build a
+        // discarded probe instance first), so each call registers a fresh server.
+        return new StdioRunner({
+            logger: sharedServices.logger,
+            createServer: async () => {
+                const server = createServerFromConfig({ config, sharedServices });
+                await server.register();
+                return server.mcpServer;
+            },
+        });
     }
     return createHttpTransportRunnerFromConfig(sharedServices);
 }

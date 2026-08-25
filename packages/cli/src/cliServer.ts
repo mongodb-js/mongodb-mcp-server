@@ -123,6 +123,12 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
     private readonly startTime: number;
     private readonly subscriptions = new Set<string>();
 
+    /** Guard against double-close of session-scoped resources. */
+    private closed = false;
+
+    /** Whether {@link register} has run (guards against repeated registration). */
+    private registered = false;
+
     constructor({
         session,
         mcpServer,
@@ -152,6 +158,24 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
     }
 
     async connect(transport: Transport): Promise<void> {
+        await this.register();
+        await this.mcpServer.connect(transport);
+    }
+
+    /**
+     * Registers resources, capabilities, tools, request handlers and lifecycle
+     * hooks on the underlying {@link McpServer}, without connecting it to any
+     * transport.
+     *
+     * Idempotent: the 2026-07-28 serving entries (`serveStdio`,
+     * `createMcpHandler`) build one instance per connection/request through a
+     * factory and call this before handing the `McpServer` to the entry, while
+     * the legacy sessionful HTTP path calls it through {@link connect}.
+     */
+    async register(): Promise<void> {
+        if (this.registered) {
+            return;
+        }
         await this.validateConfig();
         // Register resources after the server is initialized so they can listen to events like
         // connection events.
@@ -228,7 +252,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
             this.session.logger.info({
                 id: LogId.serverInitialized,
                 context: "server",
-                message: `Server with version ${this.serverMetadata.version} started with transport ${transport.constructor.name} and agent runner ${JSON.stringify(this.session.mcpClient)}`,
+                message: `Server with version ${this.serverMetadata.version} started and agent runner ${JSON.stringify(this.session.mcpClient)}`,
             });
 
             this.emitServerTelemetryEvent("start", Date.now() - this.startTime);
@@ -237,20 +261,37 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
         this.mcpServer.server.onclose = (): void => {
             const closeTime = Date.now();
             this.emitServerTelemetryEvent("stop", Date.now() - closeTime);
+            // The 2026-07-28 serving entries own the instance lifecycle and close
+            // only the McpServer; release session-scoped resources (telemetry,
+            // session/registry) alongside it.
+            void this.closeResources();
         };
 
         this.mcpServer.server.onerror = (error: Error): void => {
             const closeTime = Date.now();
             this.emitServerTelemetryEvent("stop", Date.now() - closeTime, error);
+            void this.closeResources();
         };
 
-        await this.mcpServer.connect(transport);
+        this.registered = true;
     }
 
+    /**
+     * Closes session-scoped resources exactly once: telemetry, the session
+     * (registry, API client, exports manager) and the McpServer itself.
+     */
     async close(): Promise<void> {
+        await this.closeResources();
+        await this.mcpServer.close();
+    }
+
+    private async closeResources(): Promise<void> {
+        if (this.closed) {
+            return;
+        }
+        this.closed = true;
         await this.telemetry.close();
         await this.session.close();
-        await this.mcpServer.close();
     }
 
     public sendResourceListChanged(): void {
