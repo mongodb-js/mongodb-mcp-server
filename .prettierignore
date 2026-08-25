@@ -1,6 +1,7 @@
 dist
 node_modules
 *.lock
+.pi/todos/
 resources/
 packages/ui/src/lib/tools/*
 packages/ui/src/lib/loaders.ts
