@@ -800,9 +800,9 @@ export const ConnectionSummarySchema: z.ZodObject<{
         explicit: "explicit";
     }>;
     state: z.ZodOptional<z.ZodEnum<{
-        disconnected: "disconnected";
         connected: "connected";
         connecting: "connecting";
+        disconnected: "disconnected";
         errored: "errored";
     }>>;
     description: z.ZodString;
@@ -1185,8 +1185,8 @@ export class CreateIndexTool extends MongoDBToolBase {
                 }>>;
                 quantization: z.ZodDefault<z.ZodEnum<{
                     none: "none";
-                    scalar: "scalar";
                     binary: "binary";
+                    scalar: "scalar";
                 }>>;
             }, z.core.$strict>, z.ZodObject<{
                 type: z.ZodLiteral<"autoEmbed">;
@@ -1228,9 +1228,9 @@ export class CreateIndexTool extends MongoDBToolBase {
         collection: z.ZodString;
         indexName: z.ZodString;
         indexType: z.ZodEnum<{
-            classic: "classic";
-            vectorSearch: "vectorSearch";
             search: "search";
+            vectorSearch: "vectorSearch";
+            classic: "classic";
         }>;
     };
     // (undocumented)
@@ -1391,8 +1391,8 @@ export class DisconnectTool extends MongoDBToolBase {
     // (undocumented)
     outputSchema: {
         outcome: z.ZodEnum<{
-            removed: "removed";
             disconnected: "disconnected";
+            removed: "removed";
         }>;
     };
     // (undocumented)
@@ -1464,8 +1464,8 @@ export class DropIndexTool extends MongoDBToolBase {
     argsShape: {
         indexName: z.ZodString;
         type: z.ZodEnum<{
-            classic: "classic";
             search: "search";
+            classic: "classic";
         }>;
         collection: z.ZodString;
         database: z.ZodString;
@@ -1588,9 +1588,9 @@ export class ExplainTool extends MongoDBToolBase {
     outputSchema: {
         explainResult: z.ZodRecord<z.ZodString, z.ZodUnknown>;
         method: z.ZodEnum<{
-            aggregate: "aggregate";
-            count: "count";
             find: "find";
+            count: "count";
+            aggregate: "aggregate";
         }>;
         verbosity: z.ZodEnum<{
             queryPlanner: "queryPlanner";
@@ -2252,9 +2252,9 @@ export class ListConnectionsTool extends MongoDBToolBase {
                 explicit: "explicit";
             }>;
             state: z.ZodOptional<z.ZodEnum<{
-                disconnected: "disconnected";
                 connected: "connected";
                 connecting: "connecting";
+                disconnected: "disconnected";
                 errored: "errored";
             }>>;
             description: z.ZodString;
