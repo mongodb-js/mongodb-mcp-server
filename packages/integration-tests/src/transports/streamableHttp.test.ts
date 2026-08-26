@@ -420,19 +420,26 @@ describe("StreamableHttpRunner", () => {
                 it("should reuse existing session with the same external session ID, even after closing", async () => {
                     const sessionId = "test-external-session-456";
 
-                    // First request creates the session
-                    const response1 = await sendHttpRequest("tools/list", sessionId);
-                    expect(response1.ok).toBe(true);
+                    // First client creates the session
+                    const client1 = await connectClient({ sessionId });
+                    const response1 = await client1.listTools();
+                    expect(response1.tools).toBeDefined();
 
                     const session1 = await getSessionFromStore(sessionId);
                     expect(session1).toBeDefined();
 
-                    // No connection is held open between raw requests, so the
-                    // session is not owned by any single client; a later
-                    // request with the same id reuses the stored session.
-                    const response2 = await sendHttpRequest("tools/list", sessionId);
-                    expect(response2.ok).toBe(true);
+                    // Tearing down the client must not terminate the
+                    // server-side session: `close()` only releases the
+                    // client-side connection (the SDK's `terminateSession()`
+                    // is what sends the server-side DELETE).
+                    await client1.close();
 
+                    // Second client reuses the session
+                    const client2 = await connectClient({ sessionId });
+                    const response2 = await client2.listTools();
+                    expect(response2.tools).toBeDefined();
+
+                    // Verify it's the same session - the session should persist even after the first client closes
                     const session2 = await getSessionFromStore(sessionId);
                     expect(session2).toBe(session1);
                 });

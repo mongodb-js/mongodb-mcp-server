@@ -42,10 +42,7 @@ import { redact } from "mongodb-redact";
  * under `ctx.http` (see the SDK's v1 → v2 migration guide).
  */
 function toToolExecutionContext(ctx: ServerContext): ToolExecutionContext {
-    const headers: Record<string, unknown> = {};
-    ctx.http?.req?.headers.forEach((value, key) => {
-        headers[key] = value;
-    });
+    const headers: Record<string, unknown> = Object.fromEntries(ctx.http?.req?.headers ?? []);
     // Tests capture the raw `McpServer.registerTool` callback and invoke it
     // without a real SDK context, so tolerate a missing/incomplete `mcpReq`.
     const mcpReq = (ctx as Partial<ServerContext>).mcpReq;
