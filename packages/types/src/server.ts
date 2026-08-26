@@ -16,7 +16,7 @@ export type SessionServer<TTransport extends Transport = Transport> = {
      * Required by the 2026-07-28 serving entries (`serveStdio`,
      * `createMcpHandler`), which build/register instances through a factory.
      */
-    register?(): Promise<void>;
+    register(): Promise<void>;
     close(): Promise<void>;
     session: {
         logger: ICompositeLogger;

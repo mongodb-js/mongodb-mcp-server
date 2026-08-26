@@ -615,11 +615,11 @@ export class StreamsBuildTool extends StreamsToolBase {
         }
 
         // First entry: ask for the missing fields.
-        return this.elicitation.inputRequired(
-            StreamsBuildTool.ELICIT_INPUT_KEY,
-            `The following information is required to create the ${connectionType} connection.`,
-            schema
-        );
+        return this.elicitation.inputRequired({
+            key: StreamsBuildTool.ELICIT_INPUT_KEY,
+            message: `The following information is required to create the ${connectionType} connection.`,
+            schema,
+        });
     }
 
     private static collectMissingFields(

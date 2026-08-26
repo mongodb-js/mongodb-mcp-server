@@ -572,7 +572,7 @@ export class Elicitation implements IElicitation {
         required: string[];
     };
     confirmationRequired(message: string): InputRequiredResult;
-    inputRequired(key: string, message: string, schema: ElicitRequestSchema): InputRequiredResult;
+    inputRequired(input: ElicitInputRequiredParams): InputRequiredResult;
     readConfirmation(inputResponses: ElicitationInputResponses_2): boolean | undefined;
     readInput(inputResponses: ElicitationInputResponses_2, key: string): ElicitedInputResult | undefined;
     supportsElicitation(): boolean;

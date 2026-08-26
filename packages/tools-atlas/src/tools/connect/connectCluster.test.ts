@@ -15,7 +15,7 @@ import {
 } from "@mongodb-js/mcp-tools-mongodb";
 import type { ConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
 import { Keychain } from "@mongodb-js/mcp-core";
-import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
 
@@ -99,17 +99,7 @@ describe("ConnectClusterTool", () => {
             emitEvents: vi.fn(),
         } as unknown as ITelemetry;
 
-        const mockElicitation = {
-            supportsElicitation: (): boolean => true,
-            readConfirmation: (): boolean | undefined => true,
-            confirmationRequired: (): never => {
-                throw new Error("not implemented");
-            },
-            readInput: (): undefined => undefined,
-            inputRequired: (): never => {
-                throw new Error("not implemented");
-            },
-        };
+        const mockElicitation = createMockElicitation();
 
         const params: ToolConstructorParams<IAtlasSession> = {
             name: ConnectClusterTool.toolName,

@@ -10,6 +10,16 @@ export type ElicitedInputResult =
 /** The schema accepted by {@link IElicitation.inputRequired}. */
 export type ElicitRequestSchema = ElicitRequestFormParams["requestedSchema"];
 
+/** Parameters for {@link IElicitation.inputRequired}. */
+export type ElicitInputRequiredParams = {
+    /** The identifier the answers arrive under in `inputResponses`. */
+    key: string;
+    /** The message/title to display in the form. */
+    message: string;
+    /** A JSON Schema describing the fields to collect. */
+    schema: ElicitRequestSchema;
+};
+
 /**
  * Elicitation service used by tools to request confirmation or structured
  * input from the user.
@@ -63,12 +73,12 @@ export interface IElicitation {
      * via a form. The handler returns it on the first entry; on re-entry the
      * answers are read back with {@link IElicitation.readInput}.
      *
-     * @param key - The identifier the answers arrive under in `inputResponses`.
-     * @param message - The message/title to display in the form.
-     * @param schema - A JSON Schema describing the fields to collect.
+     * @param params - The identifier the answers arrive under in `inputResponses`
+     * (`key`), the message/title to display in the form (`message`) and a JSON
+     * Schema describing the fields to collect (`schema`).
      * @returns The `InputRequiredResult` to return from the request handler.
      */
-    inputRequired(key: string, message: string, schema: ElicitRequestSchema): InputRequiredResult;
+    inputRequired(params: ElicitInputRequiredParams): InputRequiredResult;
 
     /**
      * Reads the accepted fields of a {@link IElicitation.inputRequired}

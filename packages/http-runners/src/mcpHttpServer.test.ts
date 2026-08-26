@@ -111,6 +111,7 @@ function makeFakeServer(): SessionServer {
                 getClientVersion: vi.fn(),
             },
         },
+        register: vi.fn().mockResolvedValue(undefined),
         connect: vi.fn().mockResolvedValue(undefined),
         close: vi.fn().mockResolvedValue(undefined),
     };

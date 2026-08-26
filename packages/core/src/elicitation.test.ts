@@ -115,7 +115,11 @@ describe("Elicitation (multi-round-trip builders/readers)", () => {
         };
 
         it("builds an inputRequired result keyed by the provided key", () => {
-            const result = elicitation.inputRequired("connection-fields", testMessage, testSchema);
+            const result = elicitation.inputRequired({
+                key: "connection-fields",
+                message: testMessage,
+                schema: testSchema,
+            });
 
             expect(result.resultType).toBe("input_required");
             const params = result.inputRequests?.["connection-fields"]?.params as {

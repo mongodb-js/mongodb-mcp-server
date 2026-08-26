@@ -1,5 +1,6 @@
 import type { MockedFunction } from "vitest";
 import { vi } from "vitest";
+import type { IElicitation } from "@mongodb-js/mcp-types";
 
 /**
  * Mock types based on the MCP SDK types, but simplified for testing.
@@ -94,4 +95,27 @@ export function createMockElicitInput(): {
 
 export function createMockGetClientCapabilities(): MockedFunction<() => MockClientCapabilities | undefined> {
     return vi.fn();
+}
+
+/**
+ * Creates a mock server-side {@link IElicitation} for unit tests.
+ *
+ * The builder methods (`confirmationRequired`, `inputRequired`) throw so that
+ * a test that triggers elicitation fails loudly instead of silently
+ * proceeding; the reader methods return inert values. Pass `overrides`
+ * (typically `vi.fn()` mocks) to test elicitation behavior.
+ */
+export function createMockElicitation(overrides: Partial<IElicitation> = {}): IElicitation {
+    return {
+        supportsElicitation: (): boolean => true,
+        readConfirmation: (): boolean | undefined => true,
+        confirmationRequired: (): never => {
+            throw new Error("not implemented");
+        },
+        readInput: (): undefined => undefined,
+        inputRequired: (): never => {
+            throw new Error("not implemented");
+        },
+        ...overrides,
+    };
 }

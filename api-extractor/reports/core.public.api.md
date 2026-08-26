@@ -12,6 +12,7 @@ import type { DefaultEventMap } from '@mongodb-js/mcp-types';
 import type { DefaultMetricDefinitions } from '@mongodb-js/mcp-types';
 import { ElicitationInputResponses } from '@mongodb-js/mcp-types';
 import { ElicitedInputResult } from '@mongodb-js/mcp-types';
+import type { ElicitInputRequiredParams } from '@mongodb-js/mcp-types';
 import { ElicitRequestSchema } from '@mongodb-js/mcp-types';
 import { EventEmitter } from 'events';
 import type { EventMap } from '@mongodb-js/mcp-types';
@@ -124,7 +125,7 @@ export class Elicitation implements IElicitation {
         required: string[];
     };
     confirmationRequired(message: string): InputRequiredResult;
-    inputRequired(key: string, message: string, schema: ElicitRequestSchema): InputRequiredResult;
+    inputRequired(input: ElicitInputRequiredParams): InputRequiredResult;
     readConfirmation(inputResponses: ElicitationInputResponses_2): boolean | undefined;
     readInput(inputResponses: ElicitationInputResponses_2, key: string): ElicitedInputResult | undefined;
     supportsElicitation(): boolean;

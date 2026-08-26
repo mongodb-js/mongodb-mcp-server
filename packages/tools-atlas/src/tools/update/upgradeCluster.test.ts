@@ -8,7 +8,7 @@ import { Keychain } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
-import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 
 function notFoundError(): ApiClientError {
     return ApiClientError.fromError(new Response(null, { status: 404, statusText: "Not Found" }), "cluster not found");
@@ -178,17 +178,7 @@ describe("UpgradeClusterTool", () => {
             emitEvents: vi.fn(),
         } as unknown as ITelemetry;
 
-        const mockElicitation = {
-            supportsElicitation: (): boolean => true,
-            readConfirmation: (): boolean | undefined => true,
-            confirmationRequired: (): never => {
-                throw new Error("not implemented");
-            },
-            readInput: (): undefined => undefined,
-            inputRequired: (): never => {
-                throw new Error("not implemented");
-            },
-        };
+        const mockElicitation = createMockElicitation();
 
         const params: ToolConstructorParams<IAtlasSession> = {
             name: UpgradeClusterTool.toolName,

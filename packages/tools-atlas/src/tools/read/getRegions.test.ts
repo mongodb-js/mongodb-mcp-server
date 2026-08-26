@@ -7,7 +7,7 @@ import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import type { ITelemetry, ICompositeLogger } from "@mongodb-js/mcp-types";
 import { ATLAS_REGIONS, GetRegionsArgsShape, GetRegionsTool } from "./getRegions.js";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
-import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 
 describe("GetRegionsTool", () => {
     let mockSession: Partial<IAtlasSession>;
@@ -41,17 +41,7 @@ describe("GetRegionsTool", () => {
             emitEvents: vi.fn(),
         } as unknown as ITelemetry;
 
-        const mockElicitation = {
-            supportsElicitation: (): boolean => true,
-            readConfirmation: (): boolean | undefined => true,
-            confirmationRequired: (): never => {
-                throw new Error("not implemented");
-            },
-            readInput: (): undefined => undefined,
-            inputRequired: (): never => {
-                throw new Error("not implemented");
-            },
-        };
+        const mockElicitation = createMockElicitation();
 
         const params: ToolConstructorParams<IAtlasSession> = {
             name: GetRegionsTool.toolName,

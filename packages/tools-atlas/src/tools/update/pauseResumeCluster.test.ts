@@ -15,7 +15,7 @@ import {
 } from "@mongodb-js/mcp-tools-mongodb";
 import type { ConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
-import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import { UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
 
 const defaultTestConfig: UserConfig = {
@@ -76,17 +76,7 @@ describe("PauseResumeClusterTool", () => {
             emitEvents: vi.fn(),
         } as unknown as ITelemetry;
 
-        const mockElicitation = {
-            supportsElicitation: (): boolean => true,
-            readConfirmation: (): boolean | undefined => true,
-            confirmationRequired: (): never => {
-                throw new Error("not implemented");
-            },
-            readInput: (): undefined => undefined,
-            inputRequired: (): never => {
-                throw new Error("not implemented");
-            },
-        };
+        const mockElicitation = createMockElicitation();
 
         const params: ToolConstructorParams<IAtlasSession> = {
             name: PauseResumeClusterTool.toolName,

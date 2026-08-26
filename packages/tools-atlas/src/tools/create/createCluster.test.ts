@@ -6,7 +6,7 @@ import type { IAtlasSession } from "../../atlasTool.js";
 import type { ITelemetry, ICompositeLogger, CallToolResult } from "@mongodb-js/mcp-types";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
-import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import type { Keychain } from "@mongodb-js/mcp-core";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 
@@ -62,17 +62,7 @@ describe("CreateClusterTool", () => {
             emitEvents: vi.fn(),
         } as unknown as ITelemetry;
 
-        const mockElicitation = {
-            supportsElicitation: (): boolean => true,
-            readConfirmation: (): boolean | undefined => true,
-            confirmationRequired: (): never => {
-                throw new Error("not implemented");
-            },
-            readInput: (): undefined => undefined,
-            inputRequired: (): never => {
-                throw new Error("not implemented");
-            },
-        };
+        const mockElicitation = createMockElicitation();
 
         const params: ToolConstructorParams<IAtlasSession> = {
             name: CreateClusterTool.toolName,

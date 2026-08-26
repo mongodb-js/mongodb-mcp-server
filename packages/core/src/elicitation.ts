@@ -8,7 +8,7 @@ import type {
 
 /** Read input-responses values that arrive loosely typed from the client. */
 export type ElicitationInputResponses = InputResponses | Record<string, unknown> | undefined;
-import type { ElicitedInputResult, ElicitRequestSchema, IElicitation } from "@mongodb-js/mcp-types";
+import type { ElicitedInputResult, ElicitInputRequiredParams, IElicitation } from "@mongodb-js/mcp-types";
 
 /** The inputResponses identifier under which confirmation answers arrive. */
 export const CONFIRMATION_INPUT_KEY = "confirmation";
@@ -85,7 +85,7 @@ export class Elicitation implements IElicitation {
      * via a form. Return it from the request handler; read the answers back on
      * re-entry with {@link Elicitation.readInput}.
      */
-    public inputRequired(key: string, message: string, schema: ElicitRequestSchema): InputRequiredResult {
+    public inputRequired({ key, message, schema }: ElicitInputRequiredParams): InputRequiredResult {
         return inputRequired({
             inputRequests: {
                 [key]: inputRequired.elicit({

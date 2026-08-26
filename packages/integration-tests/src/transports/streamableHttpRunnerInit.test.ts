@@ -20,6 +20,7 @@ import type { DefaultMetricDefinitions, ICompositeLogger, SessionServer } from "
 class TestMCPHttpServer extends MCPHttpServer<SessionServer> {
     protected override async createServerForRequest(): Promise<SessionServer> {
         return Promise.resolve({
+            register: vi.fn().mockResolvedValue(undefined),
             connect: vi.fn(),
             close: vi.fn().mockResolvedValue(undefined),
             session: {

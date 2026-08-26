@@ -62,7 +62,7 @@ describe("StreamsBuildTool", () => {
             supportsElicitation: vi.fn().mockReturnValue(true),
             // Default: no inputResponses yet -> the tool returns inputRequired.
             readInput: vi.fn().mockReturnValue(undefined),
-            inputRequired: vi.fn().mockImplementation((key: string, message: string) => ({
+            inputRequired: vi.fn().mockImplementation(({ key, message }: { key: string; message: string }) => ({
                 resultType: "input_required",
                 inputRequests: { [key]: { method: "elicitation/create", params: { message } } },
             })),

@@ -126,7 +126,7 @@ export abstract class MCPHttpServer<
                         : undefined,
                 };
                 const server = await this.createServerForRequest(request);
-                await server.register?.();
+                await server.register();
                 return server.mcpServer as unknown as McpServer;
             },
             { legacy: "reject" }
