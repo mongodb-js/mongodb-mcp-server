@@ -3,6 +3,7 @@ import type { CallToolResult, RequestMeta } from "@modelcontextprotocol/server";
 export type { CallToolResult };
 import type { Secret } from "mongodb-redact";
 import type { IToolConfig } from "./config.js";
+import type { ElicitationInputResponses } from "./elicitation.js";
 import type { ICompositeLogger } from "./logging.js";
 
 /**
@@ -71,7 +72,7 @@ export type ToolExecutionContext = {
      * server-assigned identifiers of the embedded requests. Values are
      * untrusted client input.
      */
-    inputResponses?: Record<string, unknown>;
+    inputResponses?: ElicitationInputResponses;
     /**
      * Total time spent waiting for the user to answer elicitation requests
      * raised while handling this call. Accumulated by

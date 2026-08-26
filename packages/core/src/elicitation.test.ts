@@ -92,8 +92,12 @@ describe("Elicitation (multi-round-trip builders/readers)", () => {
             ).toBe(false);
         });
 
-        it("returns undefined when the user declined", () => {
-            expect(elicitation.readConfirmation({ [CONFIRMATION_INPUT_KEY]: { action: "decline" } })).toBeUndefined();
+        it("returns false when the user declined", () => {
+            expect(elicitation.readConfirmation({ [CONFIRMATION_INPUT_KEY]: { action: "decline" } })).toBe(false);
+        });
+
+        it("returns false when the user cancelled", () => {
+            expect(elicitation.readConfirmation({ [CONFIRMATION_INPUT_KEY]: { action: "cancel" } })).toBe(false);
         });
 
         it("returns false when the content is missing the confirmation field", () => {

@@ -1,14 +1,13 @@
-import { acceptedContent, inputRequired } from "@modelcontextprotocol/server";
+import { acceptedContent, inputRequired, inputResponse } from "@modelcontextprotocol/server";
+import type { ElicitRequestFormParams, InputRequiredResult, McpServer } from "@modelcontextprotocol/server";
 import type {
-    ElicitRequestFormParams,
-    InputRequiredResult,
-    InputResponses,
-    McpServer,
-} from "@modelcontextprotocol/server";
+    ElicitationInputResponses,
+    ElicitedInputResult,
+    ElicitInputRequiredParams,
+    IElicitation,
+} from "@mongodb-js/mcp-types";
 
-/** Read input-responses values that arrive loosely typed from the client. */
-export type ElicitationInputResponses = InputResponses | Record<string, unknown> | undefined;
-import type { ElicitedInputResult, ElicitInputRequiredParams, IElicitation } from "@mongodb-js/mcp-types";
+export type { ElicitationInputResponses };
 
 /** The inputResponses identifier under which confirmation answers arrive. */
 export const CONFIRMATION_INPUT_KEY = "confirmation";
@@ -73,11 +72,16 @@ export class Elicitation implements IElicitation {
         if (inputResponses === undefined) {
             return undefined;
         }
-        const content = acceptedContent<{ confirmation?: string }>(inputResponses, CONFIRMATION_INPUT_KEY);
-        if (content === undefined) {
+        const response = inputResponse(inputResponses, CONFIRMATION_INPUT_KEY);
+        if (response.kind === "missing") {
             return undefined;
         }
-        return content.confirmation === "Yes";
+        if (response.kind !== "elicit" || response.action !== "accept") {
+            // Declined, cancelled, or a response of another kind: the user did
+            // not confirm, and re-prompting would ignore their explicit answer.
+            return false;
+        }
+        return response.content?.confirmation === "Yes";
     }
 
     /**

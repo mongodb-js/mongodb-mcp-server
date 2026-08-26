@@ -102,13 +102,15 @@ export function createMockGetClientCapabilities(): MockedFunction<() => MockClie
  *
  * The builder methods (`confirmationRequired`, `inputRequired`) throw so that
  * a test that triggers elicitation fails loudly instead of silently
- * proceeding; the reader methods return inert values. Pass `overrides`
- * (typically `vi.fn()` mocks) to test elicitation behavior.
+ * proceeding; the reader methods default to `undefined` ("no answer yet"),
+ * matching the first-entry behavior, so unexpected confirmation gating routes
+ * into the throwing builders. Pass `overrides` (typically `vi.fn()` mocks) to
+ * test elicitation behavior.
  */
 export function createMockElicitation(overrides: Partial<IElicitation> = {}): IElicitation {
     return {
         supportsElicitation: (): boolean => true,
-        readConfirmation: (): boolean | undefined => true,
+        readConfirmation: (): boolean | undefined => undefined,
         confirmationRequired: (): never => {
             throw new Error("not implemented");
         },
