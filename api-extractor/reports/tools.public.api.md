@@ -904,8 +904,8 @@ export class CreateClusterTool extends AtlasToolBase {
         clusterName: z.ZodString;
         provider: z.ZodEnum<{
             AWS: "AWS";
-            AZURE: "AZURE";
             GCP: "GCP";
+            AZURE: "AZURE";
         }>;
         regions: z.ZodArray<z.ZodString>;
         clusterType: z.ZodDefault<z.ZodEnum<{
@@ -936,8 +936,8 @@ export class CreateClusterTool extends AtlasToolBase {
         terminationProtectionEnabled: z.ZodDefault<z.ZodBoolean>;
         encryptionAtRestProvider: z.ZodOptional<z.ZodEnum<{
             AWS: "AWS";
-            AZURE: "AZURE";
             GCP: "GCP";
+            AZURE: "AZURE";
             NONE: "NONE";
         }>>;
     };
@@ -957,8 +957,8 @@ export class CreateClusterTool extends AtlasToolBase {
         clusterId: z.ZodOptional<z.ZodString>;
         provider: z.ZodEnum<{
             AWS: "AWS";
-            AZURE: "AZURE";
             GCP: "GCP";
+            AZURE: "AZURE";
         }>;
         regions: z.ZodArray<z.ZodString>;
         instanceSize: z.ZodEnum<{
@@ -989,8 +989,8 @@ export class CreateClusterTool extends AtlasToolBase {
         diskSizeGB: z.ZodOptional<z.ZodNumber>;
         encryptionAtRestProvider: z.ZodEnum<{
             AWS: "AWS";
-            AZURE: "AZURE";
             GCP: "GCP";
+            AZURE: "AZURE";
             NONE: "NONE";
         }>;
     };
@@ -1589,8 +1589,8 @@ export class ExplainTool extends MongoDBToolBase {
         explainResult: z.ZodRecord<z.ZodString, z.ZodUnknown>;
         method: z.ZodEnum<{
             find: "find";
-            aggregate: "aggregate";
             count: "count";
+            aggregate: "aggregate";
         }>;
         verbosity: z.ZodEnum<{
             queryPlanner: "queryPlanner";
@@ -1792,8 +1792,8 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
         clusterName: z.ZodString;
         operations: z.ZodDefault<z.ZodArray<z.ZodEnum<{
             suggestedIndexes: "suggestedIndexes";
-            dropIndexSuggestions: "dropIndexSuggestions";
             slowQueryLogs: "slowQueryLogs";
+            dropIndexSuggestions: "dropIndexSuggestions";
             schemaSuggestions: "schemaSuggestions";
         }>>>;
         since: z.ZodOptional<z.ZodString>;
@@ -1834,8 +1834,8 @@ export class GetRegionsTool extends AtlasToolBase {
     argsShape: {
         provider: z.ZodEnum<{
             AWS: "AWS";
-            AZURE: "AZURE";
             GCP: "GCP";
+            AZURE: "AZURE";
         }>;
     };
     // (undocumented)
@@ -1848,8 +1848,8 @@ export class GetRegionsTool extends AtlasToolBase {
     outputSchema: {
         provider: z.ZodEnum<{
             AWS: "AWS";
-            AZURE: "AZURE";
             GCP: "GCP";
+            AZURE: "AZURE";
         }>;
         regions: z.ZodArray<z.ZodObject<{
             name: z.ZodString;
@@ -2057,8 +2057,8 @@ export class InspectClusterTool extends AtlasToolBase {
     outputSchema: {
         name: z.ZodString;
         instanceType: z.ZodEnum<{
-            DEDICATED: "DEDICATED";
             FREE: "FREE";
+            DEDICATED: "DEDICATED";
             FLEX: "FLEX";
         }>;
         instanceSize: z.ZodString;
@@ -2180,8 +2180,8 @@ export class ListClustersTool extends AtlasToolBase {
         }, z.core.$strip>, z.ZodObject<{
             name: z.ZodOptional<z.ZodString>;
             instanceType: z.ZodEnum<{
-                DEDICATED: "DEDICATED";
                 FREE: "FREE";
+                DEDICATED: "DEDICATED";
                 FLEX: "FLEX";
             }>;
             instanceSize: z.ZodOptional<z.ZodString>;
@@ -2642,8 +2642,8 @@ export const previewFeatureValues: readonly ["mcpUI"];
 export const PrivateLinkConfig: z.ZodObject<{
     provider: z.ZodEnum<{
         AWS: "AWS";
-        AZURE: "AZURE";
         GCP: "GCP";
+        AZURE: "AZURE";
     }>;
     region: z.ZodOptional<z.ZodString>;
     vendor: z.ZodOptional<z.ZodString>;
@@ -2765,9 +2765,9 @@ export class StreamsBuildTool extends StreamsToolBase {
     argsShape: {
         projectId: z.ZodString;
         resource: z.ZodEnum<{
+            processor: "processor";
             workspace: "workspace";
             connection: "connection";
-            processor: "processor";
             privatelink: "privatelink";
         }>;
         workspaceName: z.ZodOptional<z.ZodString>;
@@ -2778,17 +2778,17 @@ export class StreamsBuildTool extends StreamsToolBase {
         }>>;
         region: z.ZodOptional<z.ZodString>;
         tier: z.ZodOptional<z.ZodEnum<{
-            SP2: "SP2";
-            SP5: "SP5";
-            SP10: "SP10";
-            SP30: "SP30";
             SP50: "SP50";
+            SP30: "SP30";
+            SP10: "SP10";
+            SP5: "SP5";
+            SP2: "SP2";
         }>>;
         includeSampleData: z.ZodOptional<z.ZodBoolean>;
         connectionName: z.ZodOptional<z.ZodString>;
         connectionType: z.ZodOptional<z.ZodEnum<{
-            Kafka: "Kafka";
             Cluster: "Cluster";
+            Kafka: "Kafka";
             S3: "S3";
             Https: "Https";
             AWSKinesisDataStreams: "AWSKinesisDataStreams";
@@ -2819,8 +2819,8 @@ export class StreamsBuildTool extends StreamsToolBase {
             dbRoleToExecute: z.ZodOptional<z.ZodObject<{
                 role: z.ZodOptional<z.ZodString>;
                 type: z.ZodOptional<z.ZodEnum<{
-                    BUILT_IN: "BUILT_IN";
                     CUSTOM: "CUSTOM";
+                    BUILT_IN: "BUILT_IN";
                 }>>;
             }, z.core.$strip>>;
             aws: z.ZodOptional<z.ZodObject<{
@@ -2879,9 +2879,9 @@ export class StreamsBuildTool extends StreamsToolBase {
     // (undocumented)
     outputSchema: {
         resource: z.ZodEnum<{
+            processor: "processor";
             workspace: "workspace";
             connection: "connection";
-            processor: "processor";
             privatelink: "privatelink";
         }>;
     };
@@ -3339,8 +3339,8 @@ export class UpgradeClusterTool extends AtlasToolBase {
             M50: "M50";
             M60: "M60";
             M80: "M80";
-            M140: "M140";
             M200: "M200";
+            M140: "M140";
         }>>;
         provider: z.ZodOptional<z.ZodString>;
         region: z.ZodOptional<z.ZodString>;
