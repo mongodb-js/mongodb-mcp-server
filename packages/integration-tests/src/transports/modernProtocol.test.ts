@@ -1,21 +1,22 @@
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
+import type { StreamableHttpRunner } from "@mongodb-js/mcp-http-runners";
+import type { CliServer } from "mongodb-mcp-server";
 import { defaultTestConfig } from "../integrationHelpers.js";
 import { createStreamableHttpTestRunner, getServerAddress } from "../helpers/streamableHttpTestRunner.js";
-import type { StreamableHttpTestRunnerComponents } from "../helpers/streamableHttpTestRunner.js";
 
 describe("2026-07-28 protocol (modern era) over HTTP", () => {
-    let runner: StreamableHttpTestRunnerComponents;
+    let runner: StreamableHttpRunner<CliServer>;
     let client: Client;
     let transport: StreamableHTTPClientTransport;
 
     beforeAll(async () => {
         // Random port: other suites bind the default httpPort (3000), and
         // vitest runs test files in parallel workers.
-        runner = createStreamableHttpTestRunner({ ...defaultTestConfig, httpPort: 0 });
-        await runner.runner.start();
+        ({ runner } = createStreamableHttpTestRunner({ ...defaultTestConfig, httpPort: 0 }));
+        await runner.start();
 
-        transport = new StreamableHTTPClientTransport(new URL(`${getServerAddress(runner.runner)}/mcp`), {});
+        transport = new StreamableHTTPClientTransport(new URL(`${getServerAddress(runner)}/mcp`), {});
         client = new Client(
             { name: "modern-test", version: "1.0.0" },
             { versionNegotiation: { mode: "auto" }, capabilities: { elicitation: {} } }
@@ -26,7 +27,7 @@ describe("2026-07-28 protocol (modern era) over HTTP", () => {
     afterAll(async () => {
         await client?.close();
         await transport?.close();
-        await runner?.runner.close();
+        await runner?.close();
     });
 
     it("negotiates the modern era", () => {
