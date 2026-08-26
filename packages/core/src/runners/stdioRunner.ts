@@ -5,39 +5,41 @@ import type { CompositeLogger } from "../logging/compositeLogger.js";
 import { LogId } from "../logId.js";
 
 /**
- * A server factory returning a fully-registered {@link McpServer} for one stdio
- * connection. `serveStdio` calls it once per connection (fresh instance), so the
- * factory must build a new server each time it is invoked.
- */
-export type StdioServerFactory = () => Promise<McpServer> | McpServer;
-
-/**
  * Transport runner for stdio (standard input/output) transport.
  * This is the default transport for MCP servers.
  *
  * Serves through the SDK's `serveStdio` entry (protocol revision
  * 2026-07-28 and, by default, the 2025-era protocol). The opening exchange
- * selects the connection's era and ONE instance from the factory is pinned
- * per connection.
+ * selects the connection's era and ONE instance from {@link createServer} is
+ * pinned per connection.
  *
  * @example
  * ```typescript
- * const runner = new StdioRunner({
- *   logger: compositeLogger,
- *   createServer: async () => myRegisteredMcpServer,
- * });
+ * class MyStdioRunner extends StdioRunner {
+ *   protected override async createServer(): Promise<McpServer> {
+ *     return myRegisteredMcpServer;
+ *   }
+ * }
+ *
+ * const runner = new MyStdioRunner({ logger: compositeLogger });
  * await runner.start();
  * ```
  */
-export class StdioRunner implements ITransportRunner {
+export abstract class StdioRunner implements ITransportRunner {
     protected readonly logger: CompositeLogger;
-    protected readonly createServer: StdioServerFactory;
     private handle: StdioServerHandle | undefined;
 
-    constructor({ logger, createServer }: { logger: CompositeLogger; createServer: StdioServerFactory }) {
+    constructor({ logger }: { logger: CompositeLogger }) {
         this.logger = logger;
-        this.createServer = createServer;
     }
+
+    /**
+     * Builds a fully-registered {@link McpServer} for one stdio connection.
+     * Override this method in subclasses to customize server creation.
+     * `serveStdio` calls it once per connection (fresh instance), so each call
+     * must build a new server.
+     */
+    protected abstract createServer(): Promise<McpServer> | McpServer;
 
     start(): Promise<void> {
         try {

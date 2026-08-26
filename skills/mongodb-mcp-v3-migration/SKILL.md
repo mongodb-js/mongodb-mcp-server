@@ -164,12 +164,12 @@ server first, attach transport:
 Still may `extends StreamableHttpRunner` to customize `start()`/`close()` or bundle the
 wiring in a constructor — just don't override `createServerForRequest` there.
 
-Stdio, for completeness: `new StdioRunner({ userConfig: config })` →
-`new StdioRunner({ logger, createServer })` (import `@mongodb-js/mcp-core`). The
-runner serves through the SDK's `serveStdio` entry (protocol revision 2026-07-28
-and 2025-era): `createServer` is a factory returning a **registered**
-`McpServer` (`await server.register()` before returning `server.mcpServer`),
-built fresh per stdio connection.
+Stdio, for completeness: `new StdioRunner({ userConfig: config })` → subclass
+`StdioRunner` and override `createServer()` (import `@mongodb-js/mcp-core`;
+the constructor takes only `{ logger }`). The runner serves through the SDK's
+`serveStdio` entry (protocol revision 2026-07-28 and 2025-era): `createServer()`
+is a method returning a **registered** `McpServer` (`await server.register()`
+before returning `server.mcpServer`), built fresh per stdio connection.
 
 ### 3c. Config
 

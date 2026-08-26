@@ -458,16 +458,16 @@ const standard = [...MongoDBTools, ...AtlasTools, ...AtlasLocalTools];
 
 ### `@mongodb-js/mcp-core`
 
-| Symbol                                                                                            | Description                                                                                    |
-| ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `ToolBase`, `ToolClass`, `ToolConstructorParams`, `ToolArgs`, `ToolResult`, `formatUntrustedData` | Custom tool authoring                                                                          |
-| `StdioRunner({ logger, createServer })`                                                           | Stdio transport runner (`serveStdio`; `createServer` returns a registered `McpServer`)         |
-| `InMemoryTransport`                                                                               | In-memory transport for tests                                                                  |
-| `SessionStore`, `createDefaultSessionStore`                                                       | HTTP session store                                                                             |
-| `Keychain`, `registerGlobalSecretToRedact`, `redactValues`                                        | Secret storage/redaction                                                                       |
-| `Elicitation`                                                                                     | Multi-round-trip user confirmation/input (`inputRequired` builders + `inputResponses` readers) |
-| `NoopLogger`, `NoopTelemetry`, `LoggerBase`, `CompositeLogger`                                    | Logging/telemetry primitives                                                                   |
-| `McpServer` (re-export)                                                                           | `@modelcontextprotocol/server`                                                                 |
+| Symbol                                                                                            | Description                                                                                                  |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `ToolBase`, `ToolClass`, `ToolConstructorParams`, `ToolArgs`, `ToolResult`, `formatUntrustedData` | Custom tool authoring                                                                                        |
+| `StdioRunner({ logger })`                                                                         | Abstract stdio transport runner (`serveStdio`; override `createServer()` to return a registered `McpServer`) |
+| `InMemoryTransport`                                                                               | In-memory transport for tests                                                                                |
+| `SessionStore`, `createDefaultSessionStore`                                                       | HTTP session store                                                                                           |
+| `Keychain`, `registerGlobalSecretToRedact`, `redactValues`                                        | Secret storage/redaction                                                                                     |
+| `Elicitation`                                                                                     | Multi-round-trip user confirmation/input (`inputRequired` builders + `inputResponses` readers)               |
+| `NoopLogger`, `NoopTelemetry`, `LoggerBase`, `CompositeLogger`                                    | Logging/telemetry primitives                                                                                 |
+| `McpServer` (re-export)                                                                           | `@modelcontextprotocol/server`                                                                               |
 
 ### `@mongodb-js/mcp-http-runners`
 
@@ -497,20 +497,21 @@ const standard = [...MongoDBTools, ...AtlasTools, ...AtlasLocalTools];
 
 ### Transports
 
-**Stdio:** `StdioRunner` serves through the SDK's `serveStdio` entry (protocol revision 2026-07-28 and the 2025-era protocol). It takes a `createServer` factory that returns a **registered** `McpServer` (one per stdio connection):
+**Stdio:** subclass `StdioRunner` and override `createServer()` to return a **registered** `McpServer` (one per stdio connection). The constructor takes only the logger — server creation is a method override, mirroring the HTTP pattern:
 
 ```typescript
 import { StdioRunner } from "@mongodb-js/mcp-core";
 import { createServerFromConfig } from "@mongodb-js/mcp-cli";
 
-const runner = new StdioRunner({
-  logger,
-  createServer: async () => {
+class MyStdioRunner extends StdioRunner {
+  protected override async createServer() {
     const server = createServerFromConfig({ config, sharedServices });
     await server.register(); // register tools/resources/capabilities without a transport
     return server.mcpServer;
-  },
-});
+  }
+}
+
+const runner = new MyStdioRunner({ logger });
 await runner.start();
 ```
 

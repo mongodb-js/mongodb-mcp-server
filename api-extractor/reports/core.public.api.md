@@ -457,14 +457,12 @@ export function setManagedTimeout(callback: () => Promise<void> | void, timeoutM
 export function sleep(ms: number): Promise<void>;
 
 // @public
-export class StdioRunner implements ITransportRunner {
+export abstract class StdioRunner implements ITransportRunner {
     constructor(input: {
         logger: CompositeLogger;
-        createServer: StdioServerFactory;
     });
     close(): Promise<void>;
-    // (undocumented)
-    protected readonly createServer: StdioServerFactory;
+    protected abstract createServer(): Promise<McpServer> | McpServer;
     // (undocumented)
     protected readonly logger: CompositeLogger;
     // (undocumented)
