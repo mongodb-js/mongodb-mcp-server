@@ -1,5 +1,4 @@
-import type { Transport } from "@modelcontextprotocol/sdk/shared/transport";
-import type { ClientCapabilities, Implementation } from "@modelcontextprotocol/sdk/types.js";
+import type { Transport, ClientCapabilities, Implementation } from "@modelcontextprotocol/server";
 import type { ICompositeLogger } from "./logging.js";
 
 /**

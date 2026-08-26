@@ -14,7 +14,7 @@ import {
     validateAutoConnectBehavior,
     syncMongoToolsConfigFromUserConfig,
 } from "../../../mongodbHelpers.js";
-import type { Client } from "@modelcontextprotocol/sdk/client";
+import type { Client } from "@modelcontextprotocol/client";
 import type { CursorLimitKey } from "@mongodb-js/mcp-tools-mongodb";
 import { bsonToJson } from "@mongodb-js/mcp-tools-mongodb";
 
@@ -623,7 +623,6 @@ describeWithMongoDB(
                             ],
                         },
                     },
-                    undefined,
                     { signal }
                 );
             } catch (err: unknown) {

@@ -50,7 +50,7 @@ describeWithMongoDB(
 
             expect(response.isError).toBe(true);
             const content = getResponseContent(response.content);
-            expect(content).toContain("-32602");
+            expect(content).toContain("Input validation error:");
             expect(content).toContain("reserved connection name");
         });
     },

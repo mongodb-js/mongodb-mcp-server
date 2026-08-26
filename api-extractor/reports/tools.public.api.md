@@ -5,25 +5,25 @@
 ```ts
 
 import type { AggregationCursor } from 'mongodb';
-import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import type { CallToolResult } from '@modelcontextprotocol/server';
 import type { Client } from '@mongodb-js/atlas-local';
 import { CliOptions } from '@mongosh/arg-parser';
 import { ConnectionInfo as ConnectionInfo_2 } from '@mongosh/arg-parser';
 import { Deployment } from '@mongodb-js/atlas-local';
 import type { Document as Document_2 } from 'mongodb';
-import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
+import type { ElicitRequestFormParams } from '@modelcontextprotocol/server';
 import { EventEmitter } from 'events';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
-import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { LoggingMessageNotification } from '@modelcontextprotocol/server';
+import { McpServer } from '@modelcontextprotocol/server';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
-import type { ProgressToken } from '@modelcontextprotocol/sdk/types.js';
-import type { RequestId } from '@modelcontextprotocol/sdk/types.js';
-import { RequestMeta } from '@modelcontextprotocol/sdk/types.js';
+import type { ProgressToken } from '@modelcontextprotocol/server';
+import type { RequestId } from '@modelcontextprotocol/server';
+import type { RequestMeta } from '@modelcontextprotocol/server';
 import type { Secret } from 'mongodb-redact';
-import type { ServerNotification } from '@modelcontextprotocol/sdk/types.js';
-import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
+import type { ServerNotification } from '@modelcontextprotocol/server';
+import type { ToolAnnotations } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import { ZodRawShape } from 'zod';
 import { ZodString } from 'zod';
@@ -2387,6 +2387,7 @@ export class ListOrganizationsTool extends AtlasToolBase {
     argsShape: {
         limit: z.ZodDefault<z.ZodNumber>;
         pageNum: z.ZodDefault<z.ZodNumber>;
+        includeCount: z.ZodDefault<z.ZodBoolean>;
     };
     // (undocumented)
     description: string;
@@ -2413,6 +2414,7 @@ export class ListProjectsTool extends AtlasToolBase {
         orgId: z.ZodOptional<z.ZodString>;
         limit: z.ZodDefault<z.ZodNumber>;
         pageNum: z.ZodDefault<z.ZodNumber>;
+        includeCount: z.ZodDefault<z.ZodBoolean>;
     };
     // (undocumented)
     description: string;

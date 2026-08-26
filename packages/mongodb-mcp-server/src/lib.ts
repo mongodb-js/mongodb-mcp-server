@@ -25,7 +25,7 @@ export {
     type MCPHttpServerOptions,
     type MonitoringServerOptions,
 } from "@mongodb-js/mcp-http-runners";
-export type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+export type { NodeStreamableHTTPServerTransport as StreamableHTTPServerTransport } from "@modelcontextprotocol/node";
 
 // Web-friendly transports (from core)
 export { type ITransportRunner, type TransportRequestContext } from "@mongodb-js/mcp-types";

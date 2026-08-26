@@ -27,7 +27,7 @@
     "@mongodb-js/mcp-cli": "workspace:*",
     "@mongodb-js/mcp-core": "workspace:*",
     "mongodb-mcp-server": "workspace:*",
-    "@modelcontextprotocol/sdk": "^1.29.0"
+    "@modelcontextprotocol/server": "^2.0.0"
   },
   "devDependencies": {
     "@braintrust/api": "^0.5.0",

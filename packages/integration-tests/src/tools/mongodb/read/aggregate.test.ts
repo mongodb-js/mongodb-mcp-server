@@ -23,7 +23,7 @@ import { freshInsertDocuments } from "./helpers.js";
 import { BSON } from "bson";
 import { DOCUMENT_EMBEDDINGS } from "./vyai/embeddings.js";
 import type { TelemetryToolEvent as ToolEvent } from "@mongodb-js/mcp-atlas-telemetry";
-import type { Client } from "@modelcontextprotocol/sdk/client";
+import type { Client } from "@modelcontextprotocol/client";
 import { pipelineDescriptionWithVectorSearch } from "@mongodb-js/mcp-tools-mongodb";
 import { MongoServerError, type Collection } from "mongodb";
 import type { CursorLimitKey } from "@mongodb-js/mcp-tools-mongodb";
@@ -1492,7 +1492,6 @@ describeWithMongoDB(
                             ],
                         },
                     },
-                    undefined,
                     { signal }
                 );
             } catch (err: unknown) {

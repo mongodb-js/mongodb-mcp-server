@@ -4,11 +4,11 @@ import { createTestApiClient, defaultTestConfig, expectDefined, getResponseEleme
 import { CompositeLogger, Keychain, InMemoryTransport } from "@mongodb-js/mcp-core";
 import { ExportsManager, MCPConnectionStore, DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { AllTools } from "mongodb-mcp-server";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/server";
+import type { Transport } from "@modelcontextprotocol/server";
 import { CliServer, connectionErrorHandler, Elicitation } from "mongodb-mcp-server";
 import { Session } from "@mongodb-js/mcp-cli";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
-import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";

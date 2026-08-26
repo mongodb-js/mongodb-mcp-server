@@ -1,7 +1,7 @@
-import type { LoggingMessageNotification } from "@modelcontextprotocol/sdk/types.js";
+import type { LoggingMessageNotification } from "@modelcontextprotocol/server";
 import type { IKeychain } from "./keychain.js";
 
-export type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+export type { McpServer } from "@modelcontextprotocol/server";
 
 export type LogLevel = LoggingMessageNotification["params"]["level"];
 

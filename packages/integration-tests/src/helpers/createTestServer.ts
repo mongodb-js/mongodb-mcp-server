@@ -1,4 +1,4 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/server";
 import { CompositeLogger, Keychain, NoopTelemetry, type AnyToolClass } from "@mongodb-js/mcp-core";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { ExportsManager, MCPConnectionStore, type DeviceId } from "@mongodb-js/mcp-tools-mongodb";

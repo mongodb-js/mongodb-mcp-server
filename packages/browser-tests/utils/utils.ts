@@ -1,4 +1,4 @@
-import { Client } from "@modelcontextprotocol/sdk/client";
+import { Client } from "@modelcontextprotocol/client";
 import type { ITransportRunner } from "@mongodb-js/mcp-types";
 
 export class BrowserTestRunner implements ITransportRunner {

@@ -1,4 +1,4 @@
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import type { ITransportRunner } from "@mongodb-js/mcp-types";
 import type { CompositeLogger } from "../logging/compositeLogger.js";
 import { LogId } from "../logId.js";

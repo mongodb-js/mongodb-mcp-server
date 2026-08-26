@@ -27,8 +27,10 @@
     "test": "vitest --run",
     "check": "tsc --build tsconfig.build.json --noEmit"
   },
+  "dependencies": {
+    "@modelcontextprotocol/server": "^2.0.0"
+  },
   "devDependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
     "mongodb-redact": "^1.4.6",
     "@types/node": "^25.6.0",
     "typescript": "^5.9.2",

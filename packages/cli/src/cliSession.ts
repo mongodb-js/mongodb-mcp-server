@@ -1,6 +1,6 @@
 import { ObjectId } from "bson";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
-import type { Implementation } from "@modelcontextprotocol/sdk/types.js";
+import type { Implementation } from "@modelcontextprotocol/server";
 import { LogId, type CompositeLogger, type Keychain } from "@mongodb-js/mcp-core";
 import EventEmitter from "events";
 import type { ConnectionErrorHandler, ConnectionRegistry, ExportsManager } from "@mongodb-js/mcp-tools-mongodb";

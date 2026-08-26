@@ -1,4 +1,4 @@
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { InMemoryTransport } from "@modelcontextprotocol/server";
 import { experimental_createMCPClient } from "@ai-sdk/mcp";
 import { tool as createTool, type Tool } from "ai";
 import { Keychain } from "@mongodb-js/mcp-core";

@@ -8,7 +8,7 @@ import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
-import type { RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp";
+import type { RegisteredTool } from "@modelcontextprotocol/server";
 
 const projectId = "507f1f77bcf86cd799439011";
 const currentIpAddress = "203.0.113.10";
