@@ -79,6 +79,34 @@ describe("StreamsTeardownTool", () => {
         tool["execute"](args as never, { signal: new AbortController().signal });
     const confirmMsg = (args: Record<string, unknown>): string => tool["getConfirmationMessage"](args as never);
 
+    describe("error classification boundary", () => {
+        it("passes the raw invalid argument error to a wrapped handleError through invoke", async () => {
+            const wrappedHandleError = vi.fn(() => ({
+                content: [{ type: "text" as const, text: "classified error" }],
+                isError: true,
+            }));
+            Object.assign(tool, { handleError: wrappedHandleError });
+
+            const result = await tool.invoke(
+                {
+                    ...baseArgs,
+                    resource: "processor",
+                    resourceName: "proc1",
+                },
+                { signal: new AbortController().signal }
+            );
+
+            expect(wrappedHandleError).toHaveBeenCalledOnce();
+            const error = wrappedHandleError.mock.calls[0]?.[0];
+            expect(error).toBeInstanceOf(MongoDBError);
+            expect(error).toMatchObject({
+                code: ErrorCodes.InvalidArgument,
+                message: expect.stringContaining("workspaceName is required") as string,
+            });
+            expect(result.isError).toBe(true);
+        });
+    });
+
     describe("deleteProcessor", () => {
         it("should stop then delete a STARTED processor", async () => {
             mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "STARTED", name: "proc1" });
