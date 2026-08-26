@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import type { IAtlasConfig, IAtlasSession } from "@mongodb-js/mcp-tools-atlas";
 import { StreamsTeardownTool } from "@mongodb-js/mcp-tools-atlas";
+import { ErrorCodes, MongoDBError } from "@mongodb-js/mcp-tools-mongodb";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
@@ -155,24 +156,32 @@ describe("StreamsTeardownTool", () => {
             expect(result.structuredContent).toEqual({ resource: "processor" });
         });
 
-        it("should throw when workspaceName is missing", async () => {
-            await expect(
-                exec({
-                    ...baseArgs,
-                    resource: "processor",
-                    resourceName: "proc1",
-                })
-            ).rejects.toThrow("workspaceName is required");
+        it("should throw a caller-addressable error when workspaceName is missing", async () => {
+            const error = await exec({
+                ...baseArgs,
+                resource: "processor",
+                resourceName: "proc1",
+            }).catch((error: unknown) => error);
+
+            expect(error).toBeInstanceOf(MongoDBError);
+            expect(error).toMatchObject({
+                code: ErrorCodes.InvalidArgument,
+                message: expect.stringContaining("workspaceName is required") as string,
+            });
         });
 
-        it("should throw when resourceName is missing", async () => {
-            await expect(
-                exec({
-                    ...baseArgs,
-                    resource: "processor",
-                    workspaceName: "ws1",
-                })
-            ).rejects.toThrow("resourceName is required");
+        it("should throw a caller-addressable error when resourceName is missing", async () => {
+            const error = await exec({
+                ...baseArgs,
+                resource: "processor",
+                workspaceName: "ws1",
+            }).catch((error: unknown) => error);
+
+            expect(error).toBeInstanceOf(MongoDBError);
+            expect(error).toMatchObject({
+                code: ErrorCodes.InvalidArgument,
+                message: expect.stringContaining("resourceName is required") as string,
+            });
         });
     });
 

@@ -10,6 +10,7 @@ export const ErrorCodes = {
     ForbiddenServerSideJS: 1_000_009,
     UnknownConnectionId: 1_000_010,
     ConfirmationDeclined: 1_000_011,
+    InvalidArgument: 1_000_012,
 } as const;
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

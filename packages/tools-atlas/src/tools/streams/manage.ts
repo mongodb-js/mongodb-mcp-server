@@ -4,6 +4,7 @@ import type { CallToolResult, OperationType, ToolExecutionContext } from "@mongo
 import { LogId, requestIdAttr, type ToolArgs } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
 import { ConnectionConfig, StreamsArgs } from "../../streams/streamsArgs.js";
+import { streamsInvalidArgument } from "../../streams/errors.js";
 
 const ManageAction = z.enum([
     "start-processor",
@@ -191,11 +192,11 @@ export class StreamsManageTool extends StreamsToolBase {
                 return `You are about to update connection '${name}' in workspace '${args.workspaceName}'. Proceed?`;
             }
             case "accept-peering": {
-                if (!args.peeringId) throw new Error("peeringId is required for 'accept-peering'.");
+                if (!args.peeringId) throw streamsInvalidArgument("peeringId is required for 'accept-peering'.");
                 return `You are about to accept VPC peering connection '${args.peeringId}'. Proceed?`;
             }
             case "reject-peering": {
-                if (!args.peeringId) throw new Error("peeringId is required for 'reject-peering'.");
+                if (!args.peeringId) throw streamsInvalidArgument("peeringId is required for 'reject-peering'.");
                 return `You are about to reject VPC peering connection '${args.peeringId}'. This cannot be undone. Proceed?`;
             }
         }
@@ -203,7 +204,7 @@ export class StreamsManageTool extends StreamsToolBase {
 
     private requireResourceName(resourceName: string | undefined, context: string): string {
         if (!resourceName) {
-            throw new Error(`resourceName is required for '${context}'.`);
+            throw streamsInvalidArgument(`resourceName is required for '${context}'.`);
         }
         return resourceName;
     }
@@ -543,7 +544,7 @@ export class StreamsManageTool extends StreamsToolBase {
         const name = this.requireResourceName(args.resourceName, "update-connection");
 
         if (!args.connectionConfig) {
-            throw new Error("connectionConfig is required to update a connection.");
+            throw streamsInvalidArgument("connectionConfig is required to update a connection.");
         }
 
         const connection = (await this.apiClient.getStreamConnection(
@@ -587,9 +588,10 @@ export class StreamsManageTool extends StreamsToolBase {
         args: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
     ): Promise<CallToolResult> {
-        if (!args.peeringId) throw new Error("peeringId is required to accept a VPC peering connection.");
-        if (!args.requesterAccountId) throw new Error("requesterAccountId is required to accept VPC peering.");
-        if (!args.requesterVpcId) throw new Error("requesterVpcId is required to accept VPC peering.");
+        if (!args.peeringId) throw streamsInvalidArgument("peeringId is required to accept a VPC peering connection.");
+        if (!args.requesterAccountId)
+            throw streamsInvalidArgument("requesterAccountId is required to accept VPC peering.");
+        if (!args.requesterVpcId) throw streamsInvalidArgument("requesterVpcId is required to accept VPC peering.");
 
         const peeringId = args.peeringId;
         const requesterAccountId = args.requesterAccountId;
@@ -621,7 +623,7 @@ export class StreamsManageTool extends StreamsToolBase {
         args: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
     ): Promise<CallToolResult> {
-        if (!args.peeringId) throw new Error("peeringId is required to reject a VPC peering connection.");
+        if (!args.peeringId) throw streamsInvalidArgument("peeringId is required to reject a VPC peering connection.");
 
         await this.apiClient.rejectVpcPeeringConnection(
             {

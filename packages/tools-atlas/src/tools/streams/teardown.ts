@@ -4,6 +4,7 @@ import type { CallToolResult, OperationType, ToolExecutionContext } from "@mongo
 import { LogId, requestIdAttr, type ToolArgs } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
 import { StreamsArgs } from "../../streams/streamsArgs.js";
+import { streamsInvalidArgument } from "../../streams/errors.js";
 
 const TeardownResource = z.enum(["processor", "connection", "workspace", "privatelink", "peering"]);
 
@@ -115,14 +116,14 @@ export class StreamsTeardownTool extends StreamsToolBase {
 
     private requireWorkspaceName(args: ToolArgs<typeof this.argsShape>): string {
         if (!args.workspaceName) {
-            throw new Error("workspaceName is required for this deletion.");
+            throw streamsInvalidArgument("workspaceName is required for this deletion.");
         }
         return args.workspaceName;
     }
 
     private requireResourceName(args: ToolArgs<typeof this.argsShape>): string {
         if (!args.resourceName) {
-            throw new Error("resourceName is required for this deletion.");
+            throw streamsInvalidArgument("resourceName is required for this deletion.");
         }
         return args.resourceName;
     }

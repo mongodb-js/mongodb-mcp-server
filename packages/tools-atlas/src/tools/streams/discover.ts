@@ -4,6 +4,7 @@ import type { CallToolResult, OperationType, ToolExecutionContext } from "@mongo
 import { formatUntrustedData, type ToolArgs } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
 import { StreamsArgs } from "../../streams/streamsArgs.js";
+import { streamsInvalidArgument } from "../../streams/errors.js";
 
 type StreamsProcessorWithStats = {
     name?: string;
@@ -328,7 +329,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
 
     private requireWorkspaceName(workspaceName: string | undefined): string {
         if (!workspaceName) {
-            throw new Error(
+            throw streamsInvalidArgument(
                 "workspaceName is required for this action. Use action 'list-workspaces' to see available workspaces."
             );
         }
@@ -337,7 +338,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
 
     private requireResourceName(resourceName: string | undefined, resourceType: string): string {
         if (!resourceName) {
-            throw new Error(
+            throw streamsInvalidArgument(
                 `resourceName is required to inspect a ${resourceType}. ` +
                     `Use 'list-${resourceType}s' action to see available ${resourceType}s.`
             );
@@ -407,7 +408,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
             context
         );
         if (!data) {
-            throw new Error(`Workspace '${workspaceName}' not found.`);
+            throw streamsInvalidArgument(`Workspace '${workspaceName}' not found.`);
         }
 
         const format = responseFormat ?? "detailed";
