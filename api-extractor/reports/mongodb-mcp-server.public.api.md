@@ -771,7 +771,6 @@ export class MCPConnectionManager extends ConnectionManager {
 export abstract class MCPHttpServer<TServer extends SessionServer = SessionServer, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> extends ExpressBasedHttpServer {
     constructor(input: MCPHttpServerOptions<TMetrics>);
     protected createModernHandler(): McpHttpHandler;
-    protected createModernServerInstance(request: TransportRequestContext): Promise<McpServer>;
     protected abstract createServerForRequest(request: TransportRequestContext): Promise<TServer>;
     // (undocumented)
     protected readonly metrics: IMetrics<TMetrics>;

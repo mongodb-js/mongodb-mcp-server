@@ -125,21 +125,12 @@ export abstract class MCPHttpServer<
                         ? Object.fromEntries(new URL(ctx.requestInfo.url).searchParams)
                         : undefined,
                 };
-                return this.createModernServerInstance(request);
+                const server = await this.createServerForRequest(request);
+                await server.register?.();
+                return server.mcpServer as unknown as McpServer;
             },
             { legacy: "reject" }
         );
-    }
-
-    /**
-     * Builds a registered {@link McpServer} for one modern (2026-07-28) HTTP
-     * request. The default adapts {@link createServerForRequest}; subclasses
-     * override when the modern server needs different construction.
-     */
-    protected async createModernServerInstance(request: TransportRequestContext): Promise<McpServer> {
-        const server = await this.createServerForRequest(request);
-        await server.register?.();
-        return server.mcpServer as unknown as McpServer;
     }
 
     private reportSessionError(res: express.Response, errorCode: number): void {
