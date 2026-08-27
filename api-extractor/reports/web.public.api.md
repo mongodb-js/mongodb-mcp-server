@@ -5,25 +5,25 @@
 ```ts
 
 import type { AggregationCursor } from 'mongodb';
-import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import type { CallToolResult } from '@modelcontextprotocol/server';
 import type { Client } from '@mongodb-js/atlas-local';
 import { ConnectionInfo } from '@mongosh/arg-parser';
 import { Counter } from 'prom-client';
-import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
+import type { ElicitRequestFormParams } from '@modelcontextprotocol/server';
 import { EventEmitter } from 'events';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
 import { Gauge } from 'prom-client';
 import { Histogram } from 'prom-client';
-import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { LoggingMessageNotification } from '@modelcontextprotocol/server';
+import type { McpServer } from '@modelcontextprotocol/server';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
-import type { ProgressToken } from '@modelcontextprotocol/sdk/types.js';
-import type { RequestId } from '@modelcontextprotocol/sdk/types.js';
-import { RequestMeta } from '@modelcontextprotocol/sdk/types.js';
+import type { ProgressToken } from '@modelcontextprotocol/server';
+import type { RequestId } from '@modelcontextprotocol/server';
+import type { RequestMeta } from '@modelcontextprotocol/server';
 import { Secret } from 'mongodb-redact';
-import type { ServerNotification } from '@modelcontextprotocol/sdk/types.js';
-import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
+import type { ServerNotification } from '@modelcontextprotocol/server';
+import type { ToolAnnotations } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import { ZodRawShape } from 'zod';
 

@@ -73,7 +73,6 @@
     "@anthropic-ai/mcpb": "2.1.2",
     "@microsoft/api-extractor": "^7.58.7",
     "@modelcontextprotocol/inspector": "^0.21.2",
-    "@modelcontextprotocol/sdk": "^1.29.0",
     "@types/node": "^25.6.0",
     "concurrently": "^9.2.1",
     "openapi-typescript-helpers": "^0.1.0",
@@ -81,8 +80,7 @@
     "tsx": "^4.20.5",
     "type-fest": "^5.6.0",
     "typescript": "^5.9.2",
-    "vitest": "^4.1.5",
-    "zod": "^4.4.2"
+    "vitest": "^4.1.5"
   },
   "dependencies": {
     "@mongodb-js/mcp-atlas-api-client": "workspace:*",
@@ -99,7 +97,8 @@
     "@mongodb-js/mcp-tools-mongodb": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
     "@mongodb-js/mcp-ui": "workspace:*",
-    "@mongosh/service-provider-node-driver": "^5.0.2"
+    "@mongosh/service-provider-node-driver": "^5.0.2",
+    "@modelcontextprotocol/node": "^2.0.0"
   },
   "engines": {
     "node": "^20.19.0 || ^22.13.0 || >= 24.0.0"

@@ -1,7 +1,7 @@
 import { vi, it, describe, beforeEach, afterEach, afterAll, expect } from "vitest";
 import type { CallToolResult } from "@mongodb-js/mcp-types";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/server";
+import { Client } from "@modelcontextprotocol/client";
 import {
     MongoDBToolBase,
     ConnectionIdArgs,
@@ -254,14 +254,13 @@ describe("MongoDBTool implementations", () => {
                     arguments: { connectionId: "preconfigured" },
                 });
                 expect(toolResponse?.isError).to.equal(true);
-                expect(toolResponse?.content).toEqual(
-                    expect.arrayContaining([
-                        {
-                            type: "text",
-                            text: "The configured connection string is not valid. Please check the connection string and confirm it points to a valid MongoDB instance.",
-                        },
-                    ])
+                const content = toolResponse?.content as CallToolResult["content"];
+                const message = content.find(
+                    (c) => c.type === "text" && c.text.startsWith("Could not connect to MongoDB.")
                 );
+                expect(message?.type).toBe("text");
+                const messageText = message?.type === "text" ? message.text : "";
+                expect(messageText).toMatch(/^Could not connect to MongoDB\. Last error: .+/);
             });
         });
 

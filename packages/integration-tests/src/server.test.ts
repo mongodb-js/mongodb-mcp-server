@@ -10,14 +10,14 @@ import { Elicitation } from "mongodb-mcp-server";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/server";
+import type { Transport } from "@modelcontextprotocol/server";
 import { CliServer } from "mongodb-mcp-server";
 import { connectionErrorHandler } from "mongodb-mcp-server";
 import { ToolBase, type ToolClass } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolCategory, CallToolResult } from "@mongodb-js/mcp-types";
 import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { InMemoryTransport } from "@mongodb-js/mcp-core";
-import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { TRANSPORT_PAYLOAD_LIMITS } from "@mongodb-js/mcp-core";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 
@@ -113,9 +113,7 @@ describe("CliServer integration test", () => {
                 });
 
                 it("should return no prompts", async () => {
-                    await expect(() => integration.mcpClient().listPrompts()).rejects.toMatchObject({
-                        message: "MCP error -32601: Method not found",
-                    });
+                    await expect(integration.mcpClient().listPrompts()).resolves.toEqual({ prompts: [] });
                 });
 
                 it("should return capabilities", () => {

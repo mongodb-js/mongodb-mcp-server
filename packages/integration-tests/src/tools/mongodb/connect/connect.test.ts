@@ -50,7 +50,7 @@ describeWithMongoDB(
 
             expect(response.isError).toBe(true);
             const content = getResponseContent(response.content);
-            expect(content).toContain("-32602");
+            expect(content).toContain("Input validation error:");
             expect(content).toContain("reserved connection name");
         });
     },
@@ -180,7 +180,7 @@ describeWithMongoDB("Connect tool", (integration) => {
                 arguments: { connectionString: "mangodb://localhost:12345" },
             });
             const content = getResponseContent(response.content);
-            expect(content).toContain("The configured connection string is not valid.");
+            expect(content).toContain("Could not connect to MongoDB.");
             expect(response.structuredContent).toBeUndefined();
         });
     });

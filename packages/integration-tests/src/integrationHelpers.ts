@@ -3,11 +3,10 @@ import { CompositeLogger, RedactingLoggerBase } from "@mongodb-js/mcp-core";
 import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { UserConfigSchema, packageInfo } from "mongodb-mcp-server";
 import { CliServer, type CliServerOptions } from "mongodb-mcp-server";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { Client } from "@modelcontextprotocol/client";
+import { McpServer } from "@modelcontextprotocol/server";
 import { InMemoryTransport } from "@mongodb-js/mcp-core";
 import { type UserConfig } from "mongodb-mcp-server";
-import { ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ConnectionManager, ConnectionState } from "@mongodb-js/mcp-tools-mongodb";
 import { DeviceId, MCPConnectionStore, type ConnectionEntry } from "@mongodb-js/mcp-tools-mongodb";
@@ -469,7 +468,7 @@ export function validateThrowsForInvalidArguments(
                 const result = await integration.mcpClient().callTool({ name, arguments: arg });
                 expect(result.isError).toBe(true);
                 const message = getResponseContent(result.content);
-                expect(message).toContain("-32602");
+                expect(message).toContain("Input validation error:");
                 expect(message).toContain(`Invalid arguments for tool ${name}`);
             });
         }
@@ -514,7 +513,7 @@ export function resourceChangedNotification(client: Client, uri: string): Promis
     return Promise.race([
         new Promise<void>((resolve) => {
             void client.subscribeResource({ uri });
-            client.setNotificationHandler(ResourceUpdatedNotificationSchema, (notification) => {
+            client.setNotificationHandler("notifications/resources/updated", (notification) => {
                 if (notification.params.uri === uri) {
                     resolve();
                 }

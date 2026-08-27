@@ -2,14 +2,22 @@ import type { Mock } from "vitest";
 import { describe, it, expect, vi, beforeEach, type MockedFunction } from "vitest";
 import type { ZodRawShape } from "zod";
 import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
-import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/server";
+
+/**
+ * The callback shape `ToolBase.register` passes to `McpServer.registerTool` in
+ * v2 (the SDK's own `ToolCallback` is keyed on a `StandardSchemaWithJSON`
+ * args schema, which the raw `ZodRawShape` shapes in these mocks don't
+ * satisfy). The tests capture the callback and invoke it directly.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type MockToolCallback = (args: any, ctx: never) => Promise<CallToolResult>;
 import type { CliServer, UserConfig } from "@mongodb-js/mcp-cli";
 import type { ISession, IToolConfig } from "@mongodb-js/mcp-types";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { ToolBase } from "@mongodb-js/mcp-core";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
-import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { TelemetryToolEvent as ToolEvent } from "@mongodb-js/mcp-atlas-telemetry";
 import type { PreviewFeature, AtlasClusterConnectionInfo } from "@mongodb-js/mcp-tools-mongodb";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
@@ -304,7 +312,7 @@ describe("ToolBase", () => {
     });
 
     describe("resolveAtlasTelemetryMetadata", () => {
-        let mockCallback: ToolCallback<(typeof testTool)["argsShape"]>;
+        let mockCallback: MockToolCallback;
         beforeEach(() => {
             const mockServer = {
                 mcpServer: {
@@ -313,7 +321,7 @@ describe("ToolBase", () => {
                         {
                             description,
                         }: { description: string; inputSchema: ZodRawShape; annotations: ToolAnnotations },
-                        cb: ToolCallback<ZodRawShape>
+                        cb: MockToolCallback
                     ): void => {
                         expect(name).toBe(testTool.name);
                         expect(description).toBe(testTool["description"]);
@@ -479,7 +487,7 @@ describe("ToolBase", () => {
         let mockUIRegistry: UIRegistry;
         let mockUIRegistryGet: ReturnType<typeof vi.fn>;
         let toolWithUI: TestToolWithOutputSchema;
-        let mockCallback: ToolCallback<(typeof toolWithUI)["argsShape"]>;
+        let mockCallback: MockToolCallback;
 
         beforeEach(() => {
             mockUIRegistryGet = vi.fn();
@@ -514,7 +522,7 @@ describe("ToolBase", () => {
                             outputSchema?: ZodRawShape;
                             annotations: ToolAnnotations;
                         },
-                        cb: ToolCallback<ZodRawShape>
+                        cb: MockToolCallback
                     ): { enabled: boolean; disable: () => void; enable: () => void } => {
                         mockCallback = cb;
                         return { enabled: true, disable: vi.fn(), enable: vi.fn() };
@@ -559,13 +567,13 @@ describe("ToolBase", () => {
             );
             (mockUIRegistry.get as Mock).mockReturnValue("<html>test UI</html>");
 
-            let noStructuredCallback: ToolCallback<ZodRawShape> | undefined;
+            let noStructuredCallback: MockToolCallback | undefined;
             const mockServer = {
                 mcpServer: {
                     registerTool: (
                         _name: string,
                         _config: unknown,
-                        cb: ToolCallback<ZodRawShape>
+                        cb: MockToolCallback
                     ): { enabled: boolean; disable: () => void; enable: () => void } => {
                         noStructuredCallback = cb;
                         return { enabled: true, disable: vi.fn(), enable: vi.fn() };
@@ -631,16 +639,16 @@ describe("ToolBase", () => {
     });
 
     describe("metrics emission", () => {
-        let successCallback: ToolCallback<(typeof testTool)["argsShape"]>;
-        let errorCallback: ToolCallback<ZodRawShape>;
+        let successCallback: MockToolCallback;
+        let errorCallback: MockToolCallback;
 
-        function makeMockServer(capture: (cb: ToolCallback<ZodRawShape>) => void): CliServer {
+        function makeMockServer(capture: (cb: MockToolCallback) => void): CliServer {
             return {
                 mcpServer: {
                     registerTool: (
                         _name: string,
                         _config: unknown,
-                        cb: ToolCallback<ZodRawShape>
+                        cb: MockToolCallback
                     ): { enabled: boolean; disable: () => void; enable: () => void } => {
                         capture(cb);
                         return { enabled: true, disable: vi.fn(), enable: vi.fn() };

@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from "vitest";
-import type { CallToolResult } from "@mongodb-js/mcp-types";
 import {
     expectDefined,
     validateToolMetadata,
@@ -48,9 +47,7 @@ describeWithAssistant("list-knowledge-sources", (integration) => {
 
             mockListSources(mockSources);
 
-            const response = (await integration
-                .mcpClient()
-                .callTool({ name: "list-knowledge-sources", arguments: {} })) as CallToolResult;
+            const response = await integration.mcpClient().callTool({ name: "list-knowledge-sources", arguments: {} });
 
             expect(response.isError).toBeFalsy();
             expect(response.content).toBeInstanceOf(Array);
@@ -87,9 +84,7 @@ describeWithAssistant("list-knowledge-sources", (integration) => {
         it("handles empty data sources list", async () => {
             mockListSources([]);
 
-            const response = (await integration
-                .mcpClient()
-                .callTool({ name: "list-knowledge-sources", arguments: {} })) as CallToolResult;
+            const response = await integration.mcpClient().callTool({ name: "list-knowledge-sources", arguments: {} });
 
             expect(response.isError).toBeFalsy();
             expect(response.content).toBeInstanceOf(Array);
@@ -104,9 +99,7 @@ describeWithAssistant("list-knowledge-sources", (integration) => {
         it("handles API error responses", async () => {
             mockAPIError(500, "Internal Server Error");
 
-            const response = (await integration
-                .mcpClient()
-                .callTool({ name: "list-knowledge-sources", arguments: {} })) as CallToolResult;
+            const response = await integration.mcpClient().callTool({ name: "list-knowledge-sources", arguments: {} });
 
             expect(response.isError).toBe(true);
             expectDefined(response.content);
@@ -119,9 +112,7 @@ describeWithAssistant("list-knowledge-sources", (integration) => {
         it("handles network errors", async () => {
             mockNetworkError(new Error("Network connection failed"));
 
-            const response = (await integration
-                .mcpClient()
-                .callTool({ name: "list-knowledge-sources", arguments: {} })) as CallToolResult;
+            const response = await integration.mcpClient().callTool({ name: "list-knowledge-sources", arguments: {} });
 
             expect(response.isError).toBe(true);
             expectDefined(response.content);

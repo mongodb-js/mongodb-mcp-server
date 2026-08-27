@@ -10,7 +10,7 @@ import { defaultTestConfig } from "../integrationHelpers.js";
 import type { Request, Response } from "express";
 import { NoopLogger, CompositeLogger, type LoggerBase } from "@mongodb-js/mcp-core";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
-import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import type { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
 import type { UserConfig } from "@mongodb-js/mcp-cli";
 import type { DefaultMetricDefinitions, ICompositeLogger, SessionServer } from "@mongodb-js/mcp-types";
 
@@ -44,7 +44,7 @@ class TestMCPHttpServer extends MCPHttpServer<SessionServer> {
 function createStreamableHttpRunnerFromConfig(options: {
     userConfig: UserConfig;
     monitoringServer?: MonitoringServer;
-    sessionStore?: ISessionStore<StreamableHTTPServerTransport>;
+    sessionStore?: ISessionStore<NodeStreamableHTTPServerTransport>;
     loggers?: LoggerBase[];
     metrics?: MockMetrics;
 }): StreamableHttpRunner<SessionServer> {
@@ -55,7 +55,7 @@ function createStreamableHttpRunnerFromConfig(options: {
     // Use provided session store or create default
     const sessionStore =
         options.sessionStore ??
-        new SessionStore<StreamableHTTPServerTransport>({
+        new SessionStore<NodeStreamableHTTPServerTransport>({
             options: {
                 idleTimeoutMS: userConfig.idleTimeoutMs,
                 notificationTimeoutMS: userConfig.notificationTimeoutMs,
@@ -304,7 +304,7 @@ describe("StreamableHttpRunner", () => {
         });
 
         it("uses a custom sessionStore passed directly", () => {
-            const mockSessionStore: ISessionStore<StreamableHTTPServerTransport> = {
+            const mockSessionStore: ISessionStore<NodeStreamableHTTPServerTransport> = {
                 getSession: vi.fn(),
                 addSession: vi.fn(),
                 closeSession: vi.fn().mockResolvedValue(undefined),
@@ -343,9 +343,11 @@ function getMonitoringServer(runner: StreamableHttpRunner<any>): MonitoringServe
 }
 
 // Access private field for white-box testing of constructor logic
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getSessionStore(runner: StreamableHttpRunner<any>): ISessionStore<StreamableHTTPServerTransport> | undefined {
-    return (runner as unknown as { mcpHttpServer: { sessionStore: ISessionStore<StreamableHTTPServerTransport> } })
+function getSessionStore(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- white-box access
+    runner: StreamableHttpRunner<any>
+): ISessionStore<NodeStreamableHTTPServerTransport> | undefined {
+    return (runner as unknown as { mcpHttpServer: { sessionStore: ISessionStore<NodeStreamableHTTPServerTransport> } })
         .mcpHttpServer.sessionStore;
 }
 

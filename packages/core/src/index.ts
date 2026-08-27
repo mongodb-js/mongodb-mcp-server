@@ -6,7 +6,7 @@ export { Keychain, registerGlobalSecretToRedact } from "./keychain.js";
 export { NoopTelemetry } from "./telemetry/noopTelemetry.js";
 export { UserFacingError } from "./errors.js";
 export type { Secret } from "mongodb-redact";
-export { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+export { McpServer } from "@modelcontextprotocol/server";
 
 import type { LogLevel } from "@mongodb-js/mcp-types";
 

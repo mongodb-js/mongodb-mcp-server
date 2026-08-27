@@ -15,7 +15,7 @@ import {
     validateAutoConnectBehavior,
     type MongoDBIntegrationTestCase,
 } from "../../../mongodbHelpers.js";
-import type { Client } from "@modelcontextprotocol/sdk/client";
+import type { Client } from "@modelcontextprotocol/client";
 import type { CursorLimitKey } from "@mongodb-js/mcp-tools-mongodb";
 import { bsonToJson, FindOutputSchema } from "@mongodb-js/mcp-tools-mongodb";
 import { freshInsertDocuments } from "./helpers.js";
@@ -539,7 +539,6 @@ describeWithMongoDB(
                             },
                         },
                     },
-                    undefined,
                     { signal }
                 );
             } catch (err: unknown) {

@@ -1,6 +1,6 @@
 # Project Overview
 
-This project is a **monorepo** implementing the MCP (Model Context Protocol) server that lets users interact with their MongoDB clusters and MongoDB Atlas accounts. It is built using TypeScript, Node.js, pnpm workspaces, and the official `@modelcontextprotocol/sdk`.
+This project is a **monorepo** implementing the MCP (Model Context Protocol) server that lets users interact with their MongoDB clusters and MongoDB Atlas accounts. It is built using TypeScript, Node.js, pnpm workspaces, and the official `@modelcontextprotocol` v2 SDK packages (`client`, `server`, `core`, `node`).
 
 The server ships as the **v3 API**: a set of scoped `@mongodb-js/mcp-*` packages. The `mongodb-mcp-server` package is the binary CLI distribution (`npx mongodb-mcp-server` / MCPB) — library embedding uses the scoped packages.
 
@@ -31,7 +31,7 @@ This project uses pnpm workspaces (`pnpm-workspace.yaml`). The source of the ser
 - Express for the HTTP Transport implementation.
 - mongosh NodeDriverServiceProvider for connecting to MongoDB.
 - vitest for testing (run per-package).
-- `@modelcontextprotocol/sdk` for the protocol implementation.
+- `@modelcontextprotocol/server`, `@modelcontextprotocol/client`, `@modelcontextprotocol/core`, and `@modelcontextprotocol/node` for the protocol implementation (v2 SDK).
 
 ## Coding Standards
 

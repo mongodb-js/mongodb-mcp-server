@@ -1,4 +1,4 @@
-import type { ResourceMetadata, ReadResourceCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { ResourceMetadata, ReadResourceCallback } from "@modelcontextprotocol/server";
 import type { SessionEvents } from "./session.js";
 import type { ITelemetry } from "./telemetry.js";
 import type { IToolConfig } from "./config.js";

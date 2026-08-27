@@ -1,18 +1,11 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
+import { CallToolRequestSchema } from "@modelcontextprotocol/core";
+import type { McpServer, Transport, Implementation } from "@modelcontextprotocol/server";
 import type { LogLevel } from "@mongodb-js/mcp-types";
 import { MCP_LOG_LEVELS, LogId } from "@mongodb-js/mcp-core";
 import type { UserConfig } from "./config/userConfig.js";
 import type { CallToolResult, IApiClient, IUIRegistry } from "@mongodb-js/mcp-types";
-import type { Implementation } from "@modelcontextprotocol/sdk/types.js";
 import type { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import type { ConnectionRegistry, ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
-import {
-    CallToolRequestSchema,
-    SetLevelRequestSchema,
-    SubscribeRequestSchema,
-    UnsubscribeRequestSchema,
-} from "@modelcontextprotocol/sdk/types.js";
 import { type ConnectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { AnyResourceClass, IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
@@ -183,7 +176,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
         const existingHandler = (
             this.mcpServer.server["_requestHandlers"] as Map<
                 string,
-                (request: unknown, extra: unknown) => Promise<CallToolResult>
+                (request: unknown, ctx: unknown) => Promise<CallToolResult>
             >
         ).get(CallToolRequestSchema.shape.method.value);
 
@@ -191,15 +184,15 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
             throw new Error("No existing handler found for CallToolRequestSchema");
         }
 
-        this.mcpServer.server.setRequestHandler(CallToolRequestSchema, (request, extra): Promise<CallToolResult> => {
+        this.mcpServer.server.setRequestHandler("tools/call", (request, ctx): Promise<CallToolResult> => {
             const args = request.params.arguments ?? {};
             const tool = this.tools.find((t) => t.name === request.params.name);
             request.params.arguments = tool ? tool.normalizeRawArgs(args) : args;
 
-            return existingHandler(request, extra);
+            return existingHandler(request, ctx);
         });
 
-        this.mcpServer.server.setRequestHandler(SubscribeRequestSchema, ({ params }) => {
+        this.mcpServer.server.setRequestHandler("resources/subscribe", ({ params }) => {
             this.subscriptions.add(params.uri);
             this.session.logger.debug({
                 id: LogId.serverInitialized,
@@ -209,7 +202,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
             return {};
         });
 
-        this.mcpServer.server.setRequestHandler(UnsubscribeRequestSchema, ({ params }) => {
+        this.mcpServer.server.setRequestHandler("resources/unsubscribe", ({ params }) => {
             this.subscriptions.delete(params.uri);
             this.session.logger.debug({
                 id: LogId.serverInitialized,
@@ -219,7 +212,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
             return {};
         });
 
-        this.mcpServer.server.setRequestHandler(SetLevelRequestSchema, ({ params }) => {
+        this.mcpServer.server.setRequestHandler("logging/setLevel", ({ params }) => {
             if (!MCP_LOG_LEVELS.includes(params.level)) {
                 throw new Error(`Invalid log level: ${params.level}`);
             }

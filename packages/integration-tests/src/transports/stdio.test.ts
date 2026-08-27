@@ -1,7 +1,7 @@
 import path from "path";
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
-import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { Client } from "@modelcontextprotocol/client";
+import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { describeWithMongoDB } from "../mongodbHelpers.js";
 
 // Get absolute path to the built server entry point

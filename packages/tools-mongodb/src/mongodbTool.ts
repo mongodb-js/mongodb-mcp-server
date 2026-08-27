@@ -239,11 +239,18 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
                 case ErrorCodes.NotConnectedToMongoDB:
                 case ErrorCodes.MisconfiguredConnectionString:
                 case ErrorCodes.UnknownConnectionId: {
-                    const connectionError = error as MongoDBError<
+                    const rawConnectionError = error as MongoDBError<
                         | typeof ErrorCodes.NotConnectedToMongoDB
                         | typeof ErrorCodes.MisconfiguredConnectionString
                         | typeof ErrorCodes.UnknownConnectionId
                     >;
+                    // The message may embed a driver error verbatim (e.g. MisconfiguredConnectionString),
+                    // which can contain secrets from the connection string; redact before it is
+                    // interpolated into any handler's (default or injected) output.
+                    const connectionError = new MongoDBError(
+                        rawConnectionError.code,
+                        this.session.keychain.redact(rawConnectionError.message)
+                    );
                     const outcome = await this.session.connectionErrorHandler(connectionError, {
                         availableTools: this.server?.tools ?? [],
                         connectionState: (await this.peekConnection(args.connectionId as string | undefined))?.state,

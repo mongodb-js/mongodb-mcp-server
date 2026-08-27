@@ -6,7 +6,7 @@ import type {
     ResourceConfiguration,
     IResourceServer,
 } from "@mongodb-js/mcp-types";
-import type { ReadResourceCallback, ResourceMetadata } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { ReadResourceCallback, ResourceMetadata } from "@modelcontextprotocol/server";
 import { LogId } from "./logId.js";
 
 type PayloadOf<K extends keyof SessionEvents> = SessionEvents[K][0];

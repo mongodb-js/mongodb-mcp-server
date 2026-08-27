@@ -1,5 +1,5 @@
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/server";
 
 const PROJECT_ID = "9123a4b056c7d890e1f2a3f4";
 const CLUSTER_NAME = "prod-cluster";

@@ -73,7 +73,7 @@ describe("ListProjectsTool", () => {
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown> = {}) =>
-        tool["execute"]({ limit: 10, pageNum: 1, ...args } as never, {
+        tool["execute"]({ limit: 10, pageNum: 1, includeCount: false, ...args } as never, {
             signal: new AbortController().signal,
         });
 
@@ -83,7 +83,8 @@ describe("ListProjectsTool", () => {
         const result = await exec({ orgId });
 
         const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-        expect(text).toContain("Found 1 of 1 projects.");
+        expect(text).toContain("Found 1 projects.");
+        expect(text).not.toContain("of 1");
         expect(text).toContain("my-project");
         expect(text).toContain("<untrusted-user-data-");
     });
@@ -94,10 +95,10 @@ describe("ListProjectsTool", () => {
         const result = await exec();
 
         const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-        expect(text).toContain("Found 1 of 1 projects.");
+        expect(text).toContain("Found 1 projects.");
         expect(mockApiClient.getOrgGroups).not.toHaveBeenCalled();
         expect(mockApiClient.listGroups).toHaveBeenCalledWith(
-            { params: { query: { itemsPerPage: 10, pageNum: 1, includeCount: true } } },
+            { params: { query: { itemsPerPage: 10, pageNum: 1, includeCount: false } } },
             expect.anything()
         );
     });
@@ -106,6 +107,22 @@ describe("ListProjectsTool", () => {
         mockApiClient.getOrgGroups!.mockResolvedValue({ results: [], totalCount: 0 });
 
         await exec({ orgId });
+
+        expect(mockApiClient.getOrgGroups).toHaveBeenCalledWith(
+            {
+                params: {
+                    path: { orgId },
+                    query: { itemsPerPage: 10, pageNum: 1, includeCount: false },
+                },
+            },
+            expect.anything()
+        );
+    });
+
+    it("requests includeCount when the caller opts in", async () => {
+        mockApiClient.getOrgGroups!.mockResolvedValue({ results: [], totalCount: 0 });
+
+        await exec({ orgId, includeCount: true });
 
         expect(mockApiClient.getOrgGroups).toHaveBeenCalledWith(
             {
@@ -128,7 +145,7 @@ describe("ListProjectsTool", () => {
         await exec(parsedArgs);
 
         expect(mockApiClient.listGroups).toHaveBeenCalledWith(
-            { params: { query: { itemsPerPage: 10, pageNum: 1, includeCount: true } } },
+            { params: { query: { itemsPerPage: 10, pageNum: 1, includeCount: false } } },
             expect.anything()
         );
     });
@@ -142,7 +159,7 @@ describe("ListProjectsTool", () => {
             {
                 params: {
                     path: { orgId },
-                    query: { itemsPerPage: 25, pageNum: 2, includeCount: true },
+                    query: { itemsPerPage: 25, pageNum: 2, includeCount: false },
                 },
             },
             expect.anything()
@@ -155,7 +172,7 @@ describe("ListProjectsTool", () => {
         await exec({ limit: 25, pageNum: 2 });
 
         expect(mockApiClient.listGroups).toHaveBeenCalledWith(
-            { params: { query: { itemsPerPage: 25, pageNum: 2, includeCount: true } } },
+            { params: { query: { itemsPerPage: 25, pageNum: 2, includeCount: false } } },
             expect.anything()
         );
     });
@@ -200,7 +217,7 @@ describe("ListProjectsTool", () => {
             });
 
             const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-            expect(text).toContain("Use pagination if more results are needed.");
+            expect(text).toContain("Use pagination arguments if more results are expected.");
         });
 
         it("does not suggest pagination when all projects are returned", async () => {
@@ -209,8 +226,9 @@ describe("ListProjectsTool", () => {
             const result = await exec({ orgId });
 
             const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-            expect(text).toContain("Found 1 of 1 projects.");
+            expect(text).toContain("Found 1 projects.");
             expect(text).not.toContain("pagination");
+            expect(text).not.toContain("of 1");
         });
 
         it("does not suggest pagination on the last page", async () => {
@@ -223,8 +241,9 @@ describe("ListProjectsTool", () => {
             const result = await exec({ orgId, limit: 10, pageNum: 2 });
 
             const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-            expect(text).toContain("Found 1 of 11 projects.");
+            expect(text).toContain("Found 1 projects.");
             expect(text).not.toContain("pagination");
+            expect(text).not.toContain("of 11");
         });
 
         it("suggests pagination on a middle page", async () => {
@@ -237,7 +256,7 @@ describe("ListProjectsTool", () => {
             const result = await exec({ orgId, limit: 10, pageNum: 2 });
 
             const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-            expect(text).toContain("Use pagination if more results are needed.");
+            expect(text).toContain("Use pagination arguments if more results are expected.");
         });
 
         it("falls back to the number of projects returned when totalCount is missing", async () => {
@@ -250,6 +269,20 @@ describe("ListProjectsTool", () => {
                 totalCount: 1,
             });
             expect(result.structuredContent).not.toHaveProperty("orgId");
+
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).not.toContain("pagination");
+        });
+
+        it("suggests pagination on a full page when totalCount is missing", async () => {
+            mockApiClient.getOrgGroups!.mockResolvedValue({
+                results: Array.from({ length: 10 }, (_, i) => ({ ...projectApiResponse, name: `proj-${i}` })),
+            });
+
+            const result = await exec({ orgId, limit: 10 });
+
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).toContain("Use pagination arguments if more results are expected.");
         });
 
         it("returns empty projects when org has no projects", async () => {

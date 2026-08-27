@@ -1,5 +1,6 @@
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { isInitializeRequest, type ClientCapabilities, type Implementation } from "@modelcontextprotocol/sdk/types.js";
+import { isInitializeRequest } from "@modelcontextprotocol/server";
+import type { ClientCapabilities, Implementation } from "@modelcontextprotocol/server";
+import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
 import express from "express";
 import type {
     ICompositeLogger,
@@ -46,7 +47,7 @@ export type MCPHttpServerOptions<TMetrics extends DefaultMetricDefinitions = Def
     /** Metrics instance */
     metrics: IMetrics<TMetrics>;
     /** Session store for managing transports */
-    sessionStore: ISessionStore<StreamableHTTPServerTransport>;
+    sessionStore: ISessionStore<NodeStreamableHTTPServerTransport>;
 };
 
 /**
@@ -66,7 +67,7 @@ export abstract class MCPHttpServer<
     TServer extends SessionServer = SessionServer,
     TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > extends ExpressBasedHttpServer {
-    private readonly sessionStore: ISessionStore<StreamableHTTPServerTransport>;
+    private readonly sessionStore: ISessionStore<NodeStreamableHTTPServerTransport>;
     public readonly sessionOptions: SessionManagementOptions;
     protected readonly metrics: IMetrics<TMetrics>;
     private readonly pendingInitializations = new Map<string, Promise<void>>();
@@ -137,7 +138,7 @@ export abstract class MCPHttpServer<
         logger,
         signal,
     }: {
-        transport: StreamableHTTPServerTransport;
+        transport: NodeStreamableHTTPServerTransport;
         logger: ILogger;
         signal: AbortSignal;
     }): Promise<void> {
@@ -251,7 +252,7 @@ export abstract class MCPHttpServer<
 
             const server = await this.createServerForRequest(request);
 
-            const transport = new StreamableHTTPServerTransport({
+            const transport = new NodeStreamableHTTPServerTransport({
                 sessionIdGenerator: (): string => sessionId,
                 enableJsonResponse: this.httpOptions.responseType === "json",
                 onsessionclosed: async (sessionId): Promise<void> => {

@@ -1,7 +1,14 @@
 import { z, type ZodRawShape } from "zod";
-import type { RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { CallToolResult, RequestId, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
+import type {
+    RegisteredTool,
+    McpServer,
+    CallToolResult,
+    RequestId,
+    ToolAnnotations,
+    ServerContext,
+    Notification,
+    StandardSchemaWithJSON,
+} from "@modelcontextprotocol/server";
 import type {
     ITelemetry,
     ConnectionMetadata,
@@ -24,6 +31,28 @@ import { getRandomUUID } from "@mongodb-js/mcp-core";
 import { requestIdAttr } from "./helpers/requestIdAttr.js";
 
 import { LogId } from "./logId.js";
+
+/**
+ * Adapts the v2 SDK server context (`ctx`) to the tool execution context
+ * consumed by tool implementations. The v2 SDK nests the per-request fields
+ * (`signal`, `id`, `_meta`, `notify`) under `ctx.mcpReq` and the HTTP request
+ * under `ctx.http` (see the SDK's v1 → v2 migration guide).
+ */
+function toToolExecutionContext(ctx: ServerContext): ToolExecutionContext {
+    const headers: Record<string, unknown> = Object.fromEntries(ctx.http?.req?.headers ?? []);
+    // Tests capture the raw `McpServer.registerTool` callback and invoke it
+    // without a real SDK context, so tolerate a missing/incomplete `mcpReq`.
+    const mcpReq = (ctx as Partial<ServerContext>).mcpReq;
+    return {
+        signal: mcpReq?.signal ?? new AbortController().signal,
+        requestId: mcpReq?.id,
+        _meta: mcpReq?._meta,
+        requestInfo: ctx.http?.req ? { headers } : undefined,
+        sendNotification: mcpReq?.notify
+            ? (notification: unknown): Promise<void> => mcpReq.notify(notification as Notification)
+            : undefined,
+    };
+}
 
 export type ToolArgs<T extends ZodRawShape> = {
     [K in keyof T]: z.infer<T[K]>;
@@ -788,23 +817,25 @@ export abstract class ToolBase<
         }
 
         this.registeredTool =
-            // Note: We use explicit type casting here to avoid  "excessively deep and possibly infinite" errors
-            // that occur when TypeScript tries to infer the complex generic types from `typeof this.argsShape`
-            // in the abstract class context.
+            // The SDK's `registerTool` is generic over the input schema; with the
+            // raw `z.ZodType` shapes assembled from `ZodRawShape` here, TypeScript
+            // cannot infer the callback's args type, so we register through a
+            // structurally-typed wrapper and route through `invoke`.
+            /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion -- the generic registers are not directly assignable to this callback shape */
             (
-                server.mcpServer.registerTool as (
+                server.mcpServer.registerTool as unknown as (
                     name: string,
                     config: {
                         description?: string;
-                        inputSchema?: z.ZodType;
-                        outputSchema?: z.ZodType;
+                        inputSchema?: StandardSchemaWithJSON;
+                        outputSchema?: StandardSchemaWithJSON;
                         annotations?: ToolAnnotations;
                         _meta?: Record<string, unknown>;
                     },
-                    cb: (args: ToolArgs<ZodRawShape>, extra: ToolExecutionContext) => Promise<CallToolResult>
+                    cb: (args: ToolArgs<ZodRawShape>, ctx: ServerContext) => Promise<CallToolResult>
                 ) => RegisteredTool
             )(
-                this.name,
+                /* eslint-enable @typescript-eslint/no-unnecessary-type-assertion */ this.name,
                 {
                     description: this.description,
                     inputSchema: this.resolveSharedInputSchema(),
@@ -812,7 +843,7 @@ export abstract class ToolBase<
                     annotations: this.annotations,
                     _meta: this.toolMeta,
                 },
-                this.invoke.bind(this)
+                (args, ctx) => this.invoke(args, toToolExecutionContext(ctx))
             );
 
         return true;
@@ -1040,7 +1071,9 @@ export abstract class ToolBase<
                 },
                 encoding: "text",
                 uiMetadata: {
-                    "initial-render-data": result.structuredContent,
+                    // `structuredContent` is `unknown` in v2; the UI registry
+                    // accepts arbitrary metadata.
+                    "initial-render-data": result.structuredContent as Record<string, unknown>,
                 },
             });
         }

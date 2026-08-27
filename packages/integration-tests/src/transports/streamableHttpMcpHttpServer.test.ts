@@ -1,7 +1,8 @@
 import { StreamableHttpRunner, MCPHttpServer } from "@mongodb-js/mcp-http-runners";
 import { SessionStore, type ISessionStore, CompositeLogger, Keychain, type ToolClass } from "@mongodb-js/mcp-core";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { McpServer } from "@modelcontextprotocol/server";
+import type { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
+import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { UserConfig } from "mongodb-mcp-server";
 import {
@@ -17,7 +18,6 @@ import {
 } from "mongodb-mcp-server";
 import { Session } from "@mongodb-js/mcp-cli";
 import { MCPConnectionStore } from "@mongodb-js/mcp-tools-mongodb";
-import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type {
     CallToolResult,
     DefaultMetricDefinitions,
@@ -28,7 +28,6 @@ import type {
 } from "@mongodb-js/mcp-types";
 import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import type { AtlasTelemetry, TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 import { defaultTestConfig, createTestApiClient } from "../integrationHelpers.js";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
@@ -131,7 +130,7 @@ class TestMCPHttpServer extends MCPHttpServer<CliServer> {
         };
         logger: CompositeLogger;
         metrics: IMetrics<DefaultMetricDefinitions>;
-        sessionStore: ISessionStore<StreamableHTTPServerTransport>;
+        sessionStore: ISessionStore<NodeStreamableHTTPServerTransport>;
         tools?: ToolClass[];
     }) {
         super({
@@ -152,7 +151,7 @@ class TestMCPHttpServer extends MCPHttpServer<CliServer> {
 
 type RunnerComponents = {
     runner: StreamableHttpRunner<CliServer>;
-    sessionStore: ISessionStore<StreamableHTTPServerTransport>;
+    sessionStore: ISessionStore<NodeStreamableHTTPServerTransport>;
 };
 
 function createRunnerComponents({
@@ -160,7 +159,7 @@ function createRunnerComponents({
     sessionStore,
 }: {
     mcpHttpServer: MCPHttpServer<CliServer>;
-    sessionStore: ISessionStore<StreamableHTTPServerTransport>;
+    sessionStore: ISessionStore<NodeStreamableHTTPServerTransport>;
 }): RunnerComponents {
     const logger = new CompositeLogger({ loggers: [] });
 
@@ -176,8 +175,8 @@ function getServerAddress(runner: StreamableHttpRunner<CliServer>): string {
     return (runner as unknown as { mcpHttpServer: { serverAddress: string } }).mcpHttpServer.serverAddress;
 }
 
-function getSessionStore(runner: StreamableHttpRunner<CliServer>): ISessionStore<StreamableHTTPServerTransport> {
-    return (runner as unknown as { mcpHttpServer: { sessionStore: ISessionStore<StreamableHTTPServerTransport> } })
+function getSessionStore(runner: StreamableHttpRunner<CliServer>): ISessionStore<NodeStreamableHTTPServerTransport> {
+    return (runner as unknown as { mcpHttpServer: { sessionStore: ISessionStore<NodeStreamableHTTPServerTransport> } })
         .mcpHttpServer.sessionStore;
 }
 
@@ -247,7 +246,7 @@ describe("MCPHttpServer (streamable HTTP)", () => {
         });
     };
 
-    const getSessionFromStore = async (sessionId: string): Promise<StreamableHTTPServerTransport | undefined> => {
+    const getSessionFromStore = async (sessionId: string): Promise<NodeStreamableHTTPServerTransport | undefined> => {
         return getSessionStore(runner).getSession(sessionId);
     };
 
@@ -293,7 +292,7 @@ describe("MCPHttpServer (streamable HTTP)", () => {
 
             const logger = new CompositeLogger({ loggers: [] });
             const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
-            const sessionStore = new SessionStore<StreamableHTTPServerTransport>({
+            const sessionStore = new SessionStore<NodeStreamableHTTPServerTransport>({
                 options: {
                     idleTimeoutMS: config.idleTimeoutMs,
                     notificationTimeoutMS: config.notificationTimeoutMs,
@@ -420,7 +419,7 @@ describe("MCPHttpServer (streamable HTTP)", () => {
                 };
                 logger: CompositeLogger;
                 metrics: IMetrics<DefaultMetricDefinitions>;
-                sessionStore: ISessionStore<StreamableHTTPServerTransport>;
+                sessionStore: ISessionStore<NodeStreamableHTTPServerTransport>;
             }) {
                 super({
                     options,
@@ -506,7 +505,7 @@ describe("MCPHttpServer (streamable HTTP)", () => {
                 };
                 logger: CompositeLogger;
                 metrics: IMetrics<DefaultMetricDefinitions>;
-                sessionStore: ISessionStore<StreamableHTTPServerTransport>;
+                sessionStore: ISessionStore<NodeStreamableHTTPServerTransport>;
             }) {
                 super({
                     options,
@@ -527,7 +526,7 @@ describe("MCPHttpServer (streamable HTTP)", () => {
         it("should customize server configuration based on request headers", async () => {
             const logger = new CompositeLogger({ loggers: [] });
             const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
-            const sessionStore = new SessionStore<StreamableHTTPServerTransport>({
+            const sessionStore = new SessionStore<NodeStreamableHTTPServerTransport>({
                 options: {
                     idleTimeoutMS: config.idleTimeoutMs,
                     notificationTimeoutMS: config.notificationTimeoutMs,
@@ -599,7 +598,7 @@ describe("MCPHttpServer (streamable HTTP)", () => {
         it("should allow customizing tools based on request context", async () => {
             const logger = new CompositeLogger({ loggers: [] });
             const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
-            const sessionStore = new SessionStore<StreamableHTTPServerTransport>({
+            const sessionStore = new SessionStore<NodeStreamableHTTPServerTransport>({
                 options: {
                     idleTimeoutMS: config.idleTimeoutMs,
                     notificationTimeoutMS: config.notificationTimeoutMs,
