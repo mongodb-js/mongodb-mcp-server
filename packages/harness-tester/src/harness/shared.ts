@@ -34,6 +34,9 @@ export function isHarnessDebug(perHarnessEnvVar: string): boolean {
     return !!process.env.AGENT_E2E_DEBUG || !!process.env[perHarnessEnvVar];
 }
 
+/** Default timeout for a single `prompt()` turn, shared by all harnesses. */
+export const DEFAULT_PROMPT_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
+
 const SUPPORTED_TUI_BACKENDS: readonly Backend[] = ["alacritty", "ghostty", "rio"];
 
 /** Validate an env-var backend override (`AGENT_E2E_TUI_BACKEND`) against the supported backends. */

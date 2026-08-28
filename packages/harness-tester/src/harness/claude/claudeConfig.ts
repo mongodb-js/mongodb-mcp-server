@@ -88,7 +88,7 @@ export function seedClaudeHome(homeDir: string, workDir: string, mcpServerName =
     // Whitelist the session to MCP tools only: `dontAsk` mode never prompts
     // and auto-denies anything not pre-approved, so the allow list below is
     // the whole toolset — no bash, no file tools, no web. Assumes the session
-    // runs without a `--permission-mode` CLI override (see claudeTui.ts).
+    // runs without a `--permission-mode` CLI override (see claudeHarness.ts).
     const settingsJson = {
         permissions: {
             defaultMode: "dontAsk",

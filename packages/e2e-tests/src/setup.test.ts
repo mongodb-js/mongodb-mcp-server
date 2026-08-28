@@ -22,14 +22,10 @@ describe("server setup", () => {
                     ].join("")
                 );
 
-                // The agent may emit transient (non-fatal) error events (e.g.
-                // API reconnect notices); the meaningful checks are the text +
-                // tool-call.
                 expect(turn.text).toBeTruthy();
                 expect(turn.text).toContain(seedDb);
-                // The tool call should be observable in the event stream; if
-                // the parser missed it, the text assertion above still
-                // validates the round-trip.
+                // The tool call should be recorded; the text assertion above still
+                // validates the round-trip if the parser missed it.
                 expect(turn.toolCalls.some((tc) => tc.name === "list-databases")).toBe(true);
             } finally {
                 await session.dispose();

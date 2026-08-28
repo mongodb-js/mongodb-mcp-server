@@ -15,23 +15,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    # Label-gated like the accuracy suite: only run on PRs explicitly labeled
-    # `e2e-tests` (plus main pushes/manual runs). Fork PRs can't trigger this;
-    # the suite also self-skips when codex/credentials are absent. The release
-    # PR from prepare-release.yml carries the label automatically.
+    # Only run on PRs explicitly labeled `e2e-tests` (the release PR from prepare-release.yml carries it automatically) or on main pushes/manual runs.
     if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'e2e-tests')
     env:
-      # Codex model auth for the agent session (gpt-5.6-luna runs via the
-      # grove OpenAI-compatible gateway configured in the hermetic codex
-      # config; the key is read through `env_key = "GROVE_API_KEY"`).
       GROVE_API_KEY: ${{ secrets.GROVE_API_KEY }}
-      # Optional model overrides; codex/claude use the repo-provided values
-      # when set (both default to grove-served models: gpt-5.6-luna for codex,
-      # claude-haiku-4-5 for claude).
       AGENT_E2E_CODEX_MODEL: ${{ vars.AGENT_E2E_CODEX_MODEL }}
       AGENT_E2E_CLAUDE_MODEL: ${{ vars.AGENT_E2E_CLAUDE_MODEL }}
-      # tui-test emulator backend (default: alacritty; works headless on
-      # ubuntu). Set per-repo when a different emulator is preferred.
       AGENT_E2E_TUI_BACKEND: ${{ vars.AGENT_E2E_TUI_BACKEND }}
 
     steps:

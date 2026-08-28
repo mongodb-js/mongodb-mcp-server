@@ -3,7 +3,7 @@ import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/cli
 import { useMcpAgent } from "./useMcpAgent.js";
 import { describeHarness } from "./describeHarness.js";
 
-/** The key read tool the happy-path suite already drives end to end. */
+// The key tools the happy-path suite already drives end to end.
 const KEY_TOOLS = ["list-databases", "list-collections", "aggregate", "find", "insert-many"];
 
 describe("MCP tool discovery", () => {
@@ -21,8 +21,6 @@ describe("MCP tool discovery", () => {
                     console.log(`[tool-discovery] server exposes ${names.length} tools:\n  ${names.join(", ")}`);
                 }
 
-                // Every registration includes a description + input schema; a bare
-                // name with no payload would be useless to the agent.
                 expect(tools.length).toBeGreaterThan(10);
                 for (const tool of tools) {
                     expect(tool.name).toBeTruthy();
@@ -30,7 +28,6 @@ describe("MCP tool discovery", () => {
                     expect(tool.inputSchema).toBeDefined();
                 }
 
-                // The read path used by the happy-path suite must be present.
                 for (const name of KEY_TOOLS) {
                     expect(names).toContain(name);
                 }
@@ -50,20 +47,15 @@ describe("MCP tool discovery", () => {
                     ].join("")
                 );
 
-                // Log the raw output (like the original probe did) so a debug
-                // run shows what the agent actually printed; assertions still
-                // attach the transcript on failure.
+                // Debug-only dump of the raw agent reply.
                 if (process.env.AGENT_E2E_DEBUG) {
                     console.log(`[tool-discovery] agent reply:\n${turn.transcript ?? turn.text}`);
                 }
 
                 expect(turn.text).toBeTruthy();
-                // The agent doesn't need to call any tool to answer; it quotes the
-                // tool names it sees. Names may render as plain list items outside
-                // the parsed reply block, so assert on the raw transcript rather
-                // than the best-effort parsed text. Agents write tool names with
-                // underscores in prose (model-facing names) even though the server
-                // names are hyphenated, so normalize before matching.
+                // Agents quote tool names in prose with underscores and may omit
+                // them from the parsed reply, so assert on the raw transcript and
+                // normalize underscores to the server's hyphens.
                 const normalized = (turn.transcript ?? turn.text).toLowerCase().replace(/_/g, "-");
                 expect(normalized).toContain("list-databases");
             } finally {

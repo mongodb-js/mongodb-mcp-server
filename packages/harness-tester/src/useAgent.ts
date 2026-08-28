@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, beforeEach } from "vitest";
+import { DEFAULT_PROMPT_TIMEOUT_MS } from "./harness/shared.js";
 import type { AgentHarness, AgentHarnessOptions } from "./harness/types.js";
 
 export interface AgentContext {
@@ -63,7 +64,7 @@ export function useAgent({ harness }: { harness: AgentHarness }): AgentContext {
                     process.env.AGENT_E2E_MODEL;
                 return model ? { model } : {};
             })(),
-            promptTimeoutMs: 10 * 60 * 1000,
+            promptTimeoutMs: DEFAULT_PROMPT_TIMEOUT_MS,
             // `AGENT_E2E_DEBUG` turns on per-session debug dumps (config,
             // streams) for the whole suite without touching individual tests.
             debug: !!process.env.AGENT_E2E_DEBUG,
