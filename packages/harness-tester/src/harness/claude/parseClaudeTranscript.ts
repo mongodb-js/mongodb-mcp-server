@@ -108,8 +108,6 @@ export function collectSessionJsonlToolCalls(claudeHomeDir: string): ToolCallRec
     return records;
 }
 
-
-
 export interface ParseClaudeTurnOptions {
     transcript: string;
     /** Hermetic `CLAUDE_CONFIG_DIR`; when set, exact tool calls are merged from the session JSONL. */

@@ -1,4 +1,4 @@
-import { TuiTest } from "@microsoft/tui-test";
+import type { TuiTest } from "@microsoft/tui-test";
 import { parseTuiTranscript } from "./codexParseTuiTranscript.js";
 import { DEFAULT_PROMPT_TIMEOUT_MS, diffTranscript, isHarnessDebug, sleep } from "../shared.js";
 import type { AgentHarnessOptions, AgentSession, AgentTurn } from "../types.js";
