@@ -49,14 +49,10 @@ describe("MCP tool discovery", () => {
 
                 // Debug-only dump of the raw agent reply.
                 if (process.env.AGENT_E2E_DEBUG) {
-                    console.log(`[tool-discovery] agent reply:\n${turn.transcript ?? turn.text}`);
+                    console.log(`[tool-discovery] agent reply:\n${turn.text}`);
                 }
 
-                expect(turn.text).toBeTruthy();
-                // Agents quote tool names in prose with underscores and may omit
-                // them from the parsed reply, so assert on the raw transcript and
-                // normalize underscores to the server's hyphens.
-                const normalized = (turn.transcript ?? turn.text).toLowerCase().replace(/_/g, "-");
+                const normalized = turn.text.toLowerCase().replace(/_/g, "-");
                 expect(normalized).toContain("list-databases");
             } finally {
                 await session.dispose();

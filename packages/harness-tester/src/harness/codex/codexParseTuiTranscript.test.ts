@@ -15,7 +15,7 @@ describe("normalizeToolName", () => {
 });
 
 describe("parseTuiTranscript", () => {
-    it("extracts tool calls and the final reply from a happy-path transcript", () => {
+    it("extracts tool calls from a happy-path transcript", () => {
         const transcript = [
             "› Use the list-databases tool.",
             "",
@@ -41,7 +41,6 @@ describe("parseTuiTranscript", () => {
                 args: { connectionId: "preconfigured" },
             })
         );
-        expect(result.replyText).toContain("The databases are: admin, test, mydb");
     });
 
     it("deduplicates identical tool calls", () => {
@@ -62,27 +61,11 @@ describe("parseTuiTranscript", () => {
         const result = parseTuiTranscript(transcript);
         const lists = result.toolCalls.filter((tc) => tc.name === "list-databases");
         expect(lists).toHaveLength(1);
-        expect(result.replyText).toBe("Done.");
     });
 
-    it("does not treat tool-call bullets as the final reply", () => {
-        const transcript = [
-            "• Called mongo.list-databases({})",
-            "  └ Found: mydb",
-            "",
-            "• Answer.",
-            "",
-            "› Ask Codex to do anything",
-        ].join("\n");
-
-        const result = parseTuiTranscript(transcript);
-        expect(result.replyText).toBe("Answer.");
-    });
-
-    it("returns empty reply when there is no composer idle marker", () => {
+    it("returns no tool calls from noise-only content", () => {
         const transcript = "• Working (3s • esc to interrupt)\njust noise";
         const result = parseTuiTranscript(transcript);
-        expect(result.replyText).toBe("");
         expect(result.toolCalls).toEqual([]);
     });
 });

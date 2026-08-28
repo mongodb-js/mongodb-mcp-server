@@ -127,11 +127,10 @@ export class ClaudeTuiSession implements AgentSession {
             console.log(`[claude-tui][out] <<aborting: ${message}>>\n${delta}`);
         }
         // Surface the failure as a missing reply so the test assertion fails
-        // loudly with the raw transcript attached for diagnosis.
+        // loudly with the raw terminal content attached for diagnosis.
         return {
-            text: `ERROR: ${message}`,
+            text: `ERROR: ${message}${text ? "\n\n--- terminal content ---\n" + text : ""}`,
             toolCalls: [],
-            transcript: text,
         };
     }
 
@@ -179,7 +178,6 @@ export class ClaudeTuiSession implements AgentSession {
         }
     }
 
-    /** Parse the portion of the transcript written after `startText`. */
     private async buildTurn(startText: string): Promise<AgentTurn> {
         const full = await this.transcriptText();
         let delta = diffTranscript(full, startText);
@@ -192,9 +190,8 @@ export class ClaudeTuiSession implements AgentSession {
         }
         const parsed = parseClaudeTurn({ transcript: delta, claudeHomeDir: this.claudeHome });
         return {
-            text: parsed.replyText,
+            text: delta,
             toolCalls: parsed.toolCalls,
-            transcript: delta,
         };
     }
 

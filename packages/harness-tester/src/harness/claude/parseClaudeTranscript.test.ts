@@ -15,7 +15,7 @@ describe("normalizeToolName", () => {
 });
 
 describe("parseClaudeTranscript", () => {
-    it("parses a happy-path turn: Called marker + reply bullet", () => {
+    it("parses a happy-path turn: Called marker + reply", () => {
         const transcript = [
             '❯ Use the "list-databases" tool, then reply with the database names.',
             "",
@@ -32,14 +32,11 @@ describe("parseClaudeTranscript", () => {
         const result = parseClaudeTranscript(transcript);
         expect(result.toolCalls).toHaveLength(1);
         expect(result.toolCalls[0]?.name).toBe("mongo");
-        expect(result.replyText).toContain("admin");
-        expect(result.replyText).toContain("config");
     });
 
-    it("returns empty reply when the composer never went idle", () => {
+    it("returns no tool calls when none happened", () => {
         const result = parseClaudeTranscript("❯ Use the tool, then reply.");
         expect(result.toolCalls).toHaveLength(0);
-        expect(result.replyText).toBe("");
     });
 });
 

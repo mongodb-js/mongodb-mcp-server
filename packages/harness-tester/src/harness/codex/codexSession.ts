@@ -118,9 +118,8 @@ export class CodexTuiSession implements AgentSession {
         // Surface the failure as a missing reply so the test assertion fails
         // loudly with the raw transcript attached for diagnosis.
         return {
-            text: `ERROR: ${message}`,
+            text: `ERROR: ${message}${text ? "\n\n--- terminal content ---\n" + text : ""}`,
             toolCalls: [],
-            transcript: text,
         };
     }
 
@@ -165,7 +164,6 @@ export class CodexTuiSession implements AgentSession {
         }
     }
 
-    /** Parse the portion of the transcript written after `startText`. */
     private async buildTurn(startText: string): Promise<AgentTurn> {
         const full = await this.transcriptText();
         let delta = diffTranscript(full, startText);
@@ -178,9 +176,8 @@ export class CodexTuiSession implements AgentSession {
         }
         const parsed = parseTuiTranscript(delta);
         return {
-            text: parsed.replyText,
+            text: delta,
             toolCalls: parsed.toolCalls,
-            transcript: delta,
         };
     }
 

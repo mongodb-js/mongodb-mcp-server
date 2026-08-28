@@ -12,8 +12,9 @@ headless terminal emulator.
 What lives here:
 
 - `harness/codex/`, `harness/claude/` — per-agent config generation, TUI
-  drive loops, and transcript parsers (`AgentHarnessConfig` + `AgentHarness`
-  implementations; see `harness/types.ts` for the contract).
+  drive loops, and tool-call parsers (`AgentHarnessConfig` + `AgentHarness`
+  implementations; see `harness/types.ts` for the contract). Turn text is the
+  raw terminal content, not an extracted reply — tests keyword-match it.
 - `harness/shared.ts` — helpers both harnesses share (canonical path
   handling, transcript diffing, backend resolution, tool-name normalization).
 - `useAgent({ harness })` — a pure agent hook: temp workdir, availability

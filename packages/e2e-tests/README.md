@@ -109,12 +109,15 @@ If a harness binary or credentials are missing, that harness's tests **skip**
 5. `CodexTuiSession.prompt()` / `ClaudeTuiSession.prompt()` type the prompt
    into the composer, press Enter, wait until the composer returns to its idle
    state (`Ask Codex to do anything` / `❯` without `esc to interrupt`), then
-   parse the terminal scrollback for tool calls + the reply. Note: the claude
-   TUI collapses tool calls to the server name (`Called mongo`), so the tool
-   call assertion normalizes to that; the reply reflects real mongod state.
-6. The assertion verifies the tool call and that the agent's reply reflects
-   **actual mongod state** (a seeded database appears in the listing) — ground
-   truth, not just what the agent said.
+   capture the raw terminal content (scrollback delta + live viewport) as the
+   turn text and parse tool calls. Exact reply extraction is intentionally
+   avoided — TUIs render replies differently — so tests keyword-match the raw
+   content instead. Note: the claude TUI collapses tool calls to the server
+   name (`Called mongo`), so the tool call assertion normalizes to that; the
+   reply reflects real mongod state.
+6. The assertion verifies the tool call and that the raw terminal content
+   reflects **actual mongod state** (the seeded database name appears) —
+   ground truth, not just what the agent said.
 
 ## CI
 

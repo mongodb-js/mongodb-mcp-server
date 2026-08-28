@@ -8,12 +8,10 @@ export interface ToolCallRecord {
 }
 
 export interface AgentTurn {
-    /** The agent's final textual reply. */
+    /** Raw terminal content captured at the end of the turn (scrollback delta + live viewport). */
     text: string;
     /** Tool calls observed during the turn, deduplicated. */
     toolCalls: ToolCallRecord[];
-    /** Raw harness output for the turn (terminal transcript for the TUI harness). */
-    transcript?: string;
 }
 
 export interface AgentHarnessOptions {

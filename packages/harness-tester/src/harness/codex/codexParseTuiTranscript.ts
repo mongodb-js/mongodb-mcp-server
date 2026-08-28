@@ -5,10 +5,7 @@ export { normalizeToolName };
 
 export interface TuiTranscriptParseResult {
     toolCalls: ToolCallRecord[];
-    replyText: string;
 }
-
-const COMPOSER_IDLE_LINE = "Ask Codex to do anything";
 
 function collectToolCalls(transcript: string): ToolCallRecord[] {
     const toolCalls: ToolCallRecord[] = [];
@@ -39,58 +36,8 @@ function collectToolCalls(transcript: string): ToolCallRecord[] {
     return toolCalls;
 }
 
-/**
- * Extract the final assistant reply: the last contiguous `•` text block before
- * the composer idle line, excluding tool-call bullets. Returns "" when the
- * transcript has no composer idle line (incomplete turn).
- */
-function extractReply(transcript: string): string {
-    const idleIdx = transcript.lastIndexOf(COMPOSER_IDLE_LINE);
-    if (idleIdx < 0) {
-        return "";
-    }
-    const blocks: string[][] = [];
-    let current: string[] = [];
-    const pushBlock = (): void => {
-        if (current.length > 0) {
-            blocks.push(current);
-        }
-        current = [];
-    };
-    for (const line of transcript.slice(0, idleIdx).split("\n")) {
-        const trimmed = line.trim();
-        if (!trimmed) {
-            pushBlock();
-            continue;
-        }
-        if (trimmed.startsWith("•")) {
-            pushBlock();
-            current = [trimmed.replace(/^•\s*/, "")];
-        } else if (trimmed.startsWith("›") || /^[\s─═╭╰│┌┐└┘├┤]+$/.test(trimmed)) {
-            pushBlock();
-        } else if (current.length > 0) {
-            current.push(trimmed);
-        }
-    }
-    pushBlock();
-
-    for (let b = blocks.length - 1; b >= 0; b--) {
-        const block = blocks[b];
-        if (!block) {
-            continue;
-        }
-        const text = block.join("\n").trim();
-        if (!text || text.startsWith("Called ")) {
-            continue;
-        }
-        return text;
-    }
-    return "";
-}
-
 export function parseTuiTranscript(transcript: string): TuiTranscriptParseResult {
     return {
         toolCalls: collectToolCalls(transcript),
-        replyText: extractReply(transcript),
     };
 }

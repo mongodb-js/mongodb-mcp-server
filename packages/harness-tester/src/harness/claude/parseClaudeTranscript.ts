@@ -7,10 +7,7 @@ export { normalizeToolName };
 
 export interface ClaudeTranscriptParseResult {
     toolCalls: ToolCallRecord[];
-    replyText: string;
 }
-
-const COMPOSER_IDLE_LINE = "❯";
 
 /** Server-level tool calls seen in the TUI transcript (`Called <server> N times`). */
 function collectServerCalls(transcript: string): ToolCallRecord[] {
@@ -111,53 +108,7 @@ export function collectSessionJsonlToolCalls(claudeHomeDir: string): ToolCallRec
     return records;
 }
 
-/**
- * Extract the final assistant reply: the last contiguous `⏺` text block before
- * the composer idle line. Returns "" when the transcript has no composer idle
- * line (incomplete turn).
- */
-function extractReply(transcript: string): string {
-    const idleIdx = transcript.lastIndexOf(COMPOSER_IDLE_LINE);
-    if (idleIdx < 0) {
-        return "";
-    }
-    const blocks: string[][] = [];
-    let current: string[] = [];
-    const pushBlock = (): void => {
-        if (current.length > 0) {
-            blocks.push(current);
-        }
-        current = [];
-    };
-    for (const line of transcript.slice(0, idleIdx).split("\n")) {
-        const trimmed = line.trim();
-        if (!trimmed) {
-            continue; // blank lines inside a block (e.g. between a ⏺ header and its list) stay in the block
-        }
-        if (trimmed.startsWith("⏺")) {
-            pushBlock();
-            current = [trimmed.replace(/^⏺\s*/, "")];
-        } else if (trimmed.startsWith("❯") || trimmed.startsWith("›") || /^[\s─═╭╰│┌┐└┘├┤]+$/.test(trimmed)) {
-            pushBlock();
-        } else if (current.length > 0) {
-            current.push(trimmed);
-        }
-    }
-    pushBlock();
 
-    for (let b = blocks.length - 1; b >= 0; b--) {
-        const block = blocks[b];
-        if (!block) {
-            continue;
-        }
-        const text = block.join("\n").trim();
-        if (!text || text.startsWith("Called ")) {
-            continue;
-        }
-        return text;
-    }
-    return "";
-}
 
 export interface ParseClaudeTurnOptions {
     transcript: string;
@@ -173,7 +124,6 @@ export function parseClaudeTurn({ transcript, claudeHomeDir }: ParseClaudeTurnOp
     // session with no persisted log yet).
     return {
         toolCalls: sessionCalls.length > 0 ? sessionCalls : serverCalls,
-        replyText: extractReply(transcript),
     };
 }
 

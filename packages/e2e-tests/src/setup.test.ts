@@ -22,10 +22,7 @@ describe("server setup", () => {
                     ].join("")
                 );
 
-                expect(turn.text).toBeTruthy();
                 expect(turn.text).toContain(seedDb);
-                // The tool call should be recorded; the text assertion above still
-                // validates the round-trip if the parser missed it.
                 expect(turn.toolCalls.some((tc) => tc.name === "list-databases")).toBe(true);
             } finally {
                 await session.dispose();
