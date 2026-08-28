@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { type ToolArgs, type ToolResult } from "@mongodb-js/mcp-core";
-import type { OperationType, ToolExecutionContext, CallToolResult } from "@mongodb-js/mcp-types";
+import type { OperationType, ToolExecutionContext, ToolRequest, CallToolResult } from "@mongodb-js/mcp-types";
+import type { IAtlasConfig } from "../../atlasTool.js";
 import { AtlasToolBase } from "../../atlasTool.js";
 import type { ClusterDescription20240805 } from "@mongodb-js/mcp-atlas-api-client";
 import { AtlasArgs, type AtlasCloudProvider } from "../../args.js";
@@ -226,7 +227,7 @@ export class CreateClusterTool extends AtlasToolBase {
 
     protected async execute(
         args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        { request }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
         const { projectId, clusterName, provider, regions, clusterType, terminationProtectionEnabled } = args;
 
@@ -241,7 +242,10 @@ export class CreateClusterTool extends AtlasToolBase {
             instanceSize = "M30";
         } else {
             // REPLICASET defaults to M10 if there are less than 2 clusters in the project, M30 otherwise.
-            const existing = await this.apiClient.listClusters({ params: { path: { groupId: projectId } } }, context);
+            const existing = await this.server.apiClient.listClusters(
+                { params: { path: { groupId: projectId } } },
+                request
+            );
             instanceSize = (existing.results?.length ?? 0) < 2 ? "M10" : "M30";
         }
 
@@ -252,7 +256,7 @@ export class CreateClusterTool extends AtlasToolBase {
 
         let encryptionAtRestProvider = args.encryptionAtRestProvider;
         if (encryptionAtRestProvider === undefined) {
-            const validConfigExists = await this.doesValidEARConfigExist(provider, projectId, context);
+            const validConfigExists = await this.doesValidEARConfigExist(provider, projectId, request);
             encryptionAtRestProvider = validConfigExists ? provider : "NONE";
         }
 
@@ -266,14 +270,14 @@ export class CreateClusterTool extends AtlasToolBase {
             encryptionAtRestProvider,
         } as unknown as ClusterDescription20240805;
 
-        const ipAccessListResult = await ensureCurrentIpInAccessList(this.apiClient, projectId, context);
+        const ipAccessListResult = await ensureCurrentIpInAccessList(this.server.apiClient, projectId, request);
 
-        const result = await this.apiClient.createCluster(
+        const result = await this.server.apiClient.createCluster(
             {
                 params: { path: { groupId: projectId } },
                 body,
             },
-            context
+            request
         );
 
         const ipAccessListNote = getAccessListNote(ipAccessListResult);
@@ -308,12 +312,12 @@ export class CreateClusterTool extends AtlasToolBase {
     protected async doesValidEARConfigExist(
         provider: AtlasCloudProvider,
         projectId: string,
-        context: ToolExecutionContext
+        request: ToolRequest<IAtlasConfig>
     ): Promise<boolean> {
         try {
-            const encryptionAtRest = await this.apiClient.getEncryptionAtRest(
+            const encryptionAtRest = await this.server.apiClient.getEncryptionAtRest(
                 { params: { path: { groupId: projectId } } },
-                context
+                request
             );
 
             let config;

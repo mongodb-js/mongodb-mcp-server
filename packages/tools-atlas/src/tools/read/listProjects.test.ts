@@ -1,14 +1,13 @@
 import { z } from "zod";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { ListProjectsTool, ListProjectsArgs } from "./listProjects.js";
-import type { IAtlasSession } from "../../atlasTool.js";
 import type { ITelemetry } from "@mongodb-js/mcp-types";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
+import type { AtlasToolServer } from "../../atlasTool.js";
 
 const orgId = "507f1f77bcf86cd799439011";
 
@@ -46,7 +45,7 @@ describe("ListProjectsTool", () => {
         const mockSession = {
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
-        } as unknown as IAtlasSession;
+        } as unknown as AtlasToolServer;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
@@ -55,18 +54,15 @@ describe("ListProjectsTool", () => {
 
         const mockElicitation = createMockElicitation() as unknown as Elicitation;
 
-        const params: ToolConstructorParams<IAtlasSession> = {
-            name: ListProjectsTool.toolName,
-            category: "atlas",
-            operationType: ListProjectsTool.operationType,
-            session: mockSession,
+        const server: AtlasToolServer = {
+            ...mockSession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
-        };
+        } as unknown as AtlasToolServer;
 
-        tool = new ListProjectsTool(params);
+        tool = new ListProjectsTool(server);
     });
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type

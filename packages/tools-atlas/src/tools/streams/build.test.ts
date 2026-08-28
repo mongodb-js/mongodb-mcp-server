@@ -1,8 +1,7 @@
 import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
-import type { IAtlasConfig, IAtlasSession } from "@mongodb-js/mcp-tools-atlas";
+import type { IAtlasConfig } from "@mongodb-js/mcp-tools-atlas";
 import { StreamsBuildTool } from "@mongodb-js/mcp-tools-atlas";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Elicitation } from "@mongodb-js/mcp-core";
@@ -10,6 +9,7 @@ import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+import type { AtlasToolServer } from "../../atlasTool.js";
 
 describe("StreamsBuildTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
@@ -51,7 +51,7 @@ describe("StreamsBuildTool", () => {
                 apiClientSecret: "test-secret",
                 atlasTemporaryDatabaseUserLifetimeMs: 3600000,
             } as unknown as IAtlasConfig,
-        } as unknown as IAtlasSession;
+        } as unknown as AtlasToolServer;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
@@ -70,18 +70,15 @@ describe("StreamsBuildTool", () => {
             confirmationRequired: vi.fn(),
         };
 
-        const params: ToolConstructorParams<IAtlasSession, DefaultPrometheusMetricDefinitions> = {
-            name: StreamsBuildTool.toolName,
-            category: "atlas",
-            operationType: StreamsBuildTool.operationType,
-            session: mockSession,
+        const server: AtlasToolServer = {
+            ...mockSession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation as unknown as Elicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
-        };
+        } as unknown as AtlasToolServer;
 
-        tool = new StreamsBuildTool(params);
+        tool = new StreamsBuildTool(server);
     });
 
     const baseArgs = { projectId: "proj1", workspaceName: "ws1" };

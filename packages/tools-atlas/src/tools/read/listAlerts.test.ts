@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
-import type { IAtlasConfig, IAtlasSession } from "../../atlasTool.js";
+import type { IAtlasConfig } from "../../atlasTool.js";
 import { ListAlertsTool } from "./listAlerts.js";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Elicitation } from "@mongodb-js/mcp-core";
@@ -8,7 +7,8 @@ import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
-import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
+
+import type { AtlasToolServer } from "../../atlasTool.js";
 
 describe("ListAlertsTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
@@ -37,7 +37,7 @@ describe("ListAlertsTool", () => {
                 apiClientSecret: "test-secret",
                 atlasTemporaryDatabaseUserLifetimeMs: 3600000,
             } as unknown as IAtlasConfig,
-        } as unknown as IAtlasSession;
+        } as unknown as AtlasToolServer;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
@@ -46,18 +46,15 @@ describe("ListAlertsTool", () => {
 
         const mockElicitation = createMockElicitation() as unknown as Elicitation;
 
-        const params: ToolConstructorParams<IAtlasSession, DefaultPrometheusMetricDefinitions> = {
-            name: ListAlertsTool.toolName,
-            category: "atlas",
-            operationType: ListAlertsTool.operationType,
-            session: mockSession,
+        const server: AtlasToolServer = {
+            ...mockSession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
-        };
+        } as unknown as AtlasToolServer;
 
-        tool = new ListAlertsTool(params);
+        tool = new ListAlertsTool(server);
     });
 
     const baseArgs = { projectId: "proj1", status: "OPEN" as const, limit: 10, pageNum: 1, includeCount: false };

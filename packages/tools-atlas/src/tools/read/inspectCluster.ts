@@ -34,9 +34,9 @@ export class InspectClusterTool extends AtlasToolBase {
 
     protected async execute(
         { projectId, clusterName }: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        { request }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const cluster = await inspectCluster(this.apiClient, projectId, clusterName, context);
+        const cluster = await inspectCluster(this.server.apiClient, projectId, clusterName, request);
 
         return this.formatOutput(cluster);
     }

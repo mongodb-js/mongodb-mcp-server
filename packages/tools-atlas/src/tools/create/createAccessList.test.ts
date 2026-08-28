@@ -1,14 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { CreateAccessListTool } from "./createAccessList.js";
 import { DEFAULT_ACCESS_LIST_COMMENT } from "../../helpers/accessListUtils.js";
-import type { IAtlasSession } from "../../atlasTool.js";
 import type { ITelemetry, ICompositeLogger } from "@mongodb-js/mcp-types";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import type { RegisteredTool } from "@modelcontextprotocol/server";
+import type { AtlasToolServer } from "../../atlasTool.js";
 
 const projectId = "507f1f77bcf86cd799439011";
 const currentIpAddress = "203.0.113.10";
@@ -45,21 +44,18 @@ describe("CreateAccessListTool", () => {
                 confirmationRequiredTools: [],
                 previewFeatures: [],
                 disabledTools: [],
-            } as IAtlasSession["config"],
-        } as unknown as IAtlasSession;
+            } as AtlasToolServer["config"],
+        } as unknown as AtlasToolServer;
 
-        const params: ToolConstructorParams<IAtlasSession> = {
-            name: CreateAccessListTool.toolName,
-            category: "atlas",
-            operationType: CreateAccessListTool.operationType,
-            session: mockSession,
+        const server: AtlasToolServer = {
+            ...mockSession,
             telemetry: { isTelemetryEnabled: () => false, emitEvents: vi.fn() } as unknown as ITelemetry,
             elicitation: createMockElicitation(),
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
-        };
+        } as unknown as AtlasToolServer;
 
-        return new CreateAccessListTool(params);
+        return new CreateAccessListTool(server);
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type

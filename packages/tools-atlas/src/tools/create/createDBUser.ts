@@ -61,9 +61,9 @@ export class CreateDBUserTool extends AtlasToolBase {
 
     protected async execute(
         { projectId, username, password, roles, clusters }: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        { request }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const ipAccessListResult = await ensureCurrentIpInAccessList(this.apiClient, projectId, context);
+        const ipAccessListResult = await ensureCurrentIpInAccessList(this.server.apiClient, projectId, request);
         const shouldGeneratePassword = !password;
         if (shouldGeneratePassword) {
             password = await generateSecurePassword();
@@ -87,7 +87,7 @@ export class CreateDBUserTool extends AtlasToolBase {
                 : undefined,
         } as CloudDatabaseUser;
 
-        await this.apiClient.createDatabaseUser(
+        await this.server.apiClient.createDatabaseUser(
             {
                 params: {
                     path: {
@@ -96,12 +96,12 @@ export class CreateDBUserTool extends AtlasToolBase {
                 },
                 body: input,
             },
-            context
+            request
         );
 
-        this.session.keychain.register(username, "user");
+        this.server.keychain.register(username, "user");
         if (password) {
-            this.session.keychain.register(password, "password");
+            this.server.keychain.register(password, "password");
         }
 
         const ipAccessListNote = getAccessListNote(ipAccessListResult);

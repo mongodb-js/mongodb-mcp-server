@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { PauseResumeClusterTool, PauseResumeClusterArgsShape } from "./pauseResumeCluster.js";
 import { z } from "zod";
-import type { IAtlasSession, IAtlasConfig } from "../../atlasTool.js";
+import type { IAtlasConfig } from "../../atlasTool.js";
 import type { ITelemetry, ICompositeLogger } from "@mongodb-js/mcp-types";
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
@@ -17,6 +16,7 @@ import type { ConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import { UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
+import type { AtlasToolServer } from "../../atlasTool.js";
 
 const defaultTestConfig: UserConfig = {
     ...UserConfigSchema.parse({}),
@@ -57,7 +57,7 @@ describe("PauseResumeClusterTool", () => {
             deviceId: DeviceId.create(new CompositeLogger()),
         }).view();
 
-        const mockSession: Partial<IAtlasSession> = {
+        const mockSession: Partial<AtlasToolServer> = {
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
             connectionRegistry,
@@ -78,18 +78,15 @@ describe("PauseResumeClusterTool", () => {
 
         const mockElicitation = createMockElicitation();
 
-        const params: ToolConstructorParams<IAtlasSession> = {
-            name: PauseResumeClusterTool.toolName,
-            category: "atlas",
-            operationType: PauseResumeClusterTool.operationType,
-            session: mockSession as IAtlasSession,
+        const server: AtlasToolServer = {
+            ...mockSession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
-        };
+        } as unknown as AtlasToolServer;
 
-        return new PauseResumeClusterTool(params);
+        return new PauseResumeClusterTool(server);
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type

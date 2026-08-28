@@ -83,7 +83,7 @@ export async function runSharedTierAlertsHook({
             id: LogId.atlasSharedTierAlertsHookWarning,
             context: "shared-tier-alerts-hook",
             message: `Failed to list Atlas alerts for shared-tier hook: ${message}`,
-            attributes: { ...requestIdAttr(context?.requestInfo?.headers) },
+            attributes: { ...requestIdAttr(context?.headers) },
         });
         return undefined;
     }

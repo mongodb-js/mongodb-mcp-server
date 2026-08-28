@@ -5,7 +5,8 @@ import type {
     FlexClusterDescription20241113,
     ApiClient,
 } from "@mongodb-js/mcp-atlas-api-client";
-import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
+import type { ToolRequest } from "@mongodb-js/mcp-types";
+import type { IAtlasConfig } from "../atlasTool.js";
 import { LogId, requestIdAttr } from "@mongodb-js/mcp-core";
 import { ConnectionString } from "mongodb-connection-string-url";
 
@@ -120,7 +121,7 @@ export async function inspectCluster(
     apiClient: ApiClient,
     projectId: string,
     clusterName: string,
-    context?: ToolExecutionContext
+    request?: ToolRequest<IAtlasConfig>
 ): Promise<Cluster> {
     try {
         const cluster = await apiClient.getCluster(
@@ -132,7 +133,7 @@ export async function inspectCluster(
                     },
                 },
             },
-            context
+            request
         );
         return formatCluster(cluster);
     } catch (error) {
@@ -146,7 +147,7 @@ export async function inspectCluster(
                         },
                     },
                 },
-                context
+                request
             );
             return formatFlexCluster(cluster);
         } catch (flexError) {
@@ -155,7 +156,7 @@ export async function inspectCluster(
                 id: LogId.atlasInspectFailure,
                 context: "inspect-cluster",
                 message: `error inspecting cluster: ${err.message}`,
-                attributes: { ...requestIdAttr(context?.requestInfo?.headers) },
+                attributes: { ...requestIdAttr(request?.headers) },
             });
             throw error;
         }
@@ -187,10 +188,10 @@ export async function getProcessIdsFromCluster(
     apiClient: ApiClient,
     projectId: string,
     clusterName: string,
-    context?: ToolExecutionContext
+    request?: ToolRequest<IAtlasConfig>
 ): Promise<Array<string>> {
     try {
-        const cluster = await inspectCluster(apiClient, projectId, clusterName, context);
+        const cluster = await inspectCluster(apiClient, projectId, clusterName, request);
         return cluster.processIds || [];
     } catch (error) {
         throw new Error(

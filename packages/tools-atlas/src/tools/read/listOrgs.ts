@@ -35,9 +35,9 @@ export class ListOrganizationsTool extends AtlasToolBase {
 
     protected async execute(
         { limit, pageNum, includeCount }: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        { request }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const data = await this.apiClient.listOrgs(
+        const data = await this.server.apiClient.listOrgs(
             {
                 params: {
                     query: {
@@ -47,7 +47,7 @@ export class ListOrganizationsTool extends AtlasToolBase {
                     },
                 },
             },
-            context
+            request
         );
 
         const orgs = (data?.results ?? []).map((org) => ({

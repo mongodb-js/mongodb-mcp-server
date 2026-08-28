@@ -23,7 +23,7 @@ export class CreateFreeClusterTool extends AtlasToolBase {
 
     protected async execute(
         { projectId, name, region }: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        { request }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
         const input = {
             groupId: projectId,
@@ -47,8 +47,8 @@ export class CreateFreeClusterTool extends AtlasToolBase {
             terminationProtectionEnabled: false,
         } as unknown as ClusterDescription20240805;
 
-        const ipAccessListResult = await ensureCurrentIpInAccessList(this.apiClient, projectId, context);
-        await this.apiClient.createCluster(
+        const ipAccessListResult = await ensureCurrentIpInAccessList(this.server.apiClient, projectId, request);
+        await this.server.apiClient.createCluster(
             {
                 params: {
                     path: {
@@ -57,7 +57,7 @@ export class CreateFreeClusterTool extends AtlasToolBase {
                 },
                 body: input,
             },
-            context
+            request
         );
 
         const ipAccessListNote = getAccessListNote(ipAccessListResult);

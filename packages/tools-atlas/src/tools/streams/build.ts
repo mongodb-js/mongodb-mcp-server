@@ -1,6 +1,13 @@
 import { z } from "zod";
 import { StreamsToolBase } from "../../streams/streamsToolBase.js";
-import type { CallToolResult, OperationType, ToolExecutionContext, ElicitRequestSchema } from "@mongodb-js/mcp-types";
+import type { IAtlasConfig } from "../../atlasTool.js";
+import type {
+    CallToolResult,
+    OperationType,
+    ToolExecutionContext,
+    ToolRequest,
+    ElicitRequestSchema,
+} from "@mongodb-js/mcp-types";
 import type { ToolArgs, InputRequiredResult } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
 import { ConnectionConfig, PrivateLinkConfig, StreamsArgs } from "../../streams/streamsArgs.js";
@@ -183,7 +190,7 @@ export class StreamsBuildTool extends StreamsToolBase {
                     "For Kafka $emit with Schema Registry: {$emit: {connectionName, topic, schemaRegistry: {connectionName: '<sr-connection>', valueSchema: {type: 'avro', schema: {<avro-schema>}, options: {subjectNameStrategy: 'TopicNameStrategy', autoRegisterSchemas: true}}}}}. " +
                     "Note: valueSchema.type must be lowercase 'avro'. valueSchema.schema (Avro schema definition) is always required even with autoRegisterSchemas. " +
                     "Kafka/Kinesis $source must include a 'topic'/'stream' field. " +
-                    "$$NOW, $$ROOT, and $$CURRENT are not available in streaming context. " +
+                    "$$NOW, $$ROOT, and $$CURRENT are not available in streaming request. " +
                     "Connections referenced in $source/$merge/$emit/$https must already exist in the workspace."
             ),
         dlq: z
@@ -216,17 +223,17 @@ export class StreamsBuildTool extends StreamsToolBase {
 
     protected async execute(
         args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        { request }: ToolExecutionContext
     ): Promise<CallToolResult | InputRequiredResult> {
         switch (args.resource) {
             case "workspace":
-                return this.createWorkspace(args, context);
+                return this.createWorkspace(args, request);
             case "connection":
-                return this.createConnection(args, context);
+                return this.createConnection(args, request);
             case "processor":
-                return this.createProcessor(args, context);
+                return this.createProcessor(args, request);
             case "privatelink":
-                return this.createPrivateLink(args, context);
+                return this.createPrivateLink(args, request);
             default:
                 return {
                     content: [{ type: "text", text: `Unknown resource type: ${args.resource as string}` }],
@@ -244,7 +251,7 @@ export class StreamsBuildTool extends StreamsToolBase {
 
     private async createWorkspace(
         args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult> {
         const workspaceName = this.requireWorkspaceName(args);
         if (!args.cloudProvider) {
@@ -271,20 +278,20 @@ export class StreamsBuildTool extends StreamsToolBase {
 
         const useSample = args.includeSampleData !== false;
         if (useSample) {
-            await this.apiClient.withStreamSampleConnections(
+            await this.server.apiClient.withStreamSampleConnections(
                 {
                     params: { path: { groupId: args.projectId } },
                     body: body as never,
                 },
-                context
+                request
             );
         } else {
-            await this.apiClient.createStreamWorkspace(
+            await this.server.apiClient.createStreamWorkspace(
                 {
                     params: { path: { groupId: args.projectId } },
                     body: body as never,
                 },
-                context
+                request
             );
         }
 
@@ -306,7 +313,7 @@ export class StreamsBuildTool extends StreamsToolBase {
 
     private async createConnection(
         args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult | InputRequiredResult> {
         const workspaceName = this.requireWorkspaceName(args);
         if (!args.connectionName) {
@@ -320,7 +327,7 @@ export class StreamsBuildTool extends StreamsToolBase {
 
         const config = { ...ConnectionConfig.parse(args.connectionConfig ?? {}) };
 
-        const missingInfo = this.normalizeAndValidateConnectionConfig(config, args.connectionType, context);
+        const missingInfo = this.normalizeAndValidateConnectionConfig(config, args.connectionType, request);
         if (missingInfo) {
             return missingInfo;
         }
@@ -331,12 +338,12 @@ export class StreamsBuildTool extends StreamsToolBase {
             type: args.connectionType,
         };
 
-        await this.apiClient.createStreamConnection(
+        await this.server.apiClient.createStreamConnection(
             {
                 params: { path: { groupId: args.projectId, tenantName: workspaceName } },
                 body: body as never,
             },
-            context
+            request
         );
 
         const privateLinkWarning =
@@ -369,21 +376,21 @@ export class StreamsBuildTool extends StreamsToolBase {
     private normalizeAndValidateConnectionConfig(
         config: Record<string, unknown>,
         connectionType: string,
-        context: ToolExecutionContext
+        request: ToolRequest<IAtlasConfig>
     ): CallToolResult | InputRequiredResult | null {
         switch (connectionType) {
             case "Kafka":
-                return this.validateKafkaConfig(config, context);
+                return this.validateKafkaConfig(config, request);
             case "Cluster":
-                return this.validateClusterConfig(config, context);
+                return this.validateClusterConfig(config, request);
             case "S3":
             case "AWSKinesisDataStreams":
             case "AWSLambda":
-                return this.validateAwsConfig(config, connectionType, context);
+                return this.validateAwsConfig(config, connectionType, request);
             case "SchemaRegistry":
-                return this.validateSchemaRegistryConfig(config, context);
+                return this.validateSchemaRegistryConfig(config, request);
             case "Https":
-                return this.validateHttpsConfig(config, context);
+                return this.validateHttpsConfig(config, request);
             default:
                 return null;
         }
@@ -391,7 +398,7 @@ export class StreamsBuildTool extends StreamsToolBase {
 
     private validateKafkaConfig(
         config: Record<string, unknown>,
-        context: ToolExecutionContext
+        request: ToolRequest<IAtlasConfig>
     ): CallToolResult | InputRequiredResult | null {
         const auth = config.authentication as Record<string, unknown> | undefined;
         const security = config.security as Record<string, unknown> | undefined;
@@ -408,7 +415,7 @@ export class StreamsBuildTool extends StreamsToolBase {
             return null;
         }
 
-        return this.elicitOrReportMissing("Kafka", config, missingFields, context, (fields, cfg) => {
+        return this.elicitOrReportMissing("Kafka", config, missingFields, request, (fields, cfg) => {
             if (fields.bootstrapServers) cfg.bootstrapServers = fields.bootstrapServers;
             if (!cfg.authentication) cfg.authentication = {};
             const authObj = cfg.authentication as Record<string, unknown>;
@@ -423,7 +430,7 @@ export class StreamsBuildTool extends StreamsToolBase {
 
     private validateClusterConfig(
         config: Record<string, unknown>,
-        context: ToolExecutionContext
+        request: ToolRequest<IAtlasConfig>
     ): CallToolResult | InputRequiredResult | null {
         const missingFields = StreamsBuildTool.collectMissingFields([
             { key: "clusterName", present: !!config.clusterName, schema: CLUSTER_FIELDS.clusterName },
@@ -438,7 +445,7 @@ export class StreamsBuildTool extends StreamsToolBase {
             return null;
         }
 
-        return this.elicitOrReportMissing("Cluster", config, missingFields, context, (fields, cfg) => {
+        return this.elicitOrReportMissing("Cluster", config, missingFields, request, (fields, cfg) => {
             if (fields.clusterName) cfg.clusterName = fields.clusterName;
         });
     }
@@ -446,7 +453,7 @@ export class StreamsBuildTool extends StreamsToolBase {
     private validateAwsConfig(
         config: Record<string, unknown>,
         connectionType: string,
-        context: ToolExecutionContext
+        request: ToolRequest<IAtlasConfig>
     ): CallToolResult | InputRequiredResult | null {
         const aws = config.aws as Record<string, unknown> | undefined;
 
@@ -462,7 +469,7 @@ export class StreamsBuildTool extends StreamsToolBase {
             connectionType,
             config,
             missingFields,
-            context,
+            request,
             (fields, cfg) => {
                 if (fields.roleArn) {
                     if (!cfg.aws) cfg.aws = {};
@@ -477,7 +484,7 @@ export class StreamsBuildTool extends StreamsToolBase {
 
     private validateSchemaRegistryConfig(
         config: Record<string, unknown>,
-        context: ToolExecutionContext
+        request: ToolRequest<IAtlasConfig>
     ): CallToolResult | InputRequiredResult | null {
         // Normalize common alternative key names for schemaRegistryUrls
         if (!config.schemaRegistryUrls) {
@@ -541,7 +548,7 @@ export class StreamsBuildTool extends StreamsToolBase {
             return null;
         }
 
-        return this.elicitOrReportMissing("SchemaRegistry", config, missingFields, context, (fields, cfg) => {
+        return this.elicitOrReportMissing("SchemaRegistry", config, missingFields, request, (fields, cfg) => {
             if (fields.schemaRegistryUrl) {
                 cfg.schemaRegistryUrls = [fields.schemaRegistryUrl];
             }
@@ -553,7 +560,7 @@ export class StreamsBuildTool extends StreamsToolBase {
 
     private validateHttpsConfig(
         config: Record<string, unknown>,
-        context: ToolExecutionContext
+        request: ToolRequest<IAtlasConfig>
     ): CallToolResult | InputRequiredResult | null {
         const missingFields = StreamsBuildTool.collectMissingFields([
             { key: "url", present: !!config.url, schema: HTTPS_FIELDS.url },
@@ -563,7 +570,7 @@ export class StreamsBuildTool extends StreamsToolBase {
             return null;
         }
 
-        return this.elicitOrReportMissing("Https", config, missingFields, context, (fields, cfg) => {
+        return this.elicitOrReportMissing("Https", config, missingFields, request, (fields, cfg) => {
             if (fields.url) cfg.url = fields.url;
         });
     }
@@ -587,13 +594,13 @@ export class StreamsBuildTool extends StreamsToolBase {
         connectionType: string,
         config: Record<string, unknown>,
         missingFields: MissingField[],
-        context: ToolExecutionContext,
+        request: ToolRequest<IAtlasConfig>,
         applyFields: (fields: Record<string, string>, config: Record<string, unknown>) => void,
         additionalNote?: string
     ): CallToolResult | InputRequiredResult | null {
         // Clients that do not declare elicitation support cannot answer
         // embedded requests: report the missing fields instead of eliciting.
-        if (!this.elicitation.supportsElicitation()) {
+        if (!this.server.elicitation.supportsElicitation()) {
             return StreamsBuildTool.missingFieldsResponse(connectionType, missingFields, additionalNote);
         }
 
@@ -601,7 +608,7 @@ export class StreamsBuildTool extends StreamsToolBase {
 
         // Re-entry: apply the answers from the previous `input_required` round
         // (if any) instead of eliciting again.
-        const elicited = this.elicitation.readInput(context.inputResponses, StreamsBuildTool.ELICIT_INPUT_KEY);
+        const elicited = this.server.elicitation.readInput(request.inputResponses, StreamsBuildTool.ELICIT_INPUT_KEY);
         if (elicited !== undefined) {
             if (elicited.accepted) {
                 applyFields(elicited.fields, config);
@@ -618,7 +625,7 @@ export class StreamsBuildTool extends StreamsToolBase {
         }
 
         // First entry: ask for the missing fields.
-        return this.elicitation.inputRequired({
+        return this.server.elicitation.inputRequired({
             key: StreamsBuildTool.ELICIT_INPUT_KEY,
             message: `The following information is required to create the ${connectionType} connection.`,
             schema,
@@ -712,7 +719,7 @@ export class StreamsBuildTool extends StreamsToolBase {
                     {
                         type: "text",
                         text:
-                            `Warning: pipeline contains ${unsupportedVars.join(", ")} which ${unsupportedVars.length === 1 ? "is" : "are"} not available in streaming context.\n\n` +
+                            `Warning: pipeline contains ${unsupportedVars.join(", ")} which ${unsupportedVars.length === 1 ? "is" : "are"} not available in streaming request.\n\n` +
                             `These system variables are not supported in Atlas Stream Processing pipelines. ` +
                             `Remove or replace them before deploying.`,
                     },
@@ -728,7 +735,7 @@ export class StreamsBuildTool extends StreamsToolBase {
         projectId: string,
         workspaceName: string,
         pipeline: Record<string, unknown>[],
-        context: ToolExecutionContext,
+        request: ToolRequest<IAtlasConfig>,
         dlq?: { connectionName: string; db: string; coll: string }
     ): Promise<CallToolResult | null> {
         const referencedNames = StreamsToolBase.extractConnectionNames(pipeline);
@@ -737,14 +744,14 @@ export class StreamsBuildTool extends StreamsToolBase {
 
         let availableNames: Set<string>;
         try {
-            const data = await this.apiClient.listStreamConnections(
+            const data = await this.server.apiClient.listStreamConnections(
                 {
                     params: {
                         path: { groupId: projectId, tenantName: workspaceName },
                         query: { itemsPerPage: 100, pageNum: 1 },
                     },
                 },
-                context
+                request
             );
             availableNames = new Set((data?.results ?? []).map((c) => String((c as Record<string, unknown>).name)));
         } catch {
@@ -776,7 +783,7 @@ export class StreamsBuildTool extends StreamsToolBase {
 
     private async createProcessor(
         args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult> {
         const workspaceName = this.requireWorkspaceName(args);
         if (!args.processorName) {
@@ -795,7 +802,7 @@ export class StreamsBuildTool extends StreamsToolBase {
             args.projectId,
             workspaceName,
             args.pipeline,
-            context,
+            request,
             args.dlq
         );
         if (connectionError) return connectionError;
@@ -806,17 +813,17 @@ export class StreamsBuildTool extends StreamsToolBase {
             options: args.dlq ? { dlq: args.dlq } : undefined,
         };
 
-        await this.apiClient.createStreamProcessor(
+        await this.server.apiClient.createStreamProcessor(
             {
                 params: { path: { groupId: args.projectId, tenantName: workspaceName } },
                 body: body as never,
             },
-            context
+            request
         );
 
         let startMessage = "Processor created in CREATED state.";
         if (args.autoStart) {
-            await this.apiClient.startStreamProcessor(
+            await this.server.apiClient.startStreamProcessor(
                 {
                     params: {
                         path: {
@@ -826,7 +833,7 @@ export class StreamsBuildTool extends StreamsToolBase {
                         },
                     },
                 },
-                context
+                request
             );
             startMessage = "Processor created and started.";
         }
@@ -858,7 +865,7 @@ export class StreamsBuildTool extends StreamsToolBase {
 
     private async createPrivateLink(
         args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult> {
         if (!args.privateLinkConfig) {
             throw new StreamsInvalidArgumentError(
@@ -882,12 +889,12 @@ export class StreamsBuildTool extends StreamsToolBase {
             ...args.privateLinkConfig,
         };
 
-        await this.apiClient.createPrivateLinkConnection(
+        await this.server.apiClient.createPrivateLinkConnection(
             {
                 params: { path: { groupId: args.projectId } },
                 body: body as never,
             },
-            context
+            request
         );
 
         return {

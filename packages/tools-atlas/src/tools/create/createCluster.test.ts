@@ -1,14 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { CreateClusterTool, CreateClusterArgsShape } from "./createCluster.js";
 import { z } from "zod";
-import type { IAtlasSession } from "../../atlasTool.js";
 import type { ITelemetry, ICompositeLogger, CallToolResult } from "@mongodb-js/mcp-types";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import type { Keychain } from "@mongodb-js/mcp-core";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
+import type { AtlasToolServer } from "../../atlasTool.js";
 
 const BASE_ARGS_WITHOUT_REGIONS = {
     projectId: "507f1f77bcf86cd799439011",
@@ -25,7 +24,7 @@ const CREATE_RESULT = { id: "new-cluster-id" };
 
 describe("CreateClusterTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
-    let mockSession: Partial<IAtlasSession>;
+    let mockSession: Partial<AtlasToolServer>;
     let tool: CreateClusterTool;
 
     function buildTool(): CreateClusterTool {
@@ -54,7 +53,7 @@ describe("CreateClusterTool", () => {
                 confirmationRequiredTools: [],
                 previewFeatures: [],
                 disabledTools: [],
-            } as IAtlasSession["config"],
+            } as AtlasToolServer["config"],
         };
 
         const mockTelemetry = {
@@ -64,18 +63,15 @@ describe("CreateClusterTool", () => {
 
         const mockElicitation = createMockElicitation();
 
-        const params: ToolConstructorParams<IAtlasSession> = {
-            name: CreateClusterTool.toolName,
-            category: "atlas",
-            operationType: CreateClusterTool.operationType,
-            session: mockSession as IAtlasSession,
+        const server: AtlasToolServer = {
+            ...mockSession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
-        };
+        } as unknown as AtlasToolServer;
 
-        return new CreateClusterTool(params);
+        return new CreateClusterTool(server);
     }
 
     // The invoke() result is narrowed to CallToolResult in these tests: the
