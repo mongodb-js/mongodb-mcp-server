@@ -1,5 +1,5 @@
 import type { LoggerType, LogLevel, LogPayload } from "@mongodb-js/mcp-types";
-import { CompositeLogger, LoggerBase } from "@mongodb-js/mcp-core";
+import { CompositeLogger, RedactingLoggerBase } from "@mongodb-js/mcp-core";
 import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { UserConfigSchema, packageInfo } from "mongodb-mcp-server";
 import { CliServer, type CliServerOptions } from "mongodb-mcp-server";
@@ -15,7 +15,7 @@ import { Keychain } from "@mongodb-js/mcp-core";
 import { Elicitation } from "mongodb-mcp-server";
 import type { MockClientCapabilities, createMockElicitInput } from "@mongodb-js/mcp-test-utils";
 import { createAtlasLocalClient } from "mongodb-mcp-server";
-import type { AnyToolClass } from "@mongodb-js/mcp-core";
+import type { AnyToolClass, LoggerBase } from "@mongodb-js/mcp-core";
 import type { AnyResourceClass, OperationType, ServerMetadata } from "@mongodb-js/mcp-types";
 import { ApiClient, type HttpClient, userAgentFromServerMetadata } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics, sleep } from "@mongodb-js/mcp-test-utils";
@@ -575,7 +575,7 @@ export function getDataFromUntrustedContent(content: string): string {
     return match.groups.data.trim();
 }
 
-export class InMemoryLogger extends LoggerBase {
+export class InMemoryLogger extends RedactingLoggerBase {
     protected type?: LoggerType = "console";
     public messages: { level: LogLevel; payload: LogPayload }[] = [];
     protected logCore(level: LogLevel, payload: LogPayload): void {

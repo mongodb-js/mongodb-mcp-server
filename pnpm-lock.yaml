@@ -183,9 +183,6 @@ importers:
       lru-cache:
         specifier: ^11.2.6
         version: 11.5.2
-      mongodb-redact:
-        specifier: ^1.4.6
-        version: 1.4.7
     devDependencies:
       '@types/node':
         specifier: ^25.6.0
@@ -702,9 +699,6 @@ importers:
       '@mongosh/service-provider-node-driver':
         specifier: ^5.0.2
         version: 5.0.2(mongodb-log-writer@2.5.13(bson@7.3.1))
-      mongodb-redact:
-        specifier: ^1.4.6
-        version: 1.4.7
     devDependencies:
       '@anthropic-ai/mcpb':
         specifier: 2.1.2
@@ -851,9 +845,6 @@ importers:
       jsonc-parser:
         specifier: ^3.3.1
         version: 3.3.1
-      mongodb-redact:
-        specifier: ^1.4.6
-        version: 1.4.7
       semver:
         specifier: ^7.7.4
         version: 7.7.4
@@ -1054,9 +1045,6 @@ importers:
       mongodb-connection-string-url:
         specifier: ^7.0.1
         version: 7.0.1
-      mongodb-redact:
-        specifier: ^1.1.6
-        version: 1.4.7
       mongodb-schema:
         specifier: ^12.7.0
         version: 12.7.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9)
@@ -1085,13 +1073,13 @@ importers:
       '@modelcontextprotocol/server':
         specifier: ^2.0.0
         version: 2.0.0
+      mongodb-redact:
+        specifier: ^1.4.6
+        version: 1.4.7
     devDependencies:
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
-      mongodb-redact:
-        specifier: ^1.4.6
-        version: 1.4.7
       typescript:
         specifier: ^5.9.2
         version: 5.9.3
