@@ -1,0 +1,67 @@
+name: Agent E2E Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    types:
+      - labeled
+
+jobs:
+  run-agent-e2e-tests:
+    name: Run Agent E2E Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    # Label-gated like the accuracy suite: only run on PRs explicitly labeled
+    # `agent-e2e-tests` (plus main pushes/manual runs). Fork PRs can't trigger
+    # this; the suite also self-skips when codex/credentials are absent.
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'agent-e2e-tests')
+    env:
+      # Codex model auth for the agent session (gpt-5.6-luna runs via the
+      # grove OpenAI-compatible gateway configured in the hermetic codex
+      # config; the key is read through `env_key = "GROVE_API_KEY"`).
+      GROVE_API_KEY: ${{ secrets.GROVE_API_KEY }}
+      # Optional model overrides; codex/claude use the repo-provided values
+      # when set (both default to grove-served models: gpt-5.6-luna for codex,
+      # claude-haiku-4-5 for claude).
+      AGENT_E2E_CODEX_MODEL: ${{ vars.AGENT_E2E_CODEX_MODEL }}
+      AGENT_E2E_CLAUDE_MODEL: ${{ vars.AGENT_E2E_CLAUDE_MODEL }}
+      # tui-test emulator backend (default: alacritty; works headless on
+      # ubuntu). Set per-repo when a different emulator is preferred.
+      AGENT_E2E_TUI_BACKEND: ${{ vars.AGENT_E2E_TUI_BACKEND }}
+
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: package.json
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm run build
+      - name: Install codex CLI
+        run: npm install -g @openai/codex && codex --version
+      - name: Install claude CLI
+        run: npm install -g @anthropic-ai/claude-code && claude --version
+      - name: Run agent e2e tests
+        # Drives codex + claude interactively through @microsoft/tui-test's
+        # headless terminal emulator (bundled with the npm package for all
+        # platforms).
+        run: pnpm run test:agent-e2e
+      - name: Upload agent e2e test report
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: agent-e2e-test-report
+          path: |
+            coverage
+            tmp
+          if-no-files-found: ignore

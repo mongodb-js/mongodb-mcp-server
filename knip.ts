@@ -70,6 +70,12 @@ const config: KnipConfig = {
         "packages/accuracy-tests": {
             entry: ["src/**/*.ts"],
         },
+        "packages/harness-tester": {
+            entry: ["src/**/*.test.ts"],
+        },
+        "packages/e2e-tests": {
+            entry: ["src/**/*.test.ts"],
+        },
         "packages/integration-tests": {
             entry: ["src/index.ts", "src/**/*.ts"],
             ignore: [

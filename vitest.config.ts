@@ -55,8 +55,22 @@ export default defineConfig({
                         "packages/scripts/**",
                         "packages/accuracy-tests/**",
                         "packages/browser-tests/**",
+                        "packages/e2e-tests/**",
                         ...longRunningTests,
                     ],
+                },
+            },
+            {
+                extends: true,
+                test: {
+                    name: "agent-e2e",
+                    include: ["packages/e2e-tests/src/**/*.test.ts"],
+                    // A single codex run can take minutes; multiple concurrent
+                    // harness sessions would multiply LLM cost and mongod instances.
+                    testTimeout: 20 * 60 * 1000,
+                    hookTimeout: 20 * 60 * 1000,
+                    fileParallelism: false,
+                    maxWorkers: 1,
                 },
             },
             {
