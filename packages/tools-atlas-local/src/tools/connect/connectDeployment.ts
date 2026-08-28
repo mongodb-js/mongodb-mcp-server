@@ -54,10 +54,10 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
 
         // Establish the connection through the connection registry so it can be
         // referenced by its connectionId from the other MongoDB tools.
-        const entry = await this.session.connectionRegistry.connect({
+        const entry = await this.server.connectionRegistry.connect({
             settings: { connectionString },
             name: deploymentName,
-            clientName: context.clientInfo?.name,
+            clientName: context.request.clientInfo?.name,
         });
 
         return {
@@ -87,7 +87,7 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
             ...(await super.resolveTelemetryMetadata(args, { result })),
             ...(connectionId && { connection_id: connectionId }),
             ...this.getConnectionInfoMetadata(
-                connectionId ? (await this.session.connectionRegistry.peek(connectionId))?.state : undefined
+                connectionId ? (await this.server.connectionRegistry.peek(connectionId))?.state : undefined
             ),
         };
     }
