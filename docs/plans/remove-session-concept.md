@@ -90,9 +90,9 @@ Concretely:
 - **Rename/replace `Session` → `AppContext` / `ServerServices`**: same fields minus
   `sessionId`, `mcpClient`, `setMcpClient`, the event emitter, and all dead members.
   Tools keep receiving it at construction; nothing about tool signatures changes.
-- **`mcpClient` moves to `ToolExecutionContext`**: tools that use it
+- **`mcpClient` moves to `ToolExecutionContext.request`**: tools that use it
   (`connect`, `atlas-connect-cluster`, `atlas-local-connect-deployment`) read it from
-  the request context instead of the session.
+  the request object instead of the session.
 - **Connection scoping by client identity, not session**: replace the random
   `getRandomUUID()` scope with a **stable, client-supplied identity** (see §5 decision
   point), or drop scoping entirely and make `connectionScope: "global"` the only mode.
@@ -233,7 +233,8 @@ Options (pick one — recommend **A**):
    negotiated context (fine if the protocol provides it per request; a limitation if a
    client implementation caches capabilities server-side expectations).
 7. **Logging correlation**: `sessionId` disappears from logs; request-level correlation
-   relies on `requestId` (already in `ToolExecutionContext`) — operators lose a
+   relies on `request.id` (already on `ToolExecutionContext.request`) plus the
+   `x-request-id` header forwarded through `request.headers` — operators lose a
    coarse-grained "everything from client X" filter unless client identity (Phase 3A)
    is logged instead.
 
