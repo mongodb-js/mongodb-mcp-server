@@ -63,7 +63,7 @@ export default defineConfig({
             {
                 extends: true,
                 test: {
-                    name: "agent-e2e",
+                    name: "e2e-tests",
                     include: ["packages/e2e-tests/src/**/*.test.ts"],
                     // A single codex run can take minutes; multiple concurrent
                     // harness sessions would multiply LLM cost and mongod instances.

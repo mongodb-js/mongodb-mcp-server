@@ -45,12 +45,12 @@ jobs:
         # Drives codex + claude interactively through @microsoft/tui-test's
         # headless terminal emulator (bundled with the npm package for all
         # platforms).
-        run: pnpm run test:agent-e2e
+        run: pnpm run test:e2e-tests
       - name: Upload agent e2e test report
         if: always()
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: agent-e2e-test-report
+          name: e2e-tests-test-report
           path: |
             coverage
             tmp

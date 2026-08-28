@@ -47,7 +47,7 @@ claude --version                # or: AGENT_E2E_CLAUDE_BIN
 # secret in the repo.
 export GROVE_API_KEY=...        # required locally and in CI (GitHub secret)
 
-pnpm run test:agent-e2e         # runs the vitest `agent-e2e` project
+pnpm run test:e2e-tests         # runs the vitest `e2e-tests` project
 ```
 
 If a harness binary or credentials are missing, that harness's tests **skip**

@@ -32,7 +32,7 @@ export function useAgent({ harness }: { harness: AgentHarness }): AgentContext {
     const isHarnessAvailable = (): boolean => (harnessAvailable ??= harness.isAvailable());
 
     beforeAll(async () => {
-        workDir = await fs.mkdtemp(path.join(os.tmpdir(), "agent-e2e-"));
+        workDir = await fs.mkdtemp(path.join(os.tmpdir(), "e2e-tests-"));
     });
 
     beforeEach((ctx) => {
