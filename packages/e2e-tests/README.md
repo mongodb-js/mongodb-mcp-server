@@ -12,8 +12,8 @@ headless terminal emulator.
 
 ## What is covered
 
-| File                    | Scope                                                                                                                                                                                       |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| File                    | Scope                                                                                                                                                                                              |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `setup.test.ts`         | Server boots under each harness as an MCP client; tools are discoverable; a real read (`list-databases`) round-trips against a local mongod and the agent's reply reflects real on-disk state.     |
 | `toolDiscovery.test.ts` | The full MCP tool set, from two angles: a direct MCP client against the in-process server (ground truth — every tool + schema), and each harness enumerating the tools the `mongo` server exposes. |
 
@@ -55,17 +55,17 @@ If a harness binary or credentials are missing, that harness's tests **skip**
 
 ## Environment variables
 
-| Variable                  | Purpose                                                                                                                                          |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `GROVE_API_KEY`           | Provider API key for the grove gateway (both codex and claude sessions). No secret in the repo. Required locally and in CI.                       |
-| `AGENT_E2E_CODEX_MODEL`   | Codex model override (default: the model codex uses on this machine, i.e. `gpt-5.6-luna`).                                                        |
-| `AGENT_E2E_CLAUDE_MODEL`  | Claude model override (default: `claude-haiku-4-5`; grove serves the undated id).                                                                |
-| `AGENT_E2E_MODEL`         | Shared model override for both harnesses (overridden by the per-harness vars above).                                                             |
-| `CODEX_HOME`              | Override codex config dir; tests set a per-session temp dir so your real `~/.codex` is never touched.                                            |
-| `AGENT_E2E_CODEX_BIN`     | Override the codex binary path.                                                                                                                  |
-| `AGENT_E2E_CLAUDE_BIN`    | Override the claude binary path.                                                                                                                 |
-| `AGENT_E2E_TUI_BACKEND`   | tui-test emulator backend: `alacritty` (default), `ghostty`, or `rio`.                                                                           |
-| `AGENT_E2E_DEBUG`         | Set to `1` to turn on debug output for the whole suite: per-session harness config dumps (secrets redacted), TUI state/transcript streams, and test-level agent-reply logs. |
+| Variable                 | Purpose                                                                                                                                                                     |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GROVE_API_KEY`          | Provider API key for the grove gateway (both codex and claude sessions). No secret in the repo. Required locally and in CI.                                                 |
+| `AGENT_E2E_CODEX_MODEL`  | Codex model override (default: the model codex uses on this machine, i.e. `gpt-5.6-luna`).                                                                                  |
+| `AGENT_E2E_CLAUDE_MODEL` | Claude model override (default: `claude-haiku-4-5`; grove serves the undated id).                                                                                           |
+| `AGENT_E2E_MODEL`        | Shared model override for both harnesses (overridden by the per-harness vars above).                                                                                        |
+| `CODEX_HOME`             | Override codex config dir; tests set a per-session temp dir so your real `~/.codex` is never touched.                                                                       |
+| `AGENT_E2E_CODEX_BIN`    | Override the codex binary path.                                                                                                                                             |
+| `AGENT_E2E_CLAUDE_BIN`   | Override the claude binary path.                                                                                                                                            |
+| `AGENT_E2E_TUI_BACKEND`  | tui-test emulator backend: `alacritty` (default), `ghostty`, or `rio`.                                                                                                      |
+| `AGENT_E2E_DEBUG`        | Set to `1` to turn on debug output for the whole suite: per-session harness config dumps (secrets redacted), TUI state/transcript streams, and test-level agent-reply logs. |
 
 ## How it works
 

@@ -8,7 +8,6 @@
     "check": "tsc --noEmit --project tsconfig.json"
   },
   "devDependencies": {
-    "@microsoft/tui-test": "0.1.0-beta.2",
     "@modelcontextprotocol/client": "^2.0.0",
     "@mongodb-js/mcp-cli": "workspace:*",
     "@mongodb-js/harness-tester": "workspace:*",
