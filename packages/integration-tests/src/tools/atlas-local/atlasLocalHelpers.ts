@@ -3,7 +3,7 @@ import type { UserConfig } from "mongodb-mcp-server";
 import { AtlasLocalTools } from "@mongodb-js/mcp-tools-atlas-local";
 import { MongoDBTools } from "@mongodb-js/mcp-tools-mongodb";
 import { describe } from "vitest";
-import type { Client } from "@modelcontextprotocol/sdk/client";
+import type { Client } from "@modelcontextprotocol/client";
 
 const isMacOSInGitHubActions = process.platform === "darwin" && process.env.GITHUB_ACTIONS === "true";
 
@@ -28,7 +28,6 @@ export function createAtlasLocalDeployment(
             name: "atlas-local-create-deployment",
             arguments: args,
         },
-        undefined,
         { timeout }
     );
 }

@@ -41,6 +41,8 @@ jobs:
           cache: "pnpm"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm run build
       - name: Run unit and Mongo integration tests
         run: pnpm exec vitest --project unit --project integration --project ui --project eslint-rules --run
   run-atlas-local-tests:

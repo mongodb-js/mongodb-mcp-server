@@ -5,25 +5,25 @@
 ```ts
 
 import type { AggregationCursor } from 'mongodb';
-import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import type { CallToolResult } from '@modelcontextprotocol/server';
 import type { Client } from '@mongodb-js/atlas-local';
 import { CliOptions } from '@mongosh/arg-parser';
 import { ConnectionInfo as ConnectionInfo_2 } from '@mongosh/arg-parser';
 import { Deployment } from '@mongodb-js/atlas-local';
 import type { Document as Document_2 } from 'mongodb';
-import type { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
+import type { ElicitRequestFormParams } from '@modelcontextprotocol/server';
 import { EventEmitter } from 'events';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
-import type { LoggingMessageNotification } from '@modelcontextprotocol/sdk/types.js';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { LoggingMessageNotification } from '@modelcontextprotocol/server';
+import { McpServer } from '@modelcontextprotocol/server';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
-import type { ProgressToken } from '@modelcontextprotocol/sdk/types.js';
-import type { RequestId } from '@modelcontextprotocol/sdk/types.js';
-import { RequestMeta } from '@modelcontextprotocol/sdk/types.js';
+import type { ProgressToken } from '@modelcontextprotocol/server';
+import type { RequestId } from '@modelcontextprotocol/server';
+import type { RequestMeta } from '@modelcontextprotocol/server';
 import type { Secret } from 'mongodb-redact';
-import type { ServerNotification } from '@modelcontextprotocol/sdk/types.js';
-import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
+import type { ServerNotification } from '@modelcontextprotocol/server';
+import type { ToolAnnotations } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import { ZodRawShape } from 'zod';
 import { ZodString } from 'zod';
@@ -556,8 +556,8 @@ export const ConnectionConfig: z.ZodObject<{
     dbRoleToExecute: z.ZodOptional<z.ZodObject<{
         role: z.ZodOptional<z.ZodString>;
         type: z.ZodOptional<z.ZodEnum<{
-            CUSTOM: "CUSTOM";
             BUILT_IN: "BUILT_IN";
+            CUSTOM: "CUSTOM";
         }>>;
     }, z.core.$strip>>;
     aws: z.ZodOptional<z.ZodObject<{
@@ -1051,13 +1051,13 @@ export const CreateDBUserArgs: {
     password: z.ZodOptional<z.ZodString>;
     roles: z.ZodArray<z.ZodObject<{
         roleName: z.ZodUnion<readonly [z.ZodEnum<{
-            read: "read";
-            backup: "backup";
             atlasAdmin: "atlasAdmin";
+            backup: "backup";
             clusterMonitor: "clusterMonitor";
             dbAdmin: "dbAdmin";
             dbAdminAnyDatabase: "dbAdminAnyDatabase";
             enableSharding: "enableSharding";
+            read: "read";
             readAnyDatabase: "readAnyDatabase";
             readWrite: "readWrite";
             readWriteAnyDatabase: "readWriteAnyDatabase";
@@ -1077,13 +1077,13 @@ export class CreateDBUserTool extends AtlasToolBase {
         password: z.ZodOptional<z.ZodString>;
         roles: z.ZodArray<z.ZodObject<{
             roleName: z.ZodUnion<readonly [z.ZodEnum<{
-                read: "read";
-                backup: "backup";
                 atlasAdmin: "atlasAdmin";
+                backup: "backup";
                 clusterMonitor: "clusterMonitor";
                 dbAdmin: "dbAdmin";
                 dbAdminAnyDatabase: "dbAdminAnyDatabase";
                 enableSharding: "enableSharding";
+                read: "read";
                 readAnyDatabase: "readAnyDatabase";
                 readWrite: "readWrite";
                 readWriteAnyDatabase: "readWriteAnyDatabase";
@@ -1186,8 +1186,8 @@ export class CreateIndexTool extends MongoDBToolBase {
                 }>>;
                 quantization: z.ZodDefault<z.ZodEnum<{
                     none: "none";
-                    binary: "binary";
                     scalar: "scalar";
+                    binary: "binary";
                 }>>;
             }, z.core.$strict>, z.ZodObject<{
                 type: z.ZodLiteral<"autoEmbed">;
@@ -1229,9 +1229,9 @@ export class CreateIndexTool extends MongoDBToolBase {
         collection: z.ZodString;
         indexName: z.ZodString;
         indexType: z.ZodEnum<{
-            vectorSearch: "vectorSearch";
-            search: "search";
             classic: "classic";
+            search: "search";
+            vectorSearch: "vectorSearch";
         }>;
     };
     // (undocumented)
@@ -1465,8 +1465,8 @@ export class DropIndexTool extends MongoDBToolBase {
     argsShape: {
         indexName: z.ZodString;
         type: z.ZodEnum<{
-            search: "search";
             classic: "classic";
+            search: "search";
         }>;
         collection: z.ZodString;
         database: z.ZodString;
@@ -2779,17 +2779,17 @@ export class StreamsBuildTool extends StreamsToolBase {
         }>>;
         region: z.ZodOptional<z.ZodString>;
         tier: z.ZodOptional<z.ZodEnum<{
-            SP50: "SP50";
-            SP30: "SP30";
-            SP10: "SP10";
-            SP5: "SP5";
             SP2: "SP2";
+            SP5: "SP5";
+            SP10: "SP10";
+            SP30: "SP30";
+            SP50: "SP50";
         }>>;
         includeSampleData: z.ZodOptional<z.ZodBoolean>;
         connectionName: z.ZodOptional<z.ZodString>;
         connectionType: z.ZodOptional<z.ZodEnum<{
-            Cluster: "Cluster";
             Kafka: "Kafka";
+            Cluster: "Cluster";
             S3: "S3";
             Https: "Https";
             AWSKinesisDataStreams: "AWSKinesisDataStreams";
@@ -3015,11 +3015,11 @@ export class StreamsManageTool extends StreamsToolBase {
         }>;
         resourceName: z.ZodOptional<z.ZodString>;
         tier: z.ZodOptional<z.ZodEnum<{
-            SP50: "SP50";
-            SP30: "SP30";
-            SP10: "SP10";
-            SP5: "SP5";
             SP2: "SP2";
+            SP5: "SP5";
+            SP10: "SP10";
+            SP30: "SP30";
+            SP50: "SP50";
         }>>;
         resumeFromCheckpoint: z.ZodOptional<z.ZodBoolean>;
         startAtOperationTime: z.ZodOptional<z.ZodString>;
@@ -3032,11 +3032,11 @@ export class StreamsManageTool extends StreamsToolBase {
         newName: z.ZodOptional<z.ZodString>;
         newRegion: z.ZodOptional<z.ZodString>;
         newTier: z.ZodOptional<z.ZodEnum<{
-            SP50: "SP50";
-            SP30: "SP30";
-            SP10: "SP10";
-            SP5: "SP5";
             SP2: "SP2";
+            SP5: "SP5";
+            SP10: "SP10";
+            SP30: "SP30";
+            SP50: "SP50";
         }>>;
         connectionConfig: z.ZodOptional<z.ZodObject<{
             bootstrapServers: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>]>, z.ZodTransform<string, string | string[]>>>;

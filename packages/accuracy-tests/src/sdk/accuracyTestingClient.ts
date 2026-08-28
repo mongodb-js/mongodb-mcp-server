@@ -3,8 +3,7 @@ import { tool as createVercelTool } from "ai";
 import { experimental_createMCPClient as createMCPClient } from "@ai-sdk/mcp";
 import type { Tool } from "ai";
 import type { CallToolResult } from "@mongodb-js/mcp-types";
-import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-
+import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { MCP_SERVER_CLI_SCRIPT } from "./constants.js";
 import type { LLMToolCall } from "./accuracyResultStorage/resultStorage.js";
 import type { VercelMCPClient, VercelMCPClientTools } from "./agent.js";

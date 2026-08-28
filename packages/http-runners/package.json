@@ -26,7 +26,8 @@
     "check": "tsc --build tsconfig.build.json --noEmit"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/node": "^2.0.0",
+    "@modelcontextprotocol/server": "^2.0.0",
     "@mongodb-js/mcp-core": "workspace:*",
     "express": "^5.2.1"
   },
@@ -36,7 +37,7 @@
     "@types/express": "^5.0.3",
     "@types/node": "^25.6.0",
     "typescript": "^5.9.2",
-    "vitest": "^4.1.4"
+    "vitest": "^4.1.11"
   },
   "publishConfig": {
     "access": "public"

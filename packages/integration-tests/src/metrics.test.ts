@@ -1,6 +1,5 @@
 import type { StreamableHttpRunner, MonitoringServer } from "@mongodb-js/mcp-http-runners";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { defaultTestConfig } from "./integrationHelpers.js";
 import { parsePrometheusValue } from "./metricsHelpers.js";

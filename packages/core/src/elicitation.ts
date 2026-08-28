@@ -3,8 +3,8 @@ import type {
     ProgressToken,
     RequestId,
     ServerNotification,
-} from "@modelcontextprotocol/sdk/types.js";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+    McpServer,
+} from "@modelcontextprotocol/server";
 
 export type ElicitedInputResult =
     | { accepted: true; fields: Record<string, string> }

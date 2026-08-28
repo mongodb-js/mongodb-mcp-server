@@ -2,7 +2,6 @@ import path from "path";
 import fs from "fs/promises";
 import { EJSON, Long, ObjectId } from "bson";
 import { describe, expect, it, beforeEach, afterAll } from "vitest";
-import type { CallToolResult } from "@mongodb-js/mcp-types";
 import { defaultTestConfig, getDataFromUntrustedContent, resourceChangedNotification, sleep } from "../integrationHelpers.js";
 import { describeWithMongoDB } from "../mongodbHelpers.js";
 import { contentWithResourceURILink } from "../tools/mongodb/read/export.test.js";
@@ -78,7 +77,7 @@ describeWithMongoDB(
                     },
                 });
 
-                const exportedResourceURI = (exportResponse as CallToolResult).content.find(
+                const exportedResourceURI = exportResponse.content.find(
                     (part) => part.type === "resource_link"
                 )?.uri;
                 expect(exportedResourceURI).toBeDefined();
@@ -118,11 +117,11 @@ describeWithMongoDB(
                         exportTarget: [{ name: "find", arguments: {} }],
                     },
                 });
-                const content = exportResponse.content as CallToolResult["content"];
+                const content = exportResponse.content;
                 const exportURI = contentWithResourceURILink(content)?.uri as string;
                 await resourceChangedNotification(integration.mcpClient(), exportURI);
 
-                const exportedResourceURI = (exportResponse as CallToolResult).content.find(
+                const exportedResourceURI = exportResponse.content.find(
                     (part) => part.type === "resource_link"
                 )?.uri;
                 expect(exportedResourceURI).toBeDefined();
@@ -157,11 +156,11 @@ describeWithMongoDB(
                         exportTarget: [{ name: "find", arguments: {} }],
                     },
                 });
-                const content = exportResponse.content as CallToolResult["content"];
+                const content = exportResponse.content;
                 const exportURI = contentWithResourceURILink(content)?.uri as string;
                 await resourceChangedNotification(integration.mcpClient(), exportURI);
 
-                const exportedResourceURI = (exportResponse as CallToolResult).content.find(
+                const exportedResourceURI = exportResponse.content.find(
                     (part) => part.type === "resource_link"
                 )?.uri;
                 expect(exportedResourceURI).toBeDefined();

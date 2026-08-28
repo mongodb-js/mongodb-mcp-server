@@ -3,7 +3,7 @@ import { describe, beforeEach, afterEach, vi, it, expect } from "vitest";
 import type { LogLevel, McpServer } from "@mongodb-js/mcp-types";
 import { LogId, MCP_LOG_LEVELS } from "@mongodb-js/mcp-core";
 import { McpLogger } from "./mcpLogger.js";
-import { LoggingMessageNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
+import { LoggingMessageNotificationSchema } from "@modelcontextprotocol/core";
 import { Keychain } from "@mongodb-js/mcp-core";
 
 class DynamicMcpLogger extends McpLogger {

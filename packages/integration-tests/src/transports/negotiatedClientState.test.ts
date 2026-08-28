@@ -1,9 +1,7 @@
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { ElicitRequestSchema, type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-
+import type { CallToolResult } from "@modelcontextprotocol/server";
+import type { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
+import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import type { StreamableHttpRunner } from "@mongodb-js/mcp-http-runners";
 import { type ISessionStore } from "@mongodb-js/mcp-core";
 import { SessionStore, CompositeLogger, ToolBase } from "@mongodb-js/mcp-core";
@@ -15,7 +13,7 @@ import type { UserConfig } from "mongodb-mcp-server";
 import type { CliServer } from "mongodb-mcp-server";
 import type { Session } from "@mongodb-js/mcp-cli";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
-import { defaultTestConfig } from "../integrationHelpers.js";
+import { defaultTestConfig, expectDefined } from "../integrationHelpers.js";
 import { createStreamableHttpTestRunner, getServerAddress } from "../helpers/streamableHttpTestRunner.js";
 
 /**
@@ -24,25 +22,25 @@ import { createStreamableHttpTestRunner, getServerAddress } from "../helpers/str
  * survives session eviction — modeling what a deployment with a durable
  * session database (e.g. the Atlas remote MCP server) implements.
  */
-class DurableClientStateSessionStore implements ISessionStore<StreamableHTTPServerTransport> {
+class DurableClientStateSessionStore implements ISessionStore<NodeStreamableHTTPServerTransport> {
     public readonly durableClientState = new Map<string, NegotiatedClientState>();
 
-    private readonly inner: ISessionStore<StreamableHTTPServerTransport>;
+    private readonly inner: ISessionStore<NodeStreamableHTTPServerTransport>;
 
-    constructor(inner: ISessionStore<StreamableHTTPServerTransport>) {
+    constructor(inner: ISessionStore<NodeStreamableHTTPServerTransport>) {
         this.inner = inner;
     }
 
     getSession(
         sessionId: string,
         headers?: Record<string, unknown>
-    ): Promise<StreamableHTTPServerTransport | undefined> {
+    ): Promise<NodeStreamableHTTPServerTransport | undefined> {
         return this.inner.getSession(sessionId, headers);
     }
 
     addSession(params: {
         sessionId: string;
-        transport: StreamableHTTPServerTransport;
+        transport: NodeStreamableHTTPServerTransport;
         logger: LoggerBase;
         session: Session;
         headers?: Record<string, unknown>;
@@ -97,7 +95,7 @@ describe("negotiated client state across implicit session re-initialization", ()
             confirmationRequiredTools: ["confirm-required-tool"],
         };
 
-        const innerStore = new SessionStore<StreamableHTTPServerTransport>({
+        const innerStore = new SessionStore<NodeStreamableHTTPServerTransport>({
             options: {
                 idleTimeoutMS: userConfig.idleTimeoutMs,
                 notificationTimeoutMS: userConfig.notificationTimeoutMs,
@@ -128,24 +126,30 @@ describe("negotiated client state across implicit session re-initialization", ()
     });
 
     it("re-elicits confirmation after the session is implicitly re-initialized", async () => {
-        const sessionId = "restored-session";
         const elicitationMessages: string[] = [];
 
         client = new Client({ name: "elicit-client", version: "1.0.0" }, { capabilities: { elicitation: {} } });
-        client.setRequestHandler(ElicitRequestSchema, (request) => {
+        client.setRequestHandler("elicitation/create", (request) => {
             elicitationMessages.push(request.params.message);
             return { action: "accept" as const, content: { confirmation: "Yes" } };
         });
 
-        const transport = new StreamableHTTPClientTransport(new URL(`${getServerAddress(runner)}/mcp`), {
-            requestInit: { headers: { "mcp-session-id": sessionId } },
-        });
+        const transport = new StreamableHTTPClientTransport(new URL(`${getServerAddress(runner)}/mcp`), {});
         await client.connect(transport);
 
+        // The v2 client cannot pre-assign an external session id on the
+        // initialize handshake (the header is stripped), so the session id is
+        // the server-generated one the client learned from the response.
+        const sessionId = transport.sessionId;
+        expectDefined(sessionId);
+
         // Baseline: a freshly initialized session elicits confirmation.
-        const firstResult = (await client.callTool({ name: "confirm-required-tool", arguments: {} }, undefined, {
-            timeout: 10_000,
-        })) as CallToolResult;
+        const firstResult = await client.callTool(
+            { name: "confirm-required-tool", arguments: {} },
+            {
+                timeout: 10_000,
+            }
+        );
         expect(elicitationMessages).toHaveLength(1);
         expect(firstResult.isError).toBeFalsy();
 
@@ -157,23 +161,24 @@ describe("negotiated client state across implicit session re-initialization", ()
         // The next call takes the implicit re-initialization path. The
         // restored server must still know the client supports elicitation
         // and ask for confirmation rather than silently executing.
-        const secondResult = (await client.callTool({ name: "confirm-required-tool", arguments: {} }, undefined, {
-            timeout: 10_000,
-        })) as CallToolResult;
+        const secondResult = await client.callTool(
+            { name: "confirm-required-tool", arguments: {} },
+            {
+                timeout: 10_000,
+            }
+        );
         expect(elicitationMessages).toHaveLength(2);
         expect(secondResult.isError).toBeFalsy();
         expect(secondResult.content).toEqual([{ type: "text", text: "Tool executed" }]);
     });
 
     it("persists the negotiated client state when the session initializes", async () => {
-        const sessionId = "persisted-session";
-
         client = new Client({ name: "state-client", version: "2.3.4" }, { capabilities: { elicitation: {} } });
-        const transport = new StreamableHTTPClientTransport(new URL(`${getServerAddress(runner)}/mcp`), {
-            requestInit: { headers: { "mcp-session-id": sessionId } },
-        });
+        const transport = new StreamableHTTPClientTransport(new URL(`${getServerAddress(runner)}/mcp`), {});
         await client.connect(transport);
 
+        const sessionId = transport.sessionId;
+        expectDefined(sessionId);
         const state = sessionStore.durableClientState.get(sessionId);
         expect(state).toBeDefined();
         // The client SDK normalizes the declared elicitation capability

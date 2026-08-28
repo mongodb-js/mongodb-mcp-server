@@ -1,6 +1,6 @@
 import { MCPHttpServer, StreamableHttpRunner } from "@mongodb-js/mcp-http-runners";
 import { SessionStore } from "@mongodb-js/mcp-core";
-import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import type { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
 import type { HttpServerOptions, SessionManagementOptions } from "@mongodb-js/mcp-types";
 import type { TransportRequestContext } from "@mongodb-js/mcp-types";
 import type { CliServer } from "./cliServer.js";
@@ -26,7 +26,7 @@ export class CliMcpHttpServer extends MCPHttpServer<CliServer> {
         options,
     }: {
         sharedServices: SharedServerServices;
-        sessionStore: SessionStore<StreamableHTTPServerTransport>;
+        sessionStore: SessionStore<NodeStreamableHTTPServerTransport>;
         options: CliMcpHttpServerOptions;
     }) {
         super({
@@ -49,7 +49,7 @@ export class CliMcpHttpServer extends MCPHttpServer<CliServer> {
 export function createHttpTransportRunnerFromConfig(sharedServices: SharedServerServices): StreamableHttpRunner {
     const { config, logger, metrics, monitoringServer } = sharedServices;
 
-    const sessionStore = new SessionStore<StreamableHTTPServerTransport>({
+    const sessionStore = new SessionStore<NodeStreamableHTTPServerTransport>({
         options: {
             idleTimeoutMS: config.idleTimeoutMs,
             notificationTimeoutMS: config.notificationTimeoutMs,

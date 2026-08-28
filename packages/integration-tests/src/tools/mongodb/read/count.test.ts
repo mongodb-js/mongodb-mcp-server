@@ -7,7 +7,7 @@ import {
 } from "../../../integrationHelpers.js";
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../../../mongodbHelpers.js";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { Client } from "@modelcontextprotocol/sdk/client";
+import type { Client } from "@modelcontextprotocol/client";
 import { freshInsertDocuments } from "./helpers.js";
 
 describeWithMongoDB("count tool", (integration) => {
@@ -147,7 +147,6 @@ describeWithMongoDB("count tool with abort signal", (integration) => {
                         },
                     },
                 },
-                undefined,
                 { signal }
             );
         } catch (err: unknown) {

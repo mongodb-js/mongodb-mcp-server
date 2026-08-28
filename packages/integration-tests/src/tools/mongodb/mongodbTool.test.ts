@@ -1,7 +1,7 @@
 import { vi, it, describe, beforeEach, afterEach, afterAll, expect } from "vitest";
 import type { CallToolResult } from "@mongodb-js/mcp-types";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/server";
+import { Client } from "@modelcontextprotocol/client";
 import {
     MongoDBToolBase,
     ConnectionIdArgs,

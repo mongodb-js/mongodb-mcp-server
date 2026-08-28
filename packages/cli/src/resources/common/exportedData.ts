@@ -1,9 +1,5 @@
-import type {
-    CompleteResourceTemplateCallback,
-    ListResourcesCallback,
-    ReadResourceTemplateCallback,
-} from "@modelcontextprotocol/sdk/server/mcp.js";
-import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { ResourceTemplate } from "@modelcontextprotocol/server";
+import type { CompleteResourceTemplateCallback, ListResourcesCallback, ReadResourceTemplateCallback } from "@modelcontextprotocol/server";
 import { LogId } from "@mongodb-js/mcp-core";
 import type { CliServer, McpSession } from "@mongodb-js/mcp-cli";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
