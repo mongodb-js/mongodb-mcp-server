@@ -71,7 +71,7 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@anthropic-ai/mcpb": "2.1.2",
-    "@microsoft/api-extractor": "^7.58.7",
+    "@microsoft/api-extractor": "^7.59.0",
     "@modelcontextprotocol/inspector": "^0.21.2",
     "@types/node": "^25.6.0",
     "concurrently": "^9.2.1",
