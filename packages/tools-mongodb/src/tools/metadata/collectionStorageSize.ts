@@ -1,4 +1,4 @@
-import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase, type IMongoDBConfig } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { z } from "zod";
@@ -21,7 +21,7 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
 
     protected async execute(
         { connectionId, database, collection }: ToolArgs<typeof this.argsShape>,
-        { signal }: ToolExecutionContext
+        { request }: ToolExecutionContext<IMongoDBConfig>
     ): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.resolveConnection(connectionId);
         const [{ value }] = (await provider
@@ -33,7 +33,7 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
                     { $group: { _id: null, value: { $sum: "$storageStats.size" } } },
                 ],
                 {
-                    ...this.getOperationOptions(signal),
+                    ...this.getOperationOptions(request),
                 }
             )
             .toArray()) as [{ value: number }];

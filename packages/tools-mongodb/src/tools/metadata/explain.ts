@@ -1,4 +1,4 @@
-import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase, type IMongoDBConfig } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
@@ -63,7 +63,7 @@ export class ExplainTool extends MongoDBToolBase {
 
     protected async execute(
         { connectionId, database, collection, method: methods, verbosity }: ToolArgs<typeof this.argsShape>,
-        { signal }: ToolExecutionContext
+        { request }: ToolExecutionContext<IMongoDBConfig>
     ): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.resolveConnection(connectionId);
         const method = methods[0];
@@ -76,14 +76,14 @@ export class ExplainTool extends MongoDBToolBase {
         switch (method.name) {
             case "aggregate": {
                 const { pipeline } = method.arguments;
-                this.assertMqlIsAllowed(pipeline);
+                this.assertMqlIsAllowed(request.config, pipeline);
                 result = await provider
                     .aggregate(
                         database,
                         collection,
                         pipeline,
                         {
-                            ...this.getOperationOptions(signal),
+                            ...this.getOperationOptions(request),
                         },
                         {
                             writeConcern: undefined,
@@ -94,18 +94,18 @@ export class ExplainTool extends MongoDBToolBase {
             }
             case "find": {
                 const { filter, ...rest } = method.arguments;
-                this.assertMqlIsAllowed(filter, rest.projection);
+                this.assertMqlIsAllowed(request.config, filter, rest.projection);
                 result = await provider
                     .find(database, collection, filter, {
                         ...rest,
-                        ...this.getOperationOptions(signal),
+                        ...this.getOperationOptions(request),
                     })
                     .explain(verbosity);
                 break;
             }
             case "count": {
                 const { query } = method.arguments;
-                this.assertMqlIsAllowed(query);
+                this.assertMqlIsAllowed(request.config, query);
                 result = await provider.runCommandWithCheck(
                     database,
                     {
@@ -116,7 +116,7 @@ export class ExplainTool extends MongoDBToolBase {
                         verbosity,
                     },
                     {
-                        signal,
+                        signal: request.signal,
                     }
                 );
                 break;

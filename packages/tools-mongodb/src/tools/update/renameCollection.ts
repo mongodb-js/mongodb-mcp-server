@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase, type IMongoDBConfig } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
-import type { OperationType } from "@mongodb-js/mcp-types";
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { ErrorCodes, MongoDBError } from "../../common/errors.js";
 
 const RenameCollectionOutputSchema = {
@@ -25,14 +25,17 @@ export class RenameCollectionTool extends MongoDBToolBase {
     };
     static operationType: OperationType = "update";
 
-    protected async execute({
-        connectionId,
-        database,
-        collection,
-        newName,
-        dropTarget,
-    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
-        if (dropTarget && this.config.disabledTools.includes("delete")) {
+    protected async execute(
+        {
+            connectionId,
+            database,
+            collection,
+            newName,
+            dropTarget,
+        }: ToolArgs<typeof this.argsShape>,
+        { request }: ToolExecutionContext<IMongoDBConfig>
+    ): Promise<ToolResult<typeof this.outputSchema>> {
+        if (dropTarget && request.config.disabledTools.includes("delete")) {
             // Renaming with `dropTarget: true` drops the existing target collection, which is a
             // destructive delete operation. Since this tool's operation type is `update`, it remains
             // available even when delete operations are disabled, so reject `dropTarget` in that case

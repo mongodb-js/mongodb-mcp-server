@@ -1,4 +1,4 @@
-import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase, type IMongoDBConfig } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
@@ -38,7 +38,7 @@ export class CollectionSchemaTool extends MongoDBToolBase {
 
     protected async execute(
         { connectionId, database, collection, sampleSize, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
-        { signal }: ToolExecutionContext
+        { request }: ToolExecutionContext<IMongoDBConfig>
     ): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.resolveConnection(connectionId);
         const cursor = provider.aggregate(
@@ -46,14 +46,14 @@ export class CollectionSchemaTool extends MongoDBToolBase {
             collection,
             [{ $sample: { size: Math.min(sampleSize, MAXIMUM_SAMPLE_SIZE_HARD_LIMIT) } }],
             {
-                ...this.getOperationOptions(signal),
+                ...this.getOperationOptions(request),
             }
         );
         const { documents } = await collectCursorUntilMaxBytesLimit({
             cursor,
-            configuredMaxBytesPerQuery: this.config.maxBytesPerQuery,
+            configuredMaxBytesPerQuery: request.config.maxBytesPerQuery,
             toolResponseBytesLimit: responseBytesLimit,
-            abortSignal: signal,
+            abortSignal: request.signal,
         });
         const schema = await getSimplifiedSchema(documents);
 

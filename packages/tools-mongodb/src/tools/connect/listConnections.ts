@@ -7,7 +7,7 @@ import { connectCapableTools } from "../../connectionErrorHandler.js";
 
 export class ListConnectionsTool extends MongoDBToolBase {
     static toolName = "list-connections";
-    public override description = this.config.connectionString
+    public override description = this.server.config.connectionString
         ? 'List the active MongoDB connections and their connectionIds. Use this to discover the "preconfigured" connection or to find a connectionId established earlier.'
         : "List the active MongoDB connections and their connectionIds. Use this to find a connectionId established earlier.";
 
@@ -20,7 +20,7 @@ export class ListConnectionsTool extends MongoDBToolBase {
     };
 
     protected override async execute(): Promise<ToolResult<typeof this.outputSchema>> {
-        const entries = await this.session.connectionRegistry.find();
+        const entries = await this.server.connectionRegistry.find();
         const connections = entries.map((entry) => summarizeConnection(entry));
 
         const text =
@@ -40,7 +40,7 @@ export class ListConnectionsTool extends MongoDBToolBase {
     }
 
     private noConnectionsText(): string {
-        const connectToolNames = connectCapableTools(this.server?.tools ?? [])
+        const connectToolNames = connectCapableTools(this.registrationServer?.tools ?? [])
             .map((tool) => `"${tool.name}"`)
             .join(", ");
         return connectToolNames
