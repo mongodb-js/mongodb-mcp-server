@@ -54,14 +54,12 @@ export type RequestContext = {
 
 /**
  * Per-request context passed to the auto-generated Atlas API methods, mirroring
- * `ToolExecutionContext.requestInfo`. When provided, its headers (e.g. the
- * `x-request-id` forwarded from the incoming MCP request) are merged into the
- * outgoing Atlas API request.
+ * `ToolRequest.headers`. When provided, its headers (e.g. the `x-request-id`
+ * forwarded from the incoming MCP request) are merged into the outgoing Atlas
+ * API request.
  */
 export type ApiClientRequestContext = {
-    requestInfo?: {
-        headers?: Record<string, unknown>;
-    };
+    headers?: Record<string, unknown>;
 };
 
 /**
@@ -167,7 +165,7 @@ export class ApiClient {
      * from the context. Used by the auto-generated Atlas API methods.
      */
     private applyRequestContext<Options>(options: Options, context?: ApiClientRequestContext): Options {
-        const contextHeaders = context?.requestInfo?.headers;
+        const contextHeaders = context?.headers;
         if (!contextHeaders) {
             return options;
         }
