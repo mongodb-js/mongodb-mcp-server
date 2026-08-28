@@ -2,19 +2,20 @@ import { CallToolRequestSchema } from "@modelcontextprotocol/core";
 import type { McpServer, Transport, Implementation } from "@modelcontextprotocol/server";
 import type { LogLevel } from "@mongodb-js/mcp-types";
 import { MCP_LOG_LEVELS, LogId } from "@mongodb-js/mcp-core";
-import type { CallToolResult, IApiClient, IUIRegistry } from "@mongodb-js/mcp-types";
+import type { CallToolResult, IUIRegistry } from "@mongodb-js/mcp-types";
 import type { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import type { ConnectionRegistry, ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { type ConnectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
 import type { Elicitation } from "@mongodb-js/mcp-core";
-import type { AnyResourceClass, IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
+import type { AnyResourceClass, IMetrics, DefaultMetricDefinitions, ToolServer } from "@mongodb-js/mcp-types";
 import type { AtlasTelemetry, TelemetryServerCommand, TelemetryServerEvent } from "@mongodb-js/mcp-atlas-telemetry";
 import type { AnyToolBase, AnyToolClass } from "@mongodb-js/mcp-core";
 import type { ToolCategory } from "@mongodb-js/mcp-types";
 import type { Client as AtlasLocalClient } from "@mongodb-js/atlas-local";
 import { validateConnectionString } from "@mongodb-js/mcp-tools-mongodb";
 import type { ServerMetadata } from "@mongodb-js/mcp-types";
-import type { ServerServices } from "./serverServices.js";
+import type { UserConfig } from "./config/userConfig.js";
+import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 
 /** A list of tool classes that can be instantiated. */
 export type ToolRegistry = AnyToolClass[];
@@ -22,20 +23,19 @@ export type ToolRegistry = AnyToolClass[];
 /** Resource constructor registry. */
 export type ResourceRegistry = readonly AnyResourceClass[];
 
-/**
- * The server-scoped context handed to tools and resources registered by the
- * CLI. Stateless: app-level services plus the effective configuration for
- * this server instance. See {@link ServerServices}.
- */
-export type McpSession = ServerServices;
-
 export interface CliServerOptions<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
-    session: McpSession;
+    /** The individually-injected services for this request-scoped server. There is no server-scoped "session" (or services) object: every service is constructed once per process (see `createAppServicesFromConfig`) and handed to the request-scoped server instance directly. MongoDB connection state lives in the app-level `connectionRegistry` and is addressed per request by `connectionId`; per-client identity travels on the tool request (`ToolExecutionContext.request.clientInfo`). */
+    config: UserConfig;
+    logger: CompositeLogger;
+    keychain: Keychain;
+    connectionRegistry: ConnectionRegistry;
+    exportsManager: ExportsManager;
+    apiClient: ApiClient;
+    connectionErrorHandler: ConnectionErrorHandler;
+    atlasLocalClient?: AtlasLocalClient;
     mcpServer: McpServer;
     telemetry: AtlasTelemetry;
     elicitation: Elicitation;
-    /** @deprecated Will be removed in a future version. Use `ServerServicesOptions.connectionErrorHandler` instead. */
-    connectionErrorHandler: ConnectionErrorHandler;
     uiRegistry?: IUIRegistry;
     metrics: IMetrics<TMetrics>;
     /**
@@ -86,7 +86,14 @@ export interface CliServerOptions<TMetrics extends DefaultMetricDefinitions = De
 }
 
 export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
-    public readonly session: McpSession;
+    /** The individually-injected services for this request-scoped server. */
+    public readonly config: UserConfig;
+    public readonly logger: CompositeLogger;
+    public readonly keychain: Keychain;
+    public readonly connectionRegistry: ConnectionRegistry;
+    public readonly exportsManager: ExportsManager;
+    public readonly apiClient: ApiClient;
+    public readonly atlasLocalClient?: AtlasLocalClient;
     public readonly mcpServer: McpServer;
     private readonly telemetry: AtlasTelemetry;
     public readonly elicitation: Elicitation;
@@ -120,30 +127,42 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
     private registerPromise: Promise<void> | undefined;
 
     constructor({
-        session,
+        config,
+        logger,
+        keychain,
+        connectionRegistry,
+        exportsManager,
+        apiClient,
+        connectionErrorHandler,
+        atlasLocalClient,
         mcpServer,
         telemetry,
-        connectionErrorHandler,
         elicitation,
         tools,
         resources,
         uiRegistry,
         metrics,
         serverMetadata,
-    }: CliServerOptions<TMetrics> & { session: McpSession }) {
+    }: CliServerOptions<TMetrics>) {
         this.startTime = Date.now();
-        this.session = session;
+        this.config = config;
+        this.logger = logger;
+        this.keychain = keychain;
+        this.connectionRegistry = connectionRegistry;
+        this.exportsManager = exportsManager;
+        this.apiClient = apiClient;
+        this.connectionErrorHandler = connectionErrorHandler;
+        this.atlasLocalClient = atlasLocalClient;
         this.telemetry = telemetry;
         this.mcpServer = mcpServer;
         this.elicitation = elicitation;
-        this.connectionErrorHandler = connectionErrorHandler;
         this.toolConstructors = tools ?? [];
         this.resourceConstructors = resources ?? [];
         this.uiRegistry = uiRegistry;
         this.metrics = metrics;
         this.serverMetadata = serverMetadata;
 
-        this._mcpLogLevel = session.config.mcpClientLogLevel;
+        this._mcpLogLevel = config.mcpClientLogLevel;
         this.mcpLogLevelFloor = this._mcpLogLevel;
     }
 
@@ -221,7 +240,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
 
         this.mcpServer.server.setRequestHandler("resources/subscribe", ({ params }) => {
             this.subscriptions.add(params.uri);
-            this.session.logger.debug({
+            this.logger.debug({
                 id: LogId.serverInitialized,
                 context: "resources",
                 message: `Client subscribed to resource: ${params.uri}`,
@@ -231,7 +250,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
 
         this.mcpServer.server.setRequestHandler("resources/unsubscribe", ({ params }) => {
             this.subscriptions.delete(params.uri);
-            this.session.logger.debug({
+            this.logger.debug({
                 id: LogId.serverInitialized,
                 context: "resources",
                 message: `Client unsubscribed from resource: ${params.uri}`,
@@ -251,7 +270,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
         });
 
         this.mcpServer.server.oninitialized = (): void => {
-            this.session.logger.info({
+            this.logger.info({
                 id: LogId.serverInitialized,
                 context: "server",
                 message: `Server with version ${this.serverMetadata.version} started and agent runner ${JSON.stringify(this.mcpServer.server.getClientVersion())}`,
@@ -298,7 +317,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
     }
 
     public sendResourceUpdated(uri: string): void {
-        this.session.logger.info({
+        this.logger.info({
             id: LogId.resourceUpdateFailure,
             context: "resources",
             message: `Resource updated: ${uri}`,
@@ -324,10 +343,10 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
 
         if (command === "start") {
             event.properties.startup_time_ms = commandDuration;
-            event.properties.read_only_mode = this.session.config.readOnly ? "true" : "false";
-            event.properties.disabled_tools = this.session.config.disabledTools || [];
-            event.properties.confirmation_required_tools = this.session.config.confirmationRequiredTools || [];
-            event.properties.previewFeatures = this.session.config.previewFeatures;
+            event.properties.read_only_mode = this.config.readOnly ? "true" : "false";
+            event.properties.disabled_tools = this.config.disabledTools || [];
+            event.properties.confirmation_required_tools = this.config.confirmationRequiredTools || [];
+            event.properties.previewFeatures = this.config.previewFeatures;
         }
         if (command === "stop") {
             event.properties.runtime_duration_ms = Date.now() - this.startTime;
@@ -342,16 +361,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
 
     public registerTools(): void {
         for (const toolConstructor of this.toolConstructors) {
-            const tool = new toolConstructor({
-                name: toolConstructor.toolName,
-                category: toolConstructor.category,
-                operationType: toolConstructor.operationType,
-                session: this.session,
-                telemetry: this.telemetry,
-                elicitation: this.elicitation,
-                metrics: this.metrics,
-                uiRegistry: this.uiRegistry,
-            });
+            const tool = new toolConstructor(this as ToolServer<any>);
             if (tool.register(this)) {
                 this.tools.push(tool);
             }
@@ -360,7 +370,18 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
 
     public registerResources(): void {
         for (const resourceConstructor of this.resourceConstructors) {
-            const resource = new resourceConstructor(this.session, this.telemetry);
+            const resource = new resourceConstructor(
+                {
+                    config: this.config,
+                    logger: this.logger,
+                    keychain: this.keychain,
+                    connectionRegistry: this.connectionRegistry,
+                    exportsManager: this.exportsManager,
+                    apiClient: this.apiClient,
+                    atlasLocalClient: this.atlasLocalClient,
+                },
+                this.telemetry
+            );
             resource.register(this);
         }
     }
@@ -372,9 +393,9 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
 
     private async validateConfig(): Promise<void> {
         // Validate connection string
-        if (this.session.config.connectionString) {
+        if (this.config.connectionString) {
             try {
-                validateConnectionString(this.session.config.connectionString, false);
+                validateConnectionString(this.config.connectionString, false);
             } catch (error) {
                 throw new Error(
                     "Connection string validation failed with error: " +
@@ -385,14 +406,14 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
         }
 
         // Validate API client credentials
-        if (this.session.config.apiClientId && this.session.config.apiClientSecret) {
+        if (this.config.apiClientId && this.config.apiClientSecret) {
             try {
                 try {
-                    const apiBaseUrl = new URL(this.session.config.apiBaseUrl);
+                    const apiBaseUrl = new URL(this.config.apiBaseUrl);
                     if (apiBaseUrl.protocol !== "https:") {
                         // Log a warning, but don't error out. This is to allow for testing against local or non-HTTPS endpoints.
                         const message = `apiBaseUrl is configured to use ${apiBaseUrl.protocol}, which is not secure. It is strongly recommended to use HTTPS for secure communication.`;
-                        this.session.logger.warning({
+                        this.logger.warning({
                             id: LogId.atlasApiBaseUrlInsecure,
                             context: "server",
                             message,
@@ -404,16 +425,16 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
                     });
                 }
 
-                await this.session.apiClient.validateAuthConfig();
+                await this.apiClient.validateAuthConfig();
             } catch (error) {
-                if (this.session.config.connectionString === undefined) {
+                if (this.config.connectionString === undefined) {
                     throw new Error(
                         `Failed to connect to MongoDB Atlas instance using the credentials from the config: ${error instanceof Error ? error.message : String(error)}`,
                         { cause: error }
                     );
                 }
 
-                this.session.logger.warning({
+                this.logger.warning({
                     id: LogId.atlasCheckCredentials,
                     context: "server",
                     message: `Failed to validate MongoDB Atlas API client credentials from the config: ${error instanceof Error ? error.message : String(error)}. Continuing since a connection string is also provided.`,

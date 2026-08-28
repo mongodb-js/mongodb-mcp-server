@@ -25,9 +25,9 @@ Exploration of the codebase shows the tool layer is already ~90% de-sessioned:
 
 - **`Session` (`packages/cli/src/cliSession.ts`)** is a thin, mostly-immutable context
   bag: `logger`, `config`, `keychain` (already a process-global singleton),
-  `connectionRegistry` (a scoped *view* over the app-level `MCPConnectionStore`),
+  `connectionRegistry` (a scoped _view_ over the app-level `MCPConnectionStore`),
   `apiClient`, `atlasLocalClient`, `exportsManager`, `mcpClient`. Its docstring already
-  states connection state is *not* session-scoped.
+  states connection state is _not_ session-scoped.
 - **MongoDB connections** are already keyed by opaque `connectionId` in the app-level
   `MCPConnectionStore` (`packages/tools-mongodb/src/common/connectionStore.ts`). The
   only session tie is the optional `scope` tag on entries.
@@ -38,9 +38,9 @@ Exploration of the codebase shows the tool layer is already ~90% de-sessioned:
   `session.disconnect()`.
 - **Telemetry** never populates `session_id` (property exists in types, always unset).
 - **HTTP is already dual-path** (`packages/http-runners/src/mcpHttpServer.ts`):
-  - *Legacy (2025-era)*: sessionful — `SessionStore`, `mcp-session-id` header, one
+  - _Legacy (2025-era)_: sessionful — `SessionStore`, `mcp-session-id` header, one
     server+transport per session, idle/notification timers, LRU eviction.
-  - *Modern (2026-07-28)*: already per-request — `createServerForRequest()` builds a
+  - _Modern (2026-07-28)_: already per-request — `createServerForRequest()` builds a
     fresh `CliServer` per request.
 
 So the project is mostly **deleting the legacy sessionful path, flattening the per-client
@@ -78,9 +78,10 @@ App-level (built once at startup, shared, immutable config):
   a single McpServer (+ CliServer facade) with tools registered once.
 
 Request-scoped (derived per request, never stored):
-  ToolExecutionContext { signal, requestId, requestInfo.headers, _meta,
-                         sendNotification, inputResponses }        (exists today)
-  + ClientContext { clientInfo, clientCapabilities }  ← from request envelope
+  ToolRequest (carried as ToolExecutionContext.request):
+    { config (effective, request-overridden), raw (SDK mcpReq), signal, id,
+      headers, _meta, sendNotification, inputResponses, clientInfo,
+      elicitationDurationMs }                                   (landed)
   + client-scoped ConnectionRegistry view (keyed by client identity)
 ```
 
@@ -97,7 +98,7 @@ Concretely:
   point), or drop scoping entirely and make `connectionScope: "global"` the only mode.
 - **Exports**: app-level `ExportsManager` keyed by client identity or TTL-based expiry
   instead of `Session.close()`.
-- **HTTP transport**: single stateless handler — the modern path becomes the *only*
+- **HTTP transport**: single stateless handler — the modern path becomes the _only_
   path. `SessionStore`, `mcp-session-id` routing, `NegotiatedClientState` persistence,
   idle/notification timers, `maxSessions`/`idleTimeoutMs`/`notificationTimeoutMs`/
   `externallyManagedSessions` config all get deleted.
@@ -105,6 +106,7 @@ Concretely:
 ## 5. Migration phases (implementation order)
 
 ### Phase 0 — Delete dead session surface (pure cleanup, no behavior change)
+
 - `ISession` (`packages/types/src/session.ts`): remove `disconnect()`,
   `isConnectedToMongoDB`, `connectionStringInfo`, `connectedAtlasCluster`,
   `SessionEvents` (connect/disconnect/connection-error), `sessionId`.
@@ -116,16 +118,26 @@ Concretely:
 - `Session.sessionId` (ObjectId) — only integration tests assert its shape.
 
 ### Phase 1 — Session → ServerServices rename + move `mcpClient` to request context
+
 - Rename `Session` → `ServerServices` (or `AppContext`); drop `EventEmitter`, `close()`
   semantics move to process shutdown (`cliStdioRunner` / runner `stop()`).
-- Add `clientInfo` (name/version/title) to `ToolExecutionContext`
-  (`packages/core/src/toolBase.ts`, `toToolExecutionContext`), populated from the
-  request's negotiated state / `_meta` / headers.
+- **Done — request-centric tool context**: `ToolExecutionContext` is now an envelope
+  carrying a single `request` field (`ToolRequest`), which holds every piece of
+  request-derived data: effective (possibly request-overridden) `config`, `raw`
+  (the SDK `mcpReq` the request was built around), `signal`, `id`, `headers`
+  (flattened from the old `requestInfo.headers`), `_meta`, `inputResponses`,
+  `sendNotification`, `clientInfo`, `elicitationDurationMs`. `ApiClientRequestContext`
+  mirrors the flattening (`headers` at top level) so a `ToolRequest` is passed
+  straight to Atlas API calls. Tools read `request.config` instead of
+  `this.server.config` at execute time; registration-time config reads
+  (`verifyAllowed`, `toolMeta`, description, `schemaVariantKey`, argShape) stay on
+  `server.config`.
 - Update the 3 tools that read `session.mcpClient` to read from the context.
 - Update `IToolSession` doc/types accordingly (it already only requires
   `config`/`logger`/`keychain`).
 
 ### Phase 2 — App-level services construction
+
 - Collapse `createSharedServicesFromConfig` + `createServerFromConfig`
   (`packages/cli/src/createServerServices.ts`) into a single `createAppServices(config)`
   built once at startup.
@@ -136,19 +148,21 @@ Concretely:
   applies config overrides (headers/query) into a **request-scoped effective config**
   and resolves the client-scoped registry view.
 
-> Note: per-request config overrides currently produce a *new server* because tools bake
+> Note: per-request config overrides currently produce a _new server_ because tools bake
 > `config` at construction. Decide: either (a) make tool config access request-aware
 > (read effective config from the execution context), or (b) restrict HTTP overrides to
 > only affect request-safe fields. This is the trickiest structural change in Phase 2 —
 > see Limitations.
 
 ### Phase 3 — Connection ownership without sessions (decision required)
+
 Options (pick one — recommend **A**):
+
 - **A. Client-identity scoping**: require clients to identify themselves (existing
   mechanisms: `mcpClient.name` from `initialize`, or an `x-mongodb-mcp-*` header).
   Registry scope = stable hash of identity instead of random UUID. Connections then
   survive across requests per client, preserving the current `connectionScope:
-  "session"` security semantics (multi-tenant HTTP deployments) without server-side
+"session"` security semantics (multi-tenant HTTP deployments) without server-side
   session objects.
 - **B. Global-only**: delete `connectionScope: "session"`; all runtime connections are
   shared. Simplest, but changes the documented security posture for unauthenticated
@@ -158,10 +172,12 @@ Options (pick one — recommend **A**):
   tokens. Functionally close to B.
 
 ### Phase 4 — Exports without session lifecycle
+
 - `ExportsManager` rooted app-level; directory per client identity (Phase 3 key) or per
   export with TTL/expiry sweep; delete `Session.close()`-driven cleanup.
 
 ### Phase 5 — Remove the legacy sessionful HTTP path
+
 - Delete `SessionStore` (`packages/core/src/sessionStore.ts`),
   `ISessionStore`/`SessionStoreConstructorArgs` (`packages/types/src/sessionStore.ts`),
   `NegotiatedClientState` save/load, the `ensureSessionInitialized` /
@@ -174,12 +190,14 @@ Options (pick one — recommend **A**):
 - Stdio runner simplification falls out naturally (no per-connection session either).
 
 ### Phase 6 — Negotiated client state, statelessly
+
 - The client sends `initialize`-era info per request (2026-07-28 protocol behavior), so
   `ClientContext` is populated from the request envelope rather than a persisted store.
 - `Elicitation` reads capabilities from the request context instead of a bound
   `McpServer` instance.
 
 ### Phase 7 — Tests, docs, leftovers
+
 - Update integration tests asserting `sessionId` shape / session metrics / session
   close logs; update `LogId` session entries; sweep `session` wording in
   `MCP_SERVER_LIBRARY.md`, README, config descriptions.
@@ -191,18 +209,21 @@ Options (pick one — recommend **A**):
    transports. Mitigation: stdio clients unaffected; HTTP clients must speak the modern
    stateless protocol. (Alternatively keep the legacy path while de-sessioning tools —
    halves the benefit.)
-2. **Cross-request MongoDB connections require *some* keyed store.** A truly stateless
+2. **Cross-request MongoDB connections require _some_ keyed store.** A truly stateless
    server cannot let a client `connect` in one request and query in the next unless the
    connection store is app-level and addressable. We keep `connectionId` keying
    (already the design), but scoping now needs a **stable client identity** — which is
    itself a lightweight form of state (a lookup key, though not a server-side session
    object). If no identity is available, the fallback is global/shared connections
    (security posture change, §5 Phase 3B).
-3. **Per-request config overrides vs. shared server instance**: today tools bake
-   `config` at construction, and HTTP overrides rebuild a server per request. Sharing
-   one server means tool behavior flags (`disabledTools`, read-only mode, etc.) must
-   become request-aware — a moderately invasive change to `ToolBase`.
-4. **Performance reality check**: the current modern path is *worse* than stateless —
+3. **Per-request config overrides vs. shared server instance**: execute-time config
+   reads now travel on the request (`request.config`), so a shared server no longer
+   needs rebuilding per request for those. Registration-time reads (`verifyAllowed`,
+   `toolMeta`, tool `description`, `schemaVariantKey`) still consume `server.config`
+   and remain base-config-bound until the request-aware registration is designed
+   (tool enablement flags like `disabledTools`/read-only would have to be enforced at
+   invoke time on a shared instance).
+4. **Performance reality check**: the current modern path is _worse_ than stateless —
    it rebuilds the entire server per request (telemetry clients, exports dirs, logger).
    The plan fixes this, but until Phase 2 lands, HTTP-per-request is expensive.
 5. **Exports lifecycle**: without `Session.close()`, cleanup needs TTL/expiry or
@@ -218,15 +239,15 @@ Options (pick one — recommend **A**):
 
 ## 7. What genuinely still needs state-of-a-sort
 
-| State | Where it must live | Why it can't be pure per-request |
-|---|---|---|
+| State                                           | Where it must live                                           | Why it can't be pure per-request                                          |
+| ----------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
 | Open MongoDB connections (`MCPConnectionStore`) | App-level, keyed by `connectionId` (+ client-identity scope) | TCP/auth handshakes are expensive; connect-once/query-many is the core UX |
-| In-flight connection dials / OIDC device-flow | Per `ConnectionEntry` (already is) | Multi-request polling (`connectCluster` polls `state`) |
-| Keychain secrets | App-level singleton (already is) | Secret redaction across all logs; registered by connect tools for reuse |
-| Client identity & capabilities | **Request-carried** (from protocol envelope) — not stored | Needed per request for `appName`, elicitation, scoping |
-| Exports on disk | App-level dir, client-keyed or TTL expiry | A download may span requests |
-| Atlas temp-user credentials pending revocation | Tied to `ConnectionEntry.onRevoke` (already is) | Cleanup must fire when the connection closes, regardless of which request |
-| Metrics/registry/monitoring | App-level (already is) | Process-wide aggregation |
+| In-flight connection dials / OIDC device-flow   | Per `ConnectionEntry` (already is)                           | Multi-request polling (`connectCluster` polls `state`)                    |
+| Keychain secrets                                | App-level singleton (already is)                             | Secret redaction across all logs; registered by connect tools for reuse   |
+| Client identity & capabilities                  | **Request-carried** (from protocol envelope) — not stored    | Needed per request for `appName`, elicitation, scoping                    |
+| Exports on disk                                 | App-level dir, client-keyed or TTL expiry                    | A download may span requests                                              |
+| Atlas temp-user credentials pending revocation  | Tied to `ConnectionEntry.onRevoke` (already is)              | Cleanup must fire when the connection closes, regardless of which request |
+| Metrics/registry/monitoring                     | App-level (already is)                                       | Process-wide aggregation                                                  |
 
 The one thing we deliberately **eliminate** is server-side per-client objects with
 lifecycle (create → idle → evict → close): no session store, no session timers, no
