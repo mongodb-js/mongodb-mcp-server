@@ -169,9 +169,6 @@ describe("PauseResumeClusterTool", () => {
             clusterName: CLUSTER_NAME,
             instanceType: "DEDICATED",
             username: "test-user",
-            provider: "AWS",
-            region: "US_EAST_1",
-            expiryDate: new Date(Date.now() + 3_600_000),
         };
 
         it("revokes matching connections and mentions them in the response when pausing the cluster", async () => {

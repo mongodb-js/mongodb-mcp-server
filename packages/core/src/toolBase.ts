@@ -1045,6 +1045,10 @@ export abstract class ToolBase<
             metadata.project_id = connectionState.connectedAtlasCluster.projectId;
         }
 
+        if (connectionState.connectedAtlasCluster?.clusterName) {
+            metadata.cluster_name = connectionState.connectedAtlasCluster.clusterName;
+        }
+
         return metadata;
     }
 

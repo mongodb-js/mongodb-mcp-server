@@ -150,7 +150,6 @@ describe("debug resource", () => {
                     projectId: "COFFEEFABADA",
                     username: "",
                     instanceType: "FREE",
-                    expiryDate: new Date(),
                 },
             },
         });

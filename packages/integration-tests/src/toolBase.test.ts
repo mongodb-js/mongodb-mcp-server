@@ -365,7 +365,6 @@ describe("ToolBase", () => {
             username: "test-user",
             clusterName: "test-cluster",
             instanceType: "FREE",
-            expiryDate: new Date(),
         };
 
         it("should return empty metadata when no connection state is provided", () => {
@@ -377,7 +376,7 @@ describe("ToolBase", () => {
             expect(metadata).not.toHaveProperty("connection_host_type");
         });
 
-        it("should return metadata with project_id when connectedAtlasCluster.projectId is set", () => {
+        it("should return metadata with project_id and cluster_name when connectedAtlasCluster is set", () => {
             const metadata = testTool["getConnectionInfoMetadata"]({
                 tag: "disconnected",
                 connectedAtlasCluster: atlasCluster,
@@ -385,18 +384,33 @@ describe("ToolBase", () => {
 
             expect(metadata).toEqual({
                 project_id: "test-project-id",
+                cluster_name: "test-cluster",
             });
             expect(metadata).not.toHaveProperty("connection_auth_type");
             expect(metadata).not.toHaveProperty("connection_host_type");
         });
 
-        it("should return empty metadata when connectedAtlasCluster exists but projectId is falsy", () => {
+        it("should return the same metadata for a coordinates-only connectedAtlasCluster", () => {
+            // What a host that dials Atlas without minting a temporary database
+            // user can supply: coordinates, no credential or tier details.
+            const metadata = testTool["getConnectionInfoMetadata"]({
+                tag: "disconnected",
+                connectedAtlasCluster: { projectId: "test-project-id", clusterName: "test-cluster" },
+            });
+
+            expect(metadata).toEqual({
+                project_id: "test-project-id",
+                cluster_name: "test-cluster",
+            });
+        });
+
+        it("should omit project_id when connectedAtlasCluster exists but projectId is falsy", () => {
             const metadata = testTool["getConnectionInfoMetadata"]({
                 tag: "disconnected",
                 connectedAtlasCluster: { ...atlasCluster, projectId: "" },
             });
 
-            expect(metadata).toEqual({});
+            expect(metadata).toEqual({ cluster_name: "test-cluster" });
             expect(metadata).not.toHaveProperty("project_id");
         });
 
@@ -428,6 +442,7 @@ describe("ToolBase", () => {
 
             expect(metadata).toEqual({
                 project_id: "test-project-id",
+                cluster_name: "test-cluster",
                 connection_auth_type: "oidc-auth-flow",
                 connection_host_type: "atlas",
             });

@@ -201,13 +201,10 @@ export interface ApiClientOptions {
 
 // @public
 export type AtlasClusterConnectionInfo = {
-    username: string;
     projectId: string;
     clusterName: string;
-    instanceType: "FREE" | "FLEX" | "DEDICATED";
-    provider?: string;
-    region?: string;
-    expiryDate: Date;
+    username?: string;
+    instanceType?: "FREE" | "FLEX" | "DEDICATED";
 };
 
 // @public (undocumented)
@@ -346,6 +343,7 @@ export interface ConnectionManagerEvents {
 export type ConnectionMetadata = AtlasMetadata & AtlasLocalToolMetadata & {
     connection_auth_type?: string;
     connection_host_type?: string;
+    cluster_name?: string;
     shared_tier_alerts_detected?: TelemetryBoolSet;
     shared_tier_tier?: SharedTierTier;
     shared_tier_alerts?: SharedTierMetricName[];

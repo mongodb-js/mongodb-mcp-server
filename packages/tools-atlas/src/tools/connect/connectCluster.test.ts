@@ -30,7 +30,6 @@ const ATLAS_INFO: AtlasClusterConnectionInfo = {
     projectId: "proj1",
     clusterName: "cluster1",
     instanceType: "DEDICATED",
-    expiryDate: new Date(),
 };
 
 // A dedicated (M10) cluster description as returned by the Atlas API. Dedicated

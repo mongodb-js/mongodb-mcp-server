@@ -109,9 +109,6 @@ export class ConnectClusterTool extends AtlasToolBase {
             projectId,
             clusterName,
             instanceType: cluster.instanceType,
-            provider: cluster.provider,
-            region: cluster.region,
-            expiryDate,
         };
 
         const cn = new URL(connectionString);
