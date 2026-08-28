@@ -96,27 +96,26 @@ export type ToolRequest<TConfig extends IToolConfig = IToolConfig> = {
      */
     readonly config: TConfig;
     /**
-     * The original request this request object was built around: the raw SDK
-     * `ServerContext` the tool call handler received. Undefined when the tool
-     * is invoked directly in unit tests without a real SDK request. Prefer
-     * the normalized fields (`config`, `clientInfo`, `requestInfo`, ...);
-     * reach for `raw` only when the typed surface does not cover what you
-     * need.
+     * The original request this request object was built around: the SDK's
+     * per-request `mcpReq` object the tool call handler received. Undefined
+     * when the tool is invoked directly in unit tests without a real SDK
+     * request. Prefer the normalized fields (`config`, `headers`, `id`,
+     * `clientInfo`, ...); reach for `raw` only when the typed surface does
+     * not cover what you need.
      */
-    readonly raw?: ServerContext;
+    readonly raw?: ServerContext["mcpReq"];
     /** AbortSignal for cancellation support */
     signal: AbortSignal;
     /**
-     * HTTP request context, available only when running atop
-     * StreamableHttpTransport.
+     * HTTP request headers, available only when running atop
+     * StreamableHttpTransport. Used for request correlation (e.g.
+     * `x-request-id`) and forwarded to outgoing Atlas API requests.
      */
-    requestInfo?: {
-        headers?: Record<string, unknown>;
-    };
+    headers?: Record<string, unknown>;
     /** Metadata from the original MCP request (e.g. the client's progress token). */
     _meta?: RequestMeta;
     /** The request id, when invoked through an MCP server. */
-    requestId?: string | number;
+    id?: string | number;
     /** Send an MCP server notification. */
     sendNotification?: (notification: unknown) => Promise<void>;
     /**

@@ -65,12 +65,14 @@ export function toToolExecutionContext<TConfig extends IToolConfig = IToolConfig
     return {
         request: {
             config,
-            raw: ctx,
+            // raw is the original per-request `mcpReq` (id, method, _meta,
+            // envelope, signal, ...) this request was built around.
+            raw: mcpReq,
             signal: mcpReq?.signal ?? new AbortController().signal,
-            requestId: mcpReq?.id,
+            id: mcpReq?.id,
             _meta: mcpReq?._meta,
             inputResponses: mcpReq?.inputResponses,
-            requestInfo: ctx.http?.req ? { headers } : undefined,
+            headers: ctx.http?.req ? headers : undefined,
             sendNotification: mcpReq?.notify
                 ? (notification: unknown): Promise<void> => mcpReq.notify(notification as Notification)
                 : undefined,
@@ -542,7 +544,7 @@ export abstract class ToolBase<
                         context: "tool",
                         message: text,
                         noRedaction: true,
-                        attributes: { ...requestIdAttr(context.request.requestInfo?.headers) },
+                        attributes: { ...requestIdAttr(context.request.headers) },
                     });
                     const declined: CallToolResult = { content: [{ type: "text", text }], isError: true };
                     recordOutcome(declined);
@@ -554,7 +556,7 @@ export abstract class ToolBase<
                 context: "tool",
                 message: `Executing tool ${this.name}`,
                 noRedaction: true,
-                attributes: { ...requestIdAttr(context.request.requestInfo?.headers) },
+                attributes: { ...requestIdAttr(context.request.headers) },
             });
             const toolCallResult = await this.execute(args, context);
             if (isInputRequiredResult(toolCallResult)) {
@@ -572,7 +574,7 @@ export abstract class ToolBase<
                 context: "tool",
                 message: `Executed tool ${this.name}`,
                 noRedaction: true,
-                attributes: { ...requestIdAttr(context.request.requestInfo?.headers) },
+                attributes: { ...requestIdAttr(context.request.headers) },
             });
             return result;
         } catch (error: unknown) {
@@ -580,7 +582,7 @@ export abstract class ToolBase<
                 id: LogId.toolExecuteFailure,
                 context: "tool",
                 message: `Error executing ${this.name}: ${error as string}`,
-                attributes: { ...requestIdAttr(context.request.requestInfo?.headers) },
+                attributes: { ...requestIdAttr(context.request.headers) },
             });
             const toolResult = await this.handleError(error, args);
 
@@ -650,9 +652,9 @@ export abstract class ToolBase<
             noRedaction: true,
             attributes: {
                 tool: this.name,
-                requestId: context.request.requestId !== undefined ? String(context.request.requestId) : "(undefined)",
+                requestId: context.request.id !== undefined ? String(context.request.id) : "(undefined)",
                 confirmed: confirmed !== undefined ? String(confirmed) : "pending",
-                ...requestIdAttr(context.request.requestInfo?.headers),
+                ...requestIdAttr(context.request.headers),
             },
         });
         return confirmed;
