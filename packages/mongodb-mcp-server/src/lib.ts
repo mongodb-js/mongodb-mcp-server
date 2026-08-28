@@ -1,5 +1,5 @@
 /** This file is temporarily used for generating API reports against the v1 API for comparison purposes. */
-export { CliServer, type CliServerOptions, type McpSession } from "@mongodb-js/mcp-cli";
+export { CliServer, type CliServerOptions } from "@mongodb-js/mcp-cli";
 export { type UserConfig, UserConfigSchema, configRegistry } from "@mongodb-js/mcp-cli";
 export { parseUserConfig, defaultParserOptions, type ParserOptions } from "@mongodb-js/mcp-cli";
 
@@ -76,7 +76,7 @@ export type { AuthProvider } from "@mongodb-js/mcp-atlas-api-client";
 export { ClientCredentialsAuthProvider } from "@mongodb-js/mcp-atlas-api-client";
 export { UIRegistry } from "@mongodb-js/mcp-ui/registry";
 export { ToolBase, type AnyToolClass, type AnyToolBase, type ToolClass, type ToolArgs } from "@mongodb-js/mcp-core";
-export { type ToolExecutionContext } from "@mongodb-js/mcp-types";
+export { type ToolExecutionContext, type ToolRequest } from "@mongodb-js/mcp-types";
 export { type OperationType } from "@mongodb-js/mcp-types";
 export { type ToolCategory } from "@mongodb-js/mcp-types";
 export { TRANSPORT_PAYLOAD_LIMITS, type TransportType } from "@mongodb-js/mcp-cli";
