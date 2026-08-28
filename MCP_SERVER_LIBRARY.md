@@ -406,7 +406,7 @@ class MyCustomTool extends ToolBase<IToolSession> {
 
 Register the class by including it in the `tools` array (a `ToolRegistry`) passed to `runMcpCli`, `createRunnerFromConfig`, `createServerFromConfig`, or `CliServer`: `const tools: ToolRegistry = [...MongoDBTools, MyCustomTool];`.
 
-Tool classes must conform to `ToolClass` — static `toolName` (unique), `category` (`"mongodb" | "atlas" | "atlas-local" | "assistant" | "custom"`), and `operationType`. The server injects `session`, `telemetry`, and `elicitation` automatically via the `ToolConstructorParams`. Use `formatUntrustedData` (from `@mongodb-js/mcp-core`) to format arbitrary data in tool output, and `Elicitation` (from `@mongodb-js/mcp-core`) to request user confirmation.
+Tool classes must conform to `ToolClass` — static `toolName` (unique), `category` (`"mongodb" | "atlas" | "atlas-local" | "assistant" | "custom"`), and `operationType`. Constructors receive the server (`ToolServer`), which carries the app-level services (`server.logger`, `server.telemetry`, `server.elicitation`, `server.config`, ...); there is no per-client session object. Per-request data — the effective config, the raw request, signal, request id, headers — arrives on the `request` argument of `execute(args, request)` (`ToolExecutionContext.request`). Use `formatUntrustedData` (from `@mongodb-js/mcp-core`) to format arbitrary data in tool output, and `Elicitation` (from `@mongodb-js/mcp-core`) to request user confirmation.
 
 ### Use Case 4: Selective Tool Registration
 
