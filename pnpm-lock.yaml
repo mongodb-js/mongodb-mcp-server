@@ -372,6 +372,9 @@ importers:
 
   packages/e2e-tests:
     devDependencies:
+      '@microsoft/tui-test':
+        specifier: 0.1.0-beta.2
+        version: 0.1.0-beta.2
       '@modelcontextprotocol/client':
         specifier: ^2.0.0
         version: 2.0.0

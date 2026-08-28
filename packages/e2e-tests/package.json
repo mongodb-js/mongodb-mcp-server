@@ -3,14 +3,15 @@
   "version": "3.0.0-prerelease.2",
   "private": true,
   "type": "module",
-  "description": "End-to-end tests driving the MongoDB MCP server through a real LLM coding agent (codex, claude)",
+  "description": "End-to-end tests driving the MongoDB MCP server through a real LLM coding agent",
   "scripts": {
     "check": "tsc --noEmit --project tsconfig.json"
   },
   "devDependencies": {
+    "@microsoft/tui-test": "0.1.0-beta.2",
     "@modelcontextprotocol/client": "^2.0.0",
-    "@mongodb-js/harness-tester": "workspace:*",
     "@mongodb-js/mcp-cli": "workspace:*",
+    "@mongodb-js/harness-tester": "workspace:*",
     "@mongodb-js/mcp-core": "workspace:*",
     "@mongodb-js/mcp-test-utils": "workspace:*",
     "@types/node": "^25.6.0",
