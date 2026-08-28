@@ -22,7 +22,6 @@ jobs:
       AGENT_E2E_CODEX_MODEL: ${{ vars.AGENT_E2E_CODEX_MODEL }}
       AGENT_E2E_CLAUDE_MODEL: ${{ vars.AGENT_E2E_CLAUDE_MODEL }}
       AGENT_E2E_TUI_BACKEND: ${{ vars.AGENT_E2E_TUI_BACKEND }}
-      AGENT_E2E_DEBUG: 1
 
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1

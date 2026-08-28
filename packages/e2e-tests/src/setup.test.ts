@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { useMcpAgent } from "./useMcpAgent.js";
-import { describeHarness } from "./describeHarness.js";
+import { useMcpAgent } from "./utils/useMcpAgent.js";
+import { describeHarness } from "./utils/describeHarness.js";
 
 describe("server setup", () => {
     describeHarness(({ harness }) => {
