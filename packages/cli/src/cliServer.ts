@@ -129,6 +129,13 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
     /** Whether {@link register} has run (guards against repeated registration). */
     private registered = false;
 
+    /**
+     * In-flight {@link register} run. Concurrent callers share this promise so
+     * that registration only ever happens once per instance, even while the
+     * first call is still awaiting config validation etc.
+     */
+    private registerPromise: Promise<void> | undefined;
+
     constructor({
         session,
         mcpServer,
@@ -171,11 +178,27 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
      * `createMcpHandler`) build one instance per connection/request through a
      * factory and call this before handing the `McpServer` to the entry, while
      * the legacy sessionful HTTP path calls it through {@link connect}.
+     *
+     * Concurrent calls coalesce onto the in-flight registration, and calling
+     * this after {@link close} throws.
      */
     async register(): Promise<void> {
+        if (this.closed) {
+            throw new Error("Cannot register a closed server");
+        }
+        if (this.registerPromise) {
+            return this.registerPromise;
+        }
         if (this.registered) {
             return;
         }
+        this.registerPromise = this.doRegister().finally(() => {
+            this.registerPromise = undefined;
+        });
+        return this.registerPromise;
+    }
+
+    private async doRegister(): Promise<void> {
         await this.validateConfig();
         // Register resources after the server is initialized so they can listen to events like
         // connection events.
