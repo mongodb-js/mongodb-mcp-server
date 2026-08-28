@@ -5,8 +5,6 @@
 ```ts
 
 import { CallToolResult } from '@modelcontextprotocol/server';
-import type { ClientCapabilities } from '@modelcontextprotocol/server';
-import type { CloseableTransport } from '@mongodb-js/mcp-types';
 import type { ConnectionMetadata } from '@mongodb-js/mcp-types';
 import type { DefaultEventMap } from '@mongodb-js/mcp-types';
 import type { DefaultMetricDefinitions } from '@mongodb-js/mcp-types';
@@ -16,21 +14,16 @@ import type { ElicitInputRequiredParams } from '@mongodb-js/mcp-types';
 import { ElicitRequestSchema } from '@mongodb-js/mcp-types';
 import { EventEmitter } from 'events';
 import type { EventMap } from '@mongodb-js/mcp-types';
-import type { ICompositeLogger } from '@mongodb-js/mcp-types';
 import { IElicitation } from '@mongodb-js/mcp-types';
 import type { IKeychain } from '@mongodb-js/mcp-types';
 import type { ILogger } from '@mongodb-js/mcp-types';
 import type { IMetrics } from '@mongodb-js/mcp-types';
-import type { Implementation } from '@modelcontextprotocol/server';
+import { Implementation } from '@modelcontextprotocol/server';
 import { InputRequiredResult } from '@modelcontextprotocol/server';
-import type { InputResponses } from '@modelcontextprotocol/server';
 import type { IResourceServer } from '@mongodb-js/mcp-types';
-import type { IResourceSession } from '@mongodb-js/mcp-types';
-import type { ISessionStore } from '@mongodb-js/mcp-types';
 import type { ITelemetry } from '@mongodb-js/mcp-types';
-import type { IToolSession } from '@mongodb-js/mcp-types';
+import type { IToolConfig } from '@mongodb-js/mcp-types';
 import type { ITransportRunner } from '@mongodb-js/mcp-types';
-import type { IUIRegistry } from '@mongodb-js/mcp-types';
 import type { JSONRPCMessage } from '@modelcontextprotocol/server';
 import type { LoggerConfig } from '@mongodb-js/mcp-types';
 import type { LoggerType } from '@mongodb-js/mcp-types';
@@ -43,15 +36,15 @@ import type { PreviewFeature } from '@mongodb-js/mcp-types';
 import type { ReactiveResourceOptions } from '@mongodb-js/mcp-types';
 import type { ResourceConfiguration } from '@mongodb-js/mcp-types';
 import type { ResourceMetadata } from '@modelcontextprotocol/server';
+import type { ResourceServices } from '@mongodb-js/mcp-types';
 import { Secret } from 'mongodb-redact';
-import type { SessionCloseReason } from '@mongodb-js/mcp-types';
-import type { SessionEvents } from '@mongodb-js/mcp-types';
-import type { SessionStoreConstructorArgs } from '@mongodb-js/mcp-types';
+import { ServerContext } from '@modelcontextprotocol/server';
 import type { SupportedConnectionState } from '@mongodb-js/mcp-types';
 import type { TelemetryToolMetadata } from '@mongodb-js/mcp-types';
 import { ToolAnnotations } from '@modelcontextprotocol/server';
 import type { ToolCategory } from '@mongodb-js/mcp-types';
 import type { ToolExecutionContext } from '@mongodb-js/mcp-types';
+import type { ToolServer } from '@mongodb-js/mcp-types';
 import type { Transport } from '@modelcontextprotocol/server';
 import type { TransportType } from '@mongodb-js/mcp-types';
 import { z } from 'zod';
@@ -63,7 +56,7 @@ export type AnyToolBase = ToolBase<any>;
 
 // @public (undocumented)
 export type AnyToolClass = Omit<ToolClass<any, any>, "new"> & {
-    new (args: ToolConstructorParams<any, any>): AnyToolBase;
+    new (server: ToolServer<any>): AnyToolBase;
 };
 
 // @public (undocumented)
@@ -101,12 +94,6 @@ export class CompositeLogger extends LoggerBase {
 export const CONFIRMATION_INPUT_KEY = "confirmation";
 
 // @public
-export function createDefaultSessionStore<TTransport extends CloseableTransport = CloseableTransport, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions>(params: SessionStoreConstructorArgs<TMetrics>): SessionStore<TTransport>;
-
-// @public
-export type CreateSessionStoreFn<TTransport extends CloseableTransport = CloseableTransport, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> = (args: SessionStoreConstructorArgs<TMetrics>) => ISessionStore<TTransport>;
-
-// @public
 export class Elicitation implements IElicitation {
     constructor(input: {
         server: McpServer["server"];
@@ -126,8 +113,8 @@ export class Elicitation implements IElicitation {
     };
     confirmationRequired(message: string): InputRequiredResult;
     inputRequired(input: ElicitInputRequiredParams): InputRequiredResult;
-    readConfirmation(inputResponses: ElicitationInputResponses_2): boolean | undefined;
-    readInput(inputResponses: ElicitationInputResponses_2, key: string): ElicitedInputResult | undefined;
+    readConfirmation(inputResponses: ElicitationInputResponses): boolean | undefined;
+    readInput(inputResponses: ElicitationInputResponses, key: string): ElicitedInputResult | undefined;
     supportsElicitation(): boolean;
 }
 
@@ -173,28 +160,11 @@ export class InMemoryTransport implements Transport {
 
 export { InputRequiredResult }
 
-export { ISessionStore }
-
-// @public
-export const JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION = -32005;
-
 // @public
 export const JSON_RPC_ERROR_CODE_INVALID_REQUEST = -32004;
 
 // @public
 export const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
-
-// @public
-export const JSON_RPC_ERROR_CODE_SESSION_ID_INVALID = -32002;
-
-// @public
-export const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
-
-// @public
-export const JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED = -32006;
-
-// @public
-export const JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND = -32003;
 
 // @public
 export class Keychain implements IKeychain {
@@ -286,19 +256,9 @@ export const LogId: {
     readonly updateToolMetadata: MongoLogId;
     readonly toolValidationError: MongoLogId;
     readonly streamableHttpTransportStarted: MongoLogId;
-    readonly sessionCloseFailure: MongoLogId;
-    readonly sessionCloseNotification: MongoLogId;
-    readonly sessionCloseNotificationFailure: MongoLogId;
     readonly streamableHttpTransportRequestFailure: MongoLogId;
     readonly streamableHttpTransportCloseFailure: MongoLogId;
-    readonly streamableHttpTransportKeepAliveFailure: MongoLogId;
-    readonly streamableHttpTransportKeepAlive: MongoLogId;
     readonly streamableHttpTransportHttpHostWarning: MongoLogId;
-    readonly streamableHttpTransportSessionNotFound: MongoLogId;
-    readonly streamableHttpTransportDisallowedExternalSessionError: MongoLogId;
-    readonly streamableHttpTransportSessionLimitExceeded: MongoLogId;
-    readonly streamableHttpTransportClientStateSaveFailure: MongoLogId;
-    readonly streamableHttpTransportClientStateRestoreFailure: MongoLogId;
     readonly httpServerStarted: MongoLogId;
     readonly httpServerStopping: MongoLogId;
     readonly httpServerStopped: MongoLogId;
@@ -367,31 +327,29 @@ export class NoopTelemetry implements ITelemetry {
 // @public
 export abstract class ReactiveResource<
 /** Value stored in the resource */
-Value, RelevantEvents extends readonly (keyof SessionEvents)[], TSession extends IResourceSession = IResourceSession, TServer extends IResourceServer = IResourceServer> {
+Value, TServices extends ResourceServices = ResourceServices, TServer extends IResourceServer = IResourceServer> {
     constructor(input: {
         resourceConfiguration: ResourceConfiguration;
-        options: ReactiveResourceOptions<Value, RelevantEvents>;
-        session: TSession;
+        options: ReactiveResourceOptions<Value>;
+        services: TServices;
         telemetry: ITelemetry;
         current?: Value;
     });
+    protected readonly config: TServices["config"];
     // (undocumented)
     protected current: Value;
     // (undocumented)
-    protected readonly events: RelevantEvents;
+    protected readonly keychain: TServices["keychain"];
+    // (undocumented)
+    protected readonly logger: TServices["logger"];
     // (undocumented)
     protected readonly name: string;
-    protected reduce(_eventName: RelevantEvents[number], ..._event: PayloadOf<RelevantEvents[number]>[]): Value;
-    // (undocumented)
-    protected reduceApply(eventName: RelevantEvents[number], ...event: PayloadOf<RelevantEvents[number]>[]): void;
     // (undocumented)
     register(server: TServer): void;
     // (undocumented)
     protected readonly resourceConfig: ResourceMetadata;
     // (undocumented)
     protected server?: TServer;
-    // (undocumented)
-    protected session: TSession;
     // (undocumented)
     protected telemetry: ITelemetry;
     // (undocumented)
@@ -410,46 +368,6 @@ export function registerGlobalSecretToRedact(value: Secret["value"], kind: Secre
 export function requestIdAttr(headers: Record<string, unknown> | undefined): Record<string, string>;
 
 export { Secret }
-
-// @public
-export class SessionLimitExceededError extends Error {
-    constructor(message: string);
-}
-
-// @public
-export class SessionRejectedError extends Error {
-    constructor(message: string);
-}
-
-// @public
-export class SessionStore<T extends CloseableTransport = CloseableTransport> implements ISessionStore<T> {
-    constructor(params: SessionStoreConstructorArgs<DefaultMetricDefinitions>);
-    // (undocumented)
-    addSession(params: {
-        sessionId: string;
-        transport: T;
-        logger: ILogger;
-        session?: {
-            logger: ICompositeLogger;
-        };
-        headers?: Record<string, unknown>;
-    }): Promise<void>;
-    // (undocumented)
-    closeAllSessions(): Promise<void>;
-    // (undocumented)
-    closeSession(input: {
-        sessionId: string;
-        reason?: SessionCloseReason;
-    }): Promise<void>;
-    // (undocumented)
-    getSession(sessionId: string, _headers?: Record<string, unknown>): Promise<T | undefined>;
-    hasSession(sessionId: string): boolean;
-    // (undocumented)
-    loadNegotiatedClientState(sessionId: string, headers?: Record<string, unknown>): Promise<NegotiatedClientState | undefined>;
-    saveNegotiatedClientState(sessionId: string, state: NegotiatedClientState, headers?: Record<string, unknown>): Promise<void>;
-}
-
-export { SessionStoreConstructorArgs }
 
 // @public (undocumented)
 export function setManagedTimeout(callback: () => Promise<void> | void, timeoutMS: number): ManagedTimeout;
@@ -476,17 +394,15 @@ export type ToolArgs<T extends ZodRawShape> = {
 };
 
 // @public
-export abstract class ToolBase<TSession extends IToolSession = IToolSession, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
-    constructor(input: ToolConstructorParams<TSession, TMetricsDefinitions>);
+export abstract class ToolBase<TServer extends ToolServer = ToolServer, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
+    constructor(server: TServer);
     // (undocumented)
     get annotations(): ToolAnnotations;
     abstract argsShape: ZodRawShape;
     readonly category: ToolCategory;
-    protected get config(): TSession["config"];
     abstract description: string;
     // (undocumented)
     disable(): void;
-    protected readonly elicitation: IElicitation;
     // (undocumented)
     enable(): void;
     protected abstract execute(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
@@ -499,7 +415,6 @@ export abstract class ToolBase<TSession extends IToolSession = IToolSession, TMe
     isEnabled(): boolean;
     // (undocumented)
     protected isFeatureEnabled(feature: PreviewFeature): boolean;
-    protected readonly metrics: IMetrics<TMetricsDefinitions>;
     readonly name: string;
     normalizeRawArgs(args: Record<string, unknown>): Record<string, unknown>;
     readonly operationType: OperationType;
@@ -514,31 +429,18 @@ export abstract class ToolBase<TSession extends IToolSession = IToolSession, TMe
         result: CallToolResult;
     }): TelemetryToolMetadata | Promise<TelemetryToolMetadata>;
     protected schemaVariantKey(): string;
-    protected readonly session: TSession;
-    protected readonly telemetry: ITelemetry;
+    protected readonly server: TServer;
     protected get toolMeta(): Record<string, unknown>;
     // (undocumented)
     protected verifyAllowed(): boolean;
 }
 
 // @public
-export type ToolClass<TSession extends IToolSession = IToolSession, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
-    new (args: ToolConstructorParams<TSession, TMetricsDefinitions>): ToolBase<TSession, TMetricsDefinitions>;
+export type ToolClass<TServer extends ToolServer = ToolServer, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
+    new (server: TServer): ToolBase<TServer, TMetricsDefinitions>;
     toolName: string;
     category: ToolCategory;
     operationType: OperationType;
-};
-
-// @public
-export type ToolConstructorParams<TSession extends IToolSession = IToolSession, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
-    name: string;
-    category: ToolCategory;
-    operationType: OperationType;
-    session: TSession;
-    telemetry: ITelemetry;
-    elicitation: IElicitation;
-    metrics: IMetrics<TMetricsDefinitions>;
-    uiRegistry?: IUIRegistry;
 };
 
 // @public (undocumented)
@@ -551,6 +453,12 @@ export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined>
     content: CallToolResult["content"];
     isError?: boolean;
 };
+
+// @public
+export type ToolServerParam<TServer extends ToolServer = ToolServer, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = TServer;
+
+// @public
+export function toToolExecutionContext<TConfig extends IToolConfig = IToolConfig>(ctx: ServerContext, config: TConfig, clientInfoProvider?: () => Implementation | undefined): ToolExecutionContext<TConfig>;
 
 // @public
 export const TRANSPORT_PAYLOAD_LIMITS: Record<TransportType, number>;
