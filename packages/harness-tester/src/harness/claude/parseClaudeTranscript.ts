@@ -34,10 +34,14 @@ function collectServerCalls(transcript: string): ToolCallRecord[] {
  * Exact tool calls from the session JSONL claude writes per session under
  * `$CLAUDE_CONFIG_DIR/projects/<dir>/<session>.jsonl`.
  */
-export function collectSessionJsonlToolCalls(claudeHomeDir: string): ToolCallRecord[] {
+export function collectSessionJsonlToolCalls(claudeHomeDir: string, seenCallKeys?: Set<string>): ToolCallRecord[] {
     const projectsDir = path.join(claudeHomeDir, "projects");
     const records: ToolCallRecord[] = [];
-    const seen = new Set<string>();
+    // When the caller passes a persistent key set (the session's), records
+    // already attributed to an earlier turn are skipped so tool calls never
+    // leak across `prompt()` calls within one session. Without one, dedupe is
+    // scoped to this call (backwards compatible with the tests).
+    const seen = seenCallKeys ?? new Set<string>();
     const collectFrom = (file: string): void => {
         let text: string;
         try {
@@ -112,11 +116,21 @@ export interface ParseClaudeTurnOptions {
     transcript: string;
     /** Hermetic `CLAUDE_CONFIG_DIR`; when set, exact tool calls are merged from the session JSONL. */
     claudeHomeDir?: string;
+    /**
+     * Persistent dedupe set shared across turns of one session: JSONL tool-call
+     * keys already attributed to an earlier turn are skipped, keeping `toolCalls`
+     * scoped to the current turn.
+     */
+    seenCallKeys?: Set<string>;
 }
 
-export function parseClaudeTurn({ transcript, claudeHomeDir }: ParseClaudeTurnOptions): ClaudeTranscriptParseResult {
+export function parseClaudeTurn({
+    transcript,
+    claudeHomeDir,
+    seenCallKeys,
+}: ParseClaudeTurnOptions): ClaudeTranscriptParseResult {
     const serverCalls = collectServerCalls(transcript);
-    const sessionCalls = claudeHomeDir ? collectSessionJsonlToolCalls(claudeHomeDir) : [];
+    const sessionCalls = claudeHomeDir ? collectSessionJsonlToolCalls(claudeHomeDir, seenCallKeys) : [];
     // Session JSONL tool calls are precise; fall back to the transcript's
     // server-level markers when the JSONL isn't readable (e.g. on a fresh
     // session with no persisted log yet).

@@ -65,9 +65,11 @@ export class CodexTuiHarness implements AgentHarness {
     }
 
     async start(options: AgentHarnessOptions): Promise<AgentSession> {
-        // Per-session CODEX_HOME so the developer's config is untouched.
+        // Unique per-session CODEX_HOME so the developer's config is untouched
+        // and consecutive `start()` calls (e.g. tests sharing a suite workdir)
+        // never reuse persisted session state across sessions.
         const config = new CodexHarnessConfig();
-        const codexHome = path.join(options.workDir, "codex-home");
+        const codexHome = path.join(options.workDir, `codex-home-${Math.random().toString(36).slice(2, 8)}`);
         await fs.mkdir(codexHome, { recursive: true });
         const configToml = config.buildConfig(options, codexHome);
         await fs.writeFile(path.join(codexHome, config.configFileName), configToml);

@@ -31,6 +31,8 @@ export class ClaudeTuiSession implements AgentSession {
     private readonly onState: (state: ClaudeState) => void;
     /** Length of the turn delta already streamed to stdout (debug streaming). */
     private lastShownDeltaLength: number | undefined;
+    /** JSONL tool-call keys already attributed to earlier turns (per-session dedupe). */
+    private readonly seenCallKeys = new Set<string>();
 
     constructor(
         terminal: TuiTest,
@@ -188,7 +190,11 @@ export class ClaudeTuiSession implements AgentSession {
         if (viewport && !delta.includes(viewport.replace(/\s+$/, ""))) {
             delta = delta + "\n" + viewport;
         }
-        const parsed = parseClaudeTurn({ transcript: delta, claudeHomeDir: this.claudeHome });
+        const parsed = parseClaudeTurn({
+            transcript: delta,
+            claudeHomeDir: this.claudeHome,
+            seenCallKeys: this.seenCallKeys,
+        });
         return {
             text: delta,
             toolCalls: parsed.toolCalls,

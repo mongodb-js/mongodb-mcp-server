@@ -84,6 +84,31 @@ describe("parseClaudeTurn with session JSONL", () => {
         expect(result.toolCalls[0]?.args).toEqual({ connectionId: "preconfigured" });
     });
 
+    it("does not re-attribute JSONL tool calls seen by an earlier turn (per-session dedupe)", () => {
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), "claude-parse-jsonl-"));
+        const proj = path.join(home, "projects", "some-dir");
+        fs.mkdirSync(proj, { recursive: true });
+        const sessionFile = path.join(proj, "session.jsonl");
+        const appendToolUse = (block: Record<string, unknown>): void => {
+            fs.appendFileSync(
+                sessionFile,
+                JSON.stringify({ message: { role: "assistant", content: [{ type: "tool_use", ...block }] } }) + "\n"
+            );
+        };
+
+        // Turn 1: list-databases is called and attributed once.
+        appendToolUse({ id: "t1", name: "mcp__mongo__list-databases", input: { connectionId: "preconfigured" } });
+        const seenCallKeys = new Set<string>();
+        const turn1 = parseClaudeTurn({ transcript: "", claudeHomeDir: home, seenCallKeys });
+        expect(turn1.toolCalls.map((tc) => tc.name)).toEqual(["list-databases"]);
+
+        // Turn 2 (same session): the earlier call is not re-returned; only the
+        // new find call is attributed to this turn.
+        appendToolUse({ id: "t2", name: "mcp__mongo__find", input: { collection: "c" } });
+        const turn2 = parseClaudeTurn({ transcript: "", claudeHomeDir: home, seenCallKeys });
+        expect(turn2.toolCalls.map((tc) => tc.name)).toEqual(["find"]);
+    });
+
     it("falls back to the transcript's server-level Called marker when no JSONL exists", () => {
         const home = fs.mkdtempSync(path.join(os.tmpdir(), "claude-parse-jsonl-"));
         const result = parseClaudeTurn({ transcript: "  Called mongo 2 times\n❯", claudeHomeDir: home });

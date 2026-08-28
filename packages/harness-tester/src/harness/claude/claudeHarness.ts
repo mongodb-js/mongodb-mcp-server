@@ -64,9 +64,11 @@ export class ClaudeTuiHarness implements AgentHarness {
     }
 
     async start(options: AgentHarnessOptions): Promise<AgentSession> {
-        // Per-session CLAUDE_CONFIG_DIR so the developer's config is untouched.
+        // Unique per-session CLAUDE_CONFIG_DIR so the developer's config is
+        // untouched and consecutive `start()` calls (e.g. tests sharing a
+        // suite workdir) never reuse state or session JSONL across sessions.
         const config = new ClaudeHarnessConfig();
-        const claudeHome = path.join(options.workDir, "claude-home");
+        const claudeHome = path.join(options.workDir, `claude-home-${Math.random().toString(36).slice(2, 8)}`);
         await fs.mkdir(claudeHome, { recursive: true });
 
         // Pre-seed the onboarding/trust state and the MCP config file. The
