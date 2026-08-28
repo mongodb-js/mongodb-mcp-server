@@ -9,6 +9,7 @@ import {
     type ServerContext,
     type Notification,
     type StandardSchemaWithJSON,
+    type Implementation,
 } from "@modelcontextprotocol/server";
 import type {
     ITelemetry,
@@ -40,8 +41,16 @@ import { redact } from "mongodb-redact";
  * consumed by tool implementations. The v2 SDK nests the per-request fields
  * (`signal`, `id`, `_meta`, `notify`) under `ctx.mcpReq` and the HTTP request
  * under `ctx.http` (see the SDK's v1 → v2 migration guide).
+ *
+ * @param clientInfoProvider Optional source of the client identity negotiated
+ * (or envelope-declared) for the request's server instance. The server holds
+ * no per-client state, so the identity is carried on the execution context
+ * instead.
  */
-function toToolExecutionContext(ctx: ServerContext): ToolExecutionContext {
+export function toToolExecutionContext(
+    ctx: ServerContext,
+    clientInfoProvider?: () => Implementation | undefined
+): ToolExecutionContext {
     const headers: Record<string, unknown> = Object.fromEntries(ctx.http?.req?.headers ?? []);
     // Tests capture the raw `McpServer.registerTool` callback and invoke it
     // without a real SDK context, so tolerate a missing/incomplete `mcpReq`.
@@ -55,6 +64,22 @@ function toToolExecutionContext(ctx: ServerContext): ToolExecutionContext {
         sendNotification: mcpReq?.notify
             ? (notification: unknown): Promise<void> => mcpReq.notify(notification as Notification)
             : undefined,
+        clientInfo: clientInfoProvider ? normalizeClientInfo(clientInfoProvider()) : undefined,
+    };
+}
+
+/** Normalizes client identity fields, defaulting missing ones to `"unknown"`. */
+function normalizeClientInfo(
+    clientInfo: Implementation | undefined
+): { name?: string; version?: string; title?: string } | undefined {
+    if (!clientInfo) {
+        return undefined;
+    }
+    const version = clientInfo.version ?? "";
+    return {
+        name: clientInfo.name || "unknown",
+        version: version || "unknown",
+        title: clientInfo.title || "unknown",
     };
 }
 
@@ -819,7 +844,11 @@ export abstract class ToolBase<
                     annotations: this.annotations,
                     _meta: this.toolMeta,
                 },
-                (args, ctx) => this.invoke(args, toToolExecutionContext(ctx))
+                // The client identity is carried on the request-scoped server
+                // instance, so it is merged into the execution context here
+                // rather than stored on any server-scoped object.
+                (args, ctx) =>
+                    this.invoke(args, toToolExecutionContext(ctx, () => server.mcpServer.server.getClientVersion()))
             );
 
         return true;

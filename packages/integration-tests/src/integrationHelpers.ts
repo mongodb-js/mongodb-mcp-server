@@ -19,14 +19,13 @@ import type { AnyToolClass } from "@mongodb-js/mcp-core";
 import type { AnyResourceClass, OperationType, ServerMetadata } from "@mongodb-js/mcp-types";
 import { ApiClient, type HttpClient, userAgentFromServerMetadata } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics, sleep } from "@mongodb-js/mcp-test-utils";
-import { Session, type McpSession } from "@mongodb-js/mcp-cli";
+import { ServerServices, type McpSession } from "@mongodb-js/mcp-cli";
 export { sleep };
 import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 export const defaultTestConfig: UserConfig = {
     ...UserConfigSchema.parse({}),
     telemetry: "disabled",
     loggers: ["stderr"],
-    maxSessions: 1000,
 };
 
 export type CreateTestApiClientOptions = {
@@ -170,7 +169,7 @@ export function setupIntegrationTest(
         connectionStore = new MCPConnectionStore({ options: userConfig, logger, deviceId });
         const connectionRegistry = connectionStore.view();
 
-        const session = new Session({
+        const serverServices = new ServerServices({
             logger,
             exportsManager,
             connectionRegistry,
@@ -186,6 +185,7 @@ export function setupIntegrationTest(
             }),
             config: userConfig,
         });
+        const session = serverServices;
 
         // Mock hasValidAccessToken for tests
         if (!userConfig.apiClientId && !userConfig.apiClientSecret) {

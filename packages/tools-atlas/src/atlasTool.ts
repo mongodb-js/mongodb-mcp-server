@@ -6,7 +6,6 @@ import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { LogId } from "@mongodb-js/mcp-core";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import { z } from "zod";
-import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
 import type { ConnectionRegistry } from "@mongodb-js/mcp-tools-mongodb";
 
 export interface IAtlasConfig extends IToolConfig {
@@ -18,15 +17,7 @@ export interface IAtlasConfig extends IToolConfig {
 export interface IAtlasSession extends ISession {
     config: IAtlasConfig;
     readonly apiClient?: ApiClient;
-    readonly connectedAtlasCluster?: AtlasClusterConnectionInfo;
-    readonly connectionManager?: {
-        currentConnectionState: {
-            tag: string;
-            errorReason?: string;
-        };
-    };
     readonly connectionRegistry: ConnectionRegistry;
-    connectToMongoDB(settings: { connectionString: string; atlas?: AtlasClusterConnectionInfo }): Promise<void>;
 }
 
 export abstract class AtlasToolBase extends ToolBase<IAtlasSession> {

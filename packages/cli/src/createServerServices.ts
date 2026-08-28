@@ -1,6 +1,6 @@
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
-import { CompositeLogger, Elicitation, Keychain, McpServer, getRandomUUID } from "@mongodb-js/mcp-core";
-import type { IMetrics, IDeviceId } from "@mongodb-js/mcp-types";
+import { CompositeLogger, Elicitation, Keychain, McpServer } from "@mongodb-js/mcp-core";
+import type { IMetrics, IDeviceId, ServerMetadata } from "@mongodb-js/mcp-types";
 import type { Client as AtlasLocalClient } from "@mongodb-js/atlas-local";
 import type { ResourceRegistry, ToolRegistry } from "./cliServer.js";
 import { CliServer } from "./cliServer.js";
@@ -11,13 +11,15 @@ import {
     type ConnectionRegistry,
 } from "@mongodb-js/mcp-tools-mongodb";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
-import { Session } from "./cliSession.js";
+import { ServerServices } from "./serverServices.js";
 import type { UserConfig } from "./config/userConfig.js";
-import type { ServerMetadata } from "@mongodb-js/mcp-types";
 import { createExportsManagerFromConfig } from "./createExportsManagerFromConfig.js";
 import { createApiClientFromConfig } from "./createApiClientFromConfig.js";
 import { createTelemetryFromConfig } from "./createTelemetryFromConfig.js";
 import { createMonitoringServerFromConfig } from "./createMonitoringServerFromConfig.js";
+import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
+import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import type { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 
 export type CreateServerServicesOptions = {
     config: UserConfig;
@@ -27,8 +29,14 @@ export type CreateServerServicesOptions = {
     logger: CompositeLogger;
 };
 
-/** App-level infrastructure shared by all servers. Session-scoped state is created per request in {@link createServerFromConfig}. */
-export type SharedServerServices = {
+/**
+ * App-level services constructed once per process and shared by every
+ * request-scoped server instance. The server is deliberately stateless: no
+ * per-client session state exists anywhere in this object — connections live
+ * in the shared `connectionStore`, exports in the shared `exportsManager`,
+ * and per-client identity travels on each tool request instead.
+ */
+export type AppServices = {
     config: UserConfig;
     serverMetadata: ServerMetadata;
     tools: ToolRegistry;
@@ -38,14 +46,17 @@ export type SharedServerServices = {
     keychain: Keychain;
     deviceId: IDeviceId;
     connectionStore: MCPConnectionStore;
+    /** Shared, app-level registry view over {@link connectionStore}. */
+    connectionRegistry: ConnectionRegistry;
+    apiClient: ApiClient;
+    exportsManager: ExportsManager;
+    telemetry: AtlasTelemetry;
     atlasLocalClient: AtlasLocalClient | undefined;
     monitoringServer: ReturnType<typeof createMonitoringServerFromConfig>;
 };
 
-/** Builds metrics, monitoring server, keychain, device id, connection store and Atlas Local client once. */
-export async function createSharedServicesFromConfig(
-    options: CreateServerServicesOptions
-): Promise<SharedServerServices> {
+/** Builds every app-level service once: metrics, monitoring, keychain, device id, connection store, API client, exports, telemetry, Atlas Local client. */
+export async function createAppServicesFromConfig(options: CreateServerServicesOptions): Promise<AppServices> {
     const { config, serverMetadata, logger } = options;
     const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
     const monitoringServer = createMonitoringServerFromConfig({ config, logger, metrics });
@@ -53,8 +64,21 @@ export async function createSharedServicesFromConfig(
     const keychain = Keychain.root;
     const deviceId = DeviceId.create(logger);
 
-    // Shared across sessions; each server gets a scoped view per `connectionScope` config.
-    const connectionStore = new MCPConnectionStore({ options: config, logger, deviceId });
+    // Shared across requests; a single app-level view ([no scope]) means every
+    // request sees the same connections, keyed by opaque connectionId.
+    const connectionStore = new MCPConnectionStore({ options: config, logger, deviceId, serverMetadata });
+    const connectionRegistry = connectionStore.view();
+
+    const exportsManager = createExportsManagerFromConfig({ config, logger });
+    const apiClient = createApiClientFromConfig({ config, serverMetadata, logger });
+    const telemetry = createTelemetryFromConfig({
+        config,
+        logger,
+        deviceId,
+        apiClient,
+        keychain,
+        serverMetadata,
+    });
 
     const atlasLocalClient = await createAtlasLocalClient({ logger });
 
@@ -68,47 +92,30 @@ export async function createSharedServicesFromConfig(
         keychain,
         deviceId,
         connectionStore,
+        connectionRegistry,
+        apiClient,
+        exportsManager,
+        telemetry,
         atlasLocalClient,
         monitoringServer,
     };
 }
 
 /**
- * Creates one server from a resolved (possibly request-overridden) config.
- * Session-scoped state (McpServer, Session, exports, API client, telemetry,
- * elicitation, connection registry view) is created fresh; everything else
- * comes from `sharedServices`.
+ * Creates one request-scoped server instance from an effective (possibly
+ * request-overridden) config. Only the {@link ServerServices} config view and
+ * the request-scoped {@link McpServer}/{@link Elicitation}/{@link CliServer}
+ * are created fresh; every heavy dependency comes from {@link AppServices}.
  */
 export function createServerFromConfig({
     config,
-    sharedServices,
+    appServices,
 }: {
     config: UserConfig;
-    sharedServices: SharedServerServices;
+    appServices: AppServices;
 }): CliServer {
-    const { serverMetadata, tools, resources, logger, metrics, keychain, deviceId, connectionStore, atlasLocalClient } =
-        sharedServices;
-
-    // Isolate per-session attributes (e.g. session id set by the HTTP transport).
-    const sessionLogger = new CompositeLogger({ loggers: [logger] });
-
-    const exportsManager = createExportsManagerFromConfig({ config, logger: sessionLogger });
-    const apiClient = createApiClientFromConfig({ config, serverMetadata, logger: sessionLogger });
-
-    // Fresh scope per session (or shared for `connectionScope: "global"`); owned so closing the session reaps its connections.
-    const connectionRegistry: ConnectionRegistry = connectionStore.view({
-        scope: config.connectionScope === "session" ? getRandomUUID() : undefined,
-        owned: true,
-    });
-
-    const telemetry = createTelemetryFromConfig({
-        config,
-        logger: sessionLogger,
-        deviceId,
-        apiClient,
-        keychain,
-        serverMetadata,
-    });
+    const { serverMetadata, tools, resources, logger, metrics, keychain, connectionRegistry, apiClient, exportsManager, telemetry, atlasLocalClient } =
+        appServices;
 
     const mcpServer = new McpServer({
         name: serverMetadata.mcpServerName,
@@ -119,19 +126,19 @@ export function createServerFromConfig({
         server: mcpServer.server,
     });
 
-    const session = new Session({
-        logger: sessionLogger,
-        exportsManager,
-        connectionRegistry,
+    const serverServices = new ServerServices({
+        config,
+        logger,
         keychain,
+        connectionRegistry,
+        exportsManager,
         apiClient,
         connectionErrorHandler,
         atlasLocalClient,
-        config,
     });
 
-    const server = new CliServer({
-        session,
+    return new CliServer({
+        session: serverServices,
         mcpServer,
         telemetry,
         connectionErrorHandler,
@@ -141,6 +148,19 @@ export function createServerFromConfig({
         resources,
         serverMetadata,
     });
+}
 
-    return server;
+/**
+ * Closes every app-level service on process shutdown. Order matters: the
+ * exports manager and connection store must close while the API client still
+ * works (revoking Atlas entries deletes their temporary database users through
+ * it), then telemetry flushes last.
+ */
+export async function closeAppServices(appServices: AppServices): Promise<void> {
+    const { telemetry, connectionStore, exportsManager, apiClient } = appServices;
+    await Promise.allSettled([
+        connectionStore.closeAll(),
+        exportsManager.close(),
+    ]);
+    await Promise.allSettled([apiClient.close(), telemetry.close()]);
 }

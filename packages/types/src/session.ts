@@ -2,30 +2,22 @@ import type { ICompositeLogger } from "./logging.js";
 import type { IKeychain } from "./keychain.js";
 import type { IToolConfig } from "./config.js";
 
-export type SessionEvents = {
-    connect: [];
-    close: [];
-    disconnect: [];
-    "connection-error": [unknown];
-};
-
+/**
+ * The minimal server-scoped surface tools and resources rely on: config,
+ * logging, and secret redaction.
+ *
+ * The server is deliberately stateless: MongoDB connection state lives in the
+ * app-level connection store and is addressed per request by `connectionId`,
+ * and per-client identity (name/version/title) travels on the tool request
+ * (see `ToolExecutionContext.clientInfo`) rather than on a mutable server
+ * object. Tool categories extend this interface with the specific app-level
+ * services they need.
+ */
 export interface ISession<TConfig extends IToolConfig = IToolConfig> {
-    readonly sessionId: string;
-    logger: ICompositeLogger;
-    mcpClient?: { name?: string; version?: string; title?: string };
-    /** TODO: Consider removing if possible */
-    setMcpClient(mcpClient: { name?: string; version?: string; title?: string } | undefined): void;
-    disconnect(): Promise<void>;
-    close(): Promise<void>;
-    readonly isConnectedToMongoDB: boolean;
-    /** Event emitter method for reactive resources */
-    on(event: "connect" | "disconnect" | "close" | "connection-error", listener: (...args: unknown[]) => void): void;
+    /** Configuration for the server */
+    readonly config: TConfig;
+    /** Logger for the server */
+    readonly logger: ICompositeLogger;
     /** Keychain for secret management */
     readonly keychain: IKeychain;
-    /** Configuration for the session */
-    readonly config: TConfig;
-    /** Optional connection string info */
-    readonly connectionStringInfo?: { authType?: string; hostType?: string };
-    /** Optional connected Atlas cluster info */
-    readonly connectedAtlasCluster?: { projectId?: string; clusterName?: string };
 }

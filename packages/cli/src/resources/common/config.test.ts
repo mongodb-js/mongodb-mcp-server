@@ -3,14 +3,13 @@ import { ConfigResource } from "./config.js";
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import { ApiClient, userAgentFromServerMetadata } from "@mongodb-js/mcp-atlas-api-client";
-import { Session, UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
+import { ServerServices, UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
 import { ExportsManager, DeviceId, MCPConnectionStore, connectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
 
 const defaultTestConfig: UserConfig = {
     ...UserConfigSchema.parse({}),
     telemetry: "disabled",
     loggers: ["stderr"],
-    connectionScope: "global",
     maxActiveConnections: 10,
 };
 
@@ -26,7 +25,7 @@ describe("config resource", () => {
     function createResource(config: UserConfig): ConfigResource {
         const connectionRegistry = new MCPConnectionStore({ options: config, logger, deviceId }).view();
         const keychain = new Keychain();
-        const session = new Session({
+        const serverServices = new ServerServices({
             config,
             logger,
             exportsManager: ExportsManager.init({ options: config, logger }),
@@ -48,12 +47,12 @@ describe("config resource", () => {
         const telemetry = AtlasTelemetry.create({
             logger,
             deviceId,
-            apiClient: session.apiClient,
-            keychain: session.keychain,
+            apiClient: serverServices.apiClient,
+            keychain: serverServices.keychain,
             enabled: false,
             serverMetadata: testServerMetadata,
         });
-        return new ConfigResource(session, telemetry);
+        return new ConfigResource(serverServices, telemetry);
     }
 
     it("should not leak AWS KMS credentials in connectOptions", () => {

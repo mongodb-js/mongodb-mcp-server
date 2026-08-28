@@ -1,18 +1,16 @@
 import type { ResourceMetadata, ReadResourceCallback } from "@modelcontextprotocol/server";
-import type { SessionEvents } from "./session.js";
 import type { ITelemetry } from "./telemetry.js";
 import type { IToolConfig } from "./config.js";
 import type { ICompositeLogger } from "./logging.js";
 
 /**
- * The minimal session surface resources may rely on. The CLI's session is
+ * The minimal server-scoped surface resources may rely on. The server is
  * deliberately stateless (connection state lives in the app-level registry),
  * so resources are not constrained to the full {@link ISession} shape.
  */
 export interface IResourceSession {
     readonly config: IToolConfig;
     readonly logger: ICompositeLogger;
-    on(event: keyof SessionEvents, listener: (...args: unknown[]) => void): void;
 }
 
 export interface IResource {
@@ -28,9 +26,8 @@ export type ResourceConfiguration = {
     config: ResourceMetadata;
 };
 
-export type ReactiveResourceOptions<Value, RelevantEvents extends readonly (keyof SessionEvents)[]> = {
+export type ReactiveResourceOptions<Value> = {
     initial: Value;
-    events: RelevantEvents;
 };
 
 /** The host server surface resources register against. */

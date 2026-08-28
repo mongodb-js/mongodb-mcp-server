@@ -1,9 +1,7 @@
 import { z } from "zod";
 import { MongoDBToolBase } from "../../mongodbTool.js";
 import type { ToolArgs, ToolOutput, ToolResult } from "@mongodb-js/mcp-core";
-import type { OperationType } from "@mongodb-js/mcp-types";
-import type { CallToolResult } from "@mongodb-js/mcp-types";
-import type { ConnectionMetadata } from "@mongodb-js/mcp-types";
+import type { OperationType, CallToolResult, ConnectionMetadata, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { PRECONFIGURED_CONNECTION_ID } from "../../common/connectionRegistry.js";
 
 const ConnectOutputSchema = {
@@ -35,14 +33,14 @@ export class ConnectTool extends MongoDBToolBase {
 
     public override outputSchema = ConnectOutputSchema;
 
-    protected override async execute({
-        connectionString,
-        connectionName,
-    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+    protected override async execute(
+        { connectionString, connectionName }: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<ToolResult<typeof this.outputSchema>> {
         const entry = await this.session.connectionRegistry.connect({
             settings: { connectionString },
             name: connectionName,
-            clientName: this.session.mcpClient?.name,
+            clientName: context.clientInfo?.name,
         });
 
         return {

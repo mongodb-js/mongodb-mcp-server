@@ -12,6 +12,7 @@ import type { LogLevel } from "@mongodb-js/mcp-types";
 
 export {
     ToolBase,
+    toToolExecutionContext,
     type ToolClass,
     type AnyToolClass,
     type ToolConstructorParams,
@@ -31,15 +32,6 @@ export { requestIdAttr } from "./helpers/requestIdAttr.js";
 
 // Web-friendly transports
 export { InMemoryTransport } from "./inMemoryTransport.js";
-export {
-    SessionStore,
-    SessionRejectedError,
-    SessionLimitExceededError,
-    createDefaultSessionStore,
-    type ISessionStore,
-    type SessionStoreConstructorArgs,
-    type CreateSessionStoreFn,
-} from "./sessionStore.js";
 export { StdioRunner } from "./runners/stdioRunner.js";
 
 export { NoopMetrics } from "./metrics/noopMetrics.js";
@@ -54,12 +46,7 @@ export type {
 
 export {
     JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
-    JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED,
-    JSON_RPC_ERROR_CODE_SESSION_ID_INVALID,
-    JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND,
     JSON_RPC_ERROR_CODE_INVALID_REQUEST,
-    JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION,
-    JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED,
 } from "./jsonRpcErrorCodes.js";
 export const MCP_LOG_LEVELS: readonly LogLevel[] = [
     "debug",

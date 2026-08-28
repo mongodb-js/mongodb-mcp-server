@@ -8,8 +8,6 @@ describe("configOverrides", () => {
     const baseConfig: Partial<UserConfig> = {
         readOnly: false,
         indexCheck: false,
-        idleTimeoutMs: 600_000,
-        notificationTimeoutMs: 540_000,
         disabledTools: ["tool1"],
         confirmationRequiredTools: ["drop-database"],
         connectionString: "mongodb://localhost:27017",
@@ -25,13 +23,13 @@ describe("configOverrides", () => {
         describe("nameToConfigKey", () => {
             it("should convert header name to config key", () => {
                 expect(nameToConfigKey("header", "x-mongodb-mcp-read-only")).toBe("readOnly");
-                expect(nameToConfigKey("header", "x-mongodb-mcp-idle-timeout-ms")).toBe("idleTimeoutMs");
+                expect(nameToConfigKey("header", "x-mongodb-mcp-max-bytes-per-query")).toBe("maxBytesPerQuery");
                 expect(nameToConfigKey("header", "x-mongodb-mcp-connection-string")).toBe("connectionString");
             });
 
             it("should convert query parameter name to config key", () => {
                 expect(nameToConfigKey("query", "mongodbMcpReadOnly")).toBe("readOnly");
-                expect(nameToConfigKey("query", "mongodbMcpIdleTimeoutMs")).toBe("idleTimeoutMs");
+                expect(nameToConfigKey("query", "mongodbMcpMaxBytesPerQuery")).toBe("maxBytesPerQuery");
                 expect(nameToConfigKey("query", "mongodbMcpConnectionString")).toBe("connectionString");
             });
 
@@ -106,7 +104,7 @@ describe("configOverrides", () => {
                 const request: TransportRequestContext = {
                     headers: {
                         "x-mongodb-mcp-read-only": "true",
-                        "x-mongodb-mcp-idle-timeout-ms": "300000",
+                        "x-mongodb-mcp-index-check": "true",
                     },
                 };
                 const configWithOverridesDisabled = {
@@ -122,13 +120,13 @@ describe("configOverrides", () => {
                 const request: TransportRequestContext = {
                     headers: {
                         "x-mongodb-mcp-read-only": "true",
-                        "x-mongodb-mcp-idle-timeout-ms": "300000",
+                        "x-mongodb-mcp-index-check": "true",
                     },
                 };
                 const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
                 // Config should be overridden
                 expect(result.readOnly).toBe(true);
-                expect(result.idleTimeoutMs).toBe(300000);
+                expect(result.indexCheck).toBe(true);
             });
 
             it("should not apply overrides by default when allowRequestOverrides is not set", () => {
@@ -223,7 +221,6 @@ describe("configOverrides", () => {
                         "voyageApiKey",
                         "allowRequestOverrides",
                         "dryRun",
-                        "externallyManagedSessions",
                         "httpResponseType",
                         "healthCheckHost",
                         "healthCheckPort",
@@ -284,8 +281,6 @@ describe("configOverrides", () => {
                     "readOnly",
                     "indexCheck",
                     "disableServerSideJs",
-                    "idleTimeoutMs",
-                    "notificationTimeoutMs",
                     "exportTimeoutMs",
                     "atlasTemporaryDatabaseUserLifetimeMs",
                     "previewFeatures",
@@ -448,12 +443,12 @@ describe("configOverrides", () => {
                 const request: TransportRequestContext = {
                     query: {
                         mongodbMcpReadOnly: "true",
-                        mongodbMcpIdleTimeoutMs: "400000",
+                        mongodbMcpIndexCheck: "true",
                     },
                 };
                 const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
                 expect(result.readOnly).toBe(true);
-                expect(result.idleTimeoutMs).toBe(400000);
+                expect(result.indexCheck).toBe(true);
             });
 
             it("should merge arrays from query parameters", () => {
@@ -471,14 +466,15 @@ describe("configOverrides", () => {
             it("should give query parameters precedence over headers", () => {
                 const request: TransportRequestContext = {
                     headers: {
-                        "x-mongodb-mcp-idle-timeout-ms": "300000",
+                        "x-mongodb-mcp-index-check": "true",
                     },
                     query: {
-                        mongodbMcpIdleTimeoutMs: "500000",
+                        mongodbMcpReadOnly: "true",
                     },
                 };
                 const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
-                expect(result.idleTimeoutMs).toBe(500000);
+                expect(result.readOnly).toBe(true);
+                expect(result.indexCheck).toBe(true);
             });
 
             it("should merge arrays from both headers and query", () => {
@@ -500,11 +496,11 @@ describe("configOverrides", () => {
             it("should error with values which do not match the schema", () => {
                 const request: TransportRequestContext = {
                     headers: {
-                        "x-mongodb-mcp-idle-timeout-ms": "not-a-number",
+                        "x-mongodb-mcp-export-timeout-ms": "not-a-number",
                     },
                 };
                 expect(() => applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request })).toThrow(
-                    "Invalid configuration for the following fields:\nidleTimeoutMs - Invalid input: expected number, received NaN"
+                    "Invalid configuration for the following fields:\nexportTimeoutMs - Invalid input: expected number, received NaN"
                 );
             });
 

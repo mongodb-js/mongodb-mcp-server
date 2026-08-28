@@ -52,22 +52,14 @@ describe("CreateDBUserTool", () => {
         } as unknown as ICompositeLogger;
 
         const mockSession = {
-            sessionId: "test-session",
-            logger: mockLogger,
+                        logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
-            connectedAtlasCluster: undefined,
-            connectToMongoDB: vi.fn().mockResolvedValue(undefined),
-            keychain,
+                                    keychain,
             config: {
                 apiClientId: "test-id",
                 apiClientSecret: "test-secret",
             } as unknown as IAtlasConfig,
-            disconnect: vi.fn().mockResolvedValue(undefined),
-            close: vi.fn().mockResolvedValue(undefined),
-            isConnectedToMongoDB: false,
-            on: vi.fn(),
-            setMcpClient: vi.fn(),
-        } as unknown as IAtlasSession;
+                                                                    } as unknown as IAtlasSession;
 
         const params: ToolConstructorParams<IAtlasSession> = {
             name: CreateDBUserTool.toolName,

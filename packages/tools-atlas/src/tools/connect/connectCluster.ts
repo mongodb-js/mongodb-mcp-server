@@ -253,7 +253,7 @@ export class ConnectClusterTool extends AtlasToolBase {
 
             entry = await this.session.connectionRegistry.createEntry({
                 name: atlasClusterSlug(projectName, clusterName),
-                clientName: this.session.mcpClient?.name,
+                clientName: context.clientInfo?.name,
                 onRevoke: (): Promise<void> => this.deleteTemporaryUser(prepared.atlas),
             });
 
