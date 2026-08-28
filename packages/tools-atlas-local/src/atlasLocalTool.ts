@@ -15,7 +15,6 @@ export interface IAtlasLocalSession extends ISession {
     config: IAtlasLocalConfig;
     readonly atlasLocalClient?: Client;
     readonly connectionRegistry: ConnectionRegistry;
-    connectToMongoDB(settings: { connectionString: string }): Promise<void>;
 }
 
 export const AtlasLocalToolMetadataDeploymentIdKey = "deploymentId";
@@ -56,7 +55,7 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
             };
         }
 
-        return this.executeWithAtlasLocalClient(args, { client });
+        return this.executeWithAtlasLocalClient(args, { client, context: _context });
     }
 
     private async lookupDeploymentId(client: Client, containerId: string): Promise<string | undefined> {
@@ -91,7 +90,7 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
 
     protected abstract executeWithAtlasLocalClient(
         args: ToolArgs<typeof this.argsShape>,
-        context: { client: Client }
+        context: { client: Client; context: ToolExecutionContext }
     ): Promise<CallToolResult>;
 
     protected handleError(

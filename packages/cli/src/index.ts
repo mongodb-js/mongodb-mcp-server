@@ -9,9 +9,10 @@ export { startRunner, type StartRunnerOptions } from "./startRunner.js";
 export {
     createRunnerFromConfig,
     type CreateRunnerFromConfigOptions,
-    createSharedServicesFromConfig,
+    createAppServicesFromConfig,
     createServerFromConfig,
-    type SharedServerServices,
+    closeAppServices,
+    type AppServices,
     type CreateServerServicesOptions,
     CliMcpHttpServer,
     CliStdioRunner,
@@ -31,8 +32,8 @@ export {
 
 export type { CliHandler, CliHandlerContext } from "./cliHandler.js";
 
-export { Session } from "./cliSession.js";
-export type { SessionOptions } from "./cliSession.js";
+export { ServerServices } from "./serverServices.js";
+export type { ServerServicesOptions } from "./serverServices.js";
 
 // Config parsing and types
 export { parseUserConfig, type ParserOptions, defaultParserOptions } from "./config/parseUserConfig.js";
@@ -64,7 +65,7 @@ export {
 } from "./config/configOverrides.js";
 
 // Transport constants
-export { TRANSPORT_PAYLOAD_LIMITS, DEFAULT_MAX_SESSIONS, type TransportType } from "./transports/constants.js";
+export { TRANSPORT_PAYLOAD_LIMITS, type TransportType } from "./transports/constants.js";
 
 // Dry run runner
 export {

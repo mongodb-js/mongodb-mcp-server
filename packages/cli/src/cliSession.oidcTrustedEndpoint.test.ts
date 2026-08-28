@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import { parseUserConfig } from "./config/parseUserConfig.js";
-import { Session } from "./cliSession.js";
+import { ServerServices } from "./serverServices.js";
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import { ApiClient, userAgentFromServerMetadata } from "@mongodb-js/mcp-atlas-api-client";
 import { UserConfigSchema, type UserConfig } from "./config/userConfig.js";
@@ -32,7 +32,7 @@ const serverMetadata: ServerMetadata = {
 
 const logger = new CompositeLogger();
 
-function createSession(): { session: Session; registry: ConnectionRegistry } {
+function createServerServices(): { services: ServerServices; registry: ConnectionRegistry } {
     const deviceId = DeviceId.create(logger);
     const userConfig: UserConfig = {
         ...UserConfigSchema.parse({}),
@@ -45,7 +45,7 @@ function createSession(): { session: Session; registry: ConnectionRegistry } {
         deviceId,
     }).view();
 
-    const session = new Session({
+    const services = new ServerServices({
         config: userConfig,
         logger,
         exportsManager: ExportsManager.init({ options: userConfig, logger }),
@@ -65,55 +65,14 @@ function createSession(): { session: Session; registry: ConnectionRegistry } {
         ),
     });
 
-    return { session, registry };
+    return { services, registry };
 }
 
-describe("Session (stateless) — MCP client and lifecycle", () => {
-    beforeEach(() => {
-        mockGenerateFn.mockClear();
-    });
-
-    it("records the MCP client info via setMcpClient", () => {
-        const { session } = createSession();
-
-        session.setMcpClient({
-            name: "test-client",
-            version: "1.2.3",
-        });
-
-        expect(session.mcpClient).toEqual({
-            name: "test-client",
-            version: "1.2.3",
-            title: "unknown",
-        });
-    });
-
-    it("falls back to unknown client info when setMcpClient is called without a client", () => {
-        const { session } = createSession();
-
-        session.setMcpClient(undefined);
-
-        expect(session.mcpClient).toEqual({
-            name: "unknown",
-            version: "unknown",
-            title: "unknown",
-        });
-    });
-
-    it("close() closes the connection registry, api client and exports manager", async () => {
-        const { session, registry } = createSession();
-        const registryClose = vi.spyOn(registry, "close").mockResolvedValue(undefined);
-        const apiClientClose = vi.spyOn(session.apiClient, "close").mockResolvedValue(undefined);
-        const exportsManagerClose = vi.spyOn(session.exportsManager, "close").mockResolvedValue(undefined);
-        const closeListener = vi.fn();
-        session.on("close", closeListener);
-
-        await session.close();
-
-        expect(registryClose).toHaveBeenCalled();
-        expect(apiClientClose).toHaveBeenCalled();
-        expect(exportsManagerClose).toHaveBeenCalled();
-        expect(closeListener).toHaveBeenCalled();
+describe("ServerServices (stateless)", () => {
+    it("exposes the app-level shared connection registry", () => {
+        const { services, registry } = createServerServices();
+        expect(services.connectionRegistry).toBe(registry);
+        expect(services.config).toBeDefined();
     });
 });
 

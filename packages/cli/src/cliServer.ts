@@ -2,7 +2,6 @@ import { CallToolRequestSchema } from "@modelcontextprotocol/core";
 import type { McpServer, Transport, Implementation } from "@modelcontextprotocol/server";
 import type { LogLevel } from "@mongodb-js/mcp-types";
 import { MCP_LOG_LEVELS, LogId } from "@mongodb-js/mcp-core";
-import type { UserConfig } from "./config/userConfig.js";
 import type { CallToolResult, IApiClient, IUIRegistry } from "@mongodb-js/mcp-types";
 import type { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import type { ConnectionRegistry, ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
@@ -15,6 +14,7 @@ import type { ToolCategory } from "@mongodb-js/mcp-types";
 import type { Client as AtlasLocalClient } from "@mongodb-js/atlas-local";
 import { validateConnectionString } from "@mongodb-js/mcp-tools-mongodb";
 import type { ServerMetadata } from "@mongodb-js/mcp-types";
+import type { ServerServices } from "./serverServices.js";
 
 /** A list of tool classes that can be instantiated. */
 export type ToolRegistry = AnyToolClass[];
@@ -22,12 +22,19 @@ export type ToolRegistry = AnyToolClass[];
 /** Resource constructor registry. */
 export type ResourceRegistry = readonly AnyResourceClass[];
 
+/**
+ * The server-scoped context handed to tools and resources registered by the
+ * CLI. Stateless: app-level services plus the effective configuration for
+ * this server instance. See {@link ServerServices}.
+ */
+export type McpSession = ServerServices;
+
 export interface CliServerOptions<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
     session: McpSession;
     mcpServer: McpServer;
     telemetry: AtlasTelemetry;
     elicitation: Elicitation;
-    /** @deprecated Will be removed in a future version. Use `SessionOptions.connectionErrorHandler` instead. */
+    /** @deprecated Will be removed in a future version. Use `ServerServicesOptions.connectionErrorHandler` instead. */
     connectionErrorHandler: ConnectionErrorHandler;
     uiRegistry?: IUIRegistry;
     metrics: IMetrics<TMetrics>;
@@ -78,27 +85,6 @@ export interface CliServerOptions<TMetrics extends DefaultMetricDefinitions = De
     readonly serverMetadata: ServerMetadata;
 }
 
-/**
- * The per-session context handed to resources and tools registered by the
- * CLI. Note that MongoDB connection state deliberately lives at the app level
- * (see {@link ConnectionRegistry}); the registry is dependency plumbing here.
- */
-export type McpSession = {
-    readonly config: UserConfig;
-    readonly logger: CompositeLogger;
-    readonly keychain: Keychain;
-    readonly connectionRegistry: ConnectionRegistry;
-    readonly exportsManager: ExportsManager;
-    readonly connectionErrorHandler: ConnectionErrorHandler;
-    readonly apiClient: IApiClient;
-    /** Atlas Local client, when available (long-running `atlas local` mode). */
-    readonly atlasLocalClient?: AtlasLocalClient;
-    mcpClient?: { name?: string; version?: string; title?: string };
-    on(event: string | symbol, listener: (...args: unknown[]) => void): void;
-    setMcpClient(mcpClient: Implementation | undefined): void;
-    close(): Promise<void>;
-};
-
 export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
     public readonly session: McpSession;
     public readonly mcpServer: McpServer;
@@ -122,9 +108,6 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
 
     private readonly startTime: number;
     private readonly subscriptions = new Set<string>();
-
-    /** Guard against double-close of session-scoped resources. */
-    private closed = false;
 
     /** Whether {@link register} has run (guards against repeated registration). */
     private registered = false;
@@ -176,8 +159,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
      *
      * Idempotent: the 2026-07-28 serving entries (`serveStdio`,
      * `createMcpHandler`) build one instance per connection/request through a
-     * factory and call this before handing the `McpServer` to the entry, while
-     * the legacy sessionful HTTP path calls it through {@link connect}.
+     * factory and call this before handing the `McpServer` to the entry.
      *
      * Concurrent calls coalesce onto the in-flight registration, and calling
      * this after {@link close} throws.
@@ -200,8 +182,6 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
 
     private async doRegister(): Promise<void> {
         await this.validateConfig();
-        // Register resources after the server is initialized so they can listen to events like
-        // connection events.
         this.registerResources();
         this.mcpServer.server.registerCapabilities({
             logging: {},
@@ -271,11 +251,10 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
         });
 
         this.mcpServer.server.oninitialized = (): void => {
-            this.session.setMcpClient(this.mcpServer.server.getClientVersion());
             this.session.logger.info({
                 id: LogId.serverInitialized,
                 context: "server",
-                message: `Server with version ${this.serverMetadata.version} started and agent runner ${JSON.stringify(this.session.mcpClient)}`,
+                message: `Server with version ${this.serverMetadata.version} started and agent runner ${JSON.stringify(this.mcpServer.server.getClientVersion())}`,
             });
 
             this.emitServerTelemetryEvent("start", Date.now() - this.startTime);
@@ -284,37 +263,30 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
         this.mcpServer.server.onclose = (): void => {
             const closeTime = Date.now();
             this.emitServerTelemetryEvent("stop", Date.now() - closeTime);
-            // The 2026-07-28 serving entries own the instance lifecycle and close
-            // only the McpServer; release session-scoped resources (telemetry,
-            // session/registry) alongside it.
-            void this.closeResources();
         };
 
         this.mcpServer.server.onerror = (error: Error): void => {
             const closeTime = Date.now();
             this.emitServerTelemetryEvent("stop", Date.now() - closeTime, error);
-            void this.closeResources();
         };
 
         this.registered = true;
     }
 
+    /** Guard against double-close of the request-scoped McpServer. */
+    private closed = false;
+
     /**
-     * Closes session-scoped resources exactly once: telemetry, the session
-     * (registry, API client, exports manager) and the McpServer itself.
+     * Closes the request-scoped McpServer. App-level services (telemetry,
+     * connections, exports, API client) are untouched — they live once per
+     * process and are closed by the runner on shutdown.
      */
     async close(): Promise<void> {
-        await this.closeResources();
-        await this.mcpServer.close();
-    }
-
-    private async closeResources(): Promise<void> {
         if (this.closed) {
             return;
         }
         this.closed = true;
-        await this.telemetry.close();
-        await this.session.close();
+        await this.mcpServer.close();
     }
 
     public sendResourceListChanged(): void {
@@ -391,6 +363,11 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
             const resource = new resourceConstructor(this.session, this.telemetry);
             resource.register(this);
         }
+    }
+
+    /** Client identity negotiated (or envelope-declared) for this server instance's request. */
+    public get clientInfo(): Implementation | undefined {
+        return this.mcpServer.server.getClientVersion();
     }
 
     private async validateConfig(): Promise<void> {

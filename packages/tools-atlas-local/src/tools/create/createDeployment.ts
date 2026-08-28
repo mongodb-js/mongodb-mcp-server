@@ -1,4 +1,4 @@
-import type { CallToolResult, OperationType } from "@mongodb-js/mcp-types";
+import type { CallToolResult, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { AtlasLocalToolBase } from "../../atlasLocalTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import { CommonArgs } from "@mongodb-js/mcp-core";
@@ -34,7 +34,7 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
 
     protected async executeWithAtlasLocalClient(
         { deploymentName, loadSampleData, imageTag }: ToolArgs<typeof this.argsShape>,
-        { client }: { client: Client }
+        { client, context: _context }: { client: Client; context: ToolExecutionContext }
     ): Promise<ToolResult<typeof CreateDeploymentOutputSchema> & Pick<CallToolResult, "_meta">> {
         const deploymentOptions: CreateDeploymentOptions = {
             name: deploymentName,

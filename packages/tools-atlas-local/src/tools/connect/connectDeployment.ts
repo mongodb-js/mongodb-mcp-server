@@ -1,4 +1,4 @@
-import type { CallToolResult, ConnectionMetadata, OperationType } from "@mongodb-js/mcp-types";
+import type { CallToolResult, ConnectionMetadata, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { AtlasLocalToolBase } from "../../atlasLocalTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import { CommonArgs } from "@mongodb-js/mcp-core";
@@ -25,7 +25,7 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
 
     protected async executeWithAtlasLocalClient(
         { deploymentName }: ToolArgs<typeof this.argsShape>,
-        { client }: { client: Client }
+        { client, context }: { client: Client; context: ToolExecutionContext }
     ): Promise<ToolResult<typeof ConnectDeploymentOutputSchema> & Pick<CallToolResult, "_meta">> {
         let connectionString: string;
         try {
@@ -57,7 +57,7 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
         const entry = await this.session.connectionRegistry.connect({
             settings: { connectionString },
             name: deploymentName,
-            clientName: this.session.mcpClient?.name,
+            clientName: context.clientInfo?.name,
         });
 
         return {

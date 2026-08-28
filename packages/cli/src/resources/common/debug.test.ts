@@ -3,7 +3,7 @@ import { DebugResource } from "./debug.js";
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import { ApiClient, userAgentFromServerMetadata } from "@mongodb-js/mcp-atlas-api-client";
-import { Session, UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
+import { ServerServices, UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
 import {
     PRECONFIGURED_CONNECTION_ID,
     ExportsManager,
@@ -19,7 +19,6 @@ const defaultTestConfig: UserConfig = {
     ...UserConfigSchema.parse({}),
     telemetry: "disabled",
     loggers: ["stderr"],
-    connectionScope: "global",
     maxActiveConnections: 10,
 };
 
@@ -33,7 +32,7 @@ describe("debug resource", () => {
     const deviceId = DeviceId.create(logger);
 
     let managers: FakeConnectionManager[];
-    let session: Session;
+    let session: ServerServices;
     let registry: ConnectionRegistry;
     let debugResource: DebugResource;
 
@@ -52,7 +51,7 @@ describe("debug resource", () => {
             deviceId,
         }).view();
 
-        session = new Session({
+        session = new ServerServices({
             logger,
             exportsManager: ExportsManager.init({ options: config, logger }),
             connectionRegistry: registry,

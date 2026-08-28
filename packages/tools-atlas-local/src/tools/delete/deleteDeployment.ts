@@ -1,4 +1,4 @@
-import type { CallToolResult } from "@mongodb-js/mcp-types";
+import type { CallToolResult, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { AtlasLocalToolBase } from "../../atlasLocalTool.js";
 import type { ToolArgs } from "@mongodb-js/mcp-core";
 import type { OperationType } from "@mongodb-js/mcp-types";
@@ -22,7 +22,7 @@ export class DeleteDeploymentTool extends AtlasLocalToolBase {
 
     protected async executeWithAtlasLocalClient(
         { deploymentName }: ToolArgs<typeof this.argsShape>,
-        { client }: { client: Client }
+        { client, context: _context }: { client: Client; context: ToolExecutionContext }
     ): Promise<CallToolResult> {
         // Lookup telemetry metadata
         // We need to lookup the telemetry metadata before deleting the deployment

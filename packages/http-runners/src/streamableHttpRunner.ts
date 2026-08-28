@@ -2,14 +2,14 @@ import type { DefaultMetricDefinitions, ITransportRunner } from "@mongodb-js/mcp
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import { LogId } from "@mongodb-js/mcp-core";
 import type { MCPHttpServer } from "./mcpHttpServer.js";
-import type { SessionServer } from "@mongodb-js/mcp-types";
+import type { ServerLike } from "@mongodb-js/mcp-types";
 import type { MonitoringServer } from "./monitoringServer.js";
 
 /**
  * Options for StreamableHttpRunner.
  */
 export type StreamableHttpRunnerOptions<
-    TServer extends SessionServer = SessionServer,
+    TServer extends ServerLike = ServerLike,
     TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > = {
     /** Logger instance */
@@ -27,7 +27,7 @@ export type StreamableHttpRunnerOptions<
  * the `createServerForRequest()` method.
  */
 export class StreamableHttpRunner<
-    TServer extends SessionServer = SessionServer,
+    TServer extends ServerLike = ServerLike,
     TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > implements ITransportRunner {
     protected readonly mcpHttpServer: MCPHttpServer<TServer, TMetrics>;

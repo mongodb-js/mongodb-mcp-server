@@ -81,6 +81,14 @@ export type ToolExecutionContext = {
      * time the tool spent working.
      */
     elicitationDurationMs?: number;
+    /**
+     * Identity of the MCP client that issued this request, as negotiated
+     * during initialization (or as declared on the request envelope in the
+     * 2026-07-28 protocol). Carried on the request — it is deliberately not
+     * stored on any server-scoped object, so the server holds no per-client
+     * state.
+     */
+    clientInfo?: { name?: string; version?: string; title?: string };
 };
 
 export type ToolClass<TParams extends unknown[] = unknown[]> = {

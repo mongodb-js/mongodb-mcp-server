@@ -15,18 +15,6 @@ export type HttpServerOptions = {
 };
 
 /**
- * Options for session management.
- */
-export type SessionManagementOptions = {
-    /** Idle timeout in milliseconds */
-    idleTimeoutMs: number;
-    /** Notification timeout in milliseconds */
-    notificationTimeoutMs: number;
-    /** Whether to allow externally managed sessions */
-    externallyManagedSessions: boolean;
-};
-
-/**
  * Options for transport runners.
  */
 export type TransportRunnerOptions = {
