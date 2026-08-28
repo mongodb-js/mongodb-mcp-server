@@ -14,7 +14,7 @@ import type { ITelemetry } from "./telemetry.js";
  * (no server-scoped "session" object exists). The server is deliberately
  * stateless: MongoDB connection state lives in the app-level registry and is
  * addressed per request by `connectionId`, and per-client identity travels on
- * the tool request (see `ToolExecutionContext.clientInfo`).
+ * the tool request (see `ToolExecutionContext.request.clientInfo`).
  *
  * Tool categories extend this type with the specific app-level services they
  * need (e.g. the connection registry); `TConfig` narrows the configuration
