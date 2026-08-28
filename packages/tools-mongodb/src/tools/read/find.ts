@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase, type IMongoDBConfig } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
@@ -67,16 +67,16 @@ export class FindTool extends MongoDBToolBase {
             sort,
             responseBytesLimit,
         }: ToolArgs<typeof this.argsShape>,
-        { signal }: ToolExecutionContext
+        { request }: ToolExecutionContext<IMongoDBConfig>
     ): Promise<ToolResult<typeof this.outputSchema>> {
         let findCursor: FindCursor<unknown> | undefined = undefined;
         try {
             const provider = await this.resolveConnection(connectionId);
 
-            this.assertMqlIsAllowed(filter, projection);
+            this.assertMqlIsAllowed(request.config, filter, projection);
 
             // Check if find operation uses an index if enabled
-            if (this.config.indexCheck) {
+            if (request.config.indexCheck) {
                 await checkIndexUsage({
                     database,
                     collection,
@@ -87,21 +87,21 @@ export class FindTool extends MongoDBToolBase {
                                 projection,
                                 limit,
                                 sort,
-                                ...this.getOperationOptions(signal),
+                                ...this.getOperationOptions(request),
                             })
                             .explain("queryPlanner");
                     },
-                    logger: this.session.logger,
+                    logger: this.server.logger,
                 });
             }
 
-            const limitOnFindCursor = this.getLimitForFindCursor(limit);
+            const limitOnFindCursor = this.getLimitForFindCursor(request.config, limit);
 
             findCursor = provider.find(database, collection, filter, {
                 projection,
                 limit: limitOnFindCursor.limit,
                 sort,
-                ...this.getOperationOptions(signal),
+                ...this.getOperationOptions(request),
             });
 
             const [queryResultsCount, cursorResults] = await Promise.all([
@@ -113,18 +113,18 @@ export class FindTool extends MongoDBToolBase {
                             // use `limitOnFindCursor` calculated above, and
                             // we don't use the limit provided to the tool either.
                             maxTimeMS:
-                                this.config.maxTimeMS !== undefined
-                                    ? Math.min(this.config.maxTimeMS, this.config.queryCountMaxTimeMsCap)
-                                    : this.config.queryCountMaxTimeMsCap,
-                            signal,
+                                request.config.maxTimeMS !== undefined
+                                    ? Math.min(request.config.maxTimeMS, request.config.queryCountMaxTimeMsCap)
+                                    : request.config.queryCountMaxTimeMsCap,
+                            signal: request.signal,
                         }),
                     undefined
                 ),
                 collectCursorUntilMaxBytesLimit({
                     cursor: findCursor,
-                    configuredMaxBytesPerQuery: this.config.maxBytesPerQuery,
+                    configuredMaxBytesPerQuery: request.config.maxBytesPerQuery,
                     toolResponseBytesLimit: responseBytesLimit,
-                    abortSignal: signal,
+                    abortSignal: request.signal,
                 }),
             ]);
 
@@ -160,7 +160,7 @@ export class FindTool extends MongoDBToolBase {
         try {
             await cursor.close();
         } catch (error) {
-            this.session.logger.warning({
+            this.server.logger.warning({
                 id: LogId.mongodbCursorCloseError,
                 context: "find tool",
                 message: `Error when closing the cursor - ${error instanceof Error ? error.message : String(error)}`,
@@ -195,11 +195,14 @@ Returning ${documents.length} documents${appliedLimitsText || "."}\
 `;
     }
 
-    private getLimitForFindCursor(providedLimit: number | undefined | null): {
+    private getLimitForFindCursor(
+        config: IMongoDBConfig,
+        providedLimit: number | undefined | null
+    ): {
         cappedBy: "config.maxDocumentsPerQuery" | undefined;
         limit: number | undefined;
     } {
-        const configuredLimit: number = parseInt(String(this.config.maxDocumentsPerQuery), 10);
+        const configuredLimit: number = parseInt(String(config.maxDocumentsPerQuery), 10);
 
         // Setting configured maxDocumentsPerQuery to negative, zero or nullish
         // is equivalent to disabling the max limit applied on documents

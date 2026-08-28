@@ -1,7 +1,8 @@
 export {
     MongoDBToolBase,
     type IMongoDBConfig,
-    type IMongoDBSession,
+    type MongoDBToolServices,
+    type MongoDBToolServer,
     type MongoDBToolRegistrationServer,
     ConnectionIdArgs,
     DBOperationArgs,
@@ -133,9 +134,9 @@ import {
     LogsTool,
 } from "./tools/tools.js";
 import type { ToolClass } from "@mongodb-js/mcp-core";
-import type { IMongoDBSession } from "./mongodbTool.js";
+import type { MongoDBToolServer } from "./mongodbTool.js";
 
-export const MongoDBTools: ToolClass<IMongoDBSession>[] = [
+export const MongoDBTools: ToolClass<MongoDBToolServer>[] = [
     AggregateDBTool,
     AggregateTool,
     CollectionIndexesTool,

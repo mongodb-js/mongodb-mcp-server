@@ -6,8 +6,10 @@ import type {
     ToolCategory,
     OperationType,
     ToolExecutionContext,
+    ToolRequest,
     CallToolResult,
-    ISession,
+    ToolServices,
+    ToolServer,
     IToolConfig,
 } from "@mongodb-js/mcp-types";
 import type { ConnectionMetadata } from "@mongodb-js/mcp-atlas-telemetry";
@@ -41,16 +43,19 @@ export type IMongoDBConfig = IToolConfig & {
     aggregationCountMaxTimeMsCap: number;
 };
 
-export interface IMongoDBSession extends ISession<IMongoDBConfig> {
-    logger: CompositeLogger;
-    config: IMongoDBConfig;
+/**
+ * The services specifically injected into MongoDB tools (on top of the base
+ * `ToolServices`). Injected individually — there is no server-scoped session
+ * object.
+ */
+export type MongoDBToolServices = ToolServices<IMongoDBConfig> & {
     connectionRegistry: ConnectionRegistry;
     connectionErrorHandler(
         error: MongoDBError,
         context: { availableTools: readonly unknown[]; connectionState: unknown }
     ): Promise<{ errorHandled: boolean; result: CallToolResult }>;
     exportsManager: { createJSONExport: (params: CreateJSONExportParams) => Promise<AvailableExport> };
-}
+};
 
 /**
  * MCP registration payload for MongoDB tools. Matches `{ mcpServer }` from
@@ -80,17 +85,15 @@ const connectionIdArgWithoutPreconfigured = z
     .string()
     .describe(connectionIdDescription({ hasPreconfiguredConnection: false }));
 
-export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
-    protected server?: MongoDBToolRegistrationServer;
+export type MongoDBToolServer = ToolServer<MongoDBToolServices>;
+
+export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
+    /** Registration-time host context (the SDK server + registered tools). */
+    protected registrationServer?: MongoDBToolRegistrationServer;
     static category: ToolCategory = "mongodb";
 
-    /** Access to the MongoDB-specific configuration. */
-    protected get config(): IMongoDBConfig {
-        return this.session.config;
-    }
-
     protected get isExportToolAvailable(): boolean {
-        const registeredTools = this.server?.tools ?? [];
+        const registeredTools = this.registrationServer?.tools ?? [];
         const exportTool = registeredTools.find((tool) => tool.name === EXPORT_TOOL_NAME);
         return exportTool?.isEnabled() ?? false;
     }
@@ -101,17 +104,17 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
      * "current connection" fallback — see the connection-handles proposal.
      */
     protected async resolveConnection(connectionId: string): Promise<NodeDriverServiceProvider> {
-        return this.session.connectionRegistry.resolve(connectionId);
+        return this.server.connectionRegistry.resolve(connectionId);
     }
 
     /** The registry entry for the given connectionId, if it exists. Does not affect LRU ordering. */
     protected async peekConnection(connectionId: string | undefined): Promise<ConnectionEntry | undefined> {
-        return connectionId ? this.session.connectionRegistry.peek(connectionId) : undefined;
+        return connectionId ? this.server.connectionRegistry.peek(connectionId) : undefined;
     }
 
     protected async isSearchSupported(connectionId: string): Promise<boolean> {
-        const entry = await this.session.connectionRegistry.peek(connectionId);
-        return entry ? entry.isSearchSupported(this.session.logger) : false;
+        const entry = await this.server.connectionRegistry.peek(connectionId);
+        return entry ? entry.isSearchSupported(this.server.logger as never) : false;
     }
 
     protected async assertSearchSupported(connectionId: string): Promise<void> {
@@ -125,12 +128,13 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
 
     /**
      * Returns common operation options (signal, maxTimeMS) to pass to service provider methods.
-     * If `maxTimeMS` is configured, it will be included in the returned options.
+     * If `maxTimeMS` is configured in the request's effective config, it will be included
+     * in the returned options.
      */
-    protected getOperationOptions(signal?: AbortSignal): { signal?: AbortSignal; maxTimeMS?: number } {
+    protected getOperationOptions(request: ToolRequest<IMongoDBConfig>): { signal?: AbortSignal; maxTimeMS?: number } {
         return {
-            ...(signal && { signal }),
-            ...(this.config.maxTimeMS !== undefined && { maxTimeMS: this.config.maxTimeMS }),
+            ...(request.signal && { signal: request.signal }),
+            ...(request.config.maxTimeMS !== undefined && { maxTimeMS: request.config.maxTimeMS }),
         };
     }
 
@@ -151,10 +155,17 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
      *
      * Pass every operator-bearing fragment that reaches the server (e.g. filter
      * and projection for a find), since each is validated independently.
+     *
+     * @param config The effective config for the current request — the MQL
+     * permission checks (server-side JS, read-only write stages, disabled
+     * write operations) are request-dependent.
      */
-    protected assertMqlIsAllowed(...values: (Record<string, unknown> | Record<string, unknown>[] | undefined)[]): void {
+    protected assertMqlIsAllowed(
+        config: IMongoDBConfig,
+        ...values: (Record<string, unknown> | Record<string, unknown>[] | undefined)[]
+    ): void {
         for (const value of values) {
-            this.assertSingleMqlValueIsAllowed(value);
+            this.assertSingleMqlValueIsAllowed(config, value);
         }
     }
 
@@ -171,14 +182,14 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
         targets: WriteStageTarget[],
         context: ToolExecutionContext
     ): InputRequiredResult | null {
-        if (this.requiresConfirmation() || !this.elicitation.supportsElicitation()) {
+        if (this.requiresConfirmation() || !this.server.elicitation.supportsElicitation()) {
             return null;
         }
 
         const message = buildWriteStageConfirmationMessage(targets);
         const confirmed = this.requestConfirmation(message, context);
         if (confirmed === undefined) {
-            return this.elicitation.confirmationRequired(message);
+            return this.server.elicitation.confirmationRequired(message);
         }
         if (!confirmed) {
             throw new MongoDBError(
@@ -190,9 +201,10 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
     }
 
     private assertSingleMqlValueIsAllowed(
+        config: IMongoDBConfig,
         value: Record<string, unknown> | Record<string, unknown>[] | undefined
     ): void {
-        if (this.config.disableServerSideJs) {
+        if (config.disableServerSideJs) {
             assertNoServerSideJS(value);
         }
 
@@ -203,10 +215,10 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
             const writeOperations: OperationType[] = ["update", "create", "delete"];
 
             let writeStageForbiddenErrorMessage = "";
-            if (this.config.readOnly) {
+            if (config.readOnly) {
                 writeStageForbiddenErrorMessage =
                     "In readOnly mode you can not run pipelines with $out or $merge stages.";
-            } else if (this.config.disabledTools.some((t) => writeOperations.includes(t as OperationType))) {
+            } else if (config.disabledTools.some((t) => writeOperations.includes(t as OperationType))) {
                 writeStageForbiddenErrorMessage =
                     "When 'create', 'update', or 'delete' operations are disabled, you can not run pipelines with $out or $merge stages.";
             }
@@ -227,16 +239,16 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
      */
     protected override schemaVariantKey(): string {
         if ("connectionId" in this.argsShape) {
-            return this.config.connectionString ? "preconfigured" : "plain";
+            return this.server.config.connectionString ? "preconfigured" : "plain";
         }
         return "";
     }
 
     public register(server: MongoDBToolRegistrationServer): boolean {
-        this.server = server;
+        this.registrationServer = server;
         // The default connectionId description advertises the "preconfigured"
         // handle; drop that mention when no connection string is configured.
-        if ("connectionId" in this.argsShape && !this.config.connectionString) {
+        if ("connectionId" in this.argsShape && !this.server.config.connectionString) {
             this.argsShape = {
                 ...this.argsShape,
                 connectionId: connectionIdArgWithoutPreconfigured,
@@ -261,10 +273,10 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
                     // interpolated into any handler's (default or injected) output.
                     const connectionError = new MongoDBError(
                         rawConnectionError.code,
-                        this.session.keychain.redact(rawConnectionError.message)
+                        this.server.keychain.redact(rawConnectionError.message)
                     );
-                    const outcome = await this.session.connectionErrorHandler(connectionError, {
-                        availableTools: this.server?.tools ?? [],
+                    const outcome = await this.server.connectionErrorHandler(connectionError, {
+                        availableTools: this.registrationServer?.tools ?? [],
                         connectionState: (await this.peekConnection(args.connectionId as string | undefined))?.state,
                     });
                     if (outcome.errorHandled) {
@@ -285,7 +297,7 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
                         isError: true,
                     };
                 case ErrorCodes.AtlasSearchNotSupported: {
-                    const CTA = this.server?.isToolCategoryAvailable("atlas-local")
+                    const CTA = this.registrationServer?.isToolCategoryAvailable("atlas-local")
                         ? "`atlas-local` tools"
                         : "Atlas CLI";
                     return {

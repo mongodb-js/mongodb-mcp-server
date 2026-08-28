@@ -1,4 +1,4 @@
-import { ConnectionIdArgs, DBOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import { ConnectionIdArgs, DBOperationArgs, MongoDBToolBase, type IMongoDBConfig } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
@@ -21,7 +21,7 @@ export class DbStatsTool extends MongoDBToolBase {
 
     protected async execute(
         { connectionId, database }: ToolArgs<typeof this.argsShape>,
-        { signal }: ToolExecutionContext
+        { request }: ToolExecutionContext<IMongoDBConfig>
     ): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.resolveConnection(connectionId);
         const result = await provider.runCommandWithCheck(
@@ -29,9 +29,9 @@ export class DbStatsTool extends MongoDBToolBase {
             {
                 dbStats: 1,
                 scale: 1,
-                ...(this.config.maxTimeMS !== undefined && { maxTimeMS: this.config.maxTimeMS }),
+                ...(request.config.maxTimeMS !== undefined && { maxTimeMS: request.config.maxTimeMS }),
             },
-            { signal }
+            { signal: request.signal }
         );
 
         const stats = bsonToJson(result);

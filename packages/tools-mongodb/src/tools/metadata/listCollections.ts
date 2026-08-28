@@ -1,4 +1,4 @@
-import { ConnectionIdArgs, DBOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import { ConnectionIdArgs, DBOperationArgs, MongoDBToolBase, type IMongoDBConfig } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
@@ -25,10 +25,10 @@ export class ListCollectionsTool extends MongoDBToolBase {
 
     protected async execute(
         { connectionId, database }: ToolArgs<typeof this.argsShape>,
-        { signal }: ToolExecutionContext
+        { request }: ToolExecutionContext<IMongoDBConfig>
     ): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.resolveConnection(connectionId);
-        const collections = (await provider.listCollections(database, {}, { signal })).map((col) => ({
+        const collections = (await provider.listCollections(database, {}, { signal: request.signal })).map((col) => ({
             name: col.name as string,
         }));
 
