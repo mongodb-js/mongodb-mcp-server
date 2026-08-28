@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
-import { useMcpAgent } from "./useMcpAgent.js";
-import { describeHarness } from "./describeHarness.js";
+import { useMcpAgent } from "./utils/useMcpAgent.js";
+import { describeHarness } from "./utils/describeHarness.js";
 
 // The key tools the happy-path suite already drives end to end.
 const KEY_TOOLS = ["list-databases", "list-collections", "aggregate", "find", "insert-many"];
