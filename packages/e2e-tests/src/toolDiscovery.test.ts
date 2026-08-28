@@ -17,7 +17,9 @@ describe("MCP tool discovery", () => {
             try {
                 const { tools } = await client.listTools();
                 const names = tools.map((tool) => tool.name);
-                console.log(`[tool-discovery] server exposes ${names.length} tools:\n  ${names.join(", ")}`);
+                if (process.env.AGENT_E2E_DEBUG) {
+                    console.log(`[tool-discovery] server exposes ${names.length} tools:\n  ${names.join(", ")}`);
+                }
 
                 // Every registration includes a description + input schema; a bare
                 // name with no payload would be useless to the agent.
@@ -48,9 +50,12 @@ describe("MCP tool discovery", () => {
                     ].join("")
                 );
 
-                // Log the raw output (like the original probe did) so a failing
-                // run shows what the agent actually printed.
-                console.log(`[tool-discovery] agent reply:\n${turn.transcript ?? turn.text}`);
+                // Log the raw output (like the original probe did) so a debug
+                // run shows what the agent actually printed; assertions still
+                // attach the transcript on failure.
+                if (process.env.AGENT_E2E_DEBUG) {
+                    console.log(`[tool-discovery] agent reply:\n${turn.transcript ?? turn.text}`);
+                }
 
                 expect(turn.text).toBeTruthy();
                 // The agent doesn't need to call any tool to answer; it quotes the

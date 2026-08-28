@@ -147,6 +147,14 @@ jobs:
           branch: chore_release_${{ steps.bump-version.outputs.NEW_VERSION }}
           author: "${{ steps.app-token.outputs.app-slug}}[bot] <${{ steps.app-token.outputs.app-email }}>"
           committer: "${{ steps.app-token.outputs.app-slug}}[bot] <${{ steps.app-token.outputs.app-email }}>"
+      - name: Add e2e-tests label to release PR
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          # Creates the label on first use, then labels the release PR so the
+          # e2e suite (label-gated in e2e-tests.yml) runs against it.
+          gh label create e2e-tests --force >/dev/null 2>&1 || true
+          gh pr edit ${{ steps.create-pr.outputs.pull-request-number }} --add-label e2e-tests
       - name: Set auto merge
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}

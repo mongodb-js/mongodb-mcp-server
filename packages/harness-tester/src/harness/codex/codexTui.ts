@@ -4,7 +4,7 @@ import path from "node:path";
 import { TuiTest, type Backend } from "@microsoft/tui-test";
 import { CodexHarnessConfig } from "./codexConfig.js";
 import { parseTuiTranscript } from "./codexParseTuiTranscript.js";
-import { diffTranscript, resolveBackend, sleep } from "../shared.js";
+import { diffTranscript, isHarnessDebug, resolveBackend, sleep } from "../shared.js";
 import type { AgentHarness, AgentHarnessOptions, AgentSession, AgentTurn } from "../types.js";
 
 export interface CodexState {
@@ -131,7 +131,7 @@ class CodexTuiSession implements AgentSession {
         this.onState =
             onState ??
             ((state): void => {
-                if (process.env.CODEX_TUI_HARNESS_DEBUG) {
+                if (isHarnessDebug("CODEX_TUI_HARNESS_DEBUG")) {
                     const tail = state.viewport.split("\n").slice(-7);
                     console.log(
                         `[codex-tui][state] t=${Math.round(state.elapsedMs / 1000)}s working=${state.working} idle=${state.composerIdle}`
@@ -180,7 +180,7 @@ class CodexTuiSession implements AgentSession {
             // scrollback is not a reliable signal — the idle text lingers in
             // it from earlier frames.
             if (!state.working && state.composerIdle) {
-                if (process.env.CODEX_TUI_HARNESS_DEBUG) {
+                if (isHarnessDebug("CODEX_TUI_HARNESS_DEBUG")) {
                     console.log(`[codex-tui][out] <<turn complete after ${state.elapsedMs}ms>>`);
                 }
                 this.onState({ ...state, viewport: `turn complete after ${state.elapsedMs}ms\n` + delta.slice(-1200) });
@@ -189,7 +189,7 @@ class CodexTuiSession implements AgentSession {
 
             // Stream the full transcript as it grows so a debug run shows
             // everything codex prints, not just the composer/status lines.
-            if (process.env.CODEX_TUI_HARNESS_DEBUG && delta.length > (this.lastShownDeltaLength ?? 0)) {
+            if (isHarnessDebug("CODEX_TUI_HARNESS_DEBUG") && delta.length > (this.lastShownDeltaLength ?? 0)) {
                 const chunk = delta.slice(this.lastShownDeltaLength ?? 0);
                 console.log(`[codex-tui][out] ${chunk}`);
                 this.lastShownDeltaLength = delta.length;
@@ -209,7 +209,7 @@ class CodexTuiSession implements AgentSession {
         const text = await this.transcriptText();
         const delta = diffTranscript(text, startText);
         const message = lastError || `codex TUI turn timed out after ${timeoutMs}ms`;
-        if (process.env.CODEX_TUI_HARNESS_DEBUG) {
+        if (isHarnessDebug("CODEX_TUI_HARNESS_DEBUG")) {
             console.log(`[codex-tui][out] <<aborting: ${message}>>\n${delta}`);
         }
         // Surface the failure as a missing reply so the test assertion fails

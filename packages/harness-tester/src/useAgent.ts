@@ -64,6 +64,9 @@ export function useAgent({ harness }: { harness: AgentHarness }): AgentContext {
                 return model ? { model } : {};
             })(),
             promptTimeoutMs: 10 * 60 * 1000,
+            // `AGENT_E2E_DEBUG` turns on per-session debug dumps (config,
+            // streams) for the whole suite without touching individual tests.
+            debug: !!process.env.AGENT_E2E_DEBUG,
             ...overrides,
         }),
     } satisfies AgentContext;

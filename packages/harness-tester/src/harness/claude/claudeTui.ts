@@ -4,7 +4,7 @@ import path from "node:path";
 import { TuiTest, type Backend } from "@microsoft/tui-test";
 import { ClaudeHarnessConfig, buildClaudeEnv, seedClaudeHome } from "./claudeConfig.js";
 import { parseClaudeTurn } from "./parseClaudeTranscript.js";
-import { diffTranscript, resolveBackend, sleep } from "../shared.js";
+import { diffTranscript, isHarnessDebug, resolveBackend, sleep } from "../shared.js";
 import type { AgentHarness, AgentHarnessOptions, AgentSession, AgentTurn } from "../types.js";
 
 export interface ClaudeState {
@@ -89,8 +89,11 @@ export class ClaudeTuiHarness implements AgentHarness {
         const claudeHome = path.join(options.workDir, "claude-home");
         await fs.mkdir(claudeHome, { recursive: true });
 
-        // Pre-seed the onboarding/trust state and the MCP config file.
-        seedClaudeHome(claudeHome, options.workDir);
+        // Pre-seed the onboarding/trust state and the MCP config file. The
+        // settings seeded here whitelist the session to MCP tools only, so no
+        // bypassPermissions / disallowedTools flags are needed on the CLI.
+        const mcpServerName = options.mcpServerName ?? "mongo";
+        seedClaudeHome(claudeHome, options.workDir, mcpServerName);
         const mcpConfig = config.buildConfig(options);
         const mcpConfigPath = path.join(claudeHome, config.configFileName);
         await fs.writeFile(mcpConfigPath, mcpConfig);
@@ -103,22 +106,18 @@ export class ClaudeTuiHarness implements AgentHarness {
             backend: this.backend,
             timeouts: { ready: 60_000, text: 60_000, idle: 60_000 },
         });
-        await terminal.run(
-            this.getBinaryPath(),
-            ["--mcp-config", mcpConfigPath, "--strict-mcp-config", "--permission-mode", "bypassPermissions"],
-            {
-                cwd: options.workDir,
-                cols: this.cols,
-                rows: this.rows,
-                env: {
-                    ...process.env,
-                    ...buildClaudeEnv(options),
-                    [config.homeDirEnvVar]: claudeHome,
-                    TERM: "xterm-256color",
-                },
-                waitReady: false,
-            }
-        );
+        await terminal.run(this.getBinaryPath(), ["--mcp-config", mcpConfigPath, "--strict-mcp-config"], {
+            cwd: options.workDir,
+            cols: this.cols,
+            rows: this.rows,
+            env: {
+                ...process.env,
+                ...buildClaudeEnv(options),
+                [config.homeDirEnvVar]: claudeHome,
+                TERM: "xterm-256color",
+            },
+            waitReady: false,
+        });
 
         const session = new ClaudeTuiSession(terminal, options, claudeHome, this.onState);
         await session.initialise();
@@ -148,7 +147,7 @@ class ClaudeTuiSession implements AgentSession {
         this.onState =
             onState ??
             ((state): void => {
-                if (process.env.CLAUDE_TUI_HARNESS_DEBUG) {
+                if (isHarnessDebug("CLAUDE_TUI_HARNESS_DEBUG")) {
                     const tail = state.viewport
                         .split("\n")
                         .filter((l) => l.trim())
@@ -198,7 +197,7 @@ class ClaudeTuiSession implements AgentSession {
             // `esc to interrupt` is gone and the composer has returned to its
             // idle `❯` line.
             if (!state.working && state.composerIdle) {
-                if (process.env.CLAUDE_TUI_HARNESS_DEBUG) {
+                if (isHarnessDebug("CLAUDE_TUI_HARNESS_DEBUG")) {
                     console.log(`[claude-tui][out] <<turn complete after ${state.elapsedMs}ms>>`);
                 }
                 this.onState({ ...state, viewport: `turn complete after ${state.elapsedMs}ms\n` + delta.slice(-1200) });
@@ -207,7 +206,7 @@ class ClaudeTuiSession implements AgentSession {
 
             // Stream the full transcript as it grows so a debug run shows
             // everything claude prints, not just the composer/status lines.
-            if (process.env.CLAUDE_TUI_HARNESS_DEBUG && delta.length > (this.lastShownDeltaLength ?? 0)) {
+            if (isHarnessDebug("CLAUDE_TUI_HARNESS_DEBUG") && delta.length > (this.lastShownDeltaLength ?? 0)) {
                 const chunk = delta.slice(this.lastShownDeltaLength ?? 0);
                 console.log(`[claude-tui][out] ${chunk}`);
                 this.lastShownDeltaLength = delta.length;
@@ -227,7 +226,7 @@ class ClaudeTuiSession implements AgentSession {
         const text = await this.transcriptText();
         const delta = diffTranscript(text, startText);
         const message = lastError || `claude TUI turn timed out after ${timeoutMs}ms`;
-        if (process.env.CLAUDE_TUI_HARNESS_DEBUG) {
+        if (isHarnessDebug("CLAUDE_TUI_HARNESS_DEBUG")) {
             console.log(`[claude-tui][out] <<aborting: ${message}>>\n${delta}`);
         }
         // Surface the failure as a missing reply so the test assertion fails

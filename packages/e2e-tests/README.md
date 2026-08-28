@@ -65,6 +65,7 @@ If a harness binary or credentials are missing, that harness's tests **skip**
 | `AGENT_E2E_CODEX_BIN`     | Override the codex binary path.                                                                                                                  |
 | `AGENT_E2E_CLAUDE_BIN`    | Override the claude binary path.                                                                                                                 |
 | `AGENT_E2E_TUI_BACKEND`   | tui-test emulator backend: `alacritty` (default), `ghostty`, or `rio`.                                                                           |
+| `AGENT_E2E_DEBUG`         | Set to `1` to turn on debug output for the whole suite: per-session harness config dumps (secrets redacted), TUI state/transcript streams, and test-level agent-reply logs. |
 
 ## How it works
 
@@ -117,9 +118,10 @@ If a harness binary or credentials are missing, that harness's tests **skip**
 
 ## CI
 
-`.github/workflows/agent-e2e-tests.yml` runs the suite on `main` pushes,
-`workflow_dispatch`, and PRs labeled `agent-e2e-tests`. It installs both the
+`.github/workflows/e2e-tests.yml` runs the suite on `main` pushes,
+`workflow_dispatch`, and PRs labeled `e2e-tests` (the release PR created by
+`prepare-release.yml` carries the label automatically). It installs both the
 codex and claude CLIs. Set the `GROVE_API_KEY` secret (and optionally the
 `AGENT_E2E_CODEX_MODEL` / `AGENT_E2E_CLAUDE_MODEL` repo variables). tui-test's
 npm package bundles the headless emulators for all platforms, so no additional
-system dependencies are needed. Stories without the label / forks are skipped.
+system dependencies are needed. PRs without the label / forks are skipped.

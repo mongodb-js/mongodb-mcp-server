@@ -21,9 +21,9 @@ function tomlString(value: string): string {
  *
  * Encapsulates everything about how codex is configured for a hermetic e2e
  * session: the `$CODEX_HOME/config.toml` content (MCP server, pre-trusted
- * workdir, grove model provider, disabled plugins), the model catalog copy
- * next to it, and secret redaction for log dumps. See the module header for
- * the rationale behind each section of the generated config.
+ * workdir, grove model provider, sandboxed runtime, disabled plugins), the
+ * model catalog copy next to it, and secret redaction for log dumps. See the
+ * module header for the rationale behind each section of the generated config.
  */
 export class CodexHarnessConfig implements AgentHarnessConfig {
     readonly homeDirEnvVar = "CODEX_HOME";
@@ -126,6 +126,29 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
         }
     }
 
+    /**
+     * TOML that whitelists the agent's toolset. The e2e suites expect the agent
+     * to drive MongoDB purely through the MCP tools, so: disable the shell tool
+     * outright (no bash at all), pin the filesystem sandbox to read-only (the
+     * tests never write a file), and turn off the web-search tool. What remains
+     * in the session is chat + the MCP tools, on localhost. The MCP connection
+     * (http://127.0.0.1:PORT/mcp) is unaffected: codex makes that call in the
+     * orchestrator process, outside the command sandbox.
+     */
+    private buildSandboxToml(): string {
+        return [
+            'sandbox_mode = "read-only"',
+            // Top-level scalars must precede the table headers below.
+            "allow_login_shell = false",
+            "",
+            "[features]",
+            "shell_tool = false", // removes the bash/execute tool from the session
+            "",
+            "[tools]",
+            "web_search = false", // no web-search tool either
+        ].join("\n");
+    }
+
     private buildMcpServerToml(options: AgentHarnessOptions, mcpServerName: string): string {
         // Codex's default MCP startup timeout is 10s; the MongoDB server (with
         // full tool registration) can take a beat longer, and a hard timeout
@@ -173,6 +196,8 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
             this.buildProviderToml(),
             "",
             this.buildMcpServerToml(options, mcpServerName),
+            "",
+            this.buildSandboxToml(),
             "",
             // Pre-trust the test workdir (canonical path, see canonicalPath) so no
             // directory-trust prompt is shown.

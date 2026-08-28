@@ -1,4 +1,4 @@
-name: Agent E2E Tests
+name: E2E Tests
 
 on:
   workflow_dispatch:
@@ -10,15 +10,16 @@ on:
       - labeled
 
 jobs:
-  run-agent-e2e-tests:
-    name: Run Agent E2E Tests
+  run-e2e-tests:
+    name: Run E2E Tests
     runs-on: ubuntu-latest
     permissions:
       contents: read
     # Label-gated like the accuracy suite: only run on PRs explicitly labeled
-    # `agent-e2e-tests` (plus main pushes/manual runs). Fork PRs can't trigger
-    # this; the suite also self-skips when codex/credentials are absent.
-    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'agent-e2e-tests')
+    # `e2e-tests` (plus main pushes/manual runs). Fork PRs can't trigger this;
+    # the suite also self-skips when codex/credentials are absent. The release
+    # PR from prepare-release.yml carries the label automatically.
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'e2e-tests')
     env:
       # Codex model auth for the agent session (gpt-5.6-luna runs via the
       # grove OpenAI-compatible gateway configured in the hermetic codex

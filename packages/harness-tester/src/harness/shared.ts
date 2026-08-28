@@ -26,6 +26,14 @@ export function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Debug switch for verbose harness output: enabled by the suite-wide
+ * `AGENT_E2E_DEBUG` or the per-harness var (e.g. `CLAUDE_TUI_HARNESS_DEBUG`).
+ */
+export function isHarnessDebug(perHarnessEnvVar: string): boolean {
+    return !!process.env.AGENT_E2E_DEBUG || !!process.env[perHarnessEnvVar];
+}
+
 const SUPPORTED_TUI_BACKENDS: readonly Backend[] = ["alacritty", "ghostty", "rio"];
 
 /** Validate an env-var backend override (`AGENT_E2E_TUI_BACKEND`) against the supported backends. */

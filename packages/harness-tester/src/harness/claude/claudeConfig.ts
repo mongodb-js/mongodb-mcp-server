@@ -69,8 +69,11 @@ export class ClaudeHarnessConfig implements AgentHarnessConfig {
 /**
  * Pre-seed the hermetic claude home with the state that suppresses onboarding
  * and trust dialogs (see the module header). Mutates nothing outside the home.
+ *
+ * @param mcpServerName the MCP server name registered in mcp-config.json; the
+ *        settings whitelist is scoped to its tools (`mcp__<name>__*`).
  */
-export function seedClaudeHome(homeDir: string, workDir: string): void {
+export function seedClaudeHome(homeDir: string, workDir: string, mcpServerName = "mongo"): void {
     const canonical = canonicalPath(workDir);
     const claudeJson = {
         hasCompletedOnboarding: true,
@@ -82,7 +85,17 @@ export function seedClaudeHome(homeDir: string, workDir: string): void {
             [canonical]: { hasTrustDialogAccepted: true, allowedTools: [] },
         },
     };
-    const settingsJson = { skipDangerousModePermissionPrompt: true };
+    // Whitelist the session to MCP tools only: `dontAsk` mode never prompts
+    // and auto-denies anything not pre-approved, so the allow list below is
+    // the whole toolset — no bash, no file tools, no web. Assumes the session
+    // runs without a `--permission-mode` CLI override (see claudeTui.ts).
+    const settingsJson = {
+        permissions: {
+            defaultMode: "dontAsk",
+            allow: [`mcp__${mcpServerName}__*`],
+        },
+        skipDangerousModePermissionPrompt: true,
+    };
     fs.writeFileSync(path.join(homeDir, ".claude.json"), JSON.stringify(claudeJson, null, 2));
     fs.writeFileSync(path.join(homeDir, "settings.json"), JSON.stringify(settingsJson, null, 2));
 }
