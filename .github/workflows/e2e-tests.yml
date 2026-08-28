@@ -18,10 +18,11 @@ jobs:
     # Only run on PRs explicitly labeled `e2e-tests` (the release PR from prepare-release.yml carries it automatically) or on main pushes/manual runs.
     if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'e2e-tests')
     env:
-      GROVE_API_KEY: ${{ secrets.GROVE_API_KEY }}
+      GROVE_API_KEY: ${{ secrets.AGENT_E2E_GROVE_API_KEY }}
       AGENT_E2E_CODEX_MODEL: ${{ vars.AGENT_E2E_CODEX_MODEL }}
       AGENT_E2E_CLAUDE_MODEL: ${{ vars.AGENT_E2E_CLAUDE_MODEL }}
       AGENT_E2E_TUI_BACKEND: ${{ vars.AGENT_E2E_TUI_BACKEND }}
+      AGENT_E2E_DEBUG: 1
 
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
