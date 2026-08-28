@@ -348,6 +348,41 @@ describe("ListAlertsTool", () => {
             });
         });
 
+        it("omits totalCount when it is an explicit 0 with results present", async () => {
+            // Some environments return totalCount: 0 with includeCount=false even when
+            // results are present; the tool should not report a misleading 0.
+            mockApiClient.listAlerts!.mockResolvedValue({
+                results: [
+                    {
+                        id: "alert1",
+                        status: "OPEN",
+                        created: "2025-01-01T00:00:00Z",
+                        updated: "2025-01-02T00:00:00Z",
+                        eventTypeName: "HOST_DOWN",
+                        acknowledgementComment: null,
+                    },
+                ],
+                totalCount: 0,
+            });
+
+            const result = await exec({ ...baseArgs });
+
+            expect(result.structuredContent).toMatchObject({
+                projectId: "proj1",
+                status: "OPEN",
+                alerts: [
+                    {
+                        id: "alert1",
+                        status: "OPEN",
+                    },
+                ],
+            });
+            expect(result.structuredContent).not.toHaveProperty("totalCount");
+
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).not.toContain("(total:");
+        });
+
         it("omits structuredContent on error paths", async () => {
             mockApiClient.listAlerts!.mockRejectedValue(new Error("API failure"));
 
