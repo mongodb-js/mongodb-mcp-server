@@ -16,7 +16,8 @@ import type {
     ConnectionMetadata,
     TelemetryToolMetadata,
     ToolEvent,
-    IToolSession,
+    ToolServices,
+    ToolServer,
     IElicitation,
     PreviewFeature,
     IUIRegistry,
@@ -25,6 +26,7 @@ import type {
     OperationType,
     ToolCategory,
     ToolExecutionContext,
+    IToolConfig,
     SupportedConnectionState,
 } from "@mongodb-js/mcp-types";
 import { createUIResource, type UIResource } from "@mcp-ui/server";
@@ -37,32 +39,43 @@ import { LogId } from "./logId.js";
 /**
  * Adapts the v2 SDK server context (`ctx`) to the tool execution context
  * consumed by tool implementations. The v2 SDK nests the per-request fields
- * (`signal`, `id`, `_meta`, `notify`) under `ctx.mcpReq` and the HTTP request
- * under `ctx.http` (see the SDK's v1 → v2 migration guide).
+ * (`signal`, `id`, `_meta`, `inputResponses`, `notify`) under `ctx.mcpReq`
+ * and the HTTP request under `ctx.http` (see the SDK's v1 → v2 migration
+ * guide).
  *
+ * @param config The effective configuration for this request. Passed through
+ * to the execution context as `request.config` — the server holds no
+ * per-request state, so the effective (possibly request-overridden) config
+ * travels with the call instead of being baked onto any server-scoped
+ * object.
  * @param clientInfoProvider Optional source of the client identity negotiated
  * (or envelope-declared) for the request's server instance. The server holds
  * no per-client state, so the identity is carried on the execution context
  * instead.
  */
-export function toToolExecutionContext(
+export function toToolExecutionContext<TConfig extends IToolConfig = IToolConfig>(
     ctx: ServerContext,
+    config: TConfig,
     clientInfoProvider?: () => Implementation | undefined
-): ToolExecutionContext {
+): ToolExecutionContext<TConfig> {
     const headers: Record<string, unknown> = Object.fromEntries(ctx.http?.req?.headers ?? []);
     // Tests capture the raw `McpServer.registerTool` callback and invoke it
     // without a real SDK context, so tolerate a missing/incomplete `mcpReq`.
     const mcpReq = (ctx as Partial<ServerContext>).mcpReq;
     return {
-        signal: mcpReq?.signal ?? new AbortController().signal,
-        requestId: mcpReq?.id,
-        _meta: mcpReq?._meta,
-        inputResponses: mcpReq?.inputResponses,
-        requestInfo: ctx.http?.req ? { headers } : undefined,
-        sendNotification: mcpReq?.notify
-            ? (notification: unknown): Promise<void> => mcpReq.notify(notification as Notification)
-            : undefined,
-        clientInfo: clientInfoProvider ? normalizeClientInfo(clientInfoProvider()) : undefined,
+        request: {
+            config,
+            raw: ctx,
+            signal: mcpReq?.signal ?? new AbortController().signal,
+            requestId: mcpReq?.id,
+            _meta: mcpReq?._meta,
+            inputResponses: mcpReq?.inputResponses,
+            requestInfo: ctx.http?.req ? { headers } : undefined,
+            sendNotification: mcpReq?.notify
+                ? (notification: unknown): Promise<void> => mcpReq.notify(notification as Notification)
+                : undefined,
+            clientInfo: clientInfoProvider ? normalizeClientInfo(clientInfoProvider()) : undefined,
+        },
     };
 }
 
@@ -100,78 +113,33 @@ type StructuredToolResult<OutputSchema extends ZodRawShape> = {
 };
 
 /**
- * Parameters passed to the constructor of all tools that extends `ToolBase`.
+ * The constructor argument every `ToolBase` subclass receives: the server
+ * itself, with the services it exposes carried by a services generic. There is
+ * deliberately no per-request "session" (or services) object — the server is
+ * the composition: it holds the individually-injected app-level services as
+ * fields (see {@link ToolServer}) plus the request-scoped infrastructure
+ * (MCP server, elicitation), and tools read everything from it.
  *
- * The MongoDB MCP Server automatically injects these parameters when
- * constructing tools and registering to the MCP Server.
- *
- * See `Server.registerTools` method in `src/server.ts` for further reference.
+ * Per-tool identity (`name`, `category`, `operationType`) is NOT passed in:
+ * it is read from the tool class's static properties at construction time.
  */
-export type ToolConstructorParams<
-    TSession extends IToolSession = IToolSession,
+export type ToolServerParam<
+    TServer extends ToolServer = ToolServer,
     TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions,
-> = {
-    /**
-     * The unique name of this tool (injected from the static
-     * `toolName` property on the Tool class).
-     */
-    name: string;
-
-    /**
-     * The category that the tool belongs to (injected from the static
-     * `category` property on the Tool class).
-     */
-    category: ToolCategory;
-
-    /**
-     * The type of operation the tool performs (injected from the static
-     * `operationType` property on the Tool class).
-     */
-    operationType: OperationType;
-
-    /**
-     * An instance of Session class providing access to MongoDB connections,
-     * loggers, config, etc.
-     *
-     * See `src/common/session.ts` for further reference.
-     */
-    session: TSession;
-
-    /**
-     * The telemetry service for tracking tool usage.
-     *
-     * See `src/telemetry/telemetry.ts` for further reference.
-     */
-    telemetry: ITelemetry;
-
-    /**
-     * The elicitation service for requesting user confirmation.
-     *
-     * See `src/elicitation.ts` for further reference.
-     */
-    elicitation: IElicitation;
-
-    /**
-     * The metrics service for tracking tool usage.
-     *
-     * See `src/common/metrics/index.ts` for further reference.
-     */
-    metrics: IMetrics<TMetricsDefinitions>;
-
-    uiRegistry?: IUIRegistry;
-};
+> = TServer;
 
 /**
  * The type that all tool classes must conform to when implementing custom tools
  * for the MongoDB MCP Server.
  *
  * This type enforces that tool classes have static properties `toolName`, `category`,
- * and `operationType` which are injected during instantiation of tool classes.
+ * and `operationType` which are used during instantiation of tool classes (the
+ * constructor receives only the {@link ToolServer}).
  *
  * @example
  * ```typescript
  * import { StreamableHttpRunner, UserConfigSchema } from "mongodb-mcp-server"
- * import { ToolBase, type ToolClass, type ToolCategory, type OperationType } from "@mongodb-js/mcp-core";
+ * import { ToolBase, type ToolClass, type ToolCategory, type OperationType, type ToolServer } from "@mongodb-js/mcp-core";
  * import { z } from "zod";
  *
  * class MyCustomTool extends ToolBase {
@@ -208,11 +176,11 @@ export type ToolConstructorParams<
  * ```
  */
 export type ToolClass<
-    TSession extends IToolSession = IToolSession,
+    TServer extends ToolServer = ToolServer,
     TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > = {
-    /** Constructor signature for the tool class */
-    new (args: ToolConstructorParams<TSession, TMetricsDefinitions>): ToolBase<TSession, TMetricsDefinitions>;
+    /** Constructor signature: the server itself is the single argument. */
+    new (server: TServer): ToolBase<TServer, TMetricsDefinitions>;
 
     /**
      * The unique name of this tool.
@@ -231,7 +199,7 @@ export type ToolClass<
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyToolClass = Omit<ToolClass<any, any>, "new"> & {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    new (args: ToolConstructorParams<any, any>): AnyToolBase;
+    new (server: ToolServer<any>): AnyToolBase;
 };
 
 /**
@@ -289,11 +257,13 @@ export type AnyToolClass = Omit<ToolClass<any, any>, "new"> & {
  *
  * ## Protected Members Available to Subclasses
  *
- * - `session` - Access to MongoDB connection, logger, and other session
- *   resources
- * - `config` - Server configuration (`IToolConfig`)
- * - `telemetry` - Telemetry service for tracking usage
- * - `elicitation` - Service for requesting user confirmations
+ * - `server` - The server this tool reads its app-level services from
+ *   (logger, keychain, telemetry, metrics, ...)
+ * - `server.config` - The base server configuration (`IToolConfig`); the
+ *   effective per-request config travels on the request object
+ *   (`request.config`) instead
+ * - `server.telemetry` - Telemetry service for tracking usage
+ * - `server.elicitation` - Service for requesting user confirmations
  *
  * ## Instance Properties Set by Constructor
  *
@@ -310,15 +280,22 @@ export type AnyToolClass = Omit<ToolClass<any, any>, "new"> & {
  * - `handleError()` - Customize error handling behavior
  *
  * @see {@link ToolClass} for the type that tool classes must conform to
- * @see {@link ToolConstructorParams} for the parameters passed to the
- * constructor
+ * @see {@link ToolServer} for the service surface a tool reads from its
+ * server
  */
 export abstract class ToolBase<
-    TSession extends IToolSession = IToolSession,
+    TServer extends ToolServer = ToolServer,
     TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > {
     /**
-     * The unique name of this tool.
+     * The server this tool reads its services from. Services are carried on
+     * the server as fields (see {@link ToolServer}) — there is no per-request
+     * "session" (or services) object; the server is the composition.
+     */
+    protected readonly server: TServer;
+
+    /**
+     * The unique name of this tool (read from the class static).
      *
      * Must be unique across all tools in the server.
      */
@@ -462,12 +439,12 @@ export abstract class ToolBase<
      * ```
      */
     protected get toolMeta(): Record<string, unknown> {
-        const transport = this.session.config.transport;
+        const transport = this.server.config.transport;
         let maxRequestPayloadBytes = TRANSPORT_PAYLOAD_LIMITS[transport] ?? TRANSPORT_PAYLOAD_LIMITS.stdio;
 
         // If the transport is http and the httpBodyLimit is set, use the httpBodyLimit
-        if (transport === "http" && this.session.config.httpBodyLimit) {
-            maxRequestPayloadBytes = this.session.config.httpBodyLimit;
+        if (transport === "http" && this.server.config.httpBodyLimit) {
+            maxRequestPayloadBytes = this.server.config.httpBodyLimit;
         }
 
         return {
@@ -487,13 +464,15 @@ export abstract class ToolBase<
      * result conforming to the MCP protocol.
      *
      * @param args - The validated arguments passed to the tool
-     * @param context - The execution context containing signal and optional request info
+     * @param context - The execution context carrying the request object
+     * (`context.request`) with the effective config, raw request, signal and
+     * optional request info
      * @returns A promise resolving to the tool execution result
      *
      * @example
      * ```typescript
-     * protected async execute(args: { query: string }, context): Promise<CallToolResult> {
-     *   const results = await this.session.db.collection('items').find({
+     * protected async execute(args: { query: string }, { request }: ToolExecutionContext): Promise<CallToolResult> {
+     *   const results = await this.connectionRegistry.resolve(args.connectionId).find({
      *     name: { $regex: args.query, $options: 'i' }
      *   }).toArray();
      *
@@ -526,11 +505,11 @@ export abstract class ToolBase<
         const recordOutcome = (result: CallToolResult, error?: unknown): void => {
             // Time the user spent answering an elicitation is not time the tool
             // spent working, so it counts towards neither duration below.
-            const executionStartTime = startTime + (context.elicitationDurationMs ?? 0);
+            const executionStartTime = startTime + (context.request.elicitationDurationMs ?? 0);
 
             this.emitToolEvent(args, { startTime: executionStartTime, result });
 
-            this.metrics.get("toolExecutionDuration").observe(
+            this.server.metrics.get("toolExecutionDuration").observe(
                 {
                     tool_name: this.name,
                     category: this.category,
@@ -543,7 +522,7 @@ export abstract class ToolBase<
         };
 
         try {
-            if (this.requiresConfirmation() && this.elicitation.supportsElicitation()) {
+            if (this.requiresConfirmation() && this.server.elicitation.supportsElicitation()) {
                 // Multi-round-trip elicitation (protocol revision 2026-07-28):
                 // the first entry returns an `inputRequired` result asking the
                 // user to confirm; on re-entry the answers are read back from
@@ -553,31 +532,30 @@ export abstract class ToolBase<
                 // without prompting.
                 const confirmed = this.requestConfirmation(this.getConfirmationMessage(args), context);
                 if (confirmed === undefined) {
-                    return this.elicitation.confirmationRequired(this.getConfirmationMessage(args));
+                    return this.server.elicitation.confirmationRequired(this.getConfirmationMessage(args));
                 }
 
                 if (!confirmed) {
                     const text = `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`;
-                    this.session.logger.debug({
+                    this.server.logger.debug({
                         id: LogId.toolExecute,
                         context: "tool",
                         message: text,
                         noRedaction: true,
-                        attributes: { ...requestIdAttr(context.requestInfo?.headers) },
+                        attributes: { ...requestIdAttr(context.request.requestInfo?.headers) },
                     });
                     const declined: CallToolResult = { content: [{ type: "text", text }], isError: true };
                     recordOutcome(declined);
                     return declined;
                 }
             }
-            this.session.logger.debug({
+            this.server.logger.debug({
                 id: LogId.toolExecute,
                 context: "tool",
                 message: `Executing tool ${this.name}`,
                 noRedaction: true,
-                attributes: { ...requestIdAttr(context.requestInfo?.headers) },
+                attributes: { ...requestIdAttr(context.request.requestInfo?.headers) },
             });
-
             const toolCallResult = await this.execute(args, context);
             if (isInputRequiredResult(toolCallResult)) {
                 // Multi-round-trip: the tool needs more input (e.g. write-stage
@@ -589,20 +567,20 @@ export abstract class ToolBase<
 
             recordOutcome(result);
 
-            this.session.logger.debug({
+            this.server.logger.debug({
                 id: LogId.toolExecute,
                 context: "tool",
                 message: `Executed tool ${this.name}`,
                 noRedaction: true,
-                attributes: { ...requestIdAttr(context.requestInfo?.headers) },
+                attributes: { ...requestIdAttr(context.request.requestInfo?.headers) },
             });
             return result;
         } catch (error: unknown) {
-            this.session.logger.error({
+            this.server.logger.error({
                 id: LogId.toolExecuteFailure,
                 context: "tool",
                 message: `Error executing ${this.name}: ${error as string}`,
-                attributes: { ...requestIdAttr(context.requestInfo?.headers) },
+                attributes: { ...requestIdAttr(context.request.requestInfo?.headers) },
             });
             const toolResult = await this.handleError(error, args);
 
@@ -636,18 +614,18 @@ export abstract class ToolBase<
 
     /** Checks if the tool requires elicitation */
     public requiresConfirmation(): boolean {
-        return this.session.config.confirmationRequiredTools.includes(this.name);
+        return this.server.config.confirmationRequiredTools.includes(this.name);
     }
 
     /**
      * Asks the user to confirm an operation.
      *
      * Multi-round-trip elicitation (protocol revision 2026-07-28): on the
-     * first entry this reads `context.inputResponses` and, when this round
-     * carries no answer yet, returns `undefined` — the caller must return
-     * {@link IElicitation.confirmationRequired} from its handler instead of
-     * proceeding. On re-entry it resolves to `true` when the user accepted
-     * and `false` when they declined.
+     * first entry this reads `context.request.inputResponses` and, when this
+     * round carries no answer yet, returns `undefined` — the caller must
+     * return {@link IElicitation.confirmationRequired} from its handler
+     * instead of proceeding. On re-entry it resolves to `true` when the user
+     * accepted and `false` when they declined.
      *
      * This is automatically called by `invoke` for confirmationRequired tools.
      * Other tools can call it at any point of their execution, which matters when
@@ -657,82 +635,40 @@ export abstract class ToolBase<
      * elicitation, matching how confirmation-required tools behave there.
      *
      * @param message - The message to display to the user.
-     * @param context - The tool execution context.
+     * @param context - The tool execution context (carries the request
+     * object under `request`).
      * @returns `true` when confirmed, `false` when declined, `undefined` when
      * this round carries no answer yet (return
      * {@link IElicitation.confirmationRequired} instead).
      */
     protected requestConfirmation(message: string, context: ToolExecutionContext): boolean | undefined {
-        const confirmed = this.elicitation.readConfirmation(context.inputResponses);
-        this.session.logger.info({
+        const confirmed = this.server.elicitation.readConfirmation(context.request.inputResponses);
+        this.server.logger.info({
             id: LogId.toolConfirmationRequested,
             context: "tool",
             message: `Requesting user confirmation for ${this.name}`,
             noRedaction: true,
             attributes: {
                 tool: this.name,
-                requestId: context.requestId !== undefined ? String(context.requestId) : "(undefined)",
+                requestId: context.request.requestId !== undefined ? String(context.request.requestId) : "(undefined)",
                 confirmed: confirmed !== undefined ? String(confirmed) : "pending",
-                ...requestIdAttr(context.requestInfo?.headers),
+                ...requestIdAttr(context.request.requestInfo?.headers),
             },
         });
         return confirmed;
     }
 
-    /**
-     * Access to the session instance. Provides access to MongoDB connections,
-     * loggers, connection manager, config, and other session-level resources.
-     */
-    protected readonly session: TSession;
-
-    /** Access to the session's configuration. */
-    protected get config(): TSession["config"] {
-        return this.session.config;
-    }
-
-    /**
-     * Access to the telemetry service. Use this to emit custom telemetry events
-     * if needed.
-     */
-    protected readonly telemetry: ITelemetry;
-
-    /**
-     * Access to the elicitation service. Use this to request user confirmations
-     * or inputs during tool execution.
-     */
-    protected readonly elicitation: IElicitation;
-
-    /**
-     * Access to the metrics service. Use this to emit custom metrics events
-     * if needed.
-     */
-    protected readonly metrics: IMetrics<TMetricsDefinitions>;
-
-    private readonly uiRegistry?: IUIRegistry;
-
-    constructor({
-        name,
-        category,
-        operationType,
-        session,
-        telemetry,
-        elicitation,
-        metrics,
-        uiRegistry,
-    }: ToolConstructorParams<TSession, TMetricsDefinitions>) {
-        this.name = name;
+    constructor(server: TServer) {
+        this.server = server;
+        const { toolName, category, operationType } = this.constructor as ToolClass<TServer, TMetricsDefinitions>;
+        this.name = toolName;
         this.category = category;
         this.operationType = operationType;
-        this.session = session;
-        this.telemetry = telemetry;
-        this.elicitation = elicitation;
-        this.metrics = metrics;
-        this.uiRegistry = uiRegistry;
     }
 
     /**
-     * Schemas are session-invariant, so they are built once per concrete tool
-     * class and config variant, then shared across every session. Both caches
+     * Schemas are request-invariant, so they are built once per concrete tool
+     * class and config variant, then shared across every request. Both caches
      * are keyed by the concrete constructor; the input cache is additionally
      * keyed by `schemaVariantKey()` to separate config-dependent variants.
      */
@@ -842,11 +778,18 @@ export abstract class ToolBase<
                     annotations: this.annotations,
                     _meta: this.toolMeta,
                 },
-                // The client identity is carried on the request-scoped server
-                // instance, so it is merged into the execution context here
-                // rather than stored on any server-scoped object.
+                // The effective config and client identity are carried on the
+                // request rather than baked onto any server-scoped object: the
+                // config is the effective (possibly request-overridden) config
+                // for this request, and the identity is merged in here. Both
+                // travel to the tool on the execution context.
                 (args, ctx) =>
-                    this.invoke(args, toToolExecutionContext(ctx, () => server.mcpServer.server.getClientVersion()))
+                    this.invoke(
+                        args,
+                        toToolExecutionContext(ctx, this.server.config, () =>
+                            server.mcpServer?.server?.getClientVersion()
+                        )
+                    )
             );
 
         return true;
@@ -858,7 +801,7 @@ export abstract class ToolBase<
 
     public disable(): void {
         if (!this.registeredTool) {
-            this.session.logger.warning({
+            this.server.logger.warning({
                 id: LogId.toolMetadataChange,
                 context: `tool - ${this.name}`,
                 message: "Requested disabling of tool but it was never registered",
@@ -870,7 +813,7 @@ export abstract class ToolBase<
 
     public enable(): void {
         if (!this.registeredTool) {
-            this.session.logger.warning({
+            this.server.logger.warning({
                 id: LogId.toolMetadataChange,
                 context: `tool - ${this.name}`,
                 message: "Requested enabling of tool but it was never registered",
@@ -885,18 +828,18 @@ export abstract class ToolBase<
         let errorClarification: string | undefined;
 
         // Check read-only mode first
-        if (this.session.config.readOnly && !["read", "metadata", "connect"].includes(this.operationType)) {
+        if (this.server.config.readOnly && !["read", "metadata", "connect"].includes(this.operationType)) {
             errorClarification = `read-only mode is enabled, its operation type, \`${this.operationType}\`,`;
-        } else if (this.session.config.disabledTools.includes(this.category)) {
+        } else if (this.server.config.disabledTools.includes(this.category)) {
             errorClarification = `its category, \`${this.category}\`,`;
-        } else if (this.session.config.disabledTools.includes(this.operationType)) {
+        } else if (this.server.config.disabledTools.includes(this.operationType)) {
             errorClarification = `its operation type, \`${this.operationType}\`,`;
-        } else if (this.session.config.disabledTools.includes(this.name)) {
+        } else if (this.server.config.disabledTools.includes(this.name)) {
             errorClarification = `it`;
         }
 
         if (errorClarification) {
-            this.session.logger.debug({
+            this.server.logger.debug({
                 id: LogId.toolDisabled,
                 context: "tool",
                 message: `Prevented registration of ${this.name} because ${errorClarification} is disabled in the config`,
@@ -943,7 +886,7 @@ export abstract class ToolBase<
         args: z.infer<z.ZodObject<typeof this.argsShape>>
     ): Promise<CallToolResult> | CallToolResult {
         const rawMessage = error instanceof Error ? error.message : String(error);
-        const safeMessage = this.session.keychain.redact(rawMessage);
+        const safeMessage = this.server.keychain.redact(rawMessage);
         return {
             content: [
                 {
@@ -996,7 +939,7 @@ export abstract class ToolBase<
         args: ToolArgs<typeof this.argsShape>,
         { startTime, result }: { startTime: number; result: CallToolResult }
     ): void {
-        if (!this.telemetry.isTelemetryEnabled()) {
+        if (!this.server.telemetry.isTelemetryEnabled()) {
             return;
         }
         const duration = Date.now() - startTime;
@@ -1016,9 +959,9 @@ export abstract class ToolBase<
                 },
             };
 
-            this.telemetry.emitEvents([event]);
+            this.server.telemetry.emitEvents([event]);
         })().catch((error: unknown) => {
-            this.session.logger.debug({
+            this.server.logger.debug({
                 id: LogId.telemetryMetadataError,
                 context: "tool",
                 message: `Error emitting telemetry event for tool ${this.name}: ${error as string}`,
@@ -1027,7 +970,7 @@ export abstract class ToolBase<
     }
 
     protected isFeatureEnabled(feature: PreviewFeature): boolean {
-        return this.session.config.previewFeatures.includes(feature);
+        return this.server.config.previewFeatures.includes(feature);
     }
 
     protected getConnectionInfoMetadata(connectionState?: SupportedConnectionState): ConnectionMetadata {
@@ -1061,8 +1004,8 @@ export abstract class ToolBase<
         }
 
         let uiResource: UIResource | undefined;
-        if (this.uiRegistry) {
-            const uiHtml = await this.uiRegistry.get(this.name);
+        if (this.server.uiRegistry) {
+            const uiHtml = await this.server.uiRegistry.get(this.name);
             if (!uiHtml || !result.structuredContent) {
                 return result;
             }

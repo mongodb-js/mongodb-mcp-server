@@ -1,23 +1,56 @@
-import type { CallToolResult, RequestMeta } from "@modelcontextprotocol/server";
+import type { CallToolResult, RequestMeta, ServerContext } from "@modelcontextprotocol/server";
 
 export type { CallToolResult };
 import type { IToolConfig } from "./config.js";
-import type { ElicitationInputResponses } from "./elicitation.js";
-import type { IRedactor } from "./keychain.js";
+import type { ElicitationInputResponses, IElicitation } from "./elicitation.js";
 import type { ICompositeLogger } from "./logging.js";
+import type { IKeychain } from "./keychain.js";
+import type { DefaultMetricDefinitions, IMetrics } from "./metrics.js";
+import type { IUIRegistry } from "./ui.js";
+import type { ITelemetry } from "./telemetry.js";
 
 /**
- * The minimal session surface tools rely on: config and logging. The CLI's
- * session is deliberately stateless (connection state lives in the app-level
- * registry and is addressed by connectionId), so tools are not constrained to
- * the full {@link ISession} shape.
+ * The services every tool receives at construction, injected individually
+ * (no server-scoped "session" object exists). The server is deliberately
+ * stateless: MongoDB connection state lives in the app-level registry and is
+ * addressed per request by `connectionId`, and per-client identity travels on
+ * the tool request (see `ToolExecutionContext.clientInfo`).
+ *
+ * Tool categories extend this type with the specific app-level services they
+ * need (e.g. the connection registry); `TConfig` narrows the configuration
+ * subset a category reads.
  */
-export interface IToolSession {
-    readonly config: IToolConfig;
+export type ToolServices<TConfig extends IToolConfig = IToolConfig> = {
+    /** Configuration for the server */
+    readonly config: TConfig;
+    /** Logger for the server */
     readonly logger: ICompositeLogger;
-    /** Redacts registered secrets from a value (used by ToolBase error handling). */
-    readonly keychain: IRedactor;
-}
+    /** Secrets registered for redaction (used by ToolBase error handling). */
+    readonly keychain: IKeychain;
+};
+
+/**
+ * The service surface a tool reads from its server. Tool constructors receive
+ * exactly one argument — the server — which carries the individually-injected
+ * services ({@link ToolServices}) plus the shared infrastructure every tool
+ * needs (telemetry, elicitation, metrics and the UI registry). Category
+ * services (e.g. the connection registry) travel in `TServices`, so a server
+ * is structurally assignable to the `ToolServer` of each tool category it
+ * hosts.
+ */
+export type ToolServer<
+    TServices extends ToolServices = ToolServices,
+    TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions,
+> = TServices & {
+    /** Telemetry for tracking tool usage. */
+    readonly telemetry: ITelemetry;
+    /** Elicitation for requesting user confirmation / input. */
+    readonly elicitation: IElicitation;
+    /** Metrics for tracking tool execution. */
+    readonly metrics: IMetrics<TMetricsDefinitions>;
+    /** UI registry for tools that embed interactive widget content. */
+    readonly uiRegistry?: IUIRegistry;
+};
 
 /**
  * The type of operation the tool performs. This is used when evaluating if a tool is allowed to run based on
@@ -46,13 +79,35 @@ export type OperationType = "metadata" | "read" | "create" | "delete" | "update"
 export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant" | "custom";
 
 /**
- * Context provided during tool execution.
+ * The request object passed to tool implementations: everything derived from
+ * the individual request being handled. It is built fresh for each tool call
+ * and deliberately lives nowhere else — the server holds no per-client or
+ * per-request state, so the effective (possibly request-overridden) config
+ * and the raw SDK request context travel with the call. Tools read it as
+ * `request.config` / `request.raw` (see `ToolExecutionContext.request`).
  */
-export type ToolExecutionContext = {
+export type ToolRequest<TConfig extends IToolConfig = IToolConfig> = {
+    /**
+     * The effective configuration for this request — the base server config
+     * merged with any request-level overrides (e.g. HTTP header/query
+     * overrides applied per request). Request-scoped: derived fresh for each
+     * call, never stored on the server. See `raw` for the original request
+     * this was built around.
+     */
+    readonly config: TConfig;
+    /**
+     * The original request this request object was built around: the raw SDK
+     * `ServerContext` the tool call handler received. Undefined when the tool
+     * is invoked directly in unit tests without a real SDK request. Prefer
+     * the normalized fields (`config`, `clientInfo`, `requestInfo`, ...);
+     * reach for `raw` only when the typed surface does not cover what you
+     * need.
+     */
+    readonly raw?: ServerContext;
     /** AbortSignal for cancellation support */
     signal: AbortSignal;
     /**
-     * Request context object available only when running atop
+     * HTTP request context, available only when running atop
      * StreamableHttpTransport.
      */
     requestInfo?: {
@@ -89,6 +144,18 @@ export type ToolExecutionContext = {
      * state.
      */
     clientInfo?: { name?: string; version?: string; title?: string };
+};
+
+/**
+ * Request-scoped context provided during tool execution. The request object
+ * ({@link ToolRequest}) holds everything derived from the individual request
+ * — the effective `config`, the original `raw` request, signal, request id,
+ * client identity, elicitation state — and is built fresh per call by
+ * `toToolExecutionContext`. Tools receive it as the `request` argument.
+ */
+export type ToolExecutionContext<TConfig extends IToolConfig = IToolConfig> = {
+    /** The request object this execution is built around. */
+    request: ToolRequest<TConfig>;
 };
 
 export type ToolClass<TParams extends unknown[] = unknown[]> = {
