@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { StreamsToolBase } from "../../streams/streamsToolBase.js";
-import type { CallToolResult, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import type { IAtlasConfig } from "../../atlasTool.js";
+import type { CallToolResult, OperationType, ToolExecutionContext, ToolRequest } from "@mongodb-js/mcp-types";
 import { LogId, requestIdAttr, type ToolArgs } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
 import { ConnectionConfig, StreamsArgs } from "../../streams/streamsArgs.js";
@@ -138,23 +139,23 @@ export class StreamsManageTool extends StreamsToolBase {
 
     protected async execute(
         args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        { request }: ToolExecutionContext
     ): Promise<CallToolResult> {
         switch (args.action) {
             case "start-processor":
-                return this.startProcessor(args, context);
+                return this.startProcessor(args, request);
             case "stop-processor":
-                return this.stopProcessor(args, context);
+                return this.stopProcessor(args, request);
             case "modify-processor":
-                return this.modifyProcessor(args, context);
+                return this.modifyProcessor(args, request);
             case "update-workspace":
-                return this.updateWorkspace(args, context);
+                return this.updateWorkspace(args, request);
             case "update-connection":
-                return this.updateConnection(args, context);
+                return this.updateConnection(args, request);
             case "accept-peering":
-                return this.acceptPeering(args, context);
+                return this.acceptPeering(args, request);
             case "reject-peering":
-                return this.rejectPeering(args, context);
+                return this.rejectPeering(args, request);
             default:
                 return {
                     content: [{ type: "text", text: `Unknown action: ${args.action as string}` }],
@@ -230,15 +231,15 @@ export class StreamsManageTool extends StreamsToolBase {
 
     private async startProcessor(
         args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult> {
         const name = this.requireResourceName(args.resourceName, "start-processor");
 
-        const processor = await this.apiClient.getStreamProcessor(
+        const processor = await this.server.apiClient.getStreamProcessor(
             {
                 params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
             },
-            context
+            request
         );
         if (processor?.state === "STARTED") {
             return {
@@ -255,11 +256,11 @@ export class StreamsManageTool extends StreamsToolBase {
         if (args.tier) {
             const tierOrder = ["SP2", "SP5", "SP10", "SP30", "SP50"];
             try {
-                const ws = await this.apiClient.getStreamWorkspace(
+                const ws = await this.server.apiClient.getStreamWorkspace(
                     {
                         params: { path: { groupId: args.projectId, tenantName: args.workspaceName } },
                     },
-                    context
+                    request
                 );
                 const maxTier = ws?.streamConfig?.maxTierSize;
                 if (maxTier && tierOrder.indexOf(args.tier) > tierOrder.indexOf(maxTier)) {
@@ -293,19 +294,19 @@ export class StreamsManageTool extends StreamsToolBase {
             if (args.resumeFromCheckpoint !== undefined) startBody.resumeFromCheckpoint = args.resumeFromCheckpoint;
             if (args.startAtOperationTime !== undefined) startBody.startAtOperationTime = args.startAtOperationTime;
 
-            await this.apiClient.startStreamProcessorWith(
+            await this.server.apiClient.startStreamProcessorWith(
                 {
                     params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
                     body: startBody,
                 },
-                context
+                request
             );
         } else {
-            await this.apiClient.startStreamProcessor(
+            await this.server.apiClient.startStreamProcessor(
                 {
                     params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
                 },
-                context
+                request
             );
         }
 
@@ -331,16 +332,16 @@ export class StreamsManageTool extends StreamsToolBase {
 
     private async stopProcessor(
         args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult> {
         const name = this.requireResourceName(args.resourceName, "stop-processor");
 
         try {
-            const processor = await this.apiClient.getStreamProcessor(
+            const processor = await this.server.apiClient.getStreamProcessor(
                 {
                     params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
                 },
-                context
+                request
             );
             if (processor?.state === "STOPPED" || processor?.state === "CREATED") {
                 return {
@@ -355,19 +356,19 @@ export class StreamsManageTool extends StreamsToolBase {
             }
         } catch (error: unknown) {
             // Processor may be in error state — proceed with stop attempt
-            this.session.logger.debug({
+            this.server.logger.debug({
                 id: LogId.streamsProcessorStateLookupFailure,
                 context: "streams-manage",
                 message: `Failed to get processor state before stop: ${error instanceof Error ? error.message : String(error)}`,
-                attributes: { ...requestIdAttr(context.requestInfo?.headers) },
+                attributes: { ...requestIdAttr(request?.headers) },
             });
         }
 
-        await this.apiClient.stopStreamProcessor(
+        await this.server.apiClient.stopStreamProcessor(
             {
                 params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
             },
-            context
+            request
         );
 
         return {
@@ -385,15 +386,15 @@ export class StreamsManageTool extends StreamsToolBase {
 
     private async modifyProcessor(
         args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult> {
         const name = this.requireResourceName(args.resourceName, "modify-processor");
 
-        const processor = await this.apiClient.getStreamProcessor(
+        const processor = await this.server.apiClient.getStreamProcessor(
             {
                 params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
             },
-            context
+            request
         );
         if (processor?.state === "STARTED") {
             return {
@@ -424,12 +425,12 @@ export class StreamsManageTool extends StreamsToolBase {
             };
         }
 
-        await this.apiClient.updateStreamProcessor(
+        await this.server.apiClient.updateStreamProcessor(
             {
                 params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
                 body: body,
             },
-            context
+            request
         );
 
         const changes = Object.keys(body).join(", ");
@@ -448,17 +449,17 @@ export class StreamsManageTool extends StreamsToolBase {
 
     private async updateWorkspace(
         args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult> {
         const body: Record<string, unknown> = {};
         if (args.newRegion) {
             // The Atlas API requires cloudProvider alongside region in the update request body.
             // Fetch the current workspace to get the existing cloudProvider.
-            const workspace = await this.apiClient.getStreamWorkspace(
+            const workspace = await this.server.apiClient.getStreamWorkspace(
                 {
                     params: { path: { groupId: args.projectId, tenantName: args.workspaceName } },
                 },
-                context
+                request
             );
             const cloudProvider = workspace?.dataProcessRegion?.cloudProvider;
             if (!cloudProvider) {
@@ -493,12 +494,12 @@ export class StreamsManageTool extends StreamsToolBase {
             };
         }
 
-        const updated = await this.apiClient.updateStreamWorkspace(
+        const updated = await this.server.apiClient.updateStreamWorkspace(
             {
                 params: { path: { groupId: args.projectId, tenantName: args.workspaceName } },
                 body: body,
             },
-            context
+            request
         );
 
         const updatedRegion = updated?.dataProcessRegion?.region;
@@ -538,7 +539,7 @@ export class StreamsManageTool extends StreamsToolBase {
 
     private async updateConnection(
         args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult> {
         const name = this.requireResourceName(args.resourceName, "update-connection");
 
@@ -546,15 +547,15 @@ export class StreamsManageTool extends StreamsToolBase {
             throw new Error("connectionConfig is required to update a connection.");
         }
 
-        const connection = (await this.apiClient.getStreamConnection(
+        const connection = (await this.server.apiClient.getStreamConnection(
             {
                 params: { path: { groupId: args.projectId, tenantName: args.workspaceName, connectionName: name } },
             },
-            context
+            request
         )) as { type?: string; state?: string };
 
         const normalizedConfig = ConnectionConfig.parse(args.connectionConfig);
-        const updated = (await this.apiClient.updateStreamConnection(
+        const updated = (await this.server.apiClient.updateStreamConnection(
             {
                 params: { path: { groupId: args.projectId, tenantName: args.workspaceName, connectionName: name } },
                 body: {
@@ -563,7 +564,7 @@ export class StreamsManageTool extends StreamsToolBase {
                     name,
                 } as never,
             },
-            context
+            request
         )) as { state?: string } | undefined;
 
         const connectionState = updated?.state ?? connection.state;
@@ -585,7 +586,7 @@ export class StreamsManageTool extends StreamsToolBase {
 
     private async acceptPeering(
         args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult> {
         if (!args.peeringId) throw new Error("peeringId is required to accept a VPC peering connection.");
         if (!args.requesterAccountId) throw new Error("requesterAccountId is required to accept VPC peering.");
@@ -595,7 +596,7 @@ export class StreamsManageTool extends StreamsToolBase {
         const requesterAccountId = args.requesterAccountId;
         const requesterVpcId = args.requesterVpcId;
 
-        await this.apiClient.acceptVpcPeeringConnection(
+        await this.server.apiClient.acceptVpcPeeringConnection(
             {
                 params: { path: { groupId: args.projectId, id: peeringId } },
                 body: {
@@ -603,7 +604,7 @@ export class StreamsManageTool extends StreamsToolBase {
                     requesterVpcId,
                 },
             },
-            context
+            request
         );
 
         return {
@@ -619,15 +620,15 @@ export class StreamsManageTool extends StreamsToolBase {
 
     private async rejectPeering(
         args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult> {
         if (!args.peeringId) throw new Error("peeringId is required to reject a VPC peering connection.");
 
-        await this.apiClient.rejectVpcPeeringConnection(
+        await this.server.apiClient.rejectVpcPeeringConnection(
             {
                 params: { path: { groupId: args.projectId, id: args.peeringId } },
             },
-            context
+            request
         );
 
         return {

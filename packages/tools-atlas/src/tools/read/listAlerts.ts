@@ -47,9 +47,9 @@ export class ListAlertsTool extends AtlasToolBase {
 
     protected async execute(
         { projectId, status, limit, pageNum, includeCount }: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        { request }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const data = await this.apiClient.listAlerts(
+        const data = await this.server.apiClient.listAlerts(
             {
                 params: {
                     path: {
@@ -63,7 +63,7 @@ export class ListAlertsTool extends AtlasToolBase {
                     },
                 },
             },
-            context
+            request
         );
 
         if (!data?.results?.length) {

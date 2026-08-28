@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { ConnectClusterTool } from "./connectCluster.js";
-import type { IAtlasSession, IAtlasConfig } from "../../atlasTool.js";
+import type { IAtlasConfig } from "../../atlasTool.js";
 import type { ITelemetry, ICompositeLogger } from "@mongodb-js/mcp-types";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
@@ -18,6 +17,7 @@ import { Keychain } from "@mongodb-js/mcp-core";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
+import type { AtlasToolServer } from "../../atlasTool.js";
 
 const defaultTestConfig: UserConfig = {
     ...UserConfigSchema.parse({}),
@@ -50,7 +50,7 @@ const CLUSTER_DESCRIPTION = {
 describe("ConnectClusterTool", () => {
     let mockLogger: Record<string, ReturnType<typeof vi.fn>>;
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
-    let mockSession: Partial<IAtlasSession>;
+    let mockSession: Partial<AtlasToolServer>;
     let connectionRegistry: ConnectionRegistry;
     let tool: ConnectClusterTool;
 
@@ -101,18 +101,15 @@ describe("ConnectClusterTool", () => {
 
         const mockElicitation = createMockElicitation();
 
-        const params: ToolConstructorParams<IAtlasSession> = {
-            name: ConnectClusterTool.toolName,
-            category: "atlas",
-            operationType: ConnectClusterTool.operationType,
-            session: mockSession as IAtlasSession,
+        const server: AtlasToolServer = {
+            ...mockSession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
-        };
+        } as unknown as AtlasToolServer;
 
-        tool = new ConnectClusterTool(params);
+        tool = new ConnectClusterTool(server);
     });
 
     describe("execute", () => {

@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { UpgradeClusterTool } from "./upgradeCluster.js";
-import type { IAtlasSession, IAtlasConfig } from "../../atlasTool.js";
+import type { IAtlasConfig } from "../../atlasTool.js";
 import type { ITelemetry, ICompositeLogger } from "@mongodb-js/mcp-types";
 import { Keychain } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
+import type { AtlasToolServer } from "../../atlasTool.js";
 
 function notFoundError(): ApiClientError {
     return ApiClientError.fromError(new Response(null, { status: 404, statusText: "Not Found" }), "cluster not found");
@@ -141,7 +141,7 @@ const UPGRADE_RESULT = { id: "upgraded-cluster-id" };
 
 describe("UpgradeClusterTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
-    let mockSession: Partial<IAtlasSession>;
+    let mockSession: Partial<AtlasToolServer>;
     let tool: UpgradeClusterTool;
 
     function buildTool(): UpgradeClusterTool {
@@ -180,18 +180,15 @@ describe("UpgradeClusterTool", () => {
 
         const mockElicitation = createMockElicitation();
 
-        const params: ToolConstructorParams<IAtlasSession> = {
-            name: UpgradeClusterTool.toolName,
-            category: "atlas",
-            operationType: UpgradeClusterTool.operationType,
-            session: mockSession as IAtlasSession,
+        const server: AtlasToolServer = {
+            ...mockSession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
-        };
+        } as unknown as AtlasToolServer;
 
-        return new UpgradeClusterTool(params);
+        return new UpgradeClusterTool(server);
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { StreamsToolBase } from "../../streams/streamsToolBase.js";
-import type { CallToolResult, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import type { IAtlasConfig } from "../../atlasTool.js";
+import type { CallToolResult, OperationType, ToolExecutionContext, ToolRequest } from "@mongodb-js/mcp-types";
 import { formatUntrustedData, type ToolArgs } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
 import { StreamsArgs } from "../../streams/streamsArgs.js";
@@ -265,17 +266,17 @@ export class StreamsDiscoverTool extends StreamsToolBase {
             limit,
             pageNum,
         }: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        { request }: ToolExecutionContext
     ): Promise<CallToolResult> {
         switch (action) {
             case "list-workspaces":
-                return this.listWorkspaces(projectId, responseFormat, limit, pageNum, context);
+                return this.listWorkspaces(projectId, responseFormat, limit, pageNum, request);
             case "inspect-workspace":
                 return this.inspectWorkspace(
                     projectId,
                     this.requireWorkspaceName(workspaceName),
                     responseFormat,
-                    context
+                    request
                 );
             case "list-connections":
                 return this.listConnections(
@@ -284,14 +285,14 @@ export class StreamsDiscoverTool extends StreamsToolBase {
                     responseFormat,
                     limit,
                     pageNum,
-                    context
+                    request
                 );
             case "inspect-connection":
                 return this.inspectConnection(
                     projectId,
                     this.requireWorkspaceName(workspaceName),
                     this.requireResourceName(resourceName, "connection"),
-                    context
+                    request
                 );
             case "list-processors":
                 return this.listProcessors(
@@ -300,24 +301,24 @@ export class StreamsDiscoverTool extends StreamsToolBase {
                     responseFormat,
                     limit,
                     pageNum,
-                    context
+                    request
                 );
             case "inspect-processor":
                 return this.inspectProcessor(
                     projectId,
                     this.requireWorkspaceName(workspaceName),
                     this.requireResourceName(resourceName, "processor"),
-                    context
+                    request
                 );
             case "diagnose-processor":
                 return this.diagnoseProcessor(
                     projectId,
                     this.requireWorkspaceName(workspaceName),
                     this.requireResourceName(resourceName, "processor"),
-                    context
+                    request
                 );
             case "get-networking":
-                return this.getNetworking(projectId, cloudProvider, region, context);
+                return this.getNetworking(projectId, cloudProvider, region, request);
             default:
                 return {
                     content: [{ type: "text", text: `Unknown action: ${action as string}` }],
@@ -350,13 +351,13 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         responseFormat: string | undefined,
         limit: number | undefined,
         pageNum: number | undefined,
-        context: ToolExecutionContext
+        request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult> {
-        const data = await this.apiClient.listStreamWorkspaces(
+        const data = await this.server.apiClient.listStreamWorkspaces(
             {
                 params: { path: { groupId: projectId }, query: { itemsPerPage: limit ?? 20, pageNum: pageNum ?? 1 } },
             },
-            context
+            request
         );
 
         if (!data?.results?.length) {
@@ -395,16 +396,16 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         projectId: string,
         workspaceName: string,
         responseFormat: string | undefined,
-        context: ToolExecutionContext
+        request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult> {
-        const data = await this.apiClient.getStreamWorkspace(
+        const data = await this.server.apiClient.getStreamWorkspace(
             {
                 params: {
                     path: { groupId: projectId, tenantName: workspaceName },
                     query: { includeConnections: true },
                 },
             },
-            context
+            request
         );
         if (!data) {
             throw new Error(`Workspace '${workspaceName}' not found.`);
@@ -434,16 +435,16 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         responseFormat: string | undefined,
         limit: number | undefined,
         pageNum: number | undefined,
-        context: ToolExecutionContext
+        request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult> {
-        const data = await this.apiClient.listStreamConnections(
+        const data = await this.server.apiClient.listStreamConnections(
             {
                 params: {
                     path: { groupId: projectId, tenantName: workspaceName },
                     query: { itemsPerPage: limit ?? 20, pageNum: pageNum ?? 1 },
                 },
             },
-            context
+            request
         );
 
         if (!data?.results?.length) {
@@ -475,13 +476,13 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         projectId: string,
         workspaceName: string,
         connectionName: string,
-        context: ToolExecutionContext
+        request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult> {
-        const data = (await this.apiClient.getStreamConnection(
+        const data = (await this.server.apiClient.getStreamConnection(
             {
                 params: { path: { groupId: projectId, tenantName: workspaceName, connectionName } },
             },
-            context
+            request
         )) as Record<string, unknown>;
 
         let header = "Details for the requested connection:";
@@ -506,16 +507,16 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         responseFormat: string | undefined,
         limit: number | undefined,
         pageNum: number | undefined,
-        context: ToolExecutionContext
+        request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult> {
-        const data = await this.apiClient.getStreamProcessors(
+        const data = await this.server.apiClient.getStreamProcessors(
             {
                 params: {
                     path: { groupId: projectId, tenantName: workspaceName },
                     query: { itemsPerPage: limit ?? 20, pageNum: pageNum ?? 1 },
                 },
             },
-            context
+            request
         );
 
         if (!data?.results?.length) {
@@ -551,13 +552,13 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         projectId: string,
         workspaceName: string,
         processorName: string,
-        context: ToolExecutionContext
+        request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult> {
-        const data = await this.apiClient.getStreamProcessor(
+        const data = await this.server.apiClient.getStreamProcessor(
             {
                 params: { path: { groupId: projectId, tenantName: workspaceName, processorName } },
             },
-            context
+            request
         );
         const structuredContent = buildProcessorStructuredContent(data, { includePipeline: true });
 
@@ -571,20 +572,20 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         projectId: string,
         workspaceName: string,
         processorName: string,
-        context: ToolExecutionContext
+        request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult> {
         const [processorResult, connectionsResult] = await Promise.allSettled([
-            this.apiClient.getStreamProcessor(
+            this.server.apiClient.getStreamProcessor(
                 {
                     params: { path: { groupId: projectId, tenantName: workspaceName, processorName } },
                 },
-                context
+                request
             ),
-            this.apiClient.listStreamConnections(
+            this.server.apiClient.listStreamConnections(
                 {
                     params: { path: { groupId: projectId, tenantName: workspaceName } },
                 },
-                context
+                request
             ),
         ]);
 
@@ -676,14 +677,14 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         projectId: string,
         cloudProvider: string | undefined,
         region: string | undefined,
-        context: ToolExecutionContext
+        request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult> {
         const [privateLinkResult] = await Promise.allSettled([
-            this.apiClient.listPrivateLinkConnections(
+            this.server.apiClient.listPrivateLinkConnections(
                 {
                     params: { path: { groupId: projectId } },
                 },
-                context
+                request
             ),
         ]);
 
@@ -692,14 +693,14 @@ export class StreamsDiscoverTool extends StreamsToolBase {
 
         if (cloudProvider && region) {
             try {
-                const accountDetails = await this.apiClient.getAccountDetails(
+                const accountDetails = await this.server.apiClient.getAccountDetails(
                     {
                         params: {
                             path: { groupId: projectId },
                             query: { cloudProvider, regionName: region },
                         },
                     },
-                    context
+                    request
                 );
                 const accountDetailsSummary = toAccountDetailsSummary(accountDetails);
                 if (Object.keys(accountDetailsSummary).length > 0) {

@@ -1,14 +1,13 @@
 import { z } from "zod";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { ListOrganizationsTool, ListOrganizationsArgs } from "./listOrgs.js";
-import type { IAtlasSession } from "../../atlasTool.js";
 import type { ITelemetry } from "@mongodb-js/mcp-types";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
+import type { AtlasToolServer } from "../../atlasTool.js";
 
 describe("ListOrganizationsTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
@@ -29,7 +28,7 @@ describe("ListOrganizationsTool", () => {
         const mockSession = {
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
-        } as unknown as IAtlasSession;
+        } as unknown as AtlasToolServer;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
@@ -38,18 +37,15 @@ describe("ListOrganizationsTool", () => {
 
         const mockElicitation = createMockElicitation() as unknown as Elicitation;
 
-        const params: ToolConstructorParams<IAtlasSession> = {
-            name: ListOrganizationsTool.toolName,
-            category: "atlas",
-            operationType: ListOrganizationsTool.operationType,
-            session: mockSession,
+        const server: AtlasToolServer = {
+            ...mockSession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
-        };
+        } as unknown as AtlasToolServer;
 
-        tool = new ListOrganizationsTool(params);
+        tool = new ListOrganizationsTool(server);
     });
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type

@@ -43,9 +43,9 @@ export class ListDBUsersTool extends AtlasToolBase {
 
     protected async execute(
         { projectId }: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        { request }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const data = await this.apiClient.listDatabaseUsers(
+        const data = await this.server.apiClient.listDatabaseUsers(
             {
                 params: {
                     path: {
@@ -53,7 +53,7 @@ export class ListDBUsersTool extends AtlasToolBase {
                     },
                 },
             },
-            context
+            request
         );
 
         if (!data?.results?.length) {

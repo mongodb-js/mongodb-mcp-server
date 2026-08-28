@@ -1,11 +1,17 @@
-import type { CallToolResult, ISession, IToolConfig, AtlasMetadata } from "@mongodb-js/mcp-types";
+import { z } from "zod";
+import type {
+    CallToolResult,
+    AtlasMetadata,
+    ToolCategory,
+    ToolServices,
+    IToolConfig,
+    ToolServer,
+} from "@mongodb-js/mcp-types";
 import { ToolBase } from "@mongodb-js/mcp-core";
 import type { ToolArgs } from "@mongodb-js/mcp-core";
-import type { ToolCategory } from "@mongodb-js/mcp-types";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { LogId } from "@mongodb-js/mcp-core";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
-import { z } from "zod";
 import type { ConnectionRegistry } from "@mongodb-js/mcp-tools-mongodb";
 
 export interface IAtlasConfig extends IToolConfig {
@@ -14,39 +20,25 @@ export interface IAtlasConfig extends IToolConfig {
     atlasTemporaryDatabaseUserLifetimeMs?: number;
 }
 
-export interface IAtlasSession extends ISession {
-    config: IAtlasConfig;
-    readonly apiClient?: ApiClient;
+/**
+ * The services Atlas tools read from their server. Injected individually on
+ * the server — there is no server-scoped session object.
+ */
+export type AtlasToolServices = ToolServices<IAtlasConfig> & {
+    readonly apiClient: ApiClient;
     readonly connectionRegistry: ConnectionRegistry;
-}
+};
 
-export abstract class AtlasToolBase extends ToolBase<IAtlasSession> {
+export type AtlasToolServer = ToolServer<AtlasToolServices>;
+
+export abstract class AtlasToolBase extends ToolBase<AtlasToolServer> {
     static category: ToolCategory = "atlas";
 
-    declare protected readonly session: IAtlasSession;
-
-    /** Access to the Atlas-specific configuration. */
-    protected get config(): IAtlasConfig {
-        return this.session.config;
-    }
-
     protected verifyAllowed(): boolean {
-        if (!this.config.apiClientId || !this.config.apiClientSecret) {
+        if (!this.server.config.apiClientId || !this.server.config.apiClientSecret) {
             return false;
         }
         return super.verifyAllowed();
-    }
-
-    /**
-     * Gets the API client, asserting that it exists.
-     * This is safe because Atlas tools are only registered when credentials are provided.
-     */
-    protected get apiClient(): ApiClient {
-        const client = this.session.apiClient;
-        if (!client) {
-            throw new Error("API client is not available. Atlas tools require API credentials.");
-        }
-        return client;
     }
 
     protected handleError(
@@ -128,7 +120,7 @@ For more information on Atlas API access roles, visit: https://www.mongodb.com/d
         const parsedResult = argsShape.safeParse(args);
 
         if (!parsedResult.success) {
-            this.session.logger.debug({
+            this.server.logger.debug({
                 id: LogId.telemetryMetadataError,
                 context: "tool",
                 message: `Error parsing tool arguments: ${parsedResult.error.message}`,

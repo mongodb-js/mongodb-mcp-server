@@ -67,28 +67,28 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
 
     protected async execute(
         { projectId, clusterName, operations, since, namespaces }: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        { request }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
         const [suggestedIndexesResult, dropIndexSuggestionsResult, slowQueryLogsResult, schemaSuggestionsResult] =
             await Promise.allSettled([
                 operations.includes("suggestedIndexes")
-                    ? getSuggestedIndexes(this.apiClient, projectId, clusterName, context)
+                    ? getSuggestedIndexes(this.server.apiClient, projectId, clusterName, request)
                     : Promise.resolve(undefined),
                 operations.includes("dropIndexSuggestions")
-                    ? getDropIndexSuggestions(this.apiClient, projectId, clusterName, context)
+                    ? getDropIndexSuggestions(this.server.apiClient, projectId, clusterName, request)
                     : Promise.resolve(undefined),
                 operations.includes("slowQueryLogs")
                     ? getSlowQueries(
-                          this.apiClient,
+                          this.server.apiClient,
                           projectId,
                           clusterName,
                           since ? new Date(since) : undefined,
                           namespaces,
-                          context
+                          request
                       )
                     : Promise.resolve(undefined),
                 operations.includes("schemaSuggestions")
-                    ? getSchemaAdvice(this.apiClient, projectId, clusterName, context)
+                    ? getSchemaAdvice(this.server.apiClient, projectId, clusterName, request)
                     : Promise.resolve(undefined),
             ]);
 
