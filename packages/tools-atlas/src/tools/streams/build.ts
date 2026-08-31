@@ -5,6 +5,7 @@ import type { ElicitRequestFormParams } from "@modelcontextprotocol/server";
 import type { ToolArgs } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
 import { ConnectionConfig, PrivateLinkConfig, StreamsArgs } from "../../streams/streamsArgs.js";
+import { StreamsInvalidArgumentError } from "../../streams/errors.js";
 
 const BuildResource = z.enum(["workspace", "connection", "processor", "privatelink"]);
 
@@ -237,7 +238,7 @@ export class StreamsBuildTool extends StreamsToolBase {
 
     private requireWorkspaceName(args: ToolArgs<typeof this.argsShape>): string {
         if (!args.workspaceName) {
-            throw new Error("workspaceName is required for this resource type.");
+            throw new StreamsInvalidArgumentError("workspaceName is required for this resource type.");
         }
         return args.workspaceName;
     }
@@ -248,10 +249,12 @@ export class StreamsBuildTool extends StreamsToolBase {
     ): Promise<CallToolResult> {
         const workspaceName = this.requireWorkspaceName(args);
         if (!args.cloudProvider) {
-            throw new Error("cloudProvider is required when creating a workspace. Choose from: AWS, AZURE, GCP.");
+            throw new StreamsInvalidArgumentError(
+                "cloudProvider is required when creating a workspace. Choose from: AWS, AZURE, GCP."
+            );
         }
         if (!args.region) {
-            throw new Error(
+            throw new StreamsInvalidArgumentError(
                 "region is required when creating a workspace (e.g. 'VIRGINIA_USA', 'eastus2', 'US_CENTRAL1')."
             );
         }
@@ -308,10 +311,10 @@ export class StreamsBuildTool extends StreamsToolBase {
     ): Promise<CallToolResult> {
         const workspaceName = this.requireWorkspaceName(args);
         if (!args.connectionName) {
-            throw new Error("connectionName is required when adding a connection.");
+            throw new StreamsInvalidArgumentError("connectionName is required when adding a connection.");
         }
         if (!args.connectionType) {
-            throw new Error(
+            throw new StreamsInvalidArgumentError(
                 "connectionType is required. Choose from: Kafka, Cluster, S3, Https, AWSKinesisDataStreams, AWSLambda, SchemaRegistry, Sample."
             );
         }
@@ -766,10 +769,10 @@ export class StreamsBuildTool extends StreamsToolBase {
     ): Promise<CallToolResult> {
         const workspaceName = this.requireWorkspaceName(args);
         if (!args.processorName) {
-            throw new Error("processorName is required when deploying a processor.");
+            throw new StreamsInvalidArgumentError("processorName is required when deploying a processor.");
         }
         if (!args.pipeline || args.pipeline.length === 0) {
-            throw new Error(
+            throw new StreamsInvalidArgumentError(
                 "pipeline is required. Provide an array of aggregation stages starting with $source and ending with a terminal stage ($merge, $emit, $https, or $externalFunction)."
             );
         }
@@ -847,7 +850,7 @@ export class StreamsBuildTool extends StreamsToolBase {
         context: ToolExecutionContext
     ): Promise<CallToolResult> {
         if (!args.privateLinkConfig) {
-            throw new Error(
+            throw new StreamsInvalidArgumentError(
                 "privateLinkConfig is required. Provide provider and vendor-specific fields:\n" +
                     "  AWS CONFLUENT: {provider, vendor:'CONFLUENT', region, serviceEndpointId, dnsDomain, dnsSubDomain: string[] of full FQDNs ([] for serverless)}\n" +
                     "  AWS MSK: {provider, vendor:'MSK', arn}\n" +
@@ -859,7 +862,9 @@ export class StreamsBuildTool extends StreamsToolBase {
             );
         }
         if (!args.privateLinkConfig.provider) {
-            throw new Error("privateLinkConfig.provider is required. Choose from: AWS, AZURE, GCP.");
+            throw new StreamsInvalidArgumentError(
+                "privateLinkConfig.provider is required. Choose from: AWS, AZURE, GCP."
+            );
         }
 
         const body: Record<string, unknown> = {
