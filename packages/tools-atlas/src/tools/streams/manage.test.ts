@@ -133,6 +133,25 @@ describe("StreamsManageTool", () => {
             expect(mockApiClient.startStreamProcessor).not.toHaveBeenCalled();
         });
 
+        it("should start a processor with autoscaling at the top level", async () => {
+            mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "STOPPED", name: "proc1" });
+
+            await exec({
+                ...baseArgs,
+                action: "start-processor",
+                resourceName: "proc1",
+                autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" },
+            });
+
+            expect(mockApiClient.startStreamProcessorWith).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: { autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" } },
+                }),
+                expect.anything()
+            );
+            expect(mockApiClient.startStreamProcessor).not.toHaveBeenCalled();
+        });
+
         it("should use startStreamProcessorWith when resumeFromCheckpoint is set", async () => {
             mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "STOPPED", name: "proc1" });
 
@@ -375,6 +394,66 @@ describe("StreamsManageTool", () => {
             );
             expect((result.content[0] as { text: string }).text).toContain("modified");
             expect(result.structuredContent).toEqual({ processorState: "STOPPED" });
+        });
+
+        it("should update processor tier and autoscaling together", async () => {
+            mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "STOPPED", name: "proc1" });
+            mockApiClient.updateStreamProcessor!.mockResolvedValue({
+                state: "STOPPED",
+                tier: "SP10",
+                effectiveTier: "SP10",
+                options: { autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" } },
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "modify-processor",
+                resourceName: "proc1",
+                tier: "SP10",
+                autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" },
+            });
+
+            expect(mockApiClient.updateStreamProcessor).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: {
+                        tier: "SP10",
+                        options: { autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" } },
+                    },
+                }),
+                expect.anything()
+            );
+            expect(result.structuredContent).toEqual({
+                processorState: "STOPPED",
+                tier: "SP10",
+                effectiveTier: "SP10",
+                autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" },
+            });
+        });
+
+        it("should pass null autoscaling through to disable it", async () => {
+            mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "STOPPED", name: "proc1" });
+            mockApiClient.updateStreamProcessor!.mockResolvedValue({
+                state: "STOPPED",
+                tier: "SP10",
+                effectiveTier: "SP10",
+                options: {},
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "modify-processor",
+                resourceName: "proc1",
+                autoscaling: null,
+            });
+
+            expect(mockApiClient.updateStreamProcessor).toHaveBeenCalledWith(
+                expect.objectContaining({ body: { options: { autoscaling: null } } }),
+                expect.anything()
+            );
+            expect(result.structuredContent).toEqual({
+                processorState: "STOPPED",
+                autoscaling: null,
+            });
         });
 
         it("should return error when no modifications specified", async () => {
