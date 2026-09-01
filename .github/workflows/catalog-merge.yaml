@@ -1,0 +1,45 @@
+#v1.0.0
+# Developers can modify this template to implement the included actions
+
+name: Push Dev Catalog Files
+
+on:
+  push:
+    branches:
+      - main # specify YOUR default branch name if not listed
+      - master
+    paths:
+      - ".diligent/catalog/**"
+  pull_request:
+    paths:
+      - ".diligent/catalog/**"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  Push-Dev-Files:
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Call devFilePush action
+        uses: DiligentCorp/platform-ownership/.github/actions/devFilePush@9e1b2d77a64103ae98df9bddc9482cd9286951f7  # v1.0.1
+        env:
+          REPO_NAME: ${{ github.event.repository.name }}
+          GH_REPO_READ_TOKEN: ${{ secrets.CORTEX_READ_TOKEN }}
+          CORTEX_WRITE_TOKEN: ${{ secrets.CORTEX_WRITE_TOKEN }}
+          SOURCE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  Lint-Dev-Files:
+    if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/master'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Call devFileLint action
+        uses: DiligentCorp/platform-ownership/.github/actions/devFileLint@9e1b2d77a64103ae98df9bddc9482cd9286951f7  # v1.0.1
+        env:
+          GH_REPO_READ_TOKEN: ${{ secrets.CORTEX_READ_TOKEN }}
+          REPO_NAME: ${{ github.event.repository.name }}
+          SOURCE_TOKEN: ${{ secrets.GITHUB_TOKEN }}

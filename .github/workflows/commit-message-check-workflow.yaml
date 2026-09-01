@@ -1,0 +1,36 @@
+name: 'Commit Message Check'
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - reopened
+      - synchronize
+      - ready_for_review
+
+jobs:
+  check-commit-message:
+    name: Check Commit Message
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get PR Commits
+        id: 'get-pr-commits'
+        uses: tim-actions/get-pr-commits@198af03565609bb4ed924d1260247b4881f09e7d  # master
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+          # Filter out commits made by Dependabot and Snyk
+          # Dependabot commit messages end with the line: 'Signed-off-by: dependabot[bot] <support@github.com>'
+          # Snyk commit messages include a link to their site (snyk.io)
+          filter_out_pattern: '(.*\nSigned-off-by: dependabot\[bot] <support@github\.com>$|snyk.io)'
+
+        # Check commits start with Jira ID in the format of JIRA-1234
+        # The project can be upercase, lowercase or mixed, and from 2-9 characters long
+        # The number after the dash can be 1-9 characters long
+        # This regex can be changed should teams require it, or wish to only allow certain Jira project IDs
+      - name: Check Jira ID is present in each commit
+        uses: tim-actions/commit-message-checker-with-regex@094fc16ff83d04e2ec73edb5eaf6aa267db33791  # master
+        with:
+          commits: ${{ steps.get-pr-commits.outputs.commits }}
+          pattern: '^[A-Za-z][A-Za-z0-9]{1,8}-[0-9]+'
+          error: 'Commit messages must start with a Jira ID corresponding to the change. This is required for compliance. Please rebase and edit your commit messages.'

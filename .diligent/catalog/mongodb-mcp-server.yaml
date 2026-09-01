@@ -1,0 +1,16 @@
+#This file was automatically generated during migration from the central repository
+#Relevant documentation for this file can be found here: https://github.com/DiligentCorp/platform-ownership/blob/main/docs/ForUsers/serviceFileTemplateFull.yaml
+dateVerified: "2026-09-01"
+description: "MongoDB MCP server"
+name: "DiligentCorp/mongodb-mcp-server/"
+entityTag: "mongodb-mcp-server"
+groupTags:
+  - "dilType:component"
+github:
+  organization: "DiligentCorp"
+  repository: "mongodb-mcp-server"
+jira:
+  projects:
+    - name: "DH"
+primaryParentEntityTag: "data_hub"
+owner: "rd-team-datahub"

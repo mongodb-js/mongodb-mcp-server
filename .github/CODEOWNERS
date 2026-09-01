@@ -1,1 +1,29 @@
-*          @mongodb-js/mcp-server-developers
+# For compliance, we need to be able to identify who authorized a change
+# and show that the person who authorized the change knows enough about
+# the system to know whether the change was necessary. Some teams
+# currently do this with a Jira authorization process, but as an
+# alternative teams can use Codeowners to authorize changes.
+
+# Codeowners, when set up as part of the GitHub branch protection settings
+# for `main`, can achieve the following:
+
+# - Automatically request reviews from required approvers
+# - Block a PR from merging without an approving review from one of the
+#   required approvers
+# - Create an audit trail of who the authorized approvers were at a given
+#   point in time
+
+# Updates to the Codeowners file requires a Jira, and a PR. The manager
+# for the team responsible for the service is the Codeowner of the
+# CODEOWNERS file and must approve the PR.
+
+# -------
+
+# Order is important; the last matching pattern will be the one applied
+
+# Everything that is not explicitly defined can be approved by authorized
+# Subject Matter Experts (SMEs)
+* @DiligentCorp/datahub-dev-admins
+
+# Manager must approve changes to the CODEOWNERS file
+.github/CODEOWNERS  @DiligentCorp/RDLT

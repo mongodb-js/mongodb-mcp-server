@@ -1,0 +1,10 @@
+name: Separation of Duties Check
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  check-separation-of-duties:
+    if: github.event.review.state == 'approved'
+    uses: DiligentCorp/engineering-productivity/.github/workflows/reusable-separation-of-duties.yaml@3bee646a8940e5fdf6661c4136e3b9249ec3ad0e  # v1

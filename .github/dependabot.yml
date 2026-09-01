@@ -2,43 +2,27 @@ version: 2
 updates:
   - package-ecosystem: "npm"
     directory: "/"
+    registries:
+      - npm-github
     schedule:
       interval: "weekly"
-    cooldown:
-      default-days: 7
-      include:
-        - "*"
-    ignore:
-      # We are ignoring major updates on yargs-parser because yargs-parser@22
-      # does not play nicely when bundled using webpack. Our VSCode extension
-      # bundles MCP server with the extension code and yargs-parser from MCP
-      # server ends up on the final bundle which leads to issues such as -
-      # https://github.com/mongodb-js/vscode/issues/1149.
-      #
-      # This was reported to yargs-parser as well -
-      # https://github.com/yargs/yargs-parser/issues/517 and we already tried
-      # their suggestion about disabling the meta resolution in webpack,
-      # alongside others (dependency overrides, disabling the bundling of
-      # yargs-parser), and none of the solutions yield a working extension. So
-      # until we figure out a fix for this we need to keep mongodb-mcp-server
-      # working with v21 of yargs-parser.
-      - dependency-name: "yargs-parser"
-        update-types: ["version-update:semver-major"]
+    pull-request-branch-name:
+      separator: "-"
+    # Default value is 5
+    # Set to 0 to prevent Dependabot from creating PRs
+    open-pull-requests-limit: 5
+    # This will combine all dependency updates into a single PR
     groups:
-      ai-sdk:
+      all-dependencies:
         patterns:
-          - ai
-          - "@ai-sdk/*"
-      vitest:
-        patterns:
-          - vitest
-          - "@vitest/*"
+          - "*"
+    # This prevents dependabot from bumping major versions, which often have breaking changes
     versioning-strategy: increase
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-  - package-ecosystem: "docker"
-    directory: "/"
-    schedule:
-      interval: "weekly"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+registries:
+  npm-github:
+    type: npm-registry
+    url: https://npm.pkg.github.com
+    token: ${{ secrets.PKG_READ_TOKEN }}

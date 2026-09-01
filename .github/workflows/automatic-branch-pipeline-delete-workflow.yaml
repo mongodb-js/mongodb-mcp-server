@@ -1,0 +1,56 @@
+name: Automatic Branch Pipeline Delete
+
+on:
+  delete:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+jobs:
+  delete-development-pipeline:
+    if: (github.event.ref_type == 'branch' || github.event_name == 'workflow_dispatch') # only running if either it has been manually triggered  or a branch has been deleted
+    runs-on: ubuntu-latest
+    # These permissions are needed to interact with GitHub's OIDC Token endpoint.
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Show branch
+        shell: bash
+        run: echo ${{ github.event.ref }}
+
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: install-dependencies
+        run: |
+          npm config set //npm.pkg.github.com/:_authToken ${{ secrets.PKG_READ_TOKEN }}
+          npm i -g corepack@latest
+          corepack enable
+          pnpm i
+
+      # Updates the aws account here first
+      - name: Extract dev account id
+        id: get-dev-account-id
+        run: |
+          token=$(pnpm ts-node ./lib/pipeline-config.ts --accounts | jq -r '.aws.dev')
+          echo "account_id=$token" >> $GITHUB_OUTPUT
+
+      # Runs a single command using the runners shell
+      - name: Configure AWS credentials from dev account
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::${{ steps.get-dev-account-id.outputs.account_id }}:role/${{ github.event.repository.name }}-GitHubDeployRole
+          aws-region: us-west-2
+
+      - name: Getting last commit
+        run: /usr/bin/git reset --hard $(/usr/bin/git log -1 --format='%H')
+
+      - name: Delete all Stacks for branch
+        run: |
+          npm config set //npm.pkg.github.com/:_authToken ${{ secrets.PKG_READ_TOKEN }}
+          export GITBRANCH=${{ github.event.ref }}
+          npm i -g corepack@latest
+          corepack enable
+          pnpm i
+          pnpm cdk destroy pipeline-dev --force --no-notices
+          pnpm cdk destroy $(npx cdk list --no-notices) --force --no-notices

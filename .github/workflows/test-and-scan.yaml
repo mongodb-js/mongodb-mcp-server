@@ -1,0 +1,40 @@
+name: Run tests and checkov scans
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  run-tests-and-scans:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Show branch
+        shell: bash
+        run: echo ${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+
+      - name: Checkout
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744  # v3
+
+      - name: install-dependencies
+        run: |
+          npm config set //npm.pkg.github.com/:_authToken ${{ secrets.PKG_READ_TOKEN }}
+          npm i -g corepack@latest
+          corepack enable
+          pnpm i
+
+      - name: synthesize-stacks
+        run: |
+          export GITBRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+          pnpm cdk synth
+          pnpm cdk synth -c is-gov=true || echo "Skipping gov stacks"
+
+      - name: run-tests
+        run: |
+          export GITBRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+          pnpm run test
+
+      - name: run-checkov
+        run: make checkov
+        env:
+          GITHUB_TOKEN: ${{ secrets.READ_PLATFORM_CHECKOV_EXTENSION }}
