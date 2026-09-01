@@ -428,7 +428,12 @@ export class StreamsBuildTool extends StreamsToolBase {
         }
 
         const isMskIam = auth.mechanism === "AWS_MSK_IAM";
-        const awsAuth = auth?.aws as Record<string, unknown> | undefined;
+        if (isMskIam) {
+            // SASL credentials do not apply to MSK IAM and must not be sent to Atlas.
+            delete auth.username;
+            delete auth.password;
+        }
+        const awsAuth = auth.aws as Record<string, unknown> | undefined;
         const missingFields = StreamsBuildTool.collectMissingFields([
             { key: "bootstrapServers", present: !!config.bootstrapServers, schema: KAFKA_FIELDS.bootstrapServers },
             { key: "roleArn", present: !isMskIam || !!awsAuth?.roleArn, schema: KAFKA_FIELDS.roleArn },

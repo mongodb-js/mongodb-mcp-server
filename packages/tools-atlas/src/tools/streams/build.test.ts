@@ -290,6 +290,37 @@ describe("StreamsBuildTool", () => {
             );
         });
 
+        it("should strip SASL credentials from an MSK IAM Kafka connection", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "msk-iam",
+                connectionType: "Kafka",
+                connectionConfig: {
+                    bootstrapServers: "broker1:9098",
+                    authentication: {
+                        mechanism: "AWS_MSK_IAM",
+                        username: "unneeded-user",
+                        password: "unneeded-secret",
+                        aws: { roleArn: "arn:aws:iam::123456789012:role/msk-access" },
+                    },
+                    security: { protocol: "SASL_SSL" },
+                },
+            });
+
+            expect(mockApiClient.createStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        authentication: {
+                            mechanism: "AWS_MSK_IAM",
+                            aws: { roleArn: "arn:aws:iam::123456789012:role/msk-access" },
+                        },
+                    }),
+                }),
+                expect.anything()
+            );
+        });
+
         it("should create Cluster connection and set default dbRoleToExecute", async () => {
             await exec({
                 ...baseArgs,
