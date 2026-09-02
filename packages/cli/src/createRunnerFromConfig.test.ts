@@ -415,4 +415,61 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
         expect(await regB.get(created.connectionId)).toBeUndefined();
         expect(await regGlobal.get(created.connectionId)).toBeUndefined();
     });
+
+    it("scopes connections by verified authInfo.clientId, ignoring spoofable headers", async () => {
+        const config = UserConfigSchema.parse({
+            transport: "http",
+            telemetry: "disabled",
+        });
+
+        const appServices = await makeAppServices(config);
+        const mcpHttpServer = new CliMcpHttpServer({
+            appServices,
+            options: {
+                http: {
+                    host: config.httpHost,
+                    port: config.httpPort,
+                    responseType: config.httpResponseType,
+                    headers: config.httpHeaders,
+                },
+            },
+        });
+
+        const hook = (
+            mcpHttpServer as unknown as {
+                createServerForRequest: (request: TransportRequestContext) => Promise<unknown>;
+            }
+        ).createServerForRequest.bind(mcpHttpServer);
+
+        // Authenticated requests scope by the verified clientId. Two requests
+        // from the same verified client share a scope even if they send
+        // different (spoofable) client-name headers.
+        const authedA1 = await hook({
+            headers: { "x-mcp-client-name": "spoofed" },
+            query: {},
+            authInfo: { token: "t", clientId: "verified-client-1", scopes: [] },
+        });
+        const authedA2 = await hook({
+            headers: { "x-mcp-client-name": "other-spoof" },
+            query: {},
+            authInfo: { token: "t", clientId: "verified-client-1", scopes: [] },
+        });
+        const authedB = await hook({
+            headers: { "x-mcp-client-name": "spoofed" },
+            query: {},
+            authInfo: { token: "t", clientId: "verified-client-2", scopes: [] },
+        });
+
+        const regA1 = (authedA1 as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+        const regA2 = (authedA2 as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+        const regB = (authedB as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+
+        // Same verified clientId → the same connection is visible across requests,
+        // regardless of the (client-controlled) name headers.
+        const created = await regA1.createEntry({ name: "authed-conn" });
+        expect(await regA2.get(created.connectionId)).toBe(created);
+
+        // A different verified client cannot see it, even sending the same header.
+        expect(await regB.get(created.connectionId)).toBeUndefined();
+    });
 });

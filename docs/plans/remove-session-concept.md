@@ -174,6 +174,15 @@ Options (pick one — recommend **A**):
 > can never see identified clients' connections). No-request paths (stdio, dry-run,
 > eval) keep the app-level registry. The scope is the raw trimmed header value, not a
 > hash — the store key never leaves the process.
+>
+> **Hardened — authenticated multi-tenant mode**: the header is a self-asserted
+> namespace label, not a security boundary. For authenticated/exposed deployments,
+> `HttpServerOptions.authenticate` is the required injection point: the embedder
+> supplies a `RequestAuthenticator` that resolves the verified identity of each
+> request (OAuth2 introspection / JWKS / shared secret — the embedder's choice).
+> When provided, requests that cannot be verified get 401, and connection scope is
+> the verified `authInfo.clientId` — spoofable headers are ignored. Without it,
+> the server stays unauthenticated (header/ephemeral scoping).
 - **B. Global-only**: delete `connectionScope: "session"`; all runtime connections are
   shared. Simplest, but changes the documented security posture for unauthenticated
   multi-client HTTP deployments (any client can see/use any connectionId).
