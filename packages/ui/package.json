@@ -27,7 +27,7 @@
     "check:api": "api-extractor run --config api-extractor.json",
     "update:api": "api-extractor run --local --config api-extractor.json",
     "test": "vitest --run",
-    "check": "tsc --build tsconfig.build.json --noEmit"
+    "check": "tsc --noEmit --project tsconfig.check.json"
   },
   "devDependencies": {
     "@lg-mcp/embeddable-uis": "^0.1.0",

@@ -541,9 +541,13 @@ export const ConnectionConfig: z.ZodObject<{
             "SCRAM-256": "SCRAM-256";
             "SCRAM-512": "SCRAM-512";
             OAUTHBEARER: "OAUTHBEARER";
+            AWS_MSK_IAM: "AWS_MSK_IAM";
         }>>;
         username: z.ZodOptional<z.ZodString>;
         password: z.ZodOptional<z.ZodString>;
+        aws: z.ZodOptional<z.ZodObject<{
+            roleArn: z.ZodOptional<z.ZodString>;
+        }, z.core.$loose>>;
     }, z.core.$loose>>;
     security: z.ZodOptional<z.ZodObject<{
         protocol: z.ZodOptional<z.ZodEnum<{
@@ -2650,6 +2654,11 @@ export const PrivateLinkConfig: z.ZodObject<{
     region: z.ZodOptional<z.ZodString>;
     vendor: z.ZodOptional<z.ZodString>;
     arn: z.ZodOptional<z.ZodString>;
+    authenticationScheme: z.ZodOptional<z.ZodEnum<{
+        TLS: "TLS";
+        SASL_SCRAM: "SASL_SCRAM";
+        IAM: "IAM";
+    }>>;
     dnsDomain: z.ZodOptional<z.ZodString>;
     dnsSubDomain: z.ZodOptional<z.ZodArray<z.ZodString>>;
     serviceEndpointId: z.ZodOptional<z.ZodString>;
@@ -2806,9 +2815,13 @@ export class StreamsBuildTool extends StreamsToolBase {
                     "SCRAM-256": "SCRAM-256";
                     "SCRAM-512": "SCRAM-512";
                     OAUTHBEARER: "OAUTHBEARER";
+                    AWS_MSK_IAM: "AWS_MSK_IAM";
                 }>>;
                 username: z.ZodOptional<z.ZodString>;
                 password: z.ZodOptional<z.ZodString>;
+                aws: z.ZodOptional<z.ZodObject<{
+                    roleArn: z.ZodOptional<z.ZodString>;
+                }, z.core.$loose>>;
             }, z.core.$loose>>;
             security: z.ZodOptional<z.ZodObject<{
                 protocol: z.ZodOptional<z.ZodEnum<{
@@ -2865,6 +2878,11 @@ export class StreamsBuildTool extends StreamsToolBase {
             region: z.ZodOptional<z.ZodString>;
             vendor: z.ZodOptional<z.ZodString>;
             arn: z.ZodOptional<z.ZodString>;
+            authenticationScheme: z.ZodOptional<z.ZodEnum<{
+                TLS: "TLS";
+                SASL_SCRAM: "SASL_SCRAM";
+                IAM: "IAM";
+            }>>;
             dnsDomain: z.ZodOptional<z.ZodString>;
             dnsSubDomain: z.ZodOptional<z.ZodArray<z.ZodString>>;
             serviceEndpointId: z.ZodOptional<z.ZodString>;
@@ -3047,9 +3065,13 @@ export class StreamsManageTool extends StreamsToolBase {
                     "SCRAM-256": "SCRAM-256";
                     "SCRAM-512": "SCRAM-512";
                     OAUTHBEARER: "OAUTHBEARER";
+                    AWS_MSK_IAM: "AWS_MSK_IAM";
                 }>>;
                 username: z.ZodOptional<z.ZodString>;
                 password: z.ZodOptional<z.ZodString>;
+                aws: z.ZodOptional<z.ZodObject<{
+                    roleArn: z.ZodOptional<z.ZodString>;
+                }, z.core.$loose>>;
             }, z.core.$loose>>;
             security: z.ZodOptional<z.ZodObject<{
                 protocol: z.ZodOptional<z.ZodEnum<{

@@ -457,7 +457,7 @@ describe("StreamsBuildTool", () => {
             });
 
             expect(mockElicitation.requestInput).toHaveBeenCalledTimes(2);
-            const roleElicitationSchema = mockElicitation.requestInput.mock.calls[1][1] as {
+            const roleElicitationSchema = mockElicitation.requestInput.mock.calls[1]?.[1] as {
                 properties: Record<string, unknown>;
             };
             expect(roleElicitationSchema.properties).toEqual({ roleArn: expect.any(Object) });
