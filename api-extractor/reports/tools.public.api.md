@@ -1071,9 +1071,9 @@ export const CreateDBUserArgs: {
     password: z.ZodOptional<z.ZodString>;
     roles: z.ZodArray<z.ZodObject<{
         roleName: z.ZodUnion<readonly [z.ZodEnum<{
+            backup: "backup";
             read: "read";
             atlasAdmin: "atlasAdmin";
-            backup: "backup";
             clusterMonitor: "clusterMonitor";
             dbAdmin: "dbAdmin";
             dbAdminAnyDatabase: "dbAdminAnyDatabase";
@@ -1097,9 +1097,9 @@ export class CreateDBUserTool extends AtlasToolBase {
         password: z.ZodOptional<z.ZodString>;
         roles: z.ZodArray<z.ZodObject<{
             roleName: z.ZodUnion<readonly [z.ZodEnum<{
+                backup: "backup";
                 read: "read";
                 atlasAdmin: "atlasAdmin";
-                backup: "backup";
                 clusterMonitor: "clusterMonitor";
                 dbAdmin: "dbAdmin";
                 dbAdminAnyDatabase: "dbAdminAnyDatabase";
@@ -1535,7 +1535,6 @@ export const ErrorCodes: {
     readonly ForbiddenServerSideJS: 1000009;
     readonly UnknownConnectionId: 1000010;
     readonly ConfirmationDeclined: 1000011;
-    readonly InvalidArgument: 1000012;
 };
 
 // @public (undocumented)
@@ -2953,8 +2952,8 @@ export class StreamsDiscoverTool extends StreamsToolBase {
             state: z.ZodOptional<z.ZodString>;
         }, z.core.$strip>>>;
         connection: z.ZodOptional<z.ZodObject<{
-            state: z.ZodOptional<z.ZodString>;
             type: z.ZodOptional<z.ZodString>;
+            state: z.ZodOptional<z.ZodString>;
             region: z.ZodOptional<z.ZodString>;
             clusterName: z.ZodOptional<z.ZodString>;
             bootstrapServers: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>]>>;
@@ -3227,7 +3226,7 @@ export type ToolExecutionContext<TConfig extends IToolConfig = IToolConfig> = {
 
 // @public
 export type ToolRequest<TConfig extends IToolConfig = IToolConfig> = {
-    readonly config: TConfig;
+    readonly server: ToolServer<ToolServices<TConfig>>;
     readonly raw?: ServerContext["mcpReq"];
     signal: AbortSignal;
     headers?: Record<string, unknown>;
@@ -3292,7 +3291,6 @@ export class UpgradeClusterTool extends AtlasToolBase {
         projectId: z.ZodString;
         clusterName: z.ZodString;
         targetTier: z.ZodOptional<z.ZodEnum<{
-            FLEX: "FLEX";
             M10: "M10";
             M20: "M20";
             M30: "M30";
@@ -3300,6 +3298,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
             M50: "M50";
             M60: "M60";
             M80: "M80";
+            FLEX: "FLEX";
         }>>;
         computeAutoScaling: z.ZodOptional<z.ZodBoolean>;
         minInstanceSize: z.ZodOptional<z.ZodEnum<{
@@ -3336,18 +3335,17 @@ export class UpgradeClusterTool extends AtlasToolBase {
     // (undocumented)
     outputSchema: {
         originalTier: z.ZodEnum<{
+            M10: "M10";
+            M20: "M20";
+            M30: "M30";
+            M40: "M40";
+            M50: "M50";
+            M60: "M60";
+            M80: "M80";
             FREE: "FREE";
             FLEX: "FLEX";
-            M10: "M10";
-            M20: "M20";
-            M30: "M30";
-            M40: "M40";
-            M50: "M50";
-            M60: "M60";
-            M80: "M80";
         }>;
         targetTier: z.ZodEnum<{
-            FLEX: "FLEX";
             M10: "M10";
             M20: "M20";
             M30: "M30";
@@ -3355,6 +3353,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
             M50: "M50";
             M60: "M60";
             M80: "M80";
+            FLEX: "FLEX";
         }>;
         computeAutoScaling: z.ZodOptional<z.ZodBoolean>;
         minInstanceSize: z.ZodOptional<z.ZodString>;

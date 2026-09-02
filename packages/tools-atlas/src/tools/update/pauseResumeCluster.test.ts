@@ -17,7 +17,6 @@ import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import { UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
 import type { AtlasToolServer } from "../../atlasTool.js";
-import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
 
 const defaultTestConfig: UserConfig = {
     ...UserConfigSchema.parse({}),
@@ -93,8 +92,11 @@ describe("PauseResumeClusterTool", () => {
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
         tool["invoke"](z.object(PauseResumeClusterArgsShape).parse(args), {
-            request: { server: (tool as unknown as { server: AtlasToolServer }).server, signal: new AbortController().signal },
-        } as unknown as ToolExecutionContext);
+            request: {
+                server: (tool as unknown as { server: AtlasToolServer }).server,
+                signal: new AbortController().signal,
+            },
+        });
 
     beforeEach(() => {
         tool = buildTool();

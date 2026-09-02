@@ -606,7 +606,6 @@ export const ErrorCodes: {
     readonly ForbiddenServerSideJS: 1000009;
     readonly UnknownConnectionId: 1000010;
     readonly ConfirmationDeclined: 1000011;
-    readonly InvalidArgument: 1000012;
 };
 
 // @public
@@ -1045,7 +1044,7 @@ export type ToolExecutionContext<TConfig extends IToolConfig = IToolConfig> = {
 
 // @public
 export type ToolRequest<TConfig extends IToolConfig = IToolConfig> = {
-    readonly config: TConfig;
+    readonly server: ToolServer<ToolServices<TConfig>>;
     readonly raw?: ServerContext["mcpReq"];
     signal: AbortSignal;
     headers?: Record<string, unknown>;

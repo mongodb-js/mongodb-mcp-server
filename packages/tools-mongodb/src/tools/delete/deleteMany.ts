@@ -56,7 +56,9 @@ export class DeleteManyTool extends MongoDBToolBase {
                             ],
                         },
                         verbosity: "queryPlanner",
-                        ...(request.server.config.maxTimeMS !== undefined && { maxTimeMS: request.server.config.maxTimeMS }),
+                        ...(request.server.config.maxTimeMS !== undefined && {
+                            maxTimeMS: request.server.config.maxTimeMS,
+                        }),
                     });
                 },
                 logger: this.server.logger,

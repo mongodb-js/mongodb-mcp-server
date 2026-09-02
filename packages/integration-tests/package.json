@@ -35,7 +35,6 @@
     "@mongodb-js/mcp-cli": "workspace:*",
     "@mongodb-js/mcp-ui": "workspace:*",
     "@modelcontextprotocol/client": "^2.0.0",
-    "@modelcontextprotocol/node": "^2.0.0",
     "@modelcontextprotocol/server": "^2.0.0",
     "@mongosh/service-provider-node-driver": "^5.0.2",
     "mongodb": "^7.1.1",

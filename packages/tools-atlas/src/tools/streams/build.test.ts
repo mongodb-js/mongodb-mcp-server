@@ -1,4 +1,3 @@
-import type {} from "@mongodb-js/mcp-metrics";
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { IAtlasConfig } from "@mongodb-js/mcp-tools-atlas";
@@ -10,7 +9,6 @@ import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 import type { AtlasToolServer } from "../../atlasTool.js";
-import type {} from "@mongodb-js/mcp-types";
 
 describe("StreamsBuildTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;

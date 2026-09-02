@@ -175,7 +175,7 @@ Concretely:
   never owns, them.
 - **Done — startup-only config validation**: `validateAppConfig` runs once at
   startup (connection string + Atlas credentials are `overrideBehavior:
-  "not-allowed"`, so the result is identical for every request); per-request
+"not-allowed"`, so the result is identical for every request); per-request
   servers are built with `configValidated: true` and skip the network
   revalidation.
 - **Done — amortized schema building**: `ToolBase` caches input/output schemas

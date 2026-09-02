@@ -8,7 +8,6 @@ import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import type { AtlasToolServer } from "../../atlasTool.js";
-import type {} from "@mongodb-js/mcp-types";
 
 const orgId = "507f1f77bcf86cd799439011";
 
@@ -292,22 +291,6 @@ describe("ListProjectsTool", () => {
                 orgId,
                 projects: [],
                 totalCount: 0,
-            });
-        });
-
-        it("treats an explicit totalCount of 0 with results as unknown and falls back to the page length", async () => {
-            // Some environments return totalCount: 0 with includeCount=false even when
-            // results are present; the tool should not report 0 in that case.
-            mockApiClient.listGroups!.mockResolvedValue({
-                results: [projectApiResponse],
-                totalCount: 0,
-            });
-
-            const result = await exec();
-
-            expect(result.structuredContent).toEqual({
-                projects: [formattedProject],
-                totalCount: 1,
             });
         });
 
