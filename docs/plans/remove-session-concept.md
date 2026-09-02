@@ -1,7 +1,11 @@
 # Plan: Remove "Session" as a Concept from the MCP Server
 
 > Branch: `refactor/remove-session-concept` (based on `chore/protocol-revision-2026-07-28`)
-> Status: **Plan only — no implementation yet.**
+> Status: **In progress.** Phases 0–1 (session removal, request-centric tool context) and
+> Phase 3A (client-identity connection scoping, including authenticated multi-tenant mode)
+> have landed. Phase 2 has partially landed: `AppServices` (shared once per process) and
+> startup-only config validation are in; the per-request target is now a **minimal** server
+> because the SDK's HTTP entry mandates a fresh `McpServer` per request (see Phase 2).
 
 ## 1. Goal
 
@@ -55,9 +59,13 @@ These are what "removing sessions" actually has to solve:
    `CliServer` → fresh registry view scoped to a random UUID (when
    `connectionScope: "session"`, the default). A `connect` in request N is invisible to
    request N+1. Only `connectionScope: "global"` works today.
-2. **Per-request server construction is expensive and wasteful**: fresh `McpServer`,
-   fresh `CompositeLogger`, fresh `AtlasTelemetry`, fresh exports directory (each request
-   mints a new `ObjectId` exports dir), fresh `Elicitation`.
+2. **Per-request server construction is redundant (now mostly shared)**: the SDK's HTTP
+   entry forces a fresh `McpServer` per request (see Phase 2), but the rest of what a
+   request used to build fresh — `CompositeLogger`, `AtlasTelemetry`, exports directory
+   (each request minted a new `ObjectId` dir), `Elicitation` onboarding — is now shared
+   via `AppServices`. What remains per request: `McpServer` + `Elicitation` (bound to the
+   instance) + `CliServer` + tool instantiation/registration, which Phase 2 trims and
+   amortizes.
 3. **Exports directory lifecycle is tied to `Session.close()`**; with a per-request
    server this either leaks per-request dirs or deletes exports the client might still
    be downloading on a subsequent request.
@@ -74,15 +82,20 @@ These are what "removing sessions" actually has to solve:
 App-level (built once at startup, shared, immutable config):
   UserConfig, Metrics, CompositeLogger (root), Keychain (root),
   MCPConnectionStore, ApiClient, ExportsManager (app-rooted),
-  AtlasLocalClient, DeviceId, MonitoringServer, Elicitation factory,
-  a single McpServer (+ CliServer facade) with tools registered once.
+  AtlasLocalClient, DeviceId, MonitoringServer, AtlasTelemetry.
+  (No McpServer — the SDK's HTTP entry requires a fresh instance per request,
+  so the app level holds only heavy services; see Phase 2.)
 
 Request-scoped (derived per request, never stored):
+  the minimal per-request server: fresh McpServer + Elicitation + CliServer,
+  tool instantiation/registration, and a client-scoped ConnectionRegistry view
+  (keyed by client identity).
   ToolRequest (carried as ToolExecutionContext.request):
-    { config (effective, request-overridden), raw (SDK mcpReq), signal, id,
-      headers, _meta, sendNotification, inputResponses, clientInfo,
-      elicitationDurationMs }                                   (landed)
-  + client-scoped ConnectionRegistry view (keyed by client identity)
+    { server (the request-scoped CliServer: config/logger/keychain/...),
+      raw (SDK mcpReq), signal, id, headers, _meta, sendNotification,
+      inputResponses, clientInfo, elicitationDurationMs }         (landed)
+    `config` is removed from the envelope — the effective, request-overridden
+    config is read as `server.config`.                              (planned)
 ```
 
 Concretely:
@@ -128,31 +141,64 @@ Concretely:
   (flattened from the old `requestInfo.headers`), `_meta`, `inputResponses`,
   `sendNotification`, `clientInfo`, `elicitationDurationMs`. `ApiClientRequestContext`
   mirrors the flattening (`headers` at top level) so a `ToolRequest` is passed
-  straight to Atlas API calls. Tools read `request.config` instead of
-  `this.server.config` at execute time; registration-time config reads
-  (`verifyAllowed`, `toolMeta`, description, `schemaVariantKey`, argShape) stay on
-  `server.config`.
+  straight to Atlas API calls. The effective `config` currently also travels on the
+  envelope, but since every server is request-scoped the config belongs on the
+  per-request server: execute-time reads become `request.server.config`, and
+  `request.config` is removed from the envelope (no alias, no getter — Phase 2).
+  Registration-time config reads (`verifyAllowed`, `toolMeta`, description,
+  `schemaVariantKey`, argShape) stay on `this.server.config` — the same instance, so
+  they are request-correct too. Tool bodies that access the server heavily can keep
+  using `this.server` as a shortcut: today it is the same object as `request.server`.
 - Update the 3 tools that read `session.mcpClient` to read from the context.
 - Update `IToolSession` doc/types accordingly (it already only requires
   `config`/`logger`/`keychain`).
 
-### Phase 2 — App-level services construction
+### Phase 2 — Minimal per-request server over shared app services
 
-- Collapse `createSharedServicesFromConfig` + `createServerFromConfig`
-  (`packages/cli/src/createServerServices.ts`) into a single `createAppServices(config)`
-  built once at startup.
-- Build `McpServer`, `CompositeLogger`, `AtlasTelemetry`, `Elicitation`, `ExportsManager`
-  **once**; register tools once.
-- Stdio runner: already one server per process — minimal change.
-- HTTP: `createServerForRequest` stops building servers per request; instead it only
-  applies config overrides (headers/query) into a **request-scoped effective config**
-  and resolves the client-scoped registry view.
+> **SDK constraint (why the original "one shared McpServer" Phase 2 is impossible):**
+> the 2026-07-28 serving entry `createMcpHandler` calls the server factory **once per
+> HTTP request** (and per stdio connection, plus a discarded probe instance for
+> `server/discover`), and the `McpServer` it returns is connection-scoped:
+> `connect()` owns exactly one transport, and `oninitialized`, capability negotiation,
+> `getClientVersion()`, the request-handler map and the subscription set are all
+> per-instance state. A shared, pre-registered `McpServer` therefore cannot serve
+> requests. Phase 2 is about making the mandatory per-request instance **minimal**,
+> not eliminating it.
 
-> Note: per-request config overrides currently produce a _new server_ because tools bake
-> `config` at construction. Decide: either (a) make tool config access request-aware
-> (read effective config from the execution context), or (b) restrict HTTP overrides to
-> only affect request-safe fields. This is the trickiest structural change in Phase 2 —
-> see Limitations.
+- **Done — `AppServices`**: `createAppServicesFromConfig` (collapsed from
+  `createSharedServicesFromConfig` + `createServerFromConfig`) builds every heavy
+  dependency once per process — root logger, metrics, monitoring, `Keychain`,
+  device id, `MCPConnectionStore`, `ApiClient`, `ExportsManager`,
+  `AtlasTelemetry`, Atlas Local client — and each request's server references,
+  never owns, them.
+- **Done — startup-only config validation**: `validateAppConfig` runs once at
+  startup (connection string + Atlas credentials are `overrideBehavior:
+  "not-allowed"`, so the result is identical for every request); per-request
+  servers are built with `configValidated: true` and skip the network
+  revalidation.
+- **Done — amortized schema building**: `ToolBase` caches input/output schemas
+  in static `WeakMap`s keyed by tool class and config `schemaVariantKey`, so
+  per-request `registerTool` calls reuse the same zod schema objects.
+- Remaining per-request cost (the "minimal server"): fresh `McpServer` +
+  `Elicitation` (binds to the instance's `Server`) + `CliServer` + tool
+  instantiation/registration. Trim further by precomputing per-tool JSON schemas
+  once — the SDK re-converts zod → JSON Schema on every instance — and by keeping
+  tool construction dependency-light.
+- HTTP: `createServerForRequest` keeps building the minimal instance per request
+  from `applyConfigOverrides` + a client-scoped registry view.
+- Stdio runner: already one server per connection — no change.
+
+> **Config access (chosen design)**: because every server is request-scoped by SDK
+> mandate, the effective config (base + header/query overrides) lives on the
+> per-request server, not on a base-config-bound shared instance. The single read
+> path is `request.server.config` — the request envelope carries the request-scoped
+> server (`request.server`), and there is **no `request.config` alias or getter**.
+> In tool bodies that access the server heavily, `this.server` (the
+> construction-time instance) is a valid shortcut: it is the same object as
+> `request.server` in the per-request world. Registration-time reads
+> (`verifyAllowed`, `toolMeta`, description, `schemaVariantKey`, argShape) stay on
+> `this.server.config` — same instance, same effective config, so they are
+> request-correct too.
 
 ### Phase 3 — Connection ownership without sessions (decision required)
 
@@ -246,13 +292,14 @@ Options (pick one — recommend **A**):
    itself a lightweight form of state (a lookup key, though not a server-side session
    object). If no identity is available, the fallback is global/shared connections
    (security posture change, §5 Phase 3B).
-3. **Per-request config overrides vs. shared server instance**: execute-time config
-   reads now travel on the request (`request.config`), so a shared server no longer
-   needs rebuilding per request for those. Registration-time reads (`verifyAllowed`,
-   `toolMeta`, tool `description`, `schemaVariantKey`) still consume `server.config`
-   and remain base-config-bound until the request-aware registration is designed
-   (tool enablement flags like `disabledTools`/read-only would have to be enforced at
-   invoke time on a shared instance).
+3. **No shared-server config problem (superseded)**: the original concern — execute-time
+   config reads must travel on the request so a shared server needn't be rebuilt — is
+   moot because the SDK mandates a fresh server per HTTP request anyway. The effective
+   config travels on the per-request server, read as `request.server.config`, and
+   registration-time reads are request-correct too (same instance). The residual
+   trade-off is purely cost: each request re-instantiates tools and re-registers them
+   on the fresh `McpServer`; Phase 2 amortizes it (static schema caches, shared
+   `AppServices`, no re-validation).
 4. **Performance reality check**: the current modern path is _worse_ than stateless —
    it rebuilds the entire server per request (telemetry clients, exports dirs, logger).
    The plan fixes this, but until Phase 2 lands, HTTP-per-request is expensive.

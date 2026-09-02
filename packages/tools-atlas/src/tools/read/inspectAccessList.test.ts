@@ -51,7 +51,7 @@ describe("InspectAccessListTool", () => {
     const baseArgs = { projectId: "507f1f77bcf86cd799439011" };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["execute"](args as never, { request: { config: (tool as unknown as { server: AtlasToolServer }).server.config, signal: new AbortController().signal } } as unknown as ToolExecutionContext);
+        tool["execute"](args as never, { request: { server: (tool as unknown as { server: AtlasToolServer }).server, signal: new AbortController().signal } } as unknown as ToolExecutionContext);
 
     it("returns access list entries when they exist", async () => {
         mockApiClient.listAccessListEntries!.mockResolvedValue({

@@ -135,7 +135,7 @@ export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
     protected getOperationOptions(request: ToolRequest<IMongoDBConfig>): { signal?: AbortSignal; maxTimeMS?: number } {
         return {
             ...(request.signal && { signal: request.signal }),
-            ...(request.config.maxTimeMS !== undefined && { maxTimeMS: request.config.maxTimeMS }),
+            ...(request.server.config.maxTimeMS !== undefined && { maxTimeMS: request.server.config.maxTimeMS }),
         };
     }
 

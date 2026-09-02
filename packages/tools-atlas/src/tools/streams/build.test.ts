@@ -708,7 +708,7 @@ describe("StreamsBuildTool", () => {
             expect(result.isError).toBe(true);
             const text = (result.content[0] as { text: string }).text;
             expect(text).toContain("$$NOW");
-            expect(text).toContain("not available in streaming context");
+            expect(text).toContain("not available in streaming request");
             expect(mockApiClient.createStreamProcessor).not.toHaveBeenCalled();
         });
 

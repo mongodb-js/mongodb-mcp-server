@@ -109,11 +109,12 @@ const RESOURCE_CHANGED_NOTIFICATION_TIMEOUT_MS = 30_000;
 /**
  * No-op kept for call-site compatibility.
  *
- * The request-centric design delivers config to tools through
- * `ToolExecutionContext.request.config`, which is built from the server's
- * effective config for every call. Tests that mutate `mcpServer().config`
- * (e.g. readOnly / disabledTools) see those mutations on the next tool call
- * automatically, so no per-tool config syncing is needed.
+ * The request-centric design delivers config to tools through the
+ * request-scoped server (`ToolExecutionContext.request.server.config`), which
+ * is constructed from the server's effective config for every call. Tests
+ * that mutate `mcpServer().config` (e.g. readOnly / disabledTools) see those
+ * mutations on the next tool call automatically, so no per-tool config
+ * syncing is needed.
  */
 export function syncMongoToolsConfigFromUserConfig(_mcpServer: CliServer): void {}
 
