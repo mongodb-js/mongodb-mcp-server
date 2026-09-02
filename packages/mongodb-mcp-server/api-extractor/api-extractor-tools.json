@@ -5,7 +5,7 @@
   "mainEntryPointFilePath": "<projectFolder>/dist/esm/tools/index.d.ts",
 
   "apiReport": {
-    "enabled": true,
+    "enabled": false,
     "reportFolder": "<projectFolder>/../../api-extractor/reports/",
     "reportFileName": "tools"
   },
