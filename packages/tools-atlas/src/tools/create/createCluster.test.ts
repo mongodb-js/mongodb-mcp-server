@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { CreateClusterTool, CreateClusterArgsShape } from "./createCluster.js";
 import { z } from "zod";
-import type { IAtlasSession } from "../../atlasTool.js";
+import type { IAtlasConfig, IAtlasSession } from "../../atlasTool.js";
 import type { ITelemetry, IElicitation, ICompositeLogger } from "@mongodb-js/mcp-types";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
@@ -54,7 +54,7 @@ describe("CreateClusterTool", () => {
                 confirmationRequiredTools: [],
                 previewFeatures: [],
                 disabledTools: [],
-            } as IAtlasSession["config"],
+            } as unknown as IAtlasConfig,
         };
 
         const mockTelemetry = {
