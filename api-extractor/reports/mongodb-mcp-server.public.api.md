@@ -57,7 +57,7 @@ export type AnyToolClass = Omit<ToolClass<any, any>, "new"> & {
 
 // @public (undocumented)
 export class ApiClient {
-    constructor(options: ApiClientOptions, logger: LoggerBase, authProvider?: AuthProvider);
+    constructor(input: ApiClientConstruction);
     // (undocumented)
     acceptVpcPeeringConnection(options: FetchOptions<operations["acceptGroupStreamVpcPeeringConnection"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
@@ -311,6 +311,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
     sendResourceUpdated(uri: string): void;
     // (undocumented)
     readonly serverMetadata: ServerMetadata;
+    readonly telemetry: AtlasTelemetry;
     // (undocumented)
     readonly tools: AnyToolBase[];
     // (undocumented)
@@ -324,6 +325,7 @@ export interface CliServerOptions<TMetrics extends DefaultMetricDefinitions = De
     // (undocumented)
     atlasLocalClient?: Client;
     config: UserConfig;
+    readonly configValidated?: boolean;
     // (undocumented)
     connectionErrorHandler: ConnectionErrorHandler;
     // (undocumented)
@@ -629,7 +631,9 @@ export type EventMap<T> = Record<keyof T, any[]>;
 
 // @public (undocumented)
 export class ExportedData {
-    constructor(services: ExportedDataServices);
+    constructor(input: {
+        server: CliServer;
+    });
     // (undocumented)
     register(server: CliServer): void;
 }

@@ -36,7 +36,6 @@ import type { PreviewFeature } from '@mongodb-js/mcp-types';
 import type { ReactiveResourceOptions } from '@mongodb-js/mcp-types';
 import type { ResourceConfiguration } from '@mongodb-js/mcp-types';
 import type { ResourceMetadata } from '@modelcontextprotocol/server';
-import type { ResourceServices } from '@mongodb-js/mcp-types';
 import { Secret } from 'mongodb-redact';
 import { ServerContext } from '@modelcontextprotocol/server';
 import type { SupportedConnectionState } from '@mongodb-js/mcp-types';
@@ -327,31 +326,22 @@ export class NoopTelemetry implements ITelemetry {
 // @public
 export abstract class ReactiveResource<
 /** Value stored in the resource */
-Value, TServices extends ResourceServices = ResourceServices, TServer extends IResourceServer = IResourceServer> {
+Value, TServer extends IResourceServer = IResourceServer> {
     constructor(input: {
         resourceConfiguration: ResourceConfiguration;
         options: ReactiveResourceOptions<Value>;
-        services: TServices;
-        telemetry: ITelemetry;
+        server: TServer;
         current?: Value;
     });
-    protected readonly config: TServices["config"];
     // (undocumented)
     protected current: Value;
-    // (undocumented)
-    protected readonly keychain: TServices["keychain"];
-    // (undocumented)
-    protected readonly logger: TServices["logger"];
     // (undocumented)
     protected readonly name: string;
     // (undocumented)
     register(server: TServer): void;
     // (undocumented)
     protected readonly resourceConfig: ResourceMetadata;
-    // (undocumented)
-    protected server?: TServer;
-    // (undocumented)
-    protected telemetry: ITelemetry;
+    protected server: TServer;
     // (undocumented)
     abstract toOutput(): string | Promise<string>;
     // (undocumented)

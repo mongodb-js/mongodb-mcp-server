@@ -1,5 +1,6 @@
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
-import { CompositeLogger, Elicitation, Keychain, McpServer, LogId } from "@mongodb-js/mcp-core";
+import type { CompositeLogger } from "@mongodb-js/mcp-core";
+import { Elicitation, Keychain, McpServer, LogId } from "@mongodb-js/mcp-core";
 import type { IMetrics, IDeviceId, ServerMetadata } from "@mongodb-js/mcp-types";
 import type { Client as AtlasLocalClient } from "@mongodb-js/atlas-local";
 import type { ResourceRegistry, ToolRegistry } from "./cliServer.js";

@@ -33,7 +33,7 @@ export type AnyToolBase = ToolBase<any>;
 
 // @public (undocumented)
 export class ApiClient {
-    constructor(options: ApiClientOptions, logger: LoggerBase, authProvider?: AuthProvider);
+    constructor(input: ApiClientConstruction);
     // (undocumented)
     acceptVpcPeeringConnection(options: FetchOptions<operations["acceptGroupStreamVpcPeeringConnection"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)

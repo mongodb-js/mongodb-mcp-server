@@ -37,7 +37,7 @@ export class DebugResource extends ReactiveResource<undefined, CliServer> {
             const summary = summarizeConnection(entry);
             let line = `- "${summary.connectionId}" (${summary.state}): ${summary.description}`;
             if (summary.state === "connected") {
-                const searchIndexesSupported = await entry.isSearchSupported(this.server.logger as never);
+                const searchIndexesSupported = await entry.isSearchSupported(this.server.logger);
                 line += searchIndexesSupported
                     ? " Search indexes are supported."
                     : " Search indexes are not supported.";
