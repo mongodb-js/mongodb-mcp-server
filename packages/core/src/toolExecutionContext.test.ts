@@ -14,8 +14,20 @@ const config: IToolConfig = {
 
 const server: ToolServer = { config, logger: loggerStub(), keychain: { allSecrets: [] } } as ToolServer;
 
-function loggerStub() {
-    return { debug: () => {}, info: () => {}, warning: () => {}, error: () => {}, log: () => {} };
+function loggerStub(): {
+    debug: () => void;
+    info: () => void;
+    warning: () => void;
+    error: () => void;
+    log: () => void;
+} {
+    return {
+        debug: (): void => {},
+        info: (): void => {},
+        warning: (): void => {},
+        error: (): void => {},
+        log: (): void => {},
+    };
 }
 
 function makeCtx(overrides: Partial<ServerContext> = {}): ServerContext {
@@ -50,14 +62,14 @@ describe("toToolExecutionContext", () => {
             mcpReq: {
                 signal,
                 _meta: { progressToken: 1 },
-                inputResponses: { "confirm": { value: true } },
+                inputResponses: { confirm: { value: true } },
                 notify,
             } as never,
         });
         const result = toToolExecutionContext(ctx, server);
         expect(result.request.signal).toBe(signal);
         expect(result.request._meta).toEqual({ progressToken: 1 });
-        expect(result.request.inputResponses).toEqual({ "confirm": { value: true } });
+        expect(result.request.inputResponses).toEqual({ confirm: { value: true } });
         expect(result.request.sendNotification).toBeDefined();
     });
 

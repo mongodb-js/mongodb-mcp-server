@@ -446,7 +446,7 @@ export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined>
 };
 
 // @public
-export type ToolServerParam<TServer extends ToolServer = ToolServer, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = TServer;
+export type ToolServerParam<TServer extends ToolServer = ToolServer> = TServer;
 
 // @public
 export function toToolExecutionContext<TConfig extends IToolConfig = IToolConfig>(ctx: ServerContext, server: ToolServer<ToolServices<TConfig>>, clientInfoProvider?: () => Implementation | undefined): ToolExecutionContext<TConfig>;

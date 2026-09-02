@@ -114,7 +114,10 @@ export class FindTool extends MongoDBToolBase {
                             // we don't use the limit provided to the tool either.
                             maxTimeMS:
                                 request.server.config.maxTimeMS !== undefined
-                                    ? Math.min(request.server.config.maxTimeMS, request.server.config.queryCountMaxTimeMsCap)
+                                    ? Math.min(
+                                          request.server.config.maxTimeMS,
+                                          request.server.config.queryCountMaxTimeMsCap
+                                      )
                                     : request.server.config.queryCountMaxTimeMsCap,
                             signal: request.signal,
                         }),

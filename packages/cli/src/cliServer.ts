@@ -7,7 +7,7 @@ import type { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import type { ConnectionRegistry, ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { type ConnectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
 import type { Elicitation } from "@mongodb-js/mcp-core";
-import type { AnyResourceClass, IMetrics, DefaultMetricDefinitions, ToolServer } from "@mongodb-js/mcp-types";
+import type { AnyResourceClass, IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 import type { AtlasTelemetry, TelemetryServerCommand, TelemetryServerEvent } from "@mongodb-js/mcp-atlas-telemetry";
 import type { AnyToolBase, AnyToolClass } from "@mongodb-js/mcp-core";
 import type { ToolCategory } from "@mongodb-js/mcp-types";
@@ -383,7 +383,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
 
     public registerTools(): void {
         for (const toolConstructor of this.toolConstructors) {
-            const tool = new toolConstructor(this as ToolServer<any>);
+            const tool = new toolConstructor(this);
             if (tool.register(this)) {
                 this.tools.push(tool);
             }

@@ -116,7 +116,9 @@ const RESOURCE_CHANGED_NOTIFICATION_TIMEOUT_MS = 30_000;
  * mutations on the next tool call automatically, so no per-tool config
  * syncing is needed.
  */
-export function syncMongoToolsConfigFromUserConfig(_mcpServer: CliServer): void {}
+export function syncMongoToolsConfigFromUserConfig(_mcpServer: CliServer): void {
+    void _mcpServer;
+}
 
 export function setupIntegrationTest(
     getUserConfig: () => UserConfig,
@@ -313,7 +315,7 @@ export function setupIntegrationTest(
                 if (!mcpServer?.apiClient) {
                     throw new Error("apiClient not available");
                 }
-                return mcpServer.apiClient as unknown as ApiClient;
+                return mcpServer.apiClient;
             },
         });
     };

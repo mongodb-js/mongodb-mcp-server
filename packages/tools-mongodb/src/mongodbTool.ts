@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ToolArgs, AnyToolBase, CompositeLogger, InputRequiredResult } from "@mongodb-js/mcp-core";
+import type { ToolArgs, AnyToolBase, InputRequiredResult } from "@mongodb-js/mcp-core";
 import { ToolBase } from "@mongodb-js/mcp-core";
 import type {
     McpServer,

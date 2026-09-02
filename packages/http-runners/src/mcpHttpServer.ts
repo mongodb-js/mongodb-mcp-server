@@ -1,5 +1,5 @@
 import { createMcpHandler } from "@modelcontextprotocol/server";
-import type { McpHttpHandler, McpRequestContext, McpServer } from "@modelcontextprotocol/server";
+import type { McpHttpHandler, McpRequestContext } from "@modelcontextprotocol/server";
 import { toNodeHandler } from "@modelcontextprotocol/node";
 import express from "express";
 import type {
@@ -31,8 +31,6 @@ export type MCPHttpServerOptions<TMetrics extends DefaultMetricDefinitions = Def
     /** Metrics instance */
     metrics: IMetrics<TMetrics>;
 };
-
-
 
 /**
  * HTTP server that serves MCP requests over HTTP using the stateless
@@ -113,7 +111,7 @@ export abstract class MCPHttpServer<
                 };
                 const server = await this.createServerForRequest(request);
                 await server.register();
-                return server.mcpServer as unknown as McpServer;
+                return server.mcpServer;
             },
             { legacy: "stateless" }
         );
@@ -127,7 +125,7 @@ export abstract class MCPHttpServer<
         // are rejected with 401 before the SDK sees them.
         return {
             ...handler,
-            fetch: async (request, options) => {
+            fetch: async (request, options): Promise<Response> => {
                 if (!options?.authInfo) {
                     return new Response(JSON.stringify({ error: "Unauthorized: authenticated request required" }), {
                         status: 401,

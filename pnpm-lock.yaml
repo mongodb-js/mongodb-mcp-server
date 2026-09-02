@@ -265,9 +265,6 @@ importers:
       '@modelcontextprotocol/core':
         specifier: ^2.0.0
         version: 2.0.0
-      '@modelcontextprotocol/node':
-        specifier: ^2.0.0
-        version: 2.0.0(@modelcontextprotocol/server@2.0.0)(hono@4.12.14)
       '@modelcontextprotocol/server':
         specifier: ^2.0.0
         version: 2.0.0
@@ -472,7 +469,7 @@ importers:
         specifier: ^4.1.4
         version: 4.1.9(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.9)(@vitest/coverage-v8@4.1.9)(happy-dom@20.9.0)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.1.4(@types/node@25.6.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.9.0))
       zod:
-        specifier: ^4.4.3
+        specifier: ^4.4.2
         version: 4.4.3
 
   packages/integration-tests:
@@ -480,9 +477,6 @@ importers:
       '@modelcontextprotocol/client':
         specifier: ^2.0.0
         version: 2.0.0
-      '@modelcontextprotocol/node':
-        specifier: ^2.0.0
-        version: 2.0.0(@modelcontextprotocol/server@2.0.0)(hono@4.12.14)
       '@modelcontextprotocol/server':
         specifier: ^2.0.0
         version: 2.0.0

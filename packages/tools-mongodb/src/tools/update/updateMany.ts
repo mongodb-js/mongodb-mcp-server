@@ -40,14 +40,7 @@ export class UpdateManyTool extends MongoDBToolBase {
     static operationType: OperationType = "update";
 
     protected async execute(
-        {
-            connectionId,
-            database,
-            collection,
-            filter,
-            update,
-            upsert,
-        }: ToolArgs<typeof this.argsShape>,
+        { connectionId, database, collection, filter, update, upsert }: ToolArgs<typeof this.argsShape>,
         { request }: ToolExecutionContext<IMongoDBConfig>
     ): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.resolveConnection(connectionId);
@@ -74,7 +67,9 @@ export class UpdateManyTool extends MongoDBToolBase {
                             ],
                         },
                         verbosity: "queryPlanner",
-                        ...(request.server.config.maxTimeMS !== undefined && { maxTimeMS: request.server.config.maxTimeMS }),
+                        ...(request.server.config.maxTimeMS !== undefined && {
+                            maxTimeMS: request.server.config.maxTimeMS,
+                        }),
                     });
                 },
                 logger: this.server.logger,

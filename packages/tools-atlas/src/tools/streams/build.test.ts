@@ -1,4 +1,3 @@
-import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { IAtlasConfig } from "@mongodb-js/mcp-tools-atlas";
@@ -10,7 +9,6 @@ import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 import type { AtlasToolServer } from "../../atlasTool.js";
-import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
 
 describe("StreamsBuildTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
@@ -77,7 +75,7 @@ describe("StreamsBuildTool", () => {
             elicitation: mockElicitation as unknown as Elicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
-        } as unknown as AtlasToolServer;
+        };
 
         tool = new StreamsBuildTool(server);
     });
@@ -90,7 +88,7 @@ describe("StreamsBuildTool", () => {
                 server: (tool as unknown as { server: AtlasToolServer }).server,
                 signal: new AbortController().signal,
             },
-        } as unknown as ToolExecutionContext);
+        });
 
     describe("createWorkspace", () => {
         it("should create workspace with correct provider/region/tier", async () => {

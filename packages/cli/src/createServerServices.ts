@@ -1,5 +1,6 @@
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
-import { CompositeLogger, Elicitation, Keychain, McpServer, LogId } from "@mongodb-js/mcp-core";
+import type { CompositeLogger } from "@mongodb-js/mcp-core";
+import { Elicitation, Keychain, McpServer, LogId } from "@mongodb-js/mcp-core";
 import type { IMetrics, IDeviceId, ServerMetadata, TransportRequestContext } from "@mongodb-js/mcp-types";
 import type { Client as AtlasLocalClient } from "@mongodb-js/atlas-local";
 import type { ResourceRegistry, ToolRegistry } from "./cliServer.js";
@@ -232,8 +233,20 @@ export function createServerFromConfig({
     appServices: AppServices;
     request?: TransportRequestContext;
 }): CliServer {
-    const { serverMetadata, tools, resources, logger, metrics, keychain, connectionRegistry, connectionStore, apiClient, exportsManager, telemetry, atlasLocalClient } =
-        appServices;
+    const {
+        serverMetadata,
+        tools,
+        resources,
+        logger,
+        metrics,
+        keychain,
+        connectionRegistry,
+        connectionStore,
+        apiClient,
+        exportsManager,
+        telemetry,
+        atlasLocalClient,
+    } = appServices;
 
     // HTTP: every request gets an isolated view (identified → stable scope,
     // anonymous → ephemeral scope). Non-HTTP (no request): the shared registry.
@@ -285,9 +298,6 @@ export function createServerFromConfig({
  */
 export async function closeAppServices(appServices: AppServices): Promise<void> {
     const { telemetry, connectionStore, exportsManager, apiClient } = appServices;
-    await Promise.allSettled([
-        connectionStore.closeAll(),
-        exportsManager.close(),
-    ]);
+    await Promise.allSettled([connectionStore.closeAll(), exportsManager.close()]);
     await Promise.allSettled([apiClient.close(), telemetry.close()]);
 }

@@ -125,10 +125,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         return { connectionString: cn.toString(), atlas: connectedAtlasCluster };
     }
 
-    private async deleteTemporaryUser(
-        atlas: AtlasClusterConnectionInfo,
-        request?: ToolRequest<IAtlasConfig>
-    ): Promise<void> {
+    private async deleteTemporaryUser(atlas: AtlasClusterConnectionInfo): Promise<void> {
         if (!atlas.username) {
             return;
         }

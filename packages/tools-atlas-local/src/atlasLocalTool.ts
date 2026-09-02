@@ -39,7 +39,7 @@ export abstract class AtlasLocalToolBase extends ToolBase<AtlasLocalToolServer> 
 
     protected async execute(
         args: ToolArgs<typeof this.argsShape>,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
         _context: ToolExecutionContext
     ): Promise<CallToolResult> {
         const client = this.server.atlasLocalClient;

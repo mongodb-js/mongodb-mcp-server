@@ -42,7 +42,7 @@ export class CliMcpHttpServer extends MCPHttpServer<CliServer> {
 
 /** Creates the HTTP transport runner with a {@link CliMcpHttpServer} and app-level services. */
 export function createHttpTransportRunnerFromConfig(appServices: AppServices): StreamableHttpRunner {
-    const { config, logger, metrics, monitoringServer } = appServices;
+    const { config, logger, monitoringServer } = appServices;
 
     const mcpHttpServer = new CliMcpHttpServer({
         appServices,

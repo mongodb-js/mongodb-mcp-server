@@ -1,8 +1,4 @@
-import type {
-    ReactiveResourceOptions,
-    ResourceConfiguration,
-    IResourceServer,
-} from "@mongodb-js/mcp-types";
+import type { ReactiveResourceOptions, ResourceConfiguration, IResourceServer } from "@mongodb-js/mcp-types";
 import type { ReadResourceCallback, ResourceMetadata } from "@modelcontextprotocol/server";
 
 /**

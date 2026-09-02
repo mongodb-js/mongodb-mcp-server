@@ -8,7 +8,6 @@ import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import type { Keychain } from "@mongodb-js/mcp-core";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import type { AtlasToolServer } from "../../atlasTool.js";
-import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
 
 const BASE_ARGS_WITHOUT_REGIONS = {
     projectId: "507f1f77bcf86cd799439011",
@@ -78,15 +77,12 @@ describe("CreateClusterTool", () => {
     // The invoke() result is narrowed to CallToolResult in these tests: the
     // tools under test never return input_required.
     const exec = async (args: Record<string, unknown>): Promise<CallToolResult> =>
-        (await tool["invoke"](
-            z.object(CreateClusterArgsShape).strict().parse(tool.normalizeRawArgs(args)),
-            {
-                request: {
-                    server: (tool as unknown as { server: AtlasToolServer }).server,
-                    signal: new AbortController().signal,
-                },
-            } as unknown as ToolExecutionContext
-        )) as CallToolResult;
+        (await tool["invoke"](z.object(CreateClusterArgsShape).strict().parse(tool.normalizeRawArgs(args)), {
+            request: {
+                server: (tool as unknown as { server: AtlasToolServer }).server,
+                signal: new AbortController().signal,
+            },
+        })) as CallToolResult;
 
     beforeEach(() => {
         tool = buildTool();

@@ -1,4 +1,4 @@
-import { Counter, Gauge, Histogram } from "prom-client";
+import { Histogram } from "prom-client";
 import type { DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 import type { PrometheusMetricDefinitions } from "./types.js";
 

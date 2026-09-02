@@ -27,7 +27,7 @@ export class ListDeploymentsTool extends AtlasLocalToolBase {
 
     protected async executeWithAtlasLocalClient(
         _args: ToolArgs<typeof this.argsShape>,
-        { client, context: _context }: { client: Client; context: ToolExecutionContext }
+        { client }: { client: Client; context: ToolExecutionContext }
     ): Promise<CallToolResult> {
         // List the deployments
         const deployments = await client.listDeployments();

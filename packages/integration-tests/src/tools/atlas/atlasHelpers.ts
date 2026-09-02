@@ -91,7 +91,7 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
         beforeAll(async () => {
             const session = integration.mcpServer();
             assertApiClientIsAvailable(session);
-            const apiClient = session.apiClient as ApiClient;
+            const apiClient = session.apiClient;
 
             // check that it has credentials
             if (!apiClient.isAuthConfigured()) {
@@ -335,7 +335,7 @@ export function withCluster(integration: IntegrationTest, fn: ClusterTestFunctio
             afterAll(async () => {
                 const session = integration.mcpServer();
                 assertApiClientIsAvailable(session);
-                const apiClient = session.apiClient as ApiClient;
+                const apiClient = session.apiClient;
 
                 try {
                     // send the delete request and ignore errors

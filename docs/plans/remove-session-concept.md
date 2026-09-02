@@ -175,7 +175,7 @@ Concretely:
   never owns, them.
 - **Done — startup-only config validation**: `validateAppConfig` runs once at
   startup (connection string + Atlas credentials are `overrideBehavior:
-  "not-allowed"`, so the result is identical for every request); per-request
+"not-allowed"`, so the result is identical for every request); per-request
   servers are built with `configValidated: true` and skip the network
   revalidation.
 - **Done — amortized schema building**: `ToolBase` caches input/output schemas
@@ -242,6 +242,7 @@ Options (pick one — recommend **A**):
 > `{ mode: "authenticated", state }`. `"unauthenticated"` keeps the passive
 > behavior (authInfo carries whatever the host provides, defaulting to
 > `{ mode: "unauthenticated" }`).
+
 - **B. Global-only**: delete `connectionScope: "session"`; all runtime connections are
   shared. Simplest, but changes the documented security posture for unauthenticated
   multi-client HTTP deployments (any client can see/use any connectionId).

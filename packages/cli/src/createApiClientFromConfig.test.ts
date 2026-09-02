@@ -53,7 +53,11 @@ describe("createApiClientFromConfig", () => {
         });
 
         expect(capturedApiClientArgs).toHaveLength(1);
-        const { options, logger: passedLogger, authProvider } = capturedApiClientArgs[0] as {
+        const {
+            options,
+            logger: passedLogger,
+            authProvider,
+        } = capturedApiClientArgs[0] as {
             options: {
                 baseUrl: string;
                 userAgent: string;
