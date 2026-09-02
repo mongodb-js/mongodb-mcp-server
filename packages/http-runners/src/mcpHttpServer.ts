@@ -96,7 +96,7 @@ export abstract class MCPHttpServer<
      * server-held per-client state).
      */
     protected createModernHandler(): McpHttpHandler {
-        return createMcpHandler(
+        const handler = createMcpHandler(
             async (ctx: McpRequestContext) => {
                 const request: TransportRequestContext = {
                     headers: Object.fromEntries(ctx.requestInfo?.headers ?? []),
@@ -117,6 +117,29 @@ export abstract class MCPHttpServer<
             },
             { legacy: "stateless" }
         );
+
+        if (this.httpOptions.authMode !== "authenticated") {
+            return handler;
+        }
+
+        // Authenticated mode, enforced at handler creation: every request must
+        // carry verified identity (host-supplied authInfo). Requests without it
+        // are rejected with 401 before the SDK sees them.
+        return {
+            ...handler,
+            fetch: async (request, options) => {
+                if (!options?.authInfo) {
+                    return new Response(JSON.stringify({ error: "Unauthorized: authenticated request required" }), {
+                        status: 401,
+                        headers: {
+                            "content-type": "application/json",
+                            "www-authenticate": "Bearer",
+                        },
+                    });
+                }
+                return handler.fetch(request, options);
+            },
+        };
     }
 
     // eslint-disable-next-line @typescript-eslint/require-await -- Required for override signature

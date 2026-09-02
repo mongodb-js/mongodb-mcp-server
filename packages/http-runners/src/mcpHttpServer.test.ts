@@ -218,4 +218,56 @@ describe("MCPHttpServer stateless serving", () => {
             state: { token: "tok", clientId: "verified-client-1", scopes: [] },
         });
     });
+
+    describe("authenticated mode (authMode: 'authenticated')", () => {
+        class AuthedModeServer extends MCPHttpServer<ServerLike> {
+            constructor({ onRequest }: { onRequest?: (request: TransportRequestContext) => void } = {}) {
+                super({
+                    options: { http: { ...httpOptions, authMode: "authenticated" } },
+                    logger: new InMemoryLogger(),
+                    metrics: new MockMetrics(),
+                });
+                this.onRequest = onRequest;
+            }
+            private readonly onRequest?: (request: TransportRequestContext) => void;
+            protected override createServerForRequest(request: TransportRequestContext): Promise<ServerLike> {
+                this.onRequest?.(request);
+                return Promise.resolve(makeFakeServer());
+            }
+        }
+
+        it("rejects requests without verified identity with 401", async () => {
+            server = new AuthedModeServer() as unknown as TestMCPHttpServer;
+            await server.start();
+
+            const res = await post("/mcp", MODERN_BODY);
+            expect(res.status).toBe(401);
+        });
+
+        it("serves verified requests with an always-authenticated authInfo", async () => {
+            const seen = vi.fn();
+            server = new AuthedModeServer({ onRequest: seen }) as unknown as TestMCPHttpServer;
+            const app = (server as unknown as { app: express.Express }).app;
+            app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
+                (req as express.Request & { auth?: unknown }).auth = {
+                    token: "tok",
+                    clientId: "verified-client-1",
+                    scopes: [],
+                };
+                next();
+            });
+            await server.start();
+
+            const res = await post("/mcp", MODERN_BODY, { authorization: "Bearer good-token" });
+            expect(res.status).toBe(200);
+            expect(seen).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    authInfo: {
+                        mode: "authenticated",
+                        state: { token: "tok", clientId: "verified-client-1", scopes: [] },
+                    },
+                })
+            );
+        });
+    });
 });
