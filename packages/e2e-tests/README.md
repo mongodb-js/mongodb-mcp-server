@@ -21,15 +21,15 @@ Tests **skip** when a harness binary or credentials are missing (not part of the
 
 ## Environment variables
 
-| Variable | Purpose |
-| --- | --- |
-| `GROVE_API_KEY` | Provider key for the grove gateway (both harnesses). Required locally and in CI. |
-| `AGENT_E2E_MODEL` | Shared model override (overridden by the per-harness vars below). |
-| `AGENT_E2E_CODEX_MODEL` | Codex model override (default: the model in use on this machine). |
-| `AGENT_E2E_CLAUDE_MODEL` | Claude model override (default: `claude-haiku-4-5`). |
-| `AGENT_E2E_CODEX_BIN` / `AGENT_E2E_CLAUDE_BIN` | Harness binary paths. |
-| `AGENT_E2E_TUI_BACKEND` | tui-test backend: `alacritty` (default), `ghostty`, `rio`. |
-| `AGENT_E2E_DEBUG` | Debug output: config dumps (redacted), TUI state/transcript streams, agent replies. |
+| Variable                                       | Purpose                                                                             |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `GROVE_API_KEY`                                | Provider key for the grove gateway (both harnesses). Required locally and in CI.    |
+| `AGENT_E2E_MODEL`                              | Shared model override (overridden by the per-harness vars below).                   |
+| `AGENT_E2E_CODEX_MODEL`                        | Codex model override (default: the model in use on this machine).                   |
+| `AGENT_E2E_CLAUDE_MODEL`                       | Claude model override (default: `claude-haiku-4-5`).                                |
+| `AGENT_E2E_CODEX_BIN` / `AGENT_E2E_CLAUDE_BIN` | Harness binary paths.                                                               |
+| `AGENT_E2E_TUI_BACKEND`                        | tui-test backend: `alacritty` (default), `ghostty`, `rio`.                          |
+| `AGENT_E2E_DEBUG`                              | Debug output: config dumps (redacted), TUI state/transcript streams, agent replies. |
 
 ## How it works
 
