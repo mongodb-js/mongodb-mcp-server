@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NoopLogger, type CompositeLogger } from "@mongodb-js/mcp-core";
 import { StdioRunner } from "@mongodb-js/mcp-core";
 import type * as McpCore from "@mongodb-js/mcp-core";
+import type { ConnectionRegistry } from "@mongodb-js/mcp-tools-mongodb";
 import type * as McpToolsMongodb from "@mongodb-js/mcp-tools-mongodb";
 import { StreamableHttpRunner } from "@mongodb-js/mcp-http-runners";
 import type { TransportRequestContext } from "@mongodb-js/mcp-types";
@@ -344,12 +345,74 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
         expect(serverA).not.toBe(serverB);
         expect(createdServers).toHaveLength(2);
 
-        // Both request-scoped servers share the same app-level connection registry.
-        expect((serverA as { connectionRegistry: unknown }).connectionRegistry).toBe(appServices.connectionRegistry);
-        expect((serverB as { connectionRegistry: unknown }).connectionRegistry).toBe(appServices.connectionRegistry);
+        // HTTP requests (even anonymous ones) get isolated registry views over
+        // the shared store — never the app-level registry itself.
+        expect((serverA as { connectionRegistry: unknown }).connectionRegistry).not.toBe(
+            appServices.connectionRegistry
+        );
+        expect((serverB as { connectionRegistry: unknown }).connectionRegistry).not.toBe(
+            appServices.connectionRegistry
+        );
 
         // Request override isolation: only the first request got read-only=true
         expect((serverA as { config: { readOnly: boolean } }).config.readOnly).toBe(true);
         expect((serverB as { config: { readOnly: boolean } }).config.readOnly).toBe(false);
+    });
+
+    it("scopes connections per client identity: same name shares, different names isolate", async () => {
+        const config = UserConfigSchema.parse({
+            transport: "http",
+            telemetry: "disabled",
+        });
+
+        const appServices = await makeAppServices(config);
+        const mcpHttpServer = new CliMcpHttpServer({
+            appServices,
+            options: {
+                http: {
+                    host: config.httpHost,
+                    port: config.httpPort,
+                    responseType: config.httpResponseType,
+                    headers: config.httpHeaders,
+                },
+            },
+        });
+
+        const hook = (
+            mcpHttpServer as unknown as {
+                createServerForRequest: (request: TransportRequestContext) => Promise<unknown>;
+            }
+        ).createServerForRequest.bind(mcpHttpServer);
+
+        const clientA1 = await hook({ headers: { "x-mcp-client-name": "alice" }, query: {} });
+        const clientA2 = await hook({ headers: { "x-mcp-client-name": "alice" }, query: {} });
+        const clientB = await hook({ headers: { "x-mcp-client-name": "bob" }, query: {} });
+        const unnamed = await hook({ headers: {}, query: {} });
+
+        const regA = (clientA1 as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+        const regA2 = (clientA2 as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+        const regB = (clientB as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+        const regGlobal = (unnamed as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+
+        // Different clients / unnamed clients hold distinct registry views.
+        expect(regA).not.toBe(regB);
+        expect(regA).not.toBe(regGlobal);
+        expect(regB).not.toBe(regGlobal);
+
+        // An anonymous request is isolated too: it never sees identified
+        // clients' connections (and holds no cross-request state).
+        expect(regGlobal).not.toBe(appServices.connectionRegistry);
+
+        // Behavioral scoping: a connection created by "alice" is visible to
+        // alice's later request (same stable scope across requests), but
+        // invisible to "bob" and to unnamed clients.
+        const created = await regA.createEntry({ name: "alice-conn" });
+        expect(created.connectionId).toBeDefined();
+        // A connection created by "alice" is visible to alice's later request
+        // (same stable scope across requests), but invisible to "bob" and to
+        // anonymous requests (each gets its own isolated view).
+        expect(await regA2.get(created.connectionId)).toBe(created);
+        expect(await regB.get(created.connectionId)).toBeUndefined();
+        expect(await regGlobal.get(created.connectionId)).toBeUndefined();
     });
 });

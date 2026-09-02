@@ -15,6 +15,7 @@ export {
     closeAppServices,
     type AppServices,
     type CreateServerServicesOptions,
+    CLIENT_SCOPE_HEADER,
     CliMcpHttpServer,
     CliStdioRunner,
     createHttpTransportRunnerFromConfig,

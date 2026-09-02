@@ -30,7 +30,7 @@ export class CliMcpHttpServer extends MCPHttpServer<CliServer> {
     protected override async createServerForRequest(request: TransportRequestContext): Promise<CliServer> {
         const config = applyConfigOverrides({ baseConfig: this.appServices.config, request });
 
-        return Promise.resolve(createServerFromConfig({ config, appServices: this.appServices }));
+        return Promise.resolve(createServerFromConfig({ config, appServices: this.appServices, request }));
     }
 
     /** Stops the HTTP server and releases app-level services. */
