@@ -75,7 +75,7 @@ export async function createTestServer(config: UserConfig, options: CreateTestSe
         version: packageInfo.version,
     });
 
-    const elicitation = new Elicitation({ server: mcpServer.server, timeoutMs: config.elicitationTimeoutMs });
+    const elicitation = new Elicitation({ server: mcpServer.server });
 
     const session = new Session({
         logger,

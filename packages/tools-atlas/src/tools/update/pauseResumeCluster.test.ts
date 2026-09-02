@@ -3,7 +3,7 @@ import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { PauseResumeClusterTool, PauseResumeClusterArgsShape } from "./pauseResumeCluster.js";
 import { z } from "zod";
 import type { IAtlasSession, IAtlasConfig } from "../../atlasTool.js";
-import type { ITelemetry, IElicitation, ICompositeLogger } from "@mongodb-js/mcp-types";
+import type { ITelemetry, ICompositeLogger } from "@mongodb-js/mcp-types";
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
@@ -15,7 +15,7 @@ import {
 } from "@mongodb-js/mcp-tools-mongodb";
 import type { ConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
-import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import { UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
 
 const defaultTestConfig: UserConfig = {
@@ -76,9 +76,7 @@ describe("PauseResumeClusterTool", () => {
             emitEvents: vi.fn(),
         } as unknown as ITelemetry;
 
-        const mockElicitation = {
-            requestConfirmation: vi.fn(),
-        } as unknown as IElicitation;
+        const mockElicitation = createMockElicitation();
 
         const params: ToolConstructorParams<IAtlasSession> = {
             name: PauseResumeClusterTool.toolName,

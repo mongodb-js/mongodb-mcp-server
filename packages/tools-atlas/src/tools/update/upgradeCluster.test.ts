@@ -3,12 +3,12 @@ import { z } from "zod";
 import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { UpgradeClusterTool } from "./upgradeCluster.js";
 import type { IAtlasSession, IAtlasConfig } from "../../atlasTool.js";
-import type { ITelemetry, IElicitation, ICompositeLogger } from "@mongodb-js/mcp-types";
+import type { ITelemetry, ICompositeLogger } from "@mongodb-js/mcp-types";
 import { Keychain } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
-import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 
 function notFoundError(): ApiClientError {
     return ApiClientError.fromError(new Response(null, { status: 404, statusText: "Not Found" }), "cluster not found");
@@ -178,9 +178,7 @@ describe("UpgradeClusterTool", () => {
             emitEvents: vi.fn(),
         } as unknown as ITelemetry;
 
-        const mockElicitation = {
-            requestConfirmation: vi.fn(),
-        } as unknown as IElicitation;
+        const mockElicitation = createMockElicitation();
 
         const params: ToolConstructorParams<IAtlasSession> = {
             name: UpgradeClusterTool.toolName,

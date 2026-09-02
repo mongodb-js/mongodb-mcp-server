@@ -5,7 +5,7 @@
 ```ts
 
 import type { AggregationCursor } from 'mongodb';
-import type { CallToolResult } from '@modelcontextprotocol/server';
+import { CallToolResult } from '@modelcontextprotocol/server';
 import type { Client } from '@mongodb-js/atlas-local';
 import { CliOptions } from '@mongosh/arg-parser';
 import { ConnectionInfo as ConnectionInfo_2 } from '@mongosh/arg-parser';
@@ -15,15 +15,14 @@ import type { ElicitRequestFormParams } from '@modelcontextprotocol/server';
 import { EventEmitter } from 'events';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
+import { InputRequiredResult } from '@modelcontextprotocol/server';
+import type { InputResponses } from '@modelcontextprotocol/server';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/server';
 import { McpServer } from '@modelcontextprotocol/server';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
-import type { ProgressToken } from '@modelcontextprotocol/server';
-import type { RequestId } from '@modelcontextprotocol/server';
 import type { RequestMeta } from '@modelcontextprotocol/server';
 import type { Secret } from 'mongodb-redact';
-import type { ServerNotification } from '@modelcontextprotocol/server';
-import type { ToolAnnotations } from '@modelcontextprotocol/server';
+import { ToolAnnotations } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import { ZodRawShape } from 'zod';
 import { ZodString } from 'zod';
@@ -43,7 +42,7 @@ export class AggregateDBTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof AggregateDBTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof AggregateDBTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof AggregateDBTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof AggregateDBTool.outputSchema> | InputRequiredResult>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -99,7 +98,7 @@ export class AggregateTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof AggregateTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof AggregateTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof AggregateTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof AggregateTool.outputSchema> | InputRequiredResult>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -541,9 +540,13 @@ export const ConnectionConfig: z.ZodObject<{
             "SCRAM-256": "SCRAM-256";
             "SCRAM-512": "SCRAM-512";
             OAUTHBEARER: "OAUTHBEARER";
+            AWS_MSK_IAM: "AWS_MSK_IAM";
         }>>;
         username: z.ZodOptional<z.ZodString>;
         password: z.ZodOptional<z.ZodString>;
+        aws: z.ZodOptional<z.ZodObject<{
+            roleArn: z.ZodOptional<z.ZodString>;
+        }, z.core.$loose>>;
     }, z.core.$loose>>;
     security: z.ZodOptional<z.ZodObject<{
         protocol: z.ZodOptional<z.ZodEnum<{
@@ -556,8 +559,8 @@ export const ConnectionConfig: z.ZodObject<{
     dbRoleToExecute: z.ZodOptional<z.ZodObject<{
         role: z.ZodOptional<z.ZodString>;
         type: z.ZodOptional<z.ZodEnum<{
-            CUSTOM: "CUSTOM";
             BUILT_IN: "BUILT_IN";
+            CUSTOM: "CUSTOM";
         }>>;
     }, z.core.$strip>>;
     aws: z.ZodOptional<z.ZodObject<{
@@ -2539,7 +2542,7 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
     // (undocumented)
     static category: ToolCategory;
     protected get config(): IMongoDBConfig;
-    protected confirmWriteStages(targets: WriteStageTarget[], context: ToolExecutionContext): Promise<void>;
+    protected getInputRequiredResult(targets: WriteStageTarget[], context: ToolExecutionContext): InputRequiredResult | null;
     protected getOperationOptions(signal?: AbortSignal): {
         signal?: AbortSignal;
         maxTimeMS?: number;
@@ -2650,6 +2653,11 @@ export const PrivateLinkConfig: z.ZodObject<{
     region: z.ZodOptional<z.ZodString>;
     vendor: z.ZodOptional<z.ZodString>;
     arn: z.ZodOptional<z.ZodString>;
+    authenticationScheme: z.ZodOptional<z.ZodEnum<{
+        TLS: "TLS";
+        SASL_SCRAM: "SASL_SCRAM";
+        IAM: "IAM";
+    }>>;
     dnsDomain: z.ZodOptional<z.ZodString>;
     dnsSubDomain: z.ZodOptional<z.ZodArray<z.ZodString>>;
     serviceEndpointId: z.ZodOptional<z.ZodString>;
@@ -2767,9 +2775,9 @@ export class StreamsBuildTool extends StreamsToolBase {
     argsShape: {
         projectId: z.ZodString;
         resource: z.ZodEnum<{
-            processor: "processor";
             workspace: "workspace";
             connection: "connection";
+            processor: "processor";
             privatelink: "privatelink";
         }>;
         workspaceName: z.ZodOptional<z.ZodString>;
@@ -2780,17 +2788,17 @@ export class StreamsBuildTool extends StreamsToolBase {
         }>>;
         region: z.ZodOptional<z.ZodString>;
         tier: z.ZodOptional<z.ZodEnum<{
-            SP50: "SP50";
-            SP30: "SP30";
-            SP10: "SP10";
-            SP5: "SP5";
             SP2: "SP2";
+            SP5: "SP5";
+            SP10: "SP10";
+            SP30: "SP30";
+            SP50: "SP50";
         }>>;
         includeSampleData: z.ZodOptional<z.ZodBoolean>;
         connectionName: z.ZodOptional<z.ZodString>;
         connectionType: z.ZodOptional<z.ZodEnum<{
-            Cluster: "Cluster";
             Kafka: "Kafka";
+            Cluster: "Cluster";
             S3: "S3";
             Https: "Https";
             AWSKinesisDataStreams: "AWSKinesisDataStreams";
@@ -2806,9 +2814,13 @@ export class StreamsBuildTool extends StreamsToolBase {
                     "SCRAM-256": "SCRAM-256";
                     "SCRAM-512": "SCRAM-512";
                     OAUTHBEARER: "OAUTHBEARER";
+                    AWS_MSK_IAM: "AWS_MSK_IAM";
                 }>>;
                 username: z.ZodOptional<z.ZodString>;
                 password: z.ZodOptional<z.ZodString>;
+                aws: z.ZodOptional<z.ZodObject<{
+                    roleArn: z.ZodOptional<z.ZodString>;
+                }, z.core.$loose>>;
             }, z.core.$loose>>;
             security: z.ZodOptional<z.ZodObject<{
                 protocol: z.ZodOptional<z.ZodEnum<{
@@ -2821,8 +2833,8 @@ export class StreamsBuildTool extends StreamsToolBase {
             dbRoleToExecute: z.ZodOptional<z.ZodObject<{
                 role: z.ZodOptional<z.ZodString>;
                 type: z.ZodOptional<z.ZodEnum<{
-                    CUSTOM: "CUSTOM";
                     BUILT_IN: "BUILT_IN";
+                    CUSTOM: "CUSTOM";
                 }>>;
             }, z.core.$strip>>;
             aws: z.ZodOptional<z.ZodObject<{
@@ -2865,6 +2877,11 @@ export class StreamsBuildTool extends StreamsToolBase {
             region: z.ZodOptional<z.ZodString>;
             vendor: z.ZodOptional<z.ZodString>;
             arn: z.ZodOptional<z.ZodString>;
+            authenticationScheme: z.ZodOptional<z.ZodEnum<{
+                TLS: "TLS";
+                SASL_SCRAM: "SASL_SCRAM";
+                IAM: "IAM";
+            }>>;
             dnsDomain: z.ZodOptional<z.ZodString>;
             dnsSubDomain: z.ZodOptional<z.ZodArray<z.ZodString>>;
             serviceEndpointId: z.ZodOptional<z.ZodString>;
@@ -2875,15 +2892,15 @@ export class StreamsBuildTool extends StreamsToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof StreamsBuildTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    protected execute(args: ToolArgs<typeof StreamsBuildTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
     outputSchema: {
         resource: z.ZodEnum<{
-            processor: "processor";
             workspace: "workspace";
             connection: "connection";
+            processor: "processor";
             privatelink: "privatelink";
         }>;
     };
@@ -2949,10 +2966,10 @@ export class StreamsDiscoverTool extends StreamsToolBase {
             connectionCount: z.ZodNumber;
         }, z.core.$strip>>;
         processorState: z.ZodOptional<z.ZodEnum<{
-            FAILED: "FAILED";
             STARTED: "STARTED";
             STOPPED: "STOPPED";
             CREATED: "CREATED";
+            FAILED: "FAILED";
         }>>;
         tier: z.ZodOptional<z.ZodString>;
         stats: z.ZodOptional<z.ZodObject<{
@@ -3016,11 +3033,11 @@ export class StreamsManageTool extends StreamsToolBase {
         }>;
         resourceName: z.ZodOptional<z.ZodString>;
         tier: z.ZodOptional<z.ZodEnum<{
-            SP50: "SP50";
-            SP30: "SP30";
-            SP10: "SP10";
-            SP5: "SP5";
             SP2: "SP2";
+            SP5: "SP5";
+            SP10: "SP10";
+            SP30: "SP30";
+            SP50: "SP50";
         }>>;
         resumeFromCheckpoint: z.ZodOptional<z.ZodBoolean>;
         startAtOperationTime: z.ZodOptional<z.ZodString>;
@@ -3033,11 +3050,11 @@ export class StreamsManageTool extends StreamsToolBase {
         newName: z.ZodOptional<z.ZodString>;
         newRegion: z.ZodOptional<z.ZodString>;
         newTier: z.ZodOptional<z.ZodEnum<{
-            SP50: "SP50";
-            SP30: "SP30";
-            SP10: "SP10";
-            SP5: "SP5";
             SP2: "SP2";
+            SP5: "SP5";
+            SP10: "SP10";
+            SP30: "SP30";
+            SP50: "SP50";
         }>>;
         connectionConfig: z.ZodOptional<z.ZodObject<{
             bootstrapServers: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>]>, z.ZodTransform<string, string | string[]>>>;
@@ -3047,9 +3064,13 @@ export class StreamsManageTool extends StreamsToolBase {
                     "SCRAM-256": "SCRAM-256";
                     "SCRAM-512": "SCRAM-512";
                     OAUTHBEARER: "OAUTHBEARER";
+                    AWS_MSK_IAM: "AWS_MSK_IAM";
                 }>>;
                 username: z.ZodOptional<z.ZodString>;
                 password: z.ZodOptional<z.ZodString>;
+                aws: z.ZodOptional<z.ZodObject<{
+                    roleArn: z.ZodOptional<z.ZodString>;
+                }, z.core.$loose>>;
             }, z.core.$loose>>;
             security: z.ZodOptional<z.ZodObject<{
                 protocol: z.ZodOptional<z.ZodEnum<{
@@ -3062,8 +3083,8 @@ export class StreamsManageTool extends StreamsToolBase {
             dbRoleToExecute: z.ZodOptional<z.ZodObject<{
                 role: z.ZodOptional<z.ZodString>;
                 type: z.ZodOptional<z.ZodEnum<{
-                    CUSTOM: "CUSTOM";
                     BUILT_IN: "BUILT_IN";
+                    CUSTOM: "CUSTOM";
                 }>>;
             }, z.core.$strip>>;
             aws: z.ZodOptional<z.ZodObject<{
@@ -3104,16 +3125,16 @@ export class StreamsManageTool extends StreamsToolBase {
     // (undocumented)
     outputSchema: {
         processorState: z.ZodOptional<z.ZodEnum<{
-            FAILED: "FAILED";
             STARTED: "STARTED";
             STOPPED: "STOPPED";
             CREATED: "CREATED";
+            FAILED: "FAILED";
         }>>;
         connectionState: z.ZodOptional<z.ZodEnum<{
-            DELETING: "DELETING";
             FAILED: "FAILED";
             PENDING: "PENDING";
             READY: "READY";
+            DELETING: "DELETING";
         }>>;
         region: z.ZodOptional<z.ZodString>;
         tier: z.ZodOptional<z.ZodString>;
@@ -3134,8 +3155,8 @@ export class StreamsTeardownTool extends StreamsToolBase {
         projectId: z.ZodString;
         resource: z.ZodEnum<{
             processor: "processor";
-            workspace: "workspace";
             connection: "connection";
+            workspace: "workspace";
             privatelink: "privatelink";
             peering: "peering";
         }>;
@@ -3154,8 +3175,8 @@ export class StreamsTeardownTool extends StreamsToolBase {
     outputSchema: {
         resource: z.ZodEnum<{
             processor: "processor";
-            workspace: "workspace";
             connection: "connection";
+            workspace: "workspace";
             privatelink: "privatelink";
             peering: "peering";
         }>;
@@ -3198,15 +3219,14 @@ export abstract class ToolBase<TSession extends IToolSession = IToolSession, TMe
     // (undocumented)
     disable(): void;
     protected readonly elicitation: IElicitation;
-    protected elicitationRelatedRequestId(context: ToolExecutionContext): RequestId | undefined;
     // (undocumented)
     enable(): void;
-    protected abstract execute(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    protected abstract execute(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
     protected getConfirmationMessage(args: ToolArgs<typeof ToolBase.argsShape>): string;
     // (undocumented)
     protected getConnectionInfoMetadata(connectionState?: SupportedConnectionState): ConnectionMetadata;
     protected handleError(error: unknown, args: z.infer<z.ZodObject<typeof ToolBase.argsShape>>): Promise<CallToolResult> | CallToolResult;
-    invoke(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    invoke(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
     // (undocumented)
     isEnabled(): boolean;
     // (undocumented)
@@ -3220,7 +3240,7 @@ export abstract class ToolBase<TSession extends IToolSession = IToolSession, TMe
     register(server: {
         mcpServer: McpServer;
     }): boolean;
-    protected requestConfirmation(message: string, context: ToolExecutionContext): Promise<boolean>;
+    protected requestConfirmation(message: string, context: ToolExecutionContext): boolean | undefined;
     requiresConfirmation(): boolean;
     protected abstract resolveTelemetryMetadata(args: ToolArgs<typeof ToolBase.argsShape>, input: {
         result: CallToolResult;
@@ -3265,6 +3285,7 @@ export type ToolExecutionContext = {
     _meta?: RequestMeta;
     requestId?: string | number;
     sendNotification?: (notification: unknown) => Promise<void>;
+    inputResponses?: ElicitationInputResponses;
     elicitationDurationMs?: number;
 };
 

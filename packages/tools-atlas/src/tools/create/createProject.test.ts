@@ -3,9 +3,9 @@ import { z } from "zod";
 import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { CreateProjectTool } from "./createProject.js";
 import type { IAtlasSession } from "../../atlasTool.js";
-import type { ITelemetry, IElicitation, ICompositeLogger } from "@mongodb-js/mcp-types";
+import type { ITelemetry, ICompositeLogger } from "@mongodb-js/mcp-types";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
-import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 
@@ -38,7 +38,7 @@ describe("CreateProjectTool", () => {
             operationType: CreateProjectTool.operationType,
             session: mockSession,
             telemetry: { isTelemetryEnabled: () => false, emitEvents: vi.fn() } as unknown as ITelemetry,
-            elicitation: { requestConfirmation: vi.fn() } as unknown as IElicitation,
+            elicitation: createMockElicitation(),
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
         };

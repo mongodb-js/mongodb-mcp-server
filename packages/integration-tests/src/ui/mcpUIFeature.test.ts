@@ -201,7 +201,6 @@ describe("mcpUI feature with custom UIs", () => {
         const mcpServerInstance = new McpServer({ name: "test", version: "1.0" });
         const elicitation = new Elicitation({
             server: mcpServerInstance.server,
-            timeoutMs: userConfig.elicitationTimeoutMs,
         });
 
         const server = new CliServer({
