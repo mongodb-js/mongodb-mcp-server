@@ -748,9 +748,6 @@ importers:
       '@mongosh/service-provider-node-driver':
         specifier: ^5.0.2
         version: 5.0.2(mongodb-log-writer@2.5.13(bson@7.3.1))
-      mongodb-redact:
-        specifier: ^1.4.6
-        version: 1.4.7
     devDependencies:
       '@anthropic-ai/mcpb':
         specifier: 2.1.2
