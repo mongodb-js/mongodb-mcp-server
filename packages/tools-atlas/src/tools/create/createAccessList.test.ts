@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { CreateAccessListTool } from "./createAccessList.js";
 import { DEFAULT_ACCESS_LIST_COMMENT } from "../../helpers/accessListUtils.js";
-import type { IAtlasSession } from "../../atlasTool.js";
+import type { IAtlasConfig, IAtlasSession } from "../../atlasTool.js";
 import type { ITelemetry, IElicitation, ICompositeLogger } from "@mongodb-js/mcp-types";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
@@ -45,7 +45,7 @@ describe("CreateAccessListTool", () => {
                 confirmationRequiredTools: [],
                 previewFeatures: [],
                 disabledTools: [],
-            } as IAtlasSession["config"],
+            } as unknown as IAtlasConfig,
         } as unknown as IAtlasSession;
 
         const params: ToolConstructorParams<IAtlasSession> = {
