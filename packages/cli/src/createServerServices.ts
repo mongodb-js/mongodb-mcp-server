@@ -1,6 +1,6 @@
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 import { CompositeLogger, Elicitation, Keychain, McpServer, LogId } from "@mongodb-js/mcp-core";
-import type { IMetrics, IDeviceId, ServerMetadata } from "@mongodb-js/mcp-types";
+import type { IMetrics, IDeviceId, ServerMetadata, TransportRequestContext } from "@mongodb-js/mcp-types";
 import type { Client as AtlasLocalClient } from "@mongodb-js/atlas-local";
 import type { ResourceRegistry, ToolRegistry } from "./cliServer.js";
 import { CliServer } from "./cliServer.js";
@@ -172,20 +172,63 @@ export async function createAppServicesFromConfig(options: CreateServerServicesO
 }
 
 /**
+ * The HTTP header a client may send to identify itself for connection
+ * scoping (multi-tenant HTTP deployments). When present, connections the
+ * client creates are scoped to this value: they survive across that client's
+ * requests (same scope) but are invisible to other clients (different scope).
+ * Clients that don't send it share the global registry, matching the
+ * pre-Phase-3 behavior.
+ *
+ * Deliberately outside the `x-mongodb-mcp-` prefix used by request config
+ * overrides (see applyConfigOverrides), so it is never mistaken for one.
+ */
+export const CLIENT_SCOPE_HEADER = "x-mcp-client-name";
+
+/** Derives a connection scope from the request's client-identity header, if present. */
+function clientScopeFromRequest(request?: TransportRequestContext): string | undefined {
+    const header = request?.headers?.[CLIENT_SCOPE_HEADER];
+    const name = typeof header === "string" && header.length > 0 ? header.trim() : undefined;
+    return name;
+}
+
+/** A fresh, unguessable scope for a request whose client did not identify itself. */
+function ephemeralClientScope(): string {
+    return `anon:${globalThis.crypto.randomUUID()}`;
+}
+
+/**
  * Creates one request-scoped server instance from an effective (possibly
- * request-overridden) config. Only the effective config view and
- * the request-scoped {@link McpServer}/{@link Elicitation}/{@link CliServer}
- * are created fresh; every heavy dependency comes from {@link AppServices}.
+ * request-overridden) config. Only the effective config view, the connection
+ * registry view and the request-scoped
+ * {@link McpServer}/{@link Elicitation}/{@link CliServer} are created fresh;
+ * every heavy dependency comes from {@link AppServices}.
+ *
+ * When `request` is present (HTTP), the server's connection registry is an
+ * isolated scoped+owned view over the shared store: a client that identifies
+ * itself (`x-mongodb-mcp-client-name`) gets a stable scope — its connections
+ * survive across its requests while staying invisible to other clients — and
+ * an anonymous request gets an ephemeral scope (no cross-request state, and
+ * it can never see identified clients' connections). Without a request
+ * (stdio/dry-run, a single client per process) the app-level registry is
+ * used as-is.
  */
 export function createServerFromConfig({
     config,
     appServices,
+    request,
 }: {
     config: UserConfig;
     appServices: AppServices;
+    request?: TransportRequestContext;
 }): CliServer {
-    const { serverMetadata, tools, resources, logger, metrics, keychain, connectionRegistry, apiClient, exportsManager, telemetry, atlasLocalClient } =
+    const { serverMetadata, tools, resources, logger, metrics, keychain, connectionRegistry, connectionStore, apiClient, exportsManager, telemetry, atlasLocalClient } =
         appServices;
+
+    // HTTP: every request gets an isolated view (identified → stable scope,
+    // anonymous → ephemeral scope). Non-HTTP (no request): the shared registry.
+    const scope = request ? (clientScopeFromRequest(request) ?? ephemeralClientScope()) : undefined;
+    const requestConnectionRegistry =
+        scope !== undefined ? connectionStore.view({ scope, owned: true }) : connectionRegistry;
 
     const mcpServer = new McpServer({
         name: serverMetadata.mcpServerName,
@@ -198,13 +241,14 @@ export function createServerFromConfig({
 
     // Services are injected individually into the request-scoped server; there
     // is no per-client "session" object. The effective (possibly
-    // request-overridden) config is the only per-request value — every other
-    // service is shared from the app-level {@link AppServices}.
+    // request-overridden) config and the (possibly client-scoped) connection
+    // registry view are the only per-request values — every other service is
+    // shared from the app-level {@link AppServices}.
     return new CliServer({
         config,
         logger,
         keychain,
-        connectionRegistry,
+        connectionRegistry: requestConnectionRegistry,
         exportsManager,
         apiClient,
         connectionErrorHandler,
