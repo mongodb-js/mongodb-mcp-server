@@ -9,7 +9,7 @@ import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
-import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 
 describe("StreamsManageTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
@@ -60,9 +60,7 @@ describe("StreamsManageTool", () => {
             emitEvents: vi.fn(),
         } as unknown as AtlasTelemetry;
 
-        const mockElicitation = {
-            requestConfirmation: vi.fn().mockResolvedValue(true),
-        } as unknown as Elicitation;
+        const mockElicitation = createMockElicitation() as unknown as Elicitation;
 
         const params: ToolConstructorParams<IAtlasSession, DefaultPrometheusMetricDefinitions> = {
             name: StreamsManageTool.toolName,

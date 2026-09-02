@@ -1,19 +1,17 @@
-import { StdioRunner } from "@mongodb-js/mcp-core";
+import type { StdioRunner } from "@mongodb-js/mcp-core";
 import type { StreamableHttpRunner } from "@mongodb-js/mcp-http-runners";
-import {
-    createServerFromConfig,
-    createSharedServicesFromConfig,
-    type CreateServerServicesOptions,
-} from "./createServerServices.js";
+import { createSharedServicesFromConfig, type CreateServerServicesOptions } from "./createServerServices.js";
 import { createHttpTransportRunnerFromConfig } from "./cliMcpHttpServer.js";
+import { CliStdioRunner } from "./cliStdioRunner.js";
 
 export type CreateRunnerFromConfigOptions = CreateServerServicesOptions;
 
 export { createServerFromConfig, createSharedServicesFromConfig } from "./createServerServices.js";
 export type { SharedServerServices, CreateServerServicesOptions } from "./createServerServices.js";
 export { CliMcpHttpServer, createHttpTransportRunnerFromConfig } from "./cliMcpHttpServer.js";
+export { CliStdioRunner } from "./cliStdioRunner.js";
 
-/** Runner for the configured transport: one server for stdio, per-request servers for http. */
+/** Runner for the configured transport: one server per stdio connection, per-request servers for http. */
 export async function createRunnerFromConfig(
     options: CreateRunnerFromConfigOptions
 ): Promise<StdioRunner | StreamableHttpRunner> {
@@ -21,8 +19,9 @@ export async function createRunnerFromConfig(
     const sharedServices = await createSharedServicesFromConfig(options);
 
     if (config.transport === "stdio") {
-        const server = createServerFromConfig({ config, sharedServices });
-        return new StdioRunner({ logger: sharedServices.logger, server });
+        // createServer is invoked per stdio connection (serveStdio may build a
+        // discarded probe instance first), so each call registers a fresh server.
+        return new CliStdioRunner({ sharedServices });
     }
     return createHttpTransportRunnerFromConfig(sharedServices);
 }

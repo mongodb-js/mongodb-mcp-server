@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ToolArgs, AnyToolBase, CompositeLogger } from "@mongodb-js/mcp-core";
+import type { ToolArgs, AnyToolBase, CompositeLogger, InputRequiredResult } from "@mongodb-js/mcp-core";
 import { ToolBase } from "@mongodb-js/mcp-core";
 import type {
     McpServer,
@@ -159,22 +159,35 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
     }
 
     /**
-     * Asks the user to confirm the write stages of an aggregation pipeline,
-     * throwing when they decline so that the pipeline never runs.
+     * Returns the input-required result for pipelines containing write stages
+     * when their confirmation is still pending, throwing when the user
+     * declines so that the pipeline never runs.
+     *
+     * Multi-round-trip (protocol revision 2026-07-28): when this round carries
+     * no answer yet, returns the `inputRequired` result the handler must
+     * return instead of proceeding (null means "continue"). On re-entry the
+     * answer is read back from `inputResponses`.
      */
-    protected async confirmWriteStages(targets: WriteStageTarget[], context: ToolExecutionContext): Promise<void> {
-        if (this.requiresConfirmation()) {
-            return;
+    protected getInputRequiredResult(
+        targets: WriteStageTarget[],
+        context: ToolExecutionContext
+    ): InputRequiredResult | null {
+        if (this.requiresConfirmation() || !this.elicitation.supportsElicitation()) {
+            return null;
         }
 
-        if (await this.requestConfirmation(buildWriteStageConfirmationMessage(targets), context)) {
-            return;
+        const message = buildWriteStageConfirmationMessage(targets);
+        const confirmed = this.requestConfirmation(message, context);
+        if (confirmed === undefined) {
+            return this.elicitation.confirmationRequired(message);
         }
-
-        throw new MongoDBError(
-            ErrorCodes.ConfirmationDeclined,
-            "User did not confirm the write stages of the aggregation pipeline so the aggregation was not performed."
-        );
+        if (!confirmed) {
+            throw new MongoDBError(
+                ErrorCodes.ConfirmationDeclined,
+                "User did not confirm the write stages of the aggregation pipeline so the aggregation was not performed."
+            );
+        }
+        return null;
     }
 
     private assertSingleMqlValueIsAllowed(

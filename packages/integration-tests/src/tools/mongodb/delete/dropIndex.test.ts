@@ -275,19 +275,14 @@ describe("drop-index tool", () => {
                 expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
 
                 expect(mockElicitInput.mock).toHaveBeenCalledWith(
-                    {
+                    expect.objectContaining({
                         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                         message: expect.stringContaining(
                             "You are about to drop the index named **year\\_1** from the **mflix.movies** namespace"
                         ),
                         mode: "form",
                         requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
-                    },
-                    {
-                        timeout: 300000,
-                        relatedRequestId: expect.anything() as unknown,
-                        signal: expect.anything() as unknown,
-                    }
+                    })
                 );
                 expect(await getMoviesCollection().listIndexes().toArray()).toHaveLength(1);
             });
@@ -307,19 +302,14 @@ describe("drop-index tool", () => {
                 });
                 expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
                 expect(mockElicitInput.mock).toHaveBeenCalledWith(
-                    {
+                    expect.objectContaining({
                         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                         message: expect.stringContaining(
                             "You are about to drop the index named **year\\_1** from the **mflix.movies** namespace"
                         ),
                         mode: "form",
                         requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
-                    },
-                    {
-                        timeout: 300000,
-                        relatedRequestId: expect.anything() as unknown,
-                        signal: expect.anything() as unknown,
-                    }
+                    })
                 );
                 expect(await getMoviesCollection().listIndexes().toArray()).toHaveLength(2);
             });
@@ -559,19 +549,14 @@ describe("drop-index tool", () => {
                     });
                     expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
                     expect(mockElicitInput.mock).toHaveBeenCalledWith(
-                        {
+                        expect.objectContaining({
                             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                             message: expect.stringContaining(
                                 "You are about to drop the search index named **searchIdx** from the **mflix.movies** namespace"
                             ),
                             mode: "form",
                             requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
-                        },
-                        {
-                            timeout: 300000,
-                            relatedRequestId: expect.anything() as unknown,
-                            signal: expect.anything() as unknown,
-                        }
+                        })
                     );
 
                     expect(dropSearchIndexSpy).toHaveBeenCalledExactlyOnceWith("mflix", "movies", getIndexName());
@@ -591,19 +576,14 @@ describe("drop-index tool", () => {
                     });
                     expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
                     expect(mockElicitInput.mock).toHaveBeenCalledWith(
-                        {
+                        expect.objectContaining({
                             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                             message: expect.stringContaining(
                                 "You are about to drop the search index named **searchIdx** from the **mflix.movies** namespace"
                             ),
                             mode: "form",
                             requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
-                        },
-                        {
-                            timeout: 300000,
-                            relatedRequestId: expect.anything() as unknown,
-                            signal: expect.anything() as unknown,
-                        }
+                        })
                     );
                     expect(dropSearchIndexSpy).not.toHaveBeenCalled();
                 });

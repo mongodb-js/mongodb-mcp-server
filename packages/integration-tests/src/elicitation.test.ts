@@ -36,12 +36,11 @@ describe("Elicitation Integration Tests", () => {
 
                     expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
                     expect(mockElicitInput.mock).toHaveBeenCalledWith(
-                        {
+                        expect.objectContaining({
                             message: expect.stringContaining("You are about to drop the **test\\-db** database"),
                             requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
                             mode: "form",
-                        },
-                        { timeout: 300000, relatedRequestId: expect.anything(), signal: expect.anything() }
+                        }) as never
                     );
 
                     // Should attempt to execute (will fail due to no connection, but confirms flow worked)
@@ -88,14 +87,13 @@ describe("Elicitation Integration Tests", () => {
 
                     expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
                     expect(mockElicitInput.mock).toHaveBeenCalledWith(
-                        {
+                        expect.objectContaining({
                             message: expect.stringContaining(
                                 "You are about to drop the **test\\-collection** collection"
                             ),
                             requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
                             mode: "form",
-                        },
-                        { timeout: 300000, relatedRequestId: expect.anything(), signal: expect.anything() }
+                        }) as never
                     );
                 });
 
@@ -130,12 +128,11 @@ describe("Elicitation Integration Tests", () => {
 
                     expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
                     expect(mockElicitInput.mock).toHaveBeenCalledWith(
-                        {
+                        expect.objectContaining({
                             message: expect.stringContaining("You are about to delete documents"),
                             requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
                             mode: "form",
-                        },
-                        { timeout: 300000, relatedRequestId: expect.anything(), signal: expect.anything() }
+                        }) as never
                     );
                 });
 
@@ -153,12 +150,11 @@ describe("Elicitation Integration Tests", () => {
 
                     expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
                     expect(mockElicitInput.mock).toHaveBeenCalledWith(
-                        {
+                        expect.objectContaining({
                             message: expect.stringContaining("You are about to create a database user"),
                             requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
                             mode: "form",
-                        },
-                        { timeout: 300000, relatedRequestId: expect.anything(), signal: expect.anything() }
+                        }) as never
                     );
                 });
 
@@ -175,14 +171,13 @@ describe("Elicitation Integration Tests", () => {
 
                     expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
                     expect(mockElicitInput.mock).toHaveBeenCalledWith(
-                        {
+                        expect.objectContaining({
                             message: expect.stringContaining(
                                 "You are about to add the following entries to the access list"
                             ),
                             requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
                             mode: "form",
-                        },
-                        { timeout: 300000, relatedRequestId: expect.anything(), signal: expect.anything() }
+                        }) as never
                     );
                 });
             });
@@ -262,14 +257,13 @@ describe("Elicitation Integration Tests", () => {
 
                 expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
                 expect(mockElicitInput.mock).toHaveBeenCalledWith(
-                    {
+                    expect.objectContaining({
                         message: expect.stringMatching(
                             /You are about to execute the `list-databases` tool which requires additional confirmation. Would you like to proceed\?/
                         ),
                         requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
                         mode: "form",
-                    },
-                    { timeout: 300000, relatedRequestId: expect.anything(), signal: expect.anything() }
+                    }) as never
                 );
             });
 
@@ -311,12 +305,11 @@ describe("Elicitation Integration Tests", () => {
                 });
 
                 expect(mockElicitInput.mock).toHaveBeenCalledWith(
-                    {
+                    expect.objectContaining({
                         message: expect.stringMatching(/project.*507f1f77bcf86cd799439011/),
                         requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
                         mode: "form",
-                    },
-                    { timeout: 300000, relatedRequestId: expect.anything(), signal: expect.anything() }
+                    }) as never
                 );
             });
 
@@ -334,12 +327,11 @@ describe("Elicitation Integration Tests", () => {
                 });
 
                 expect(mockElicitInput.mock).toHaveBeenCalledWith(
-                    {
+                    expect.objectContaining({
                         message: expect.stringMatching(/mydb.*database/),
                         requestedSchema: expect.objectContaining(Elicitation.CONFIRMATION_SCHEMA),
                         mode: "form",
-                    },
-                    { timeout: 300000, relatedRequestId: expect.anything(), signal: expect.anything() }
+                    }) as never
                 );
             });
         },
@@ -366,7 +358,9 @@ describe("Elicitation Integration Tests", () => {
                     expect.arrayContaining([
                         expect.objectContaining({
                             type: "text",
-                            text: expect.stringContaining("Error running drop-database"),
+                            // The legacy shim surfaces a failed elicitation leg as
+                            // an isError tool result.
+                            text: expect.stringContaining("Confirmation service unavailable"),
                         }),
                     ])
                 );

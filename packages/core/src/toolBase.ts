@@ -1,13 +1,14 @@
 import { z, type ZodRawShape } from "zod";
-import type {
-    RegisteredTool,
-    McpServer,
-    CallToolResult,
-    RequestId,
-    ToolAnnotations,
-    ServerContext,
-    Notification,
-    StandardSchemaWithJSON,
+import {
+    isInputRequiredResult,
+    type RegisteredTool,
+    type McpServer,
+    type CallToolResult,
+    type InputRequiredResult,
+    type ToolAnnotations,
+    type ServerContext,
+    type Notification,
+    type StandardSchemaWithJSON,
 } from "@modelcontextprotocol/server";
 import type {
     ITelemetry,
@@ -47,6 +48,7 @@ function toToolExecutionContext(ctx: ServerContext): ToolExecutionContext {
         signal: mcpReq?.signal ?? new AbortController().signal,
         requestId: mcpReq?.id,
         _meta: mcpReq?._meta,
+        inputResponses: mcpReq?.inputResponses,
         requestInfo: ctx.http?.req ? { headers } : undefined,
         sendNotification: mcpReq?.notify
             ? (notification: unknown): Promise<void> => mcpReq.notify(notification as Notification)
@@ -482,10 +484,13 @@ export abstract class ToolBase<
     protected abstract execute(
         args: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
-    ): Promise<CallToolResult>;
+    ): Promise<CallToolResult | InputRequiredResult>;
 
     /** This is used internally by the server to invoke the tool. It can also be run manually to call the tool directly. */
-    public async invoke(args: ToolArgs<typeof this.argsShape>, context: ToolExecutionContext): Promise<CallToolResult> {
+    public async invoke(
+        args: ToolArgs<typeof this.argsShape>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult | InputRequiredResult> {
         const startTime: number = Date.now();
 
         /**
@@ -513,21 +518,32 @@ export abstract class ToolBase<
         };
 
         try {
-            if (
-                this.requiresConfirmation() &&
-                !(await this.requestConfirmation(this.getConfirmationMessage(args), context))
-            ) {
-                const text = `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`;
-                this.session.logger.debug({
-                    id: LogId.toolExecute,
-                    context: "tool",
-                    message: text,
-                    noRedaction: true,
-                    attributes: { ...requestIdAttr(context.requestInfo?.headers) },
-                });
-                const declined: CallToolResult = { content: [{ type: "text", text }], isError: true };
-                recordOutcome(declined);
-                return declined;
+            if (this.requiresConfirmation() && this.elicitation.supportsElicitation()) {
+                // Multi-round-trip elicitation (protocol revision 2026-07-28):
+                // the first entry returns an `inputRequired` result asking the
+                // user to confirm; on re-entry the answers are read back from
+                // `inputResponses`. On 2025-era connections the SDK's legacy
+                // shim serves the same return as real server→client requests.
+                // Clients that do not declare elicitation support proceed
+                // without prompting.
+                const confirmed = this.requestConfirmation(this.getConfirmationMessage(args), context);
+                if (confirmed === undefined) {
+                    return this.elicitation.confirmationRequired(this.getConfirmationMessage(args));
+                }
+
+                if (!confirmed) {
+                    const text = `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`;
+                    this.session.logger.debug({
+                        id: LogId.toolExecute,
+                        context: "tool",
+                        message: text,
+                        noRedaction: true,
+                        attributes: { ...requestIdAttr(context.requestInfo?.headers) },
+                    });
+                    const declined: CallToolResult = { content: [{ type: "text", text }], isError: true };
+                    recordOutcome(declined);
+                    return declined;
+                }
             }
             this.session.logger.debug({
                 id: LogId.toolExecute,
@@ -538,6 +554,12 @@ export abstract class ToolBase<
             });
 
             const toolCallResult = await this.execute(args, context);
+            if (isInputRequiredResult(toolCallResult)) {
+                // Multi-round-trip: the tool needs more input (e.g. write-stage
+                // confirmation). Return the input-required result unchanged —
+                // the client fulfils it and retries; no outcome is recorded yet.
+                return toolCallResult;
+            }
             const result = await this.appendUIResource(toolCallResult);
 
             recordOutcome(result);
@@ -593,8 +615,14 @@ export abstract class ToolBase<
     }
 
     /**
-     * Asks the user to confirm an operation, resolving to `true` when they
-     * accept and `false` when they decline.
+     * Asks the user to confirm an operation.
+     *
+     * Multi-round-trip elicitation (protocol revision 2026-07-28): on the
+     * first entry this reads `context.inputResponses` and, when this round
+     * carries no answer yet, returns `undefined` — the caller must return
+     * {@link IElicitation.confirmationRequired} from its handler instead of
+     * proceeding. On re-entry it resolves to `true` when the user accepted
+     * and `false` when they declined.
      *
      * This is automatically called by `invoke` for confirmationRequired tools.
      * Other tools can call it at any point of their execution, which matters when
@@ -604,12 +632,13 @@ export abstract class ToolBase<
      * elicitation, matching how confirmation-required tools behave there.
      *
      * @param message - The message to display to the user.
-     * @param context - The tool execution context, used to relate the
-     * confirmation request to the in-flight tool call and to record how long the
-     * user took to answer.
+     * @param context - The tool execution context.
+     * @returns `true` when confirmed, `false` when declined, `undefined` when
+     * this round carries no answer yet (return
+     * {@link IElicitation.confirmationRequired} instead).
      */
-    protected async requestConfirmation(message: string, context: ToolExecutionContext): Promise<boolean> {
-        const relatedRequestId = this.elicitationRelatedRequestId(context);
+    protected requestConfirmation(message: string, context: ToolExecutionContext): boolean | undefined {
+        const confirmed = this.elicitation.readConfirmation(context.inputResponses);
         this.session.logger.info({
             id: LogId.toolConfirmationRequested,
             context: "tool",
@@ -618,69 +647,11 @@ export abstract class ToolBase<
             attributes: {
                 tool: this.name,
                 requestId: context.requestId !== undefined ? String(context.requestId) : "(undefined)",
-                requestIdType: typeof context.requestId,
-                relatedRequestId: relatedRequestId !== undefined ? String(relatedRequestId) : "(undefined)",
-                httpResponseType: String(this.config.httpResponseType),
-                progressToken:
-                    context._meta?.progressToken !== undefined ? String(context._meta.progressToken) : "(undefined)",
-                hasSendNotification: String(context.sendNotification !== undefined),
+                confirmed: confirmed !== undefined ? String(confirmed) : "pending",
                 ...requestIdAttr(context.requestInfo?.headers),
             },
         });
-        if (relatedRequestId === undefined && this.config.transport === "http") {
-            // Without a related request id the elicitation is sent on the
-            // standalone GET SSE stream. Deployments that don't support
-            // standalone streams silently drop it, so the confirmation would
-            // hang until it times out.
-            this.session.logger.warning({
-                id: LogId.toolConfirmationStandaloneStreamFallback,
-                context: "tool",
-                message: `Confirmation for ${this.name} has no related request id and will use the standalone SSE stream`,
-                noRedaction: true,
-                attributes: { tool: this.name, ...requestIdAttr(context.requestInfo?.headers) },
-            });
-        }
-
-        const startedAt = Date.now();
-        try {
-            const confirmed = await this.elicitation.requestConfirmation(message, {
-                relatedRequestId,
-                progressToken: context._meta?.progressToken,
-                sendNotification: context.sendNotification,
-                signal: context.signal,
-            });
-            this.session.logger.info({
-                id: LogId.toolConfirmationSettled,
-                context: "tool",
-                message: `Confirmation for ${this.name} settled: ${confirmed ? "confirmed" : "declined"} after ${Date.now() - startedAt}ms`,
-                noRedaction: true,
-                attributes: { tool: this.name, ...requestIdAttr(context.requestInfo?.headers) },
-            });
-            return confirmed;
-        } catch (error) {
-            this.session.logger.warning({
-                id: LogId.toolConfirmationSettled,
-                context: "tool",
-                message: `Confirmation for ${this.name} failed after ${Date.now() - startedAt}ms: ${error instanceof Error ? error.message : String(error)}`,
-                attributes: { tool: this.name, ...requestIdAttr(context.requestInfo?.headers) },
-            });
-            throw error;
-        } finally {
-            context.elicitationDurationMs = (context.elicitationDurationMs ?? 0) + (Date.now() - startedAt);
-        }
-    }
-
-    /**
-     * Resolves the request id that elicitation requests should be related to.
-     *
-     * Relating the elicitation to the in-flight tool call routes it over that
-     * call's own SSE stream, which also works for deployments that don't
-     * support standalone GET streams. In JSON response mode the in-flight POST
-     * cannot carry server->client messages at all, so the elicitation must
-     * keep using the standalone stream.
-     */
-    protected elicitationRelatedRequestId(context: ToolExecutionContext): RequestId | undefined {
-        return this.config.httpResponseType === "json" ? undefined : context.requestId;
+        return confirmed;
     }
 
     /**
@@ -832,7 +803,10 @@ export abstract class ToolBase<
                         annotations?: ToolAnnotations;
                         _meta?: Record<string, unknown>;
                     },
-                    cb: (args: ToolArgs<ZodRawShape>, ctx: ServerContext) => Promise<CallToolResult>
+                    cb: (
+                        args: ToolArgs<ZodRawShape>,
+                        ctx: ServerContext
+                    ) => Promise<CallToolResult | InputRequiredResult>
                 ) => RegisteredTool
             )(
                 /* eslint-enable @typescript-eslint/no-unnecessary-type-assertion */ this.name,

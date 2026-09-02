@@ -14,6 +14,7 @@ export {
     type SharedServerServices,
     type CreateServerServicesOptions,
     CliMcpHttpServer,
+    CliStdioRunner,
     createHttpTransportRunnerFromConfig,
 } from "./createRunnerFromConfig.js";
 export { createLoggerFromConfig, type CreateLoggerFromConfigOptions } from "./createLoggerFromConfig.js";
