@@ -2538,7 +2538,7 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
     // (undocumented)
     static category: ToolCategory;
     protected get config(): IMongoDBConfig;
-    protected confirmWriteStages(targets: WriteStageTarget[], context: ToolExecutionContext): InputRequiredResult | null;
+    protected getInputRequiredResult(targets: WriteStageTarget[], context: ToolExecutionContext): InputRequiredResult | null;
     protected getOperationOptions(signal?: AbortSignal): {
         signal?: AbortSignal;
         maxTimeMS?: number;

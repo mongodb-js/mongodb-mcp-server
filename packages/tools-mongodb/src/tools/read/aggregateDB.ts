@@ -70,9 +70,10 @@ export class AggregateDBTool extends MongoDBToolBase {
 
             const writeStageTargets = getWriteStageTargets(pipeline, database);
             if (writeStageTargets.length > 0) {
-                const writeConfirmation = this.confirmWriteStages(writeStageTargets, context);
-                if (writeConfirmation) {
-                    return writeConfirmation;
+                const inputRequiredResult = this.getInputRequiredResult(writeStageTargets, context);
+                if (inputRequiredResult) {
+                    // If input is required, return the input-required result instead of running the pipeline
+                    return inputRequiredResult;
                 }
 
                 // This is a write pipeline, so special-case it and don't attempt to apply limits or caps

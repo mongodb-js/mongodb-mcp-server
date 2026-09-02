@@ -4,7 +4,6 @@ import type {
     Implementation,
     McpHttpHandler,
     McpRequestContext,
-    McpServer,
 } from "@modelcontextprotocol/server";
 import { NodeStreamableHTTPServerTransport, toNodeHandler, toWebRequest } from "@modelcontextprotocol/node";
 import express from "express";
@@ -127,7 +126,7 @@ export abstract class MCPHttpServer<
                 };
                 const server = await this.createServerForRequest(request);
                 await server.register();
-                return server.mcpServer as unknown as McpServer;
+                return server.mcpServer;
             },
             { legacy: "reject" }
         );

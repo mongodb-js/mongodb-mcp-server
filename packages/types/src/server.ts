@@ -1,4 +1,4 @@
-import type { Transport, ClientCapabilities, Implementation } from "@modelcontextprotocol/server";
+import type { Transport, McpServer } from "@modelcontextprotocol/server";
 import type { ICompositeLogger } from "./logging.js";
 
 /**
@@ -31,11 +31,5 @@ export type SessionServer<TTransport extends Transport = Transport> = {
      * The protocol-level MCP server, required to capture/restore negotiated
      * client state across implicit re-initializations.
      */
-    mcpServer: {
-        server: {
-            oninitialized?: (() => void) | undefined;
-            getClientCapabilities(): ClientCapabilities | undefined;
-            getClientVersion(): Implementation | undefined;
-        };
-    };
+    mcpServer: McpServer;
 };

@@ -159,15 +159,16 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
     }
 
     /**
-     * Asks the user to confirm the write stages of an aggregation pipeline,
-     * throwing when they decline so that the pipeline never runs.
+     * Returns the input-required result for pipelines containing write stages
+     * when their confirmation is still pending, throwing when the user
+     * declines so that the pipeline never runs.
      *
      * Multi-round-trip (protocol revision 2026-07-28): when this round carries
      * no answer yet, returns the `inputRequired` result the handler must
      * return instead of proceeding (null means "continue"). On re-entry the
      * answer is read back from `inputResponses`.
      */
-    protected confirmWriteStages(
+    protected getInputRequiredResult(
         targets: WriteStageTarget[],
         context: ToolExecutionContext
     ): InputRequiredResult | null {
