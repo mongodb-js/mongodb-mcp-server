@@ -12,16 +12,11 @@ import {
     type Implementation,
 } from "@modelcontextprotocol/server";
 import type {
-    ITelemetry,
     ConnectionMetadata,
     TelemetryToolMetadata,
     ToolEvent,
-    ToolServices,
     ToolServer,
-    IElicitation,
     PreviewFeature,
-    IUIRegistry,
-    IMetrics,
     DefaultMetricDefinitions,
     OperationType,
     ToolCategory,
@@ -35,6 +30,8 @@ import { getRandomUUID } from "@mongodb-js/mcp-core";
 import { requestIdAttr } from "./helpers/requestIdAttr.js";
 
 import { LogId } from "./logId.js";
+
+import { redact } from "mongodb-redact";
 
 /**
  * Adapts the v2 SDK server context (`ctx`) to the tool execution context
@@ -125,10 +122,7 @@ type StructuredToolResult<OutputSchema extends ZodRawShape> = {
  * Per-tool identity (`name`, `category`, `operationType`) is NOT passed in:
  * it is read from the tool class's static properties at construction time.
  */
-export type ToolServerParam<
-    TServer extends ToolServer = ToolServer,
-    TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions,
-> = TServer;
+export type ToolServerParam<TServer extends ToolServer = ToolServer> = TServer;
 
 /**
  * The type that all tool classes must conform to when implementing custom tools
@@ -888,7 +882,7 @@ export abstract class ToolBase<
         args: z.infer<z.ZodObject<typeof this.argsShape>>
     ): Promise<CallToolResult> | CallToolResult {
         const rawMessage = error instanceof Error ? error.message : String(error);
-        const safeMessage = this.server.keychain.redact(rawMessage);
+        const safeMessage = redact(rawMessage, this.server.keychain.allSecrets);
         return {
             content: [
                 {

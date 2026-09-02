@@ -8,4 +8,9 @@ export * from "@mongodb-js/mcp-tools-atlas";
 
 export { ToolBase, type ToolClass, type ToolServerParam, type ToolArgs, type ToolResult } from "@mongodb-js/mcp-core";
 
-export { type ToolCategory, type OperationType, type ToolExecutionContext, type ToolRequest } from "@mongodb-js/mcp-types";
+export {
+    type ToolCategory,
+    type OperationType,
+    type ToolExecutionContext,
+    type ToolRequest,
+} from "@mongodb-js/mcp-types";

@@ -241,12 +241,12 @@ describe("ApiClient", () => {
     describe("request header forwarding", () => {
         const okResponse = { data: { results: [], totalCount: 0 }, error: null, response: new Response() };
 
-        it("forwards context.requestInfo.headers to the underlying client when no options are provided", async () => {
+        it("forwards context.headers to the underlying client when no options are provided", async () => {
             const mockGet = vi.fn().mockReturnValue(okResponse);
             // @ts-expect-error accessing private property for testing
             apiClient.client.GET = mockGet;
 
-            await apiClient.listGroups(undefined, { requestInfo: { headers: { "x-request-id": "req-123" } } });
+            await apiClient.listGroups(undefined, { headers: { "x-request-id": "req-123" } });
 
             expect(mockGet).toHaveBeenCalledWith("/api/atlas/v2/groups", {
                 headers: { "x-request-id": "req-123" },
@@ -263,7 +263,7 @@ describe("ApiClient", () => {
                     params: { query: { itemsPerPage: 10 } },
                     headers: { "x-request-id": "from-options", Accept: "application/json" },
                 },
-                { requestInfo: { headers: { "x-request-id": "from-context" } } }
+                { headers: { "x-request-id": "from-context" } }
             );
 
             expect(mockGet).toHaveBeenCalledWith("/api/atlas/v2/groups", {
@@ -282,17 +282,15 @@ describe("ApiClient", () => {
             apiClient.client.GET = mockGet;
 
             await apiClient.listGroups(undefined, {
-                requestInfo: {
-                    headers: {
-                        "x-request-id": "req-123",
-                        // non-allowlisted headers must not be propagated
-                        host: "internal.example.com",
-                        "content-length": "42",
-                        cookie: "session=secret",
-                        authorization: "Bearer leaked",
-                        // non-string values must be ignored even if the name were allowlisted
-                        "x-request-id-extra": ["a", "b"],
-                    },
+                headers: {
+                    "x-request-id": "req-123",
+                    // non-allowlisted headers must not be propagated
+                    host: "internal.example.com",
+                    "content-length": "42",
+                    cookie: "session=secret",
+                    authorization: "Bearer leaked",
+                    // non-string values must be ignored even if the name were allowlisted
+                    "x-request-id-extra": ["a", "b"],
                 },
             });
 
@@ -306,7 +304,7 @@ describe("ApiClient", () => {
             // @ts-expect-error accessing private property for testing
             apiClient.client.GET = mockGet;
 
-            await apiClient.listGroups(undefined, { requestInfo: { headers: { "X-Request-Id": "req-Case" } } });
+            await apiClient.listGroups(undefined, { headers: { "X-Request-Id": "req-Case" } });
 
             expect(mockGet).toHaveBeenCalledWith("/api/atlas/v2/groups", {
                 headers: { "X-Request-Id": "req-Case" },
@@ -329,7 +327,7 @@ describe("ApiClient", () => {
             apiClient.client.GET = mockGet;
 
             const options = { params: { query: { itemsPerPage: 5 } } } as never;
-            await apiClient.listGroups(options, { requestInfo: {} });
+            await apiClient.listGroups(options, {});
 
             expect(mockGet).toHaveBeenCalledWith("/api/atlas/v2/groups", options);
         });
@@ -340,7 +338,7 @@ describe("ApiClient", () => {
             apiClient.client.POST = mockPost;
 
             await apiClient.createGroup({ body: { name: "proj" } } as never, {
-                requestInfo: { headers: { "x-request-id": "req-xyz" } },
+                headers: { "x-request-id": "req-xyz" },
             });
 
             expect(mockPost).toHaveBeenCalledWith("/api/atlas/v2/groups", {

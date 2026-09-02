@@ -1,4 +1,4 @@
-import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
+import type {} from "@mongodb-js/mcp-metrics";
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { IAtlasConfig } from "@mongodb-js/mcp-tools-atlas";
@@ -10,7 +10,7 @@ import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import type { AtlasToolServer } from "../../atlasTool.js";
-import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
+import type {} from "@mongodb-js/mcp-types";
 
 describe("StreamsManageTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
@@ -69,7 +69,7 @@ describe("StreamsManageTool", () => {
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
-        } as unknown as AtlasToolServer;
+        };
 
         tool = new StreamsManageTool(server);
     });
@@ -82,7 +82,7 @@ describe("StreamsManageTool", () => {
                 config: (tool as unknown as { server: AtlasToolServer }).server.config,
                 signal: new AbortController().signal,
             },
-        } as unknown as ToolExecutionContext);
+        });
 
     describe("start-processor", () => {
         it("should start a STOPPED processor", async () => {
@@ -334,7 +334,7 @@ describe("StreamsManageTool", () => {
                     signal: new AbortController().signal,
                     headers: { "x-request-id": "req-stop-1" },
                 },
-            } as unknown as ToolExecutionContext);
+            });
 
             expect(mockLogger.debug).toHaveBeenCalledWith(
                 expect.objectContaining({

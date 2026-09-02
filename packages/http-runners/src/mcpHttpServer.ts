@@ -1,5 +1,5 @@
 import { createMcpHandler } from "@modelcontextprotocol/server";
-import type { McpHttpHandler, McpRequestContext, McpServer } from "@modelcontextprotocol/server";
+import type { McpHttpHandler, McpRequestContext } from "@modelcontextprotocol/server";
 import { toNodeHandler } from "@modelcontextprotocol/node";
 import express from "express";
 import type {
@@ -104,7 +104,7 @@ export abstract class MCPHttpServer<
                 };
                 const server = await this.createServerForRequest(request);
                 await server.register();
-                return server.mcpServer as unknown as McpServer;
+                return server.mcpServer;
             },
             { legacy: "stateless" }
         );

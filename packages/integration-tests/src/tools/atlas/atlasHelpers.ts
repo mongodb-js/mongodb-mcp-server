@@ -1,4 +1,5 @@
-import type { ApiClient, ClusterDescription20240805 } from "@mongodb-js/mcp-atlas-api-client";
+import { ObjectId } from "mongodb";
+import type { ApiClient, ClusterDescription20240805, Group } from "@mongodb-js/mcp-atlas-api-client";
 import type { IntegrationTest } from "../../integrationHelpers.js";
 import { setupIntegrationTest, defaultTestConfig } from "../../integrationHelpers.js";
 import type { SuiteCollector } from "vitest";
@@ -90,7 +91,7 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
         beforeAll(async () => {
             const session = integration.mcpServer();
             assertApiClientIsAvailable(session);
-            const apiClient = session.apiClient as ApiClient;
+            const apiClient = session.apiClient;
 
             // check that it has credentials
             if (!apiClient.isAuthConfigured()) {
@@ -119,14 +120,15 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
             const apiClient = session.apiClient;
 
             try {
-                // Self-healing cleanup: remove any leftover stream workspaces and
-                // clusters before deleting the project, otherwise Atlas rejects the
-                // group deletion and leaks the project (and its clusters) into the org.
-                await deleteStreamWorkspacesAndWait(apiClient, projectId);
-                await deleteAllClustersAndWait(apiClient, projectId);
-                await deleteGroupWithRetry(apiClient, projectId);
+                await apiClient.deleteGroup({
+                    params: {
+                        path: {
+                            groupId: projectId,
+                        },
+                    },
+                });
             } catch (error) {
-                // teardown failures should not fail the suite
+                // send the delete request and ignore errors
                 console.log("Failed to delete group:", error);
             }
         });
@@ -138,6 +140,53 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
 
         fn(args);
     });
+}
+
+export function randomId(): string {
+    return new ObjectId().toString();
+}
+
+async function createGroup(apiClient: ApiClient): Promise<Group & Required<Pick<Group, "id">>> {
+    const projectName: string = `testProj-` + randomId();
+
+    const orgs = await apiClient.listOrgs();
+    if (!orgs?.results?.length || !orgs.results[0]?.id) {
+        throw new Error("No orgs found");
+    }
+
+    const group = await apiClient.createGroup({
+        body: {
+            name: projectName,
+            orgId: orgs.results[0]?.id ?? "",
+        } as Group,
+    });
+
+    if (!group?.id) {
+        throw new Error("Failed to create project");
+    }
+
+    // add current IP to project access list
+    const { currentIpv4Address } = await apiClient.getIpInfo();
+    await apiClient.createAccessListEntry({
+        params: {
+            path: {
+                groupId: group.id,
+            },
+        },
+        body: [
+            {
+                ipAddress: currentIpv4Address,
+                groupId: group.id,
+                comment: "Added by MongoDB MCP Server to enable tool access",
+            },
+        ],
+    });
+
+    return group as Group & Required<Pick<Group, "id">>;
+}
+
+export function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export async function assertClusterIsAvailable(
@@ -173,7 +222,7 @@ export async function deleteCluster(
     session: CliServer,
     projectId: string,
     clusterName: string,
-    shouldWaitTillClusterIsDeleted: boolean = true
+    shouldWaitTillClusterIsDeleted: boolean = false
 ): Promise<void> {
     assertApiClientIsAvailable(session);
     await session.apiClient.deleteCluster({
@@ -189,7 +238,21 @@ export async function deleteCluster(
         return;
     }
 
-    await waitForClusterDeletion(session.apiClient, projectId, clusterName);
+    while (true) {
+        try {
+            await session.apiClient.getCluster({
+                params: {
+                    path: {
+                        groupId: projectId,
+                        clusterName,
+                    },
+                },
+            });
+            await sleep(1000);
+        } catch {
+            break;
+        }
+    }
 }
 
 export async function waitCluster(
@@ -272,11 +335,18 @@ export function withCluster(integration: IntegrationTest, fn: ClusterTestFunctio
             afterAll(async () => {
                 const session = integration.mcpServer();
                 assertApiClientIsAvailable(session);
-                const apiClient = session.apiClient as ApiClient;
+                const apiClient = session.apiClient;
 
                 try {
-                    // delete the cluster and wait for termination, but ignore errors
-                    await deleteCluster(session, getProjectId(), clusterName);
+                    // send the delete request and ignore errors
+                    await apiClient.deleteCluster({
+                        params: {
+                            path: {
+                                groupId: getProjectId(),
+                                clusterName,
+                            },
+                        },
+                    });
                 } catch (error) {
                     console.log("Failed to delete cluster:", error);
                 }
@@ -294,7 +364,11 @@ export function withCluster(integration: IntegrationTest, fn: ClusterTestFunctio
 }
 
 export function withWorkspace(integration: IntegrationTest, fn: WorkspaceTestFunction): SuiteCollector<object> {
-    const fixture: StreamsWorkspaceFixture | undefined = inject("atlasStreamsWorkspace");
+    return withProject(integration, ({ getProjectId }) => {
+        describe("with workspace", () => {
+            const workspaceName: string = `testws${randomId().slice(0, 12)}`;
+            const clusterName: string = `testcluster${randomId().slice(0, 8)}`;
+            const clusterConnectionName: string = `clusterconn${randomId().slice(0, 8)}`;
 
             beforeAll(async () => {
                 const projectId = getProjectId();
@@ -446,13 +520,5 @@ export function withWorkspace(integration: IntegrationTest, fn: WorkspaceTestFun
 
             fn(args);
         });
-
-        const args = {
-            getProjectId: (): string => fixture?.projectId ?? "",
-            getWorkspaceName: (): string => fixture?.workspaceName ?? "",
-            getClusterConnectionName: (): string => fixture?.clusterConnectionName ?? "",
-        };
-
-        fn(args);
     });
 }

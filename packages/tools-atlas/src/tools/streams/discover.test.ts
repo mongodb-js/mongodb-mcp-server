@@ -7,9 +7,9 @@ import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
-import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
+import type {} from "@mongodb-js/mcp-metrics";
 import type { AtlasToolServer } from "../../atlasTool.js";
-import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
+import type {} from "@mongodb-js/mcp-types";
 
 describe("StreamsDiscoverTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
@@ -60,7 +60,7 @@ describe("StreamsDiscoverTool", () => {
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
-        } as unknown as AtlasToolServer;
+        };
 
         tool = new StreamsDiscoverTool(server);
     });
@@ -73,7 +73,7 @@ describe("StreamsDiscoverTool", () => {
                 config: (tool as unknown as { server: AtlasToolServer }).server.config,
                 signal: new AbortController().signal,
             },
-        } as unknown as ToolExecutionContext);
+        });
 
     describe("list-workspaces", () => {
         it("should return workspace list when workspaces exist", async () => {

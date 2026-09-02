@@ -26,13 +26,7 @@ export class RenameCollectionTool extends MongoDBToolBase {
     static operationType: OperationType = "update";
 
     protected async execute(
-        {
-            connectionId,
-            database,
-            collection,
-            newName,
-            dropTarget,
-        }: ToolArgs<typeof this.argsShape>,
+        { connectionId, database, collection, newName, dropTarget }: ToolArgs<typeof this.argsShape>,
         { request }: ToolExecutionContext<IMongoDBConfig>
     ): Promise<ToolResult<typeof this.outputSchema>> {
         if (dropTarget && request.config.disabledTools.includes("delete")) {

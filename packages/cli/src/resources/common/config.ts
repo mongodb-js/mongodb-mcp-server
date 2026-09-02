@@ -1,4 +1,4 @@
-import { ReactiveResource } from "@mongodb-js/mcp-core";
+import { ReactiveResource, Keychain, redactValues } from "@mongodb-js/mcp-core";
 import type { ITelemetry } from "@mongodb-js/mcp-types";
 import type { UserConfig, CliServer, ResourceServices } from "@mongodb-js/mcp-cli";
 import type { ConnectionRegistry } from "@mongodb-js/mcp-tools-mongodb";
@@ -59,7 +59,8 @@ export class ConfigResource extends ReactiveResource<UserConfig, ConfigResourceS
 
         // Backstop: redact any remaining registered secrets (keychain) before egress, matching
         // the redaction applied on every logging path. Redact per-value so JSON stays valid.
-        return JSON.stringify(this.keychain.redact(result));
+        const secrets = [...this.keychain.allSecrets, ...Keychain.root.allSecrets];
+        return JSON.stringify(redactValues(result, secrets));
     }
 
     /**

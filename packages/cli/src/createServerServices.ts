@@ -1,5 +1,6 @@
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
-import { CompositeLogger, Elicitation, Keychain, McpServer } from "@mongodb-js/mcp-core";
+import type { CompositeLogger } from "@mongodb-js/mcp-core";
+import { Elicitation, Keychain, McpServer } from "@mongodb-js/mcp-core";
 import type { IMetrics, IDeviceId, ServerMetadata } from "@mongodb-js/mcp-types";
 import type { Client as AtlasLocalClient } from "@mongodb-js/atlas-local";
 import type { ResourceRegistry, ToolRegistry } from "./cliServer.js";
@@ -113,8 +114,19 @@ export function createServerFromConfig({
     config: UserConfig;
     appServices: AppServices;
 }): CliServer {
-    const { serverMetadata, tools, resources, logger, metrics, keychain, connectionRegistry, apiClient, exportsManager, telemetry, atlasLocalClient } =
-        appServices;
+    const {
+        serverMetadata,
+        tools,
+        resources,
+        logger,
+        metrics,
+        keychain,
+        connectionRegistry,
+        apiClient,
+        exportsManager,
+        telemetry,
+        atlasLocalClient,
+    } = appServices;
 
     const mcpServer = new McpServer({
         name: serverMetadata.mcpServerName,
@@ -156,9 +168,6 @@ export function createServerFromConfig({
  */
 export async function closeAppServices(appServices: AppServices): Promise<void> {
     const { telemetry, connectionStore, exportsManager, apiClient } = appServices;
-    await Promise.allSettled([
-        connectionStore.closeAll(),
-        exportsManager.close(),
-    ]);
+    await Promise.allSettled([connectionStore.closeAll(), exportsManager.close()]);
     await Promise.allSettled([apiClient.close(), telemetry.close()]);
 }

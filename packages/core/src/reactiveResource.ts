@@ -6,7 +6,7 @@ import type {
     IResourceServer,
 } from "@mongodb-js/mcp-types";
 import type { ReadResourceCallback, ResourceMetadata } from "@modelcontextprotocol/server";
-import { LogId } from "./logId.js";
+import {} from "./logId.js";
 
 /**
  * Abstract base class for implementing MCP resources.

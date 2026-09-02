@@ -9,7 +9,7 @@ import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 
 import type { AtlasToolServer } from "../../atlasTool.js";
-import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
+import type {} from "@mongodb-js/mcp-types";
 
 describe("ListAlertsTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
@@ -53,7 +53,7 @@ describe("ListAlertsTool", () => {
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
-        } as unknown as AtlasToolServer;
+        };
 
         tool = new ListAlertsTool(server);
     });
@@ -61,7 +61,12 @@ describe("ListAlertsTool", () => {
     const baseArgs = { projectId: "proj1", status: "OPEN" as const, limit: 10, pageNum: 1, includeCount: false };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["execute"](args as never, { request: { config: (tool as unknown as { server: AtlasToolServer }).server.config, signal: new AbortController().signal } } as unknown as ToolExecutionContext);
+        tool["execute"](args as never, {
+            request: {
+                config: (tool as unknown as { server: AtlasToolServer }).server.config,
+                signal: new AbortController().signal,
+            },
+        });
 
     it("should return alerts when they exist", async () => {
         mockApiClient.listAlerts!.mockResolvedValue({

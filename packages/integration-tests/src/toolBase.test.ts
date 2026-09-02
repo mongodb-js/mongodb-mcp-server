@@ -13,7 +13,7 @@ import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/serv
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type MockToolCallback = (args: any, ctx: never) => Promise<CallToolResult>;
 import type { CliServer, UserConfig } from "@mongodb-js/mcp-cli";
-import type { IToolConfig, ToolServices } from "@mongodb-js/mcp-types";
+import type {} from "@mongodb-js/mcp-types";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { ToolBase } from "@mongodb-js/mcp-core";
 import type { Elicitation } from "@mongodb-js/mcp-core";
@@ -83,7 +83,7 @@ describe("ToolBase", () => {
             elicitation: mockElicitation,
             metrics: mockMetrics,
             uiRegistry: new UIRegistry(),
-        } as unknown as TestServer;
+        };
 
         testTool = new TestTool(mockServer);
     });
@@ -92,7 +92,10 @@ describe("ToolBase", () => {
         it("does not ask when the tool is not in the confirmationRequiredTools list", async () => {
             mockConfig.confirmationRequiredTools = ["other-tool", "another-tool"];
 
-            const result = await testTool["invoke"]({ param1: "test" }, { request: { config: mockConfig, signal: new AbortController().signal } });
+            const result = await testTool["invoke"](
+                { param1: "test" },
+                { request: { config: mockConfig, signal: new AbortController().signal } }
+            );
 
             expect(result.content).toEqual([{ type: "text", text: "Test tool executed successfully" }]);
             expect(mockReadConfirmation).not.toHaveBeenCalled();
@@ -101,7 +104,10 @@ describe("ToolBase", () => {
         it("does not ask when the confirmationRequiredTools list is empty", async () => {
             mockConfig.confirmationRequiredTools = [];
 
-            const result = await testTool["invoke"]({ param1: "test" }, { request: { config: mockConfig, signal: new AbortController().signal } });
+            const result = await testTool["invoke"](
+                { param1: "test" },
+                { request: { config: mockConfig, signal: new AbortController().signal } }
+            );
 
             expect(result.content).toEqual([{ type: "text", text: "Test tool executed successfully" }]);
             expect(mockReadConfirmation).not.toHaveBeenCalled();
@@ -113,7 +119,10 @@ describe("ToolBase", () => {
             const expected = { resultType: "input_required", inputRequests: {} };
             mockConfirmationRequired.mockReturnValue(expected as never);
 
-            const result = await testTool["invoke"]({ param1: "test", param2: 42 }, { request: { config: mockConfig, signal: new AbortController().signal } });
+            const result = await testTool["invoke"](
+                { param1: "test", param2: 42 },
+                { request: { config: mockConfig, signal: new AbortController().signal } }
+            );
 
             expect(result).toEqual(expected);
             expect(mockReadConfirmation).toHaveBeenCalledTimes(1);
@@ -129,7 +138,13 @@ describe("ToolBase", () => {
 
             const result = await testTool["invoke"](
                 { param1: "test", param2: 42 },
-                { request: { config: mockConfig, signal: new AbortController().signal, inputResponses: { confirmation: {} } } }
+                {
+                    request: {
+                        config: mockConfig,
+                        signal: new AbortController().signal,
+                        inputResponses: { confirmation: {} },
+                    },
+                }
             );
 
             expect(result.content).toEqual([{ type: "text", text: "Test tool executed successfully" }]);
@@ -140,7 +155,10 @@ describe("ToolBase", () => {
             mockConfig.confirmationRequiredTools = ["test-tool"];
             mockReadConfirmation.mockReturnValue(false);
 
-            const result = await testTool["invoke"]({ param1: "test" }, { request: { config: mockConfig, signal: new AbortController().signal } });
+            const result = await testTool["invoke"](
+                { param1: "test" },
+                { request: { config: mockConfig, signal: new AbortController().signal } }
+            );
 
             expect(result.isError).toBe(true);
 
@@ -162,7 +180,10 @@ describe("ToolBase", () => {
             mockConfig.confirmationRequiredTools = ["test-tool"];
             mockReadConfirmation.mockReturnValue(false);
 
-            const result = await testTool["invoke"]({ param1: "test" }, { request: { config: mockConfig, signal: new AbortController().signal } });
+            const result = await testTool["invoke"](
+                { param1: "test" },
+                { request: { config: mockConfig, signal: new AbortController().signal } }
+            );
 
             expect(result.isError).toBe(true);
             expect(result.content).toEqual([
@@ -213,7 +234,10 @@ describe("ToolBase", () => {
         it("runs the operation when the user confirms", async () => {
             mockReadConfirmation.mockReturnValue(true);
 
-            const result = await createConfirmingTool()["invoke"]({}, { request: { config: mockConfig, signal: new AbortController().signal } });
+            const result = await createConfirmingTool()["invoke"](
+                {},
+                { request: { config: mockConfig, signal: new AbortController().signal } }
+            );
 
             expect(result.isError).toBeUndefined();
             expect(result.content).toEqual([{ type: "text", text: "executed" }]);
@@ -222,7 +246,10 @@ describe("ToolBase", () => {
         it("aborts the operation when the user declines", async () => {
             mockReadConfirmation.mockReturnValue(false);
 
-            const result = await createConfirmingTool()["invoke"]({}, { request: { config: mockConfig, signal: new AbortController().signal } });
+            const result = await createConfirmingTool()["invoke"](
+                {},
+                { request: { config: mockConfig, signal: new AbortController().signal } }
+            );
 
             expect(result.isError).toBe(true);
             expect(result.content).toEqual([{ type: "text", text: "The operation was not performed." }]);
@@ -233,7 +260,10 @@ describe("ToolBase", () => {
             try {
                 mockReadConfirmation.mockReturnValue(true);
 
-                const result = await createConfirmingTool()["invoke"]({}, { request: { config: mockConfig, signal: new AbortController().signal } });
+                const result = await createConfirmingTool()["invoke"](
+                    {},
+                    { request: { config: mockConfig, signal: new AbortController().signal } }
+                );
                 expect(result.content).toEqual([{ type: "text", text: "executed" }]);
             } finally {
                 vi.useRealTimers();
@@ -508,8 +538,7 @@ describe("ToolBase", () => {
                 mockConfig,
                 mockAtlasTelemetry,
                 mockElicitation,
-                mockUIRegistry,
-                mockMetrics
+                mockUIRegistry
             );
             (mockUIRegistry.get as Mock).mockReturnValue("<html>test UI</html>");
 
@@ -655,7 +684,11 @@ describe("ToolBase", () => {
 
     describe("invoke logging", () => {
         const contextWithRequestId: ToolExecutionContext = {
-            request: { config: mockConfig, signal: new AbortController().signal, headers: { "x-request-id": "req-test-123" } },
+            request: {
+                config: mockConfig,
+                signal: new AbortController().signal,
+                headers: { "x-request-id": "req-test-123" },
+            },
         };
         const contextWithoutRequestId: ToolExecutionContext = {
             request: { config: mockConfig, signal: new AbortController().signal },
@@ -814,8 +847,7 @@ function createToolWithoutStructuredContent(
     mockConfig: UserConfig,
     mockAtlasTelemetry: AtlasTelemetry,
     mockElicitation: Elicitation,
-    mockUIRegistry: UIRegistry,
-    mockMetrics: MockMetrics
+    mockUIRegistry: UIRegistry
 ): TestToolWithoutStructuredContent {
     mockConfig.previewFeatures = previewFeatures;
     return new TestToolWithoutStructuredContent({

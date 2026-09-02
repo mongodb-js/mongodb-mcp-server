@@ -73,6 +73,7 @@ export const CommonArgs: {
 // @public (undocumented)
 export class CompositeLogger extends LoggerBase {
     constructor(input?: {
+        keychain?: IKeychain;
         loggers: LoggerBase[];
     });
     // (undocumented)
@@ -82,7 +83,11 @@ export class CompositeLogger extends LoggerBase {
     // (undocumented)
     log(level: LogLevel, payload: LogPayload): void;
     // (undocumented)
+    protected logCore(): void;
+    // (undocumented)
     setAttribute(key: string, value: string): void;
+    // (undocumented)
+    protected readonly type?: LoggerType;
 }
 
 // @public
@@ -165,16 +170,18 @@ export const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
 export class Keychain implements IKeychain {
     constructor();
     // (undocumented)
+    get allSecrets(): Secret[];
+    // (undocumented)
     clearAllSecrets(): void;
-    redact<T>(value: T): T;
     // (undocumented)
     register(value: Secret["value"], kind: Secret["kind"]): void;
     // (undocumented)
     static get root(): Keychain;
 }
 
-// @public
+// @public (undocumented)
 export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extends EventEmitter<T> implements ILogger {
+    constructor(options: LoggerConfig);
     // (undocumented)
     alert(payload: LogPayload): void;
     // (undocumented)
@@ -190,9 +197,13 @@ export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extend
     // (undocumented)
     info(payload: LogPayload): void;
     // (undocumented)
-    abstract log(level: LogLevel, payload: LogPayload): void;
+    log(level: LogLevel, payload: LogPayload): void;
+    // (undocumented)
+    protected abstract logCore(level: LogLevel, payload: LogPayload): void;
     // (undocumented)
     notice(payload: LogPayload): void;
+    // (undocumented)
+    protected abstract readonly type?: LoggerType;
     // (undocumented)
     warning(payload: LogPayload): void;
 }
@@ -288,10 +299,13 @@ export const MCP_LOG_LEVELS: readonly LogLevel[];
 
 export { McpServer }
 
-// @public
+// @public (undocumented)
 export class NoopLogger extends LoggerBase {
+    constructor();
     // (undocumented)
-    log(_level: LogLevel, _payload: LogPayload): void;
+    protected logCore(): void;
+    // (undocumented)
+    protected readonly type?: LoggerType;
 }
 
 // @public
@@ -345,15 +359,7 @@ Value, TServices extends ResourceServices = ResourceServices, TServer extends IR
 }
 
 // @public
-export abstract class RedactingLoggerBase<T extends EventMap<T> = DefaultEventMap> extends LoggerBase<T> {
-    constructor(options: LoggerConfig);
-    // (undocumented)
-    log(level: LogLevel, payload: LogPayload): void;
-    // (undocumented)
-    protected abstract logCore(level: LogLevel, payload: LogPayload): void;
-    // (undocumented)
-    protected abstract readonly type?: LoggerType;
-}
+export function redactValues(value: unknown, secrets: Secret[]): unknown;
 
 // @public (undocumented)
 export function registerGlobalSecretToRedact(value: Secret["value"], kind: Secret["kind"]): void;
@@ -449,7 +455,7 @@ export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined>
 };
 
 // @public
-export type ToolServerParam<TServer extends ToolServer = ToolServer, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = TServer;
+export type ToolServerParam<TServer extends ToolServer = ToolServer> = TServer;
 
 // @public
 export function toToolExecutionContext<TConfig extends IToolConfig = IToolConfig>(ctx: ServerContext, config: TConfig, clientInfoProvider?: () => Implementation | undefined): ToolExecutionContext<TConfig>;

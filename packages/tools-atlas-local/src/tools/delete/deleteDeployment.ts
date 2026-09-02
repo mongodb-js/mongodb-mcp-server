@@ -22,7 +22,7 @@ export class DeleteDeploymentTool extends AtlasLocalToolBase {
 
     protected async executeWithAtlasLocalClient(
         { deploymentName }: ToolArgs<typeof this.argsShape>,
-        { client, context: _context }: { client: Client; context: ToolExecutionContext }
+        { client }: { client: Client; context: ToolExecutionContext }
     ): Promise<CallToolResult> {
         // Lookup telemetry metadata
         // We need to lookup the telemetry metadata before deleting the deployment

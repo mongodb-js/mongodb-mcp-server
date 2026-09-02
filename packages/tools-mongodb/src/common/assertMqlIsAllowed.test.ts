@@ -27,18 +27,18 @@ function makeTool(config: Partial<IMongoDBConfig>): (...values: unknown[]) => vo
         logger: mockLogger,
         keychain: { allSecrets: [] } as never,
         connectionRegistry: {} as never,
-        connectionErrorHandler: (async () => ({ errorHandled: false, result: undefined })) as never,
-        exportsManager: { createJSONExport: vi.fn() } as never,
+        connectionErrorHandler: (() => ({ errorHandled: false, result: undefined })) as never,
+        exportsManager: { createJSONExport: vi.fn() },
         telemetry: { isTelemetryEnabled: () => false, emitEvents: vi.fn() } as unknown as ITelemetry,
         elicitation: createMockElicitation(),
         metrics: new MockMetrics(),
-        uiRegistry: { get: vi.fn().mockResolvedValue(null) } as never,
+        uiRegistry: { get: vi.fn().mockResolvedValue(null) },
     };
 
     const tool = new FindTool(server) as unknown as {
         assertMqlIsAllowed: (config: IMongoDBConfig, ...values: unknown[]) => void;
     };
-    const toolConfig = server.config as IMongoDBConfig;
+    const toolConfig = server.config;
     return (...values: unknown[]) => tool.assertMqlIsAllowed(toolConfig, ...values);
 }
 

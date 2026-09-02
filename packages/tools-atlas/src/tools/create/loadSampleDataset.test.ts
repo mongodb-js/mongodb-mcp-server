@@ -8,7 +8,7 @@ import { MockMetrics } from "../../mockMetrics.js";
 import { createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import { Keychain } from "@mongodb-js/mcp-core";
 import type { AtlasToolServer } from "../../atlasTool.js";
-import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
+import type {} from "@mongodb-js/mcp-types";
 
 const PROJECT_ID = "651b1d2a3a3f3a0001a1b2c3";
 const CLUSTER_NAME = "MyCluster";
@@ -79,14 +79,19 @@ describe("LoadSampleDatasetTool", () => {
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
-        } as unknown as AtlasToolServer;
+        };
 
         return new LoadSampleDatasetTool(server);
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["execute"](z.object(LoadSampleDatasetArgs).parse(args) as never, { request: { config: (tool as unknown as { server: AtlasToolServer }).server.config, signal: new AbortController().signal } } as unknown as ToolExecutionContext);
+        tool["execute"](z.object(LoadSampleDatasetArgs).parse(args) as never, {
+            request: {
+                config: (tool as unknown as { server: AtlasToolServer }).server.config,
+                signal: new AbortController().signal,
+            },
+        });
 
     function getStructuredContent(result: { structuredContent?: unknown }): Record<string, unknown> {
         expect(result.structuredContent).toBeDefined();

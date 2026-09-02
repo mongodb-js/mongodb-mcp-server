@@ -43,6 +43,8 @@ const config: KnipConfig = {
             ignoreDependencies: [
                 // Public API surface re-exports NodeDriverServiceProvider from tools; knip cannot trace the chain
                 "@mongosh/service-provider-node-driver",
+                // Re-exported as `export type { Secret }`; knip --strict ignores type-only usage (knip hints to remove)
+                "mongodb-redact",
                 // Referenced only in tsconfig.cjs.json paths, not imported in source
                 "openapi-typescript-helpers",
                 // Referenced only in tsconfig.cjs.json paths; runtime usage is in @mongodb-js/mcp-cli

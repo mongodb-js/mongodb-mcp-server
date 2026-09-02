@@ -7,7 +7,6 @@ import type {
     IMetrics,
     ICompositeLogger,
     ServerLike,
-    TransportRequestContext,
     HttpServerOptions,
     LogLevel,
     LogPayload,
@@ -76,8 +75,8 @@ function makeFakeServer(): ServerLike {
     mcpServer.registerTool(
         "echo",
         { inputSchema: z.object({ x: z.string() }) },
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        async ({ x }: { x: string }) => ({ content: [{ type: "text", text: x }] })
+
+        ({ x }: { x: string }) => ({ content: [{ type: "text", text: x }] })
     );
     return {
         mcpServer,
@@ -94,7 +93,7 @@ class TestMCPHttpServer extends MCPHttpServer<ServerLike> {
         });
     }
 
-    protected override createServerForRequest(_: TransportRequestContext): Promise<ServerLike> {
+    protected override createServerForRequest(): Promise<ServerLike> {
         return Promise.resolve(makeFakeServer());
     }
 }
@@ -132,7 +131,7 @@ describe("MCPHttpServer stateless serving", () => {
     it("registers the request-scoped server for every request", async () => {
         const register = vi.fn().mockResolvedValue(undefined);
         class RegisterTrackingServer extends TestMCPHttpServer {
-            protected override createServerForRequest(_: TransportRequestContext): Promise<ServerLike> {
+            protected override createServerForRequest(): Promise<ServerLike> {
                 return Promise.resolve({ ...makeFakeServer(), register });
             }
         }
@@ -147,7 +146,7 @@ describe("MCPHttpServer stateless serving", () => {
 
     it("returns a 500 when the server factory throws", async () => {
         class ThrowingServer extends TestMCPHttpServer {
-            protected override createServerForRequest(_: TransportRequestContext): Promise<ServerLike> {
+            protected override createServerForRequest(): Promise<ServerLike> {
                 return Promise.reject(new Error("factory boom"));
             }
         }

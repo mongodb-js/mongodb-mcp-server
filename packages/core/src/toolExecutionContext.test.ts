@@ -43,14 +43,14 @@ describe("toToolExecutionContext", () => {
             mcpReq: {
                 signal,
                 _meta: { progressToken: 1 },
-                inputResponses: { "confirm": { value: true } },
+                inputResponses: { confirm: { value: true } },
                 notify,
             } as never,
         });
         const result = toToolExecutionContext(ctx, config);
         expect(result.request.signal).toBe(signal);
         expect(result.request._meta).toEqual({ progressToken: 1 });
-        expect(result.request.inputResponses).toEqual({ "confirm": { value: true } });
+        expect(result.request.inputResponses).toEqual({ confirm: { value: true } });
         expect(result.request.sendNotification).toBeDefined();
     });
 

@@ -345,12 +345,8 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
         expect(createdServers).toHaveLength(2);
 
         // Both request-scoped servers share the same app-level connection registry.
-        expect((serverA as { connectionRegistry: unknown }).connectionRegistry).toBe(
-            appServices.connectionRegistry
-        );
-        expect((serverB as { connectionRegistry: unknown }).connectionRegistry).toBe(
-            appServices.connectionRegistry
-        );
+        expect((serverA as { connectionRegistry: unknown }).connectionRegistry).toBe(appServices.connectionRegistry);
+        expect((serverB as { connectionRegistry: unknown }).connectionRegistry).toBe(appServices.connectionRegistry);
 
         // Request override isolation: only the first request got read-only=true
         expect((serverA as { config: { readOnly: boolean } }).config.readOnly).toBe(true);

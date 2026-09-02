@@ -19,7 +19,7 @@ export type {
 } from "@mongodb-js/mcp-atlas-telemetry";
 export type { ConnectionMetadata, PerfAdvisorToolMetadata, StreamsToolMetadata } from "@mongodb-js/mcp-types";
 export { Keychain } from "@mongodb-js/mcp-core";
-export type { Secret } from "@mongodb-js/mcp-types";
+export type { Secret } from "mongodb-redact";
 export type {
     ConnectionErrorHandler,
     ConnectionErrorHandled,

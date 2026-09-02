@@ -8,9 +8,9 @@ import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
-import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
+import type {} from "@mongodb-js/mcp-metrics";
 import type { AtlasToolServer } from "../../atlasTool.js";
-import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
+import type {} from "@mongodb-js/mcp-types";
 
 describe("StreamsTeardownTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
@@ -64,7 +64,7 @@ describe("StreamsTeardownTool", () => {
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
-        } as unknown as AtlasToolServer;
+        };
 
         tool = new StreamsTeardownTool(server);
     });
@@ -77,7 +77,7 @@ describe("StreamsTeardownTool", () => {
                 config: (tool as unknown as { server: AtlasToolServer }).server.config,
                 signal: new AbortController().signal,
             },
-        } as unknown as ToolExecutionContext);
+        });
     const confirmMsg = (args: Record<string, unknown>): string => tool["getConfirmationMessage"](args as never);
 
     describe("error classification boundary", () => {
@@ -94,7 +94,12 @@ describe("StreamsTeardownTool", () => {
                     resource: "processor",
                     resourceName: "proc1",
                 },
-                { signal: new AbortController().signal }
+                {
+                    request: {
+                        config: (tool as unknown as { server: AtlasToolServer }).server.config,
+                        signal: new AbortController().signal,
+                    },
+                }
             );
 
             expect(wrappedHandleError).toHaveBeenCalledOnce();
@@ -163,7 +168,7 @@ describe("StreamsTeardownTool", () => {
                         signal: new AbortController().signal,
                         headers: { "x-request-id": "req-del-1" },
                     },
-                } as unknown as ToolExecutionContext
+                }
             );
 
             expect(mockLogger.debug).toHaveBeenCalledWith(

@@ -23,7 +23,7 @@ describeWithStreams("atlas-streams-manage", (integration) => {
                 // The shared workspace is reused across all streams test files, so clean
                 // up the processor we created to leave the workspace in its initial state
                 // (discover.test.ts asserts "list-processors is empty").
-                const session = integration.mcpServer().session;
+                const session = integration.mcpServer();
                 assertApiClientIsAvailable(session);
                 try {
                     await session.apiClient.deleteStreamProcessor({
