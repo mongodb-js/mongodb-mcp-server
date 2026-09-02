@@ -41,7 +41,7 @@ jobs:
         if: |
           github.event_name == 'workflow_dispatch' ||
           (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'build-mcpb'))
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: mongodb-mcp-server-mcpb
           path: dist-mcpb/*.mcpb

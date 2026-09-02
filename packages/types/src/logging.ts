@@ -1,5 +1,5 @@
 import type { LoggingMessageNotification } from "@modelcontextprotocol/server";
-import type { IKeychain } from "./keychain.js";
+import type { IRedactor } from "./keychain.js";
 
 export type { McpServer } from "@modelcontextprotocol/server";
 
@@ -52,7 +52,7 @@ export interface ILogger {
 }
 
 export type LoggerConfig = {
-    keychain: IKeychain;
+    keychain: IRedactor;
 };
 
 export interface ICompositeLogger extends ILogger {

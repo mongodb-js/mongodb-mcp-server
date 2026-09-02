@@ -7,7 +7,6 @@ import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import { EventCache } from "./eventCache.js";
 import type { IDeviceId, IKeychain, ITelemetry, ServerMetadata } from "@mongodb-js/mcp-types";
 import { EventEmitter } from "events";
-import { redact } from "mongodb-redact";
 import { Timer } from "./timer.js";
 
 import type { TelemetryEvents } from "@mongodb-js/mcp-types";
@@ -320,13 +319,13 @@ export class AtlasTelemetry implements ITelemetry {
     }): Promise<SendResult> {
         try {
             const effectiveSignal = signal ?? AbortSignal.timeout(SEND_TIMEOUT_MS);
-            const secrets = this.keychain?.allSecrets ?? [];
+            const redact = <T>(value: T): T => this.keychain?.redact(value) ?? value;
             await client.sendEvents(
                 events.map((event) => ({
                     ...event,
                     properties: {
-                        ...redact(this.getCommonProperties(), secrets),
-                        ...redact(event.properties, secrets),
+                        ...redact(this.getCommonProperties()),
+                        ...redact(event.properties),
                     },
                 })),
                 { signal: effectiveSignal }

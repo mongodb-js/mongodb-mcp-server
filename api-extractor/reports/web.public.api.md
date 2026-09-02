@@ -265,7 +265,6 @@ export interface CommonExportData {
 // @public (undocumented)
 export class CompositeLogger extends LoggerBase {
     constructor(input?: {
-        keychain?: IKeychain;
         loggers: LoggerBase[];
     });
     // (undocumented)
@@ -275,11 +274,7 @@ export class CompositeLogger extends LoggerBase {
     // (undocumented)
     log(level: LogLevel, payload: LogPayload): void;
     // (undocumented)
-    protected logCore(): void;
-    // (undocumented)
     setAttribute(key: string, value: string): void;
-    // (undocumented)
-    protected readonly type?: LoggerType;
 }
 
 // @public (undocumented)
@@ -475,8 +470,8 @@ export class Elicitation implements IElicitation {
     };
     confirmationRequired(message: string): InputRequiredResult;
     inputRequired(input: ElicitInputRequiredParams): InputRequiredResult;
-    readConfirmation(inputResponses: ElicitationInputResponses_2): boolean | undefined;
-    readInput(inputResponses: ElicitationInputResponses_2, key: string): ElicitedInputResult | undefined;
+    readConfirmation(inputResponses: ElicitationInputResponses): boolean | undefined;
+    readInput(inputResponses: ElicitationInputResponses, key: string): ElicitedInputResult | undefined;
     supportsElicitation(): boolean;
 }
 
@@ -580,9 +575,8 @@ export const jsonExportFormat: z.ZodEnum<{
 export class Keychain implements IKeychain {
     constructor();
     // (undocumented)
-    get allSecrets(): Secret[];
-    // (undocumented)
     clearAllSecrets(): void;
+    redact<T>(value: T): T;
     // (undocumented)
     register(value: Secret["value"], kind: Secret["kind"]): void;
     // (undocumented)
@@ -595,9 +589,8 @@ export interface LibraryLoader {
     loadAtlasLocalClient: (logger: LoggerBase) => Promise<typeof Client | undefined>;
 }
 
-// @public (undocumented)
+// @public
 export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extends EventEmitter<T> implements ILogger {
-    constructor(options: LoggerConfig);
     // (undocumented)
     alert(payload: LogPayload): void;
     // (undocumented)
@@ -613,13 +606,9 @@ export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extend
     // (undocumented)
     info(payload: LogPayload): void;
     // (undocumented)
-    log(level: LogLevel, payload: LogPayload): void;
-    // (undocumented)
-    protected abstract logCore(level: LogLevel, payload: LogPayload): void;
+    abstract log(level: LogLevel, payload: LogPayload): void;
     // (undocumented)
     notice(payload: LogPayload): void;
-    // (undocumented)
-    protected abstract readonly type?: LoggerType;
     // (undocumented)
     warning(payload: LogPayload): void;
 }
@@ -854,7 +843,7 @@ export type ToolExecutionContext = {
     _meta?: RequestMeta;
     requestId?: string | number;
     sendNotification?: (notification: unknown) => Promise<void>;
-    inputResponses?: Record<string, unknown>;
+    inputResponses?: ElicitationInputResponses;
     elicitationDurationMs?: number;
 };
 

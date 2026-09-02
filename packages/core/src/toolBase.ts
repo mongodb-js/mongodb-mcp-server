@@ -33,8 +33,6 @@ import { requestIdAttr } from "./helpers/requestIdAttr.js";
 
 import { LogId } from "./logId.js";
 
-import { redact } from "mongodb-redact";
-
 /**
  * Adapts the v2 SDK server context (`ctx`) to the tool execution context
  * consumed by tool implementations. The v2 SDK nests the per-request fields
@@ -916,7 +914,7 @@ export abstract class ToolBase<
         args: z.infer<z.ZodObject<typeof this.argsShape>>
     ): Promise<CallToolResult> | CallToolResult {
         const rawMessage = error instanceof Error ? error.message : String(error);
-        const safeMessage = redact(rawMessage, this.session.keychain.allSecrets);
+        const safeMessage = this.session.keychain.redact(rawMessage);
         return {
             content: [
                 {

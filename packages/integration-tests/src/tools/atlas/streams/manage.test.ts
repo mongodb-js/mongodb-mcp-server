@@ -1,6 +1,6 @@
 import { expectDefined, getResponseContent } from "../../../integrationHelpers.js";
-import { describeWithStreams, withWorkspace, randomId } from "../atlasHelpers.js";
-import { beforeAll, describe, expect, it } from "vitest";
+import { describeWithStreams, withWorkspace, randomId, assertApiClientIsAvailable } from "../atlasHelpers.js";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 describeWithStreams("atlas-streams-manage", (integration) => {
     describe("tool registration", () => {
@@ -18,6 +18,27 @@ describeWithStreams("atlas-streams-manage", (integration) => {
     withWorkspace(integration, ({ getProjectId, getWorkspaceName, getClusterConnectionName }) => {
         describe("processor management", () => {
             const processorName = `manageproc${randomId().slice(0, 8)}`;
+
+            afterAll(async () => {
+                // The shared workspace is reused across all streams test files, so clean
+                // up the processor we created to leave the workspace in its initial state
+                // (discover.test.ts asserts "list-processors is empty").
+                const session = integration.mcpServer().session;
+                assertApiClientIsAvailable(session);
+                try {
+                    await session.apiClient.deleteStreamProcessor({
+                        params: {
+                            path: {
+                                groupId: getProjectId(),
+                                tenantName: getWorkspaceName(),
+                                processorName,
+                            },
+                        },
+                    });
+                } catch {
+                    // ignore cleanup errors
+                }
+            });
 
             beforeAll(async () => {
                 const response = await integration.mcpClient().callTool({

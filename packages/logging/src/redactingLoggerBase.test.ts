@@ -6,7 +6,7 @@ import { ConsoleLogger } from "./consoleLogger.js";
 import { McpLogger } from "./mcpLogger.js";
 import { Keychain } from "@mongodb-js/mcp-core";
 
-describe("LoggerBase redaction", () => {
+describe("RedactingLoggerBase redaction", () => {
     let consoleErrorSpy: MockInstance<typeof console.error>;
     let consoleLogger: ConsoleLogger;
     let keychain: Keychain;
@@ -121,6 +121,22 @@ describe("LoggerBase redaction", () => {
         expect(consoleErrorSpy).toHaveBeenCalledOnce();
         expect(getLastConsoleMessage()).to.contain("detail=contact <email> for info");
         expect(getLastConsoleMessage()).to.not.contain("foo@bar.com");
+    });
+
+    it("keeps an attribute named __proto__ instead of dropping it", () => {
+        keychain.register("123456", "password");
+        consoleLogger.info({
+            id: LogId.serverInitialized,
+            context: "test",
+            message: "Safe message",
+            // A key of `__proto__` hits the prototype setter when assigned into an object literal,
+            // which silently discarded the attribute rather than redacting and emitting it.
+            attributes: { ["__proto__"]: "contains 123456 value" },
+        });
+
+        expect(consoleErrorSpy).toHaveBeenCalledOnce();
+        expect(getLastConsoleMessage()).to.contain("__proto__=contains <password> value");
+        expect(getLastConsoleMessage()).to.not.contain("123456");
     });
 
     it("allows disabling redaction for all loggers", () => {

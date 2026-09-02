@@ -2656,7 +2656,7 @@ export interface components {
         BadRequestDetail: {
             /** @description Describes all violations in a client request. */
             fields?: components["schemas"]["FieldViolation"][];
-        } | null;
+        };
         /** @description Instance size boundary to which your cluster can automatically scale. */
         BaseCloudProviderInstanceSize:
             | (
@@ -3164,7 +3164,7 @@ export interface components {
             "providerName"
         > & {
             /**
-             * @description Unique 24-hexadecimal digit string that identifies the role.
+             * @description Unique 24-hexadecimal digit string that identifies the role. Pass this value as the `roleId` path parameter when you request, update, or remove this Azure Service Principal. Azure Service Principals return this identifier as `_id`, while Amazon Web Services (AWS) IAM roles and Google Service Accounts return it as `roleId`.
              * @example 32b6e34b3d91647abb20e7b8
              */
             readonly _id?: string;
@@ -4311,8 +4311,8 @@ export interface components {
             /** @description List of individual private endpoints that comprise this endpoint group. If this endpoint belongs to a port-mapped endpoint service, this field will only take in a list of one private endpoint. */
             endpoints?: components["schemas"]["CreateGCPForwardingRuleRequest"][];
             /**
-             * @description Unique string that identifies the Google Cloud project in which you created the endpoints.
-             * @example p-fdeeb3e43b8e733e5ab627b1
+             * @description Unique string that identifies the Google Cloud project in which you created the endpoints. Specify the Google Cloud project ID or project number.
+             * @example my-project-12345
              */
             gcpProjectId: string;
         } & {
@@ -4365,7 +4365,7 @@ export interface components {
              */
             type: "CUSTOM";
         };
-        /** @description The name of a built-in or custom DB Role to connect to an Atlas Cluster. */
+        /** @description Name of a built-in or custom DB Role to connect to a MongoDB Cloud Cluster. */
         DBRoleToExecute: {
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
@@ -4377,7 +4377,7 @@ export interface components {
              * @enum {string}
              */
             type?: "BUILT_IN" | "CUSTOM";
-        } | null;
+        };
         DailyScheduleView: Omit<WithRequired<components["schemas"]["OnlineArchiveSchedule"], "type">, "type"> & {
             /**
              * Format: int32
@@ -5304,6 +5304,7 @@ export interface components {
                       | "CLUSTER_UNBLOCK_WRITE"
                       | "LOG_STREAMING_EXPORT_FAILED_NONRETRYABLE"
                       | "LOG_STREAMING_EXPORT_FAILED_RETRIES_EXHAUSTED"
+                      | "LOG_STREAMING_REPLAY_FAILED"
                   )
                 | (
                       | "MAINTENANCE_IN_ADVANCED"
@@ -5589,7 +5590,7 @@ export interface components {
             cloudProvider: "AWS" | "AZURE" | "GCP";
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
-        } | null;
+        };
         /** @description Disk backup snapshot Export Bucket. */
         DiskBackupSnapshotExportBucketResponse: {
             /**
@@ -9121,13 +9122,13 @@ export interface components {
             readonly links?: components["schemas"]["Link"][];
             /**
              * Stream Workspace Max Tier Size
-             * @description Max tier size for the Stream Workspace. Configures Memory / VCPU allowances.
+             * @description Max tier size for the Stream Workspace. Configures Memory or VCPU allowances.
              * @enum {string}
              */
             maxTierSize?: "SP50" | "SP30" | "SP10" | "SP5" | "SP2";
             /**
              * Stream Workspace Tier
-             * @description Selected tier for the Stream Workspace. Configures Memory / VCPU allowances.
+             * @description Selected tier for the Stream Workspace. Configures Memory or VCPU allowances.
              * @enum {string}
              */
             tier?: "SP50" | "SP30" | "SP10" | "SP5" | "SP2";
@@ -9269,6 +9270,42 @@ export interface components {
              */
             type: "AWSLambda";
         };
+        /** @description Autoscaling configuration for a stream processor. */
+        StreamsAutoscaling: {
+            /**
+             * @description Flag that indicates whether autoscaling is enabled.
+             *
+             *     - **Omitted, `null`, or `false`:**
+             *       - On `CREATE`: a no-op, there is no persisted setting yet to disable or clear.
+             *       - On `MODIFY` or `:startWith`: omitted preserves the current setting. `null` or `false` disables autoscaling and clears its configuration.
+             *     - **`true`** on `CREATE`, `MODIFY`, or `:startWith`: enables autoscaling.
+             */
+            enabled?: boolean | null;
+            /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
+            readonly links?: components["schemas"]["Link"][];
+            /**
+             * @description Tier ceiling for autoscaling (scale-up limit).
+             *
+             *     - **Omitted:**
+             *       - On `CREATE`: falls back to the workspace max tier (there is no current bound to preserve).
+             *       - On `MODIFY` or `:startWith`: the current bound is preserved.
+             *     - **`null`** on `CREATE`, `MODIFY`, or `:startWith`: resets the bound to the workspace max tier.
+             *     - **A tier value** on `CREATE`, `MODIFY`, or `:startWith`: sets the bound to that tier.
+             * @enum {string|null}
+             */
+            maxTier?: "SP50" | "SP30" | "SP10" | "SP5" | "SP2" | null;
+            /**
+             * @description Tier floor for autoscaling (scale-down limit).
+             *
+             *     - **Omitted:**
+             *       - On `CREATE`: falls back to the workspace default tier (there is no current bound to preserve).
+             *       - On `MODIFY` or `:startWith`: the current bound is preserved.
+             *     - **`null`** on `CREATE`, `MODIFY`, or `:startWith`: resets the bound to the workspace default tier.
+             *     - **A tier value** on `CREATE`, `MODIFY`, or `:startWith`: sets the bound to that tier.
+             * @enum {string|null}
+             */
+            minTier?: "SP50" | "SP30" | "SP10" | "SP5" | "SP2" | null;
+        } | null;
         /** @description The configuration for Azure Blob Storage connections. */
         StreamsAzureBlobStorageConnection: Omit<components["schemas"]["StreamsConnection"], "type"> & {
             azure?: components["schemas"]["AzureConnection"];
@@ -9313,15 +9350,15 @@ export interface components {
             readonly links?: components["schemas"]["Link"][];
             /** @description Human-readable label that identifies the stream connection. For the Sample type, this is the name of the sample source. */
             name?: string;
-            /** @description The connection region. */
+            /** @description Connection region. */
             region?: string;
             /**
-             * @description The connection state.
+             * @description Connection state.
              * @enum {string}
              */
             readonly state?: "PENDING" | "READY" | "DELETING" | "FAILED";
             /**
-             * @description The connection type.
+             * @description Connection type.
              * @enum {string}
              */
             type?:
@@ -9395,15 +9432,15 @@ export interface components {
             readonly links?: components["schemas"]["Link"][];
             /** @description Human-readable label that identifies the stream connection. */
             name?: string;
-            /** @description The connection region. */
+            /** @description Connection region. */
             region?: string;
             /**
-             * @description The connection state.
+             * @description Connection state.
              * @enum {string}
              */
             readonly state?: "PENDING" | "READY" | "DELETING" | "FAILED";
             /**
-             * @description The connection type.
+             * @description Connection type.
              * @enum {string}
              */
             type?: "Kafka" | "Cluster";
@@ -9416,7 +9453,7 @@ export interface components {
             /** @description Comma separated list of server addresses. */
             bootstrapServers?: string;
             /**
-             * @description A map of Kafka key-value pairs for optional configuration. This is a flat object, and keys can have '.' characters.
+             * @description Map of Kafka key-value pairs for optional configuration. This object is flat, and keys can have '.' characters.
              * @example {
              *       "debug": "queue, msg, protocol",
              *       "group.protocol.type": "consumer"
@@ -9531,7 +9568,7 @@ export interface components {
             /** @description Comma separated list of server addresses. */
             bootstrapServers?: string;
             /**
-             * @description A map of Kafka key-value pairs for optional configuration. This is a flat object, and keys can have '.' characters.
+             * @description Map of Kafka key-value pairs for optional configuration. This object is flat, and keys can have '.' characters.
              * @example {
              *       "debug": "queue, msg, protocol",
              *       "group.protocol.type": "consumer"
@@ -9564,7 +9601,7 @@ export interface components {
         /** @description Information about networking access. */
         StreamsKafkaNetworkingAccess: {
             /**
-             * @description Reserved. Will be used by `PRIVATE_LINK` connection type.
+             * @description Reserved. Will be used by `PRIVATE_LINK` connection type. Setting this field with any other networking access type returns a validation error.
              * @example 32b6e34b3d91647abb20e7b8
              */
             connectionId?: string;
@@ -9606,13 +9643,14 @@ export interface components {
             pipeline?: components["schemas"]["Document"][];
             /**
              * Stream Workspace Tier
-             * @description Selected tier for the Stream Workspace. Configures Memory / VCPU allowances.
+             * @description Selected tier for the Stream Workspace. Configures Memory or VCPU allowances.
              * @enum {string}
              */
             tier?: "SP50" | "SP30" | "SP10" | "SP5" | "SP2";
         };
         /** @description Additional options for modifying a stream processor. */
         StreamsModifyStreamProcessorOptions: {
+            autoscaling?: components["schemas"]["StreamsAutoscaling"];
             dlq?: components["schemas"]["StreamsDLQ"];
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
@@ -9621,6 +9659,7 @@ export interface components {
         };
         /** @description Optional configuration for the stream processor. */
         StreamsOptions: {
+            autoscaling?: components["schemas"]["StreamsAutoscaling"];
             dlq?: components["schemas"]["StreamsDLQ"];
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
@@ -9700,6 +9739,12 @@ export interface components {
              * @example 32b6e34b3d91647abb20e7b8
              */
             readonly _id?: string;
+            /**
+             * Stream Workspace Tier
+             * @description Selected tier for the Stream Workspace. Configures Memory or VCPU allowances.
+             * @enum {string}
+             */
+            readonly effectiveTier: "SP50" | "SP30" | "SP10" | "SP5" | "SP2";
             /** @description Flag that enables or disables failover for the stream processor. */
             failoverEnabled?: boolean;
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
@@ -9711,7 +9756,7 @@ export interface components {
             pipeline?: components["schemas"]["Document"][];
             /**
              * Stream Workspace Tier
-             * @description Selected tier for the Stream Workspace. Configures Memory / VCPU allowances.
+             * @description Selected tier for the Stream Workspace. Configures Memory or VCPU allowances.
              * @enum {string}
              */
             tier?: "SP50" | "SP30" | "SP10" | "SP5" | "SP2";
@@ -9740,6 +9785,12 @@ export interface components {
              * @example 32b6e34b3d91647abb20e7b8
              */
             readonly _id: string;
+            /**
+             * Stream Workspace Tier
+             * @description Selected tier for the Stream Workspace. Configures Memory or VCPU allowances.
+             * @enum {string}
+             */
+            readonly effectiveTier: "SP50" | "SP30" | "SP10" | "SP5" | "SP2";
             /** @description Flag that indicates whether the stream processor is eligible for failover. */
             readonly eligibleForFailover?: boolean;
             /** @description Flag that enables or disables failover for the stream processor. */
@@ -9761,7 +9812,7 @@ export interface components {
             };
             /**
              * Stream Workspace Tier
-             * @description Selected tier for the Stream Workspace. Configures Memory / VCPU allowances.
+             * @description Selected tier for the Stream Workspace. Configures Memory or VCPU allowances.
              * @enum {string}
              */
             tier?: "SP50" | "SP30" | "SP10" | "SP5" | "SP2";
@@ -9870,6 +9921,7 @@ export interface components {
         };
         /** @description A request to start a stream processor. */
         StreamsStartStreamProcessorWith: {
+            autoscaling?: components["schemas"]["StreamsAutoscaling"];
             failover?: components["schemas"]["StreamsStartProcessorFailover"];
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
@@ -9882,7 +9934,7 @@ export interface components {
             startAtOperationTime?: string;
             /**
              * Stream Workspace Tier
-             * @description Selected tier for the Stream Workspace. Configures Memory / VCPU allowances.
+             * @description Selected tier for the Stream Workspace. Configures Memory or VCPU allowances.
              * @enum {string}
              */
             tier?: "SP50" | "SP30" | "SP10" | "SP5" | "SP2";
@@ -11566,6 +11618,7 @@ export type StreamProcessorAlertViewForNdsGroup = components["schemas"]["StreamP
 export type StreamsAwsConnectionConfig = components["schemas"]["StreamsAWSConnectionConfig"];
 export type StreamsAwsKinesisDataStreamsConnection = components["schemas"]["StreamsAWSKinesisDataStreamsConnection"];
 export type StreamsAwsLambdaConnection = components["schemas"]["StreamsAWSLambdaConnection"];
+export type StreamsAutoscaling = components["schemas"]["StreamsAutoscaling"];
 export type StreamsAzureBlobStorageConnection = components["schemas"]["StreamsAzureBlobStorageConnection"];
 export type StreamsClusterConnection = components["schemas"]["StreamsClusterConnection"];
 export type StreamsConnection = components["schemas"]["StreamsConnection"];
@@ -12125,7 +12178,7 @@ export interface operations {
                  *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
                  */
                 groupId: components["parameters"]["groupId"];
-                /** @description Unique 24-hexadecimal digit string that identifies the role. */
+                /** @description Unique 24-hexadecimal digit string that identifies the role. Amazon Web Services (AWS) IAM roles and Google Service Accounts return this value as `roleId`. Azure Service Principals return it as `_id`. */
                 roleId: string;
             };
             cookie?: never;

@@ -464,9 +464,9 @@ const standard = [...MongoDBTools, ...AtlasTools, ...AtlasLocalTools];
 | `StdioRunner({ logger })`                                                                         | Abstract stdio transport runner (`serveStdio`; override `createServer()` to return a registered `McpServer`) |
 | `InMemoryTransport`                                                                               | In-memory transport for tests                                                                                |
 | `SessionStore`, `createDefaultSessionStore`                                                       | HTTP session store                                                                                           |
-| `Keychain`, `registerGlobalSecretToRedact`, `redactValues`                                        | Secret storage/redaction                                                                                     |
+| `Keychain`, `registerGlobalSecretToRedact`                                                        | Secret storage/redaction                                                                                     |
 | `Elicitation`                                                                                     | Multi-round-trip user confirmation/input (`inputRequired` builders + `inputResponses` readers)               |
-| `NoopLogger`, `NoopTelemetry`, `LoggerBase`, `CompositeLogger`                                    | Logging/telemetry primitives                                                                                 |
+| `NoopLogger`, `NoopTelemetry`, `LoggerBase`, `RedactingLoggerBase`, `CompositeLogger`             | Logging/telemetry primitives                                                                                 |
 | `McpServer` (re-export)                                                                           | `@modelcontextprotocol/server`                                                                               |
 
 ### `@mongodb-js/mcp-http-runners`

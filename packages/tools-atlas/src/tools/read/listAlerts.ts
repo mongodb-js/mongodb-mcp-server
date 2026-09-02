@@ -66,6 +66,12 @@ export class ListAlertsTool extends AtlasToolBase {
             context
         );
 
+        // The API omits totalCount when includeCount=false, but some environments return an
+        // explicit 0 even when results are present (only report a positive count then).
+        // For the empty case the count is either absent or a genuine 0, so report it as-is.
+        const apiTotalCount = data?.totalCount;
+        const hasAccurateCount = (apiTotalCount ?? 0) > 0;
+
         if (!data?.results?.length) {
             return {
                 content: [
@@ -91,7 +97,7 @@ export class ListAlertsTool extends AtlasToolBase {
             eventTypeName: alert.eventTypeName,
             acknowledgementComment: alert.acknowledgementComment ?? "N/A",
         }));
-        const totalText = data.totalCount !== undefined ? ` (total: ${data.totalCount})` : "";
+        const totalText = hasAccurateCount ? ` (total: ${apiTotalCount})` : "";
         // A full page means more results may exist on later pages.
         const paginationText =
             alerts.length === limit ? ". Use pagination arguments if more results are expected." : "";
@@ -105,7 +111,7 @@ export class ListAlertsTool extends AtlasToolBase {
                 projectId,
                 status,
                 alerts,
-                ...(data.totalCount !== undefined && { totalCount: data.totalCount }),
+                ...(hasAccurateCount && { totalCount: apiTotalCount }),
             },
         };
     }
