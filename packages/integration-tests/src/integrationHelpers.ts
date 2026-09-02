@@ -17,7 +17,12 @@ import type { MockClientCapabilities, createMockElicitInput } from "@mongodb-js/
 import { createAtlasLocalClient } from "mongodb-mcp-server";
 import type { AnyToolClass } from "@mongodb-js/mcp-core";
 import type { AnyResourceClass, OperationType, ServerMetadata } from "@mongodb-js/mcp-types";
-import { ApiClient, type HttpClient, userAgentFromServerMetadata } from "@mongodb-js/mcp-atlas-api-client";
+import {
+    ApiClient,
+    AuthProviderFactory,
+    type HttpClient,
+    userAgentFromServerMetadata,
+} from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics, sleep } from "@mongodb-js/mcp-test-utils";
 export { sleep };
 import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
@@ -43,18 +48,26 @@ export function createTestApiClient(options: CreateTestApiClientOptions): ApiCli
         Request: globalThis.Request,
     };
 
-    return new ApiClient(
+    const userAgent = userAgentFromServerMetadata(serverMetadata);
+    const authProvider = AuthProviderFactory.create(
         {
-            baseUrl,
-            userAgent: userAgentFromServerMetadata(serverMetadata),
-            credentials: {
-                clientId,
-                clientSecret,
-            },
+            apiBaseUrl: baseUrl,
+            userAgent,
+            credentials: { clientId, clientSecret },
             httpClient,
         },
         logger
     );
+
+    return new ApiClient({
+        options: {
+            baseUrl,
+            userAgent,
+            httpClient,
+        },
+        logger,
+        authProvider,
+    });
 }
 
 /** Driver product labels for tests; mirrors root `serverMetadata`. */
