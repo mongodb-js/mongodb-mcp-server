@@ -118,6 +118,7 @@ export function createStreamableHttpTestRunner(
                 bodyLimit: config.httpBodyLimit,
                 headers: config.httpHeaders,
                 responseType: config.httpResponseType,
+                authMode: "unauthenticated",
             },
         },
         logger,

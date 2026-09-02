@@ -54,6 +54,7 @@ const httpOptions: HttpServerOptions = {
     host: "127.0.0.1",
     port: 0,
     responseType: "json",
+    authMode: "unauthenticated",
 };
 
 /** A 2026-07-28 request carrying the per-request `_meta` envelope claim. */

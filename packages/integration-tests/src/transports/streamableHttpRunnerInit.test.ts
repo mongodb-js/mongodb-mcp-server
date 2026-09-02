@@ -68,6 +68,7 @@ function createStreamableHttpRunnerFromConfig(options: {
                 bodyLimit: userConfig.httpBodyLimit,
                 headers: userConfig.httpHeaders,
                 responseType: userConfig.httpResponseType,
+                authMode: "unauthenticated",
             },
         },
         logger,
