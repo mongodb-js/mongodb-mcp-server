@@ -164,6 +164,16 @@ Options (pick one — recommend **A**):
   survive across requests per client, preserving the current `connectionScope:
 "session"` security semantics (multi-tenant HTTP deployments) without server-side
   session objects.
+
+> **Done — 3A implemented** (`feat(cli): per-client connection scoping over HTTP`):
+> every HTTP request gets an isolated `view({ scope, owned: true })` over the app-level
+> `MCPConnectionStore`. Identified clients (`x-mcp-client-name` header — outside the
+> `x-mongodb-mcp-` config-override prefix) get a stable scope: connections survive
+> across that client's requests while staying invisible to other clients. Anonymous
+> HTTP requests get an ephemeral per-request scope (no cross-request state, and they
+> can never see identified clients' connections). No-request paths (stdio, dry-run,
+> eval) keep the app-level registry. The scope is the raw trimmed header value, not a
+> hash — the store key never leaves the process.
 - **B. Global-only**: delete `connectionScope: "session"`; all runtime connections are
   shared. Simplest, but changes the documented security posture for unauthenticated
   multi-client HTTP deployments (any client can see/use any connectionId).
