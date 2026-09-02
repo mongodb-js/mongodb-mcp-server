@@ -1,18 +1,8 @@
-import type { IKeychain, LoggerType } from "@mongodb-js/mcp-types";
+import type { LogLevel, LogPayload } from "@mongodb-js/mcp-types";
 import { LoggerBase } from "./loggerBase.js";
 
-const noopKeychain: IKeychain = {
-    register(): void {},
-    clearAllSecrets(): void {},
-    allSecrets: [],
-};
-
+/** A logger that discards everything it is given. */
 export class NoopLogger extends LoggerBase {
-    protected readonly type?: LoggerType;
-
-    constructor() {
-        super({ keychain: noopKeychain });
-    }
-
-    protected logCore(): void {}
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    public log(_level: LogLevel, _payload: LogPayload): void {}
 }

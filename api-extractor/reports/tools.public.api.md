@@ -1513,6 +1513,7 @@ export const ErrorCodes: {
     readonly ForbiddenServerSideJS: 1000009;
     readonly UnknownConnectionId: 1000010;
     readonly ConfirmationDeclined: 1000011;
+    readonly InvalidArgument: 1000012;
 };
 
 // @public (undocumented)

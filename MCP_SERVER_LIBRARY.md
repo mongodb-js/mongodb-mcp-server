@@ -465,9 +465,9 @@ const standard = [...MongoDBTools, ...AtlasTools, ...AtlasLocalTools];
 | `StdioRunner({ logger, server })`                                                                 | Stdio transport runner         |
 | `InMemoryTransport`                                                                               | In-memory transport for tests  |
 | `SessionStore`, `createDefaultSessionStore`                                                       | HTTP session store             |
-| `Keychain`, `registerGlobalSecretToRedact`, `redactValues`                                        | Secret storage/redaction       |
+| `Keychain`, `registerGlobalSecretToRedact`                                                        | Secret storage/redaction       |
 | `Elicitation`                                                                                     | User confirmation requests     |
-| `NoopLogger`, `NoopTelemetry`, `LoggerBase`, `CompositeLogger`                                    | Logging/telemetry primitives   |
+| `NoopLogger`, `NoopTelemetry`, `LoggerBase`, `RedactingLoggerBase`, `CompositeLogger`             | Logging/telemetry primitives   |
 | `McpServer` (re-export)                                                                           | `@modelcontextprotocol/server` |
 
 ### `@mongodb-js/mcp-http-runners`

@@ -49,7 +49,7 @@ describe("CreateClusterTool", () => {
         mockSession = {
             logger: mockApiClient.logger as unknown as ICompositeLogger,
             apiClient: mockApiClient as unknown as ApiClient,
-            keychain: { allSecrets: [] } as unknown as Keychain,
+            keychain: { redact: (value: unknown) => value } as unknown as Keychain,
             config: {
                 confirmationRequiredTools: [],
                 previewFeatures: [],

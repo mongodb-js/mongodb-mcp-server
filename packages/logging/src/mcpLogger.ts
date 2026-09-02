@@ -1,7 +1,7 @@
 import type { McpServer, LoggerConfig, LoggerType, LogLevel, LogPayload } from "@mongodb-js/mcp-types";
-import { MCP_LOG_LEVELS, LoggerBase } from "@mongodb-js/mcp-core";
+import { MCP_LOG_LEVELS, RedactingLoggerBase } from "@mongodb-js/mcp-core";
 
-export class McpLogger extends LoggerBase {
+export class McpLogger extends RedactingLoggerBase {
     private readonly server: McpServer;
     private readonly logLevel: LogLevel;
     private readonly pendingSends = new Set<Promise<void>>();

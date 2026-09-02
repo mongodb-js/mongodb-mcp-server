@@ -43,11 +43,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Build
         run: pnpm run build
-      - name: Run tests
-        run: pnpm test
-        env:
-          SKIP_ATLAS_INTEGRATION_TESTS: "true"
-          SKIP_ATLAS_LOCAL_TESTS: "true"
+      - name: Run unit and Mongo integration tests
+        run: pnpm exec vitest --project unit --project integration --project ui --project eslint-rules --run
   run-atlas-local-tests:
     name: Run Atlas Local tests
     if: github.event.pull_request.user.login == 'dependabot[bot]'
@@ -69,5 +66,5 @@ jobs:
           docker pull mongodb/mongodb-atlas-local:preview &
           docker pull mongodb/mongodb-atlas-local:latest &
           wait
-      - name: Run tests
-        run: pnpm test -- packages/integration-tests/src/tools/atlas-local/
+      - name: Run atlas local tests
+        run: pnpm exec vitest --project integration-atlas-local --run

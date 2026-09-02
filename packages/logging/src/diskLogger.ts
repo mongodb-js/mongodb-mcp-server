@@ -1,11 +1,11 @@
-import { LoggerBase } from "@mongodb-js/mcp-core";
+import { RedactingLoggerBase } from "@mongodb-js/mcp-core";
 import type { LogLevel, LogPayload, LoggerType, LogWriter, LoggerConfig } from "@mongodb-js/mcp-types";
 
 export type DiskLoggerOptions = {
     logWriter: LogWriter;
 } & LoggerConfig;
 
-export class DiskLogger extends LoggerBase {
+export class DiskLogger extends RedactingLoggerBase {
     private readonly logWriter: LogWriter;
 
     public constructor(options: DiskLoggerOptions) {
