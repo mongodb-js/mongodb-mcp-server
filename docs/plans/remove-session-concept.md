@@ -194,6 +194,7 @@ Options (pick one — recommend **A**):
 > `{ mode: "authenticated", state }`. `"unauthenticated"` keeps the passive
 > behavior (authInfo carries whatever the host provides, defaulting to
 > `{ mode: "unauthenticated" }`).
+
 - **B. Global-only**: delete `connectionScope: "session"`; all runtime connections are
   shared. Simplest, but changes the documented security posture for unauthenticated
   multi-client HTTP deployments (any client can see/use any connectionId).

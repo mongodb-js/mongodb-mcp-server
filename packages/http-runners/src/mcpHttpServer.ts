@@ -32,8 +32,6 @@ export type MCPHttpServerOptions<TMetrics extends DefaultMetricDefinitions = Def
     metrics: IMetrics<TMetrics>;
 };
 
-
-
 /**
  * HTTP server that serves MCP requests over HTTP using the stateless
  * protocol of revision 2026-07-28 through the SDK's `createMcpHandler`
@@ -127,7 +125,7 @@ export abstract class MCPHttpServer<
         // are rejected with 401 before the SDK sees them.
         return {
             ...handler,
-            fetch: async (request, options) => {
+            fetch: async (request, options): Promise<Response> => {
                 if (!options?.authInfo) {
                     return new Response(JSON.stringify({ error: "Unauthorized: authenticated request required" }), {
                         status: 401,

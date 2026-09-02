@@ -24,9 +24,7 @@ export type RequestAuthInfo = {
  * pass-through, or directly on the request context); the server never
  * authenticates on its own.
  */
-export type RequestAuthState =
-    | { mode: "unauthenticated" }
-    | { mode: "authenticated"; state: RequestAuthInfo };
+export type RequestAuthState = { mode: "unauthenticated" } | { mode: "authenticated"; state: RequestAuthInfo };
 
 export type TransportRequestContext = {
     headers?: Record<string, string | string[] | undefined>;

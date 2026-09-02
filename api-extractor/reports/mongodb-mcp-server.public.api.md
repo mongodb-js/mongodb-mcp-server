@@ -1068,6 +1068,7 @@ export const TRANSPORT_PAYLOAD_LIMITS: Record<TransportType, number>;
 export type TransportRequestContext = {
     headers?: Record<string, string | string[] | undefined>;
     query?: Record<string, string | string[] | undefined>;
+    authInfo?: RequestAuthState;
 };
 
 // @public

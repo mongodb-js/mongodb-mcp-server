@@ -843,6 +843,7 @@ export type ToolServerParam<TServer extends ToolServer = ToolServer> = TServer;
 export type TransportRequestContext = {
     headers?: Record<string, string | string[] | undefined>;
     query?: Record<string, string | string[] | undefined>;
+    authInfo?: RequestAuthState;
 };
 
 // @public

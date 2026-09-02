@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import express from "express";
+import type express from "express";
 import { MCPHttpServer } from "./mcpHttpServer.js";
 import { LoggerBase, Keychain } from "@mongodb-js/mcp-core";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
@@ -8,6 +8,7 @@ import type {
     IMetrics,
     ICompositeLogger,
     ServerLike,
+    TransportRequestContext,
     HttpServerOptions,
     LogLevel,
     LogPayload,
