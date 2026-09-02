@@ -24,9 +24,9 @@ export const ManageOutputSchema = z.object({
     processorState: ProcessorState.optional().describe("Processor state after a lifecycle action"),
     connectionState: ConnectionState.optional().describe("Connection state after an update"),
     region: z.string().optional().describe("Confirmed workspace region after an update"),
-    tier: z.string().optional().describe("Confirmed workspace or processor baseline tier"),
-    effectiveTier: z.string().optional().describe("Current effective processor tier"),
-    maxTier: z.string().optional().describe("Confirmed workspace max tier after an update"),
+    tier: StreamsTier.optional().describe("Confirmed workspace or processor baseline tier"),
+    effectiveTier: StreamsTier.optional().describe("Current effective processor tier"),
+    maxTier: StreamsTier.optional().describe("Confirmed workspace max tier after an update"),
     autoscaling: StreamsAutoscaling.optional().describe("Confirmed processor autoscaling configuration"),
     peeringState: PeeringState.optional().describe("Outcome of a VPC peering accept or reject action"),
 });
@@ -217,7 +217,10 @@ export class StreamsManageTool extends StreamsToolBase {
     private static mapUpdateWorkspaceStructuredContent(
         updated: {
             dataProcessRegion?: { cloudProvider?: string; region?: string };
-            streamConfig?: { tier?: string; maxTierSize?: string } | null;
+            streamConfig?: {
+                tier?: "SP2" | "SP5" | "SP10" | "SP30" | "SP50";
+                maxTierSize?: "SP2" | "SP5" | "SP10" | "SP30" | "SP50";
+            } | null;
         },
         options: { includeRegion: boolean; includeTier: boolean }
     ): ManageOutput {
@@ -447,7 +450,7 @@ export class StreamsManageTool extends StreamsToolBase {
 
         const structuredContent: ManageOutput = { processorState: "STOPPED" };
         if (args.tier !== undefined && updated.tier !== undefined) structuredContent.tier = updated.tier;
-        if (args.tier !== undefined && updated.effectiveTier !== undefined) {
+        if ((args.tier !== undefined || args.autoscaling !== undefined) && updated.effectiveTier !== undefined) {
             structuredContent.effectiveTier = updated.effectiveTier;
         }
         if (args.autoscaling !== undefined) structuredContent.autoscaling = updated.options?.autoscaling ?? null;

@@ -430,6 +430,29 @@ describe("StreamsManageTool", () => {
             });
         });
 
+        it("should return effective tier when only autoscaling changes", async () => {
+            mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "STOPPED", name: "proc1" });
+            mockApiClient.updateStreamProcessor!.mockResolvedValue({
+                state: "STOPPED",
+                tier: "SP10",
+                effectiveTier: "SP30",
+                options: { autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" } },
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "modify-processor",
+                resourceName: "proc1",
+                autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" },
+            });
+
+            expect(result.structuredContent).toEqual({
+                processorState: "STOPPED",
+                effectiveTier: "SP30",
+                autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" },
+            });
+        });
+
         it("should pass null autoscaling through to disable it", async () => {
             mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "STOPPED", name: "proc1" });
             mockApiClient.updateStreamProcessor!.mockResolvedValue({
@@ -452,6 +475,7 @@ describe("StreamsManageTool", () => {
             );
             expect(result.structuredContent).toEqual({
                 processorState: "STOPPED",
+                effectiveTier: "SP10",
                 autoscaling: null,
             });
         });

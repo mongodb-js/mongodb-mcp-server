@@ -3,18 +3,24 @@ import { StreamsToolBase } from "../../streams/streamsToolBase.js";
 import type { CallToolResult, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { formatUntrustedData, type ToolArgs } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
-import { StreamsArgs } from "../../streams/streamsArgs.js";
+import { StreamsArgs, StreamsTier } from "../../streams/streamsArgs.js";
 import { StreamsInvalidArgumentError } from "../../streams/errors.js";
+
+type StreamsTierValue = "SP2" | "SP5" | "SP10" | "SP30" | "SP50";
 
 type StreamsProcessorWithStats = {
     name?: string;
     state?: string;
-    tier?: string;
-    effectiveTier?: string;
+    tier?: StreamsTierValue;
+    effectiveTier?: StreamsTierValue;
     stats?: Record<string, unknown>;
     options?: {
         dlq?: { connectionName?: string; db?: string; coll?: string };
-        autoscaling?: { enabled?: boolean | null; minTier?: string | null; maxTier?: string | null } | null;
+        autoscaling?: {
+            enabled?: boolean | null;
+            minTier?: StreamsTierValue | null;
+            maxTier?: StreamsTierValue | null;
+        } | null;
     };
     pipeline?: Record<string, unknown>[];
 };
@@ -82,16 +88,16 @@ function toConnectionInspect(data: Record<string, unknown>): ConnectionInspect {
 const AutoscalingSchema = z
     .object({
         enabled: z.boolean().nullable().optional(),
-        minTier: z.string().nullable().optional(),
-        maxTier: z.string().nullable().optional(),
+        minTier: StreamsTier.nullable().optional(),
+        maxTier: StreamsTier.nullable().optional(),
     })
     .nullable();
 
 const ProcessorSummarySchema = z.object({
     name: z.string(),
     state: z.string().optional(),
-    tier: z.string().optional(),
-    effectiveTier: z.string().optional(),
+    tier: StreamsTier.optional(),
+    effectiveTier: StreamsTier.optional(),
     autoscaling: AutoscalingSchema.optional(),
 });
 
@@ -167,8 +173,8 @@ export const DiscoverOutputSchema = z.object({
     processors: z.array(ProcessorSummarySchema).optional(),
     workspace: WorkspaceInspectConciseSchema.optional(),
     processorState: ProcessorState.optional(),
-    tier: z.string().optional(),
-    effectiveTier: z.string().optional(),
+    tier: StreamsTier.optional(),
+    effectiveTier: StreamsTier.optional(),
     autoscaling: AutoscalingSchema.optional(),
     stats: ProcessorStatsSchema.optional(),
     dlq: DlqConfigSchema.optional(),
