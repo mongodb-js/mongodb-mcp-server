@@ -16,10 +16,8 @@ export interface AgentTurn {
 
 export interface AgentHarnessOptions {
     /**
-     * URL of the MongoDB MCP server (streamable HTTP transport), e.g.
-     * `http://127.0.0.1:PORT/mcp`. The server is started in-process by the
-     * test (see agentTestUtils.ts) and the harness connects to it over HTTP.
-     * Mutually exclusive with `stdioServer`.
+     * URL of the MongoDB MCP server (streamable HTTP), e.g.
+     * `http://127.0.0.1:PORT/mcp`. Mutually exclusive with `stdioServer`.
      */
     serverUrl?: string;
     /**
@@ -42,13 +40,8 @@ export interface AgentHarnessOptions {
 export interface AgentHarness {
     readonly name: string;
     /**
-     * True when the harness binary + auth are available in the current
-     * environment (binary on PATH, and either GROVE_API_KEY or a stored
-     * provider login). Tests use this to skip gracefully on machines
-     * without the harness or without credentials.
-     *
-     * Must be synchronous: it is consumed by `describe.skipIf(...)`, which
-     * treats a Promise as truthy and would otherwise always skip.
+     * True when the binary + auth are available (tests skip otherwise).
+     * Must be synchronous: `describe.skipIf` treats a Promise as truthy.
      */
     isAvailable(): boolean;
     start(options: AgentHarnessOptions): Promise<AgentSession>;
@@ -61,50 +54,27 @@ export interface AgentSession {
     dispose(): Promise<void>;
 }
 
-/**
- * Configuration generator for a coding-agent CLI harness: builds the
- * agent-specific config content for a hermetic session (the file layout and
- * non-interactive knobs differ per agent; see the architecture doc above for
- * the flow the harness drives around it).
- */
+/** Config generator for an agent CLI harness: builds agent-specific config content for a hermetic session. */
 export interface AgentHarnessConfig {
     /**
-     * Name of the environment variable that points the agent at its config
-     * home (e.g. `"CODEX_HOME"`, `"CLAUDE_CONFIG_DIR"`). The harness sets this
-     * to a per-session hermetic directory on the spawned process.
+     * Env var pointing the agent at its config home (e.g. `"CODEX_HOME"`);
+     * set to a per-session hermetic directory.
      */
     readonly homeDirEnvVar: string;
 
-    /**
-     * Path of the config file within the agent's home dir (relative), e.g.
-     * `"config.toml"` for codex. The harness writes `buildConfig` output
-     * here. Empty string when the config is the whole home dir.
-     */
+    /** Config file within the home dir (e.g. `"config.toml"`); empty when the config is the whole home dir. */
     readonly configFileName: string;
 
-    /**
-     * The agent's config home on the host machine (e.g. `~/.codex`), resolved
-     * from the env var or the platform default. Used to read the developer's
-     * real config (model choice, auth presence) without mutating it.
-     */
+    /** The developer's real config home (e.g. `~/.codex`), read without mutating it. */
     getHostHomeDir(): string;
 
     /**
      * Build the agent-specific config file content for a hermetic session.
-     *
-     * @param options the generic harness options (server URL / stdio spec,
-     *        workdir, model, ...).
-     * @param sessionHomeDir the per-session hermetic home the file will be
-     *        written into; configs that need to reference files they place
-     *        next to the config (e.g. codex's model catalog copy) use it.
+     * @param sessionHomeDir per-session hermetic home the file is written into
+     *        (configs can reference files placed next to it).
      */
     buildConfig(options: AgentHarnessOptions, sessionHomeDir: string): string;
 
-    /**
-     * Return a copy of the config with secrets redacted so it is safe to
-     * print in test logs. The default may be the identity for agents whose
-     * configs hold no secrets (e.g. `env_key` references rather than literal
-     * values), but implementations should redact anything sensitive.
-     */
+    /** Redact secrets so the config is safe to print in test logs (identity when none). */
     redactSecrets(config: string): string;
 }

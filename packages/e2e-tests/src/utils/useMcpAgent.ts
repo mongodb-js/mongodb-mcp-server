@@ -13,17 +13,13 @@ export interface AgentE2EContext {
     mongoClient: () => MongoClientType;
     /** Unique database name for this test file. */
     dbName: string;
-    /** Produce a full AgentHarnessOptions for the harness session. */
     buildOptions: (overrides?: Partial<AgentHarnessOptions>) => AgentHarnessOptions;
 }
 
 /**
- * MCP-aware setup for an agent e2e suite: composes the agent-only hook from
- * `@mongodb-js/harness-tester` with the MongoDB-specific pieces the happy-path
- * tests need — a local mongod (`MongoDBClusterProcess`, no docker) and the
- * in-process MongoDB MCP server (`startInProcessServer`) the agent connects to
- * by URL. The agent hook owns the workdir + availability skip gate; this hook
- * only adds the mongod/server lifecycle and the connection/db accessors.
+ * Composes the agent-only `useAgent` hook with a local mongod (no docker) and
+ * the in-process MongoDB MCP server (`startInProcessServer`) the agent connects
+ * to by URL, plus connection/db accessors.
  */
 export function useMcpAgent({ harness }: { harness: AgentHarness }): AgentE2EContext {
     const base = useAgent({ harness });
@@ -64,8 +60,7 @@ export function useMcpAgent({ harness }: { harness: AgentHarness }): AgentE2ECon
             return mongoClient;
         },
         dbName,
-        // Wiring the agent to the in-process MCP server, then the agent-only
-        // defaults (workdir, model, timeout); test overrides win.
+        // In-process server first, then agent-only defaults; test overrides win.
         buildOptions: (overrides = {}) => ({
             serverUrl: server?.url,
             mcpServerName: "mongo",

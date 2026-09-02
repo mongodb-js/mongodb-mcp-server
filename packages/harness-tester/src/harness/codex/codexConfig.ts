@@ -11,20 +11,11 @@ export const DEFAULT_CODEX_MODEL = "gpt-5.6-luna";
 export const DEFAULT_CODEX_REASONING_EFFORT = "low";
 
 function tomlString(value: string): string {
-    // TOML basic strings: escape backslash + double quote. URLs and paths on
-    // mac/linux don't contain control chars.
+    // TOML basic strings: escape backslash + double quote.
     return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
-/**
- * {@link AgentHarnessConfig} for codex (OpenAI CLI agent).
- *
- * Encapsulates everything about how codex is configured for a hermetic e2e
- * session: the `$CODEX_HOME/config.toml` content (MCP server, pre-trusted
- * workdir, grove model provider, sandboxed runtime, disabled plugins), the
- * model catalog copy next to it, and secret redaction for log dumps. See the
- * module header for the rationale behind each section of the generated config.
- */
+/** {@link AgentHarnessConfig} for codex (OpenAI CLI agent). */
 export class CodexHarnessConfig implements AgentHarnessConfig {
     readonly homeDirEnvVar = "CODEX_HOME";
     readonly configFileName = "config.toml";
@@ -39,18 +30,12 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
         return path.join(this.getHostHomeDir(), this.configFileName);
     }
 
-    /**
-     * Redact bearer tokens in a generated config so it can be printed safely
-     * (e.g. for `debug` dumps in test logs).
-     */
+    /** Redact bearer tokens so the config can be printed safely. */
     redactSecrets(toml: string): string {
         return toml.replace(/(experimental_bearer_token\s*=\s*")[^"]*(")/g, "$1<redacted>$2");
     }
 
-    /**
-     * A top-level scalar from the user's real config (e.g. `model`,
-     * `model_reasoning_effort`), or undefined when the config is absent/unreadable.
-     */
+    /** A top-level scalar from the user's real config (e.g. `model`), or undefined when absent. */
     getHostTopLevelValue(key: string): string | undefined {
         try {
             const text = fs.readFileSync(this.getHostConfigPath(), "utf8");
@@ -62,10 +47,8 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
     }
 
     /**
-     * Absolute path of a model catalog file to copy into the hermetic home: the
-     * real config's `model_catalog_json` when set, falling back to codex's cached
-     * models list (`~/.codex/models_cache.json`). Undefined when neither exists —
-     * codex then resolves model metadata from its bundled/default catalog.
+     * Model catalog to copy into the hermetic home: the real config's
+     * `model_catalog_json`, else codex's cached models list; undefined when neither exists.
      */
     resolveHostModelCatalogPath(): string | undefined {
         const raw = this.getHostTopLevelValue("model_catalog_json");
@@ -77,12 +60,7 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
         return existsSync(cached) ? cached : undefined;
     }
 
-    /**
-     * TOML for the `grove` model provider (OpenAI-compatible gateway). The API
-     * key is read from the `GROVE_API_KEY` environment variable via `env_key`,
-     * and the same variable feeds the `api-key` request header
-     * (`env_http_headers`). No secret is stored in the generated config.
-     */
+    /** Grove provider TOML: key read from `GROVE_API_KEY` via `env_key` — no secret in the config. */
     private buildProviderToml(): string {
         return [
             `[model_providers.grove]`,
@@ -96,14 +74,9 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
     }
 
     /**
-     * Copy the real config's model catalog, lifting the active model's per-model
-     * `truncation_policy` limit. The cached catalog (e.g. codex's
-     * `models_cache.json`) carries such a policy — gpt-5.6-luna is limited to 10k
-     * tokens. At ~19k tokens for the 27 MCP tool definitions, codex truncates the
-     * model request and the tools never reach the model. When copying the catalog
-     * into the hermetic home, lift the truncation limit for the active model so
-     * the test's tool set is fully visible (the limit is a machine-specific
-     * artifact of the provider setup, not something the test needs).
+     * Copy the real config's model catalog, lifting the active model's
+     * `truncation_policy` limit (codex would otherwise truncate the tool
+     * definitions from the model request).
      */
     private copyCatalogWithLiftedTruncation(source: string, dest: string, activeModel: string): void {
         const catalog = JSON.parse(fs.readFileSync(source, "utf8")) as {
@@ -115,7 +88,7 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
                 continue;
             }
             if (model.truncation_policy && typeof model.truncation_policy.limit === "number") {
-                model.truncation_policy.limit = 4_000_000; // well above any context window: effectively disabled
+                model.truncation_policy.limit = 4_000_000; // effectively disabled
                 patched = true;
             }
         }
@@ -127,13 +100,9 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
     }
 
     /**
-     * TOML that whitelists the agent's toolset. The e2e suites expect the agent
-     * to drive MongoDB purely through the MCP tools, so: disable the shell tool
-     * outright (no bash at all), pin the filesystem sandbox to read-only (the
-     * tests never write a file), and turn off the web-search tool. What remains
-     * in the session is chat + the MCP tools, on localhost. The MCP connection
-     * (http://127.0.0.1:PORT/mcp) is unaffected: codex makes that call in the
-     * orchestrator process, outside the command sandbox.
+     * Whitelist the session to MCP tools only: disable shell + web-search and
+     * pin the sandbox to read-only (the MCP HTTP call runs in the orchestrator,
+     * outside the sandbox).
      */
     private buildSandboxToml(): string {
         return [
@@ -142,17 +111,15 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
             "allow_login_shell = false",
             "",
             "[features]",
-            "shell_tool = false", // removes the bash/execute tool from the session
+            "shell_tool = false",
             "",
             "[tools]",
-            "web_search = false", // no web-search tool either
+            "web_search = false",
         ].join("\n");
     }
 
     private buildMcpServerToml(options: AgentHarnessOptions, mcpServerName: string): string {
-        // Codex's default MCP startup timeout is 10s; the MongoDB server (with
-        // full tool registration) can take a beat longer, and a hard timeout
-        // leaves the session with no MCP server at all. Raise it generously.
+        // Codex's 10s default MCP startup timeout is too short for this server.
         const startupTimeout = "startup_timeout_sec = 60";
         if (options.stdioServer) {
             const { command, args, env } = options.stdioServer;
@@ -171,13 +138,10 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
     buildConfig(options: AgentHarnessOptions, sessionHomeDir: string): string {
         const { mcpServerName = "mongo", model, workDir } = options;
 
-        // Model priority: explicit `options.model` (CI override) > the model codex
-        // already uses on this machine > fallback constant.
+        // Model: `options.model` > the model codex already uses > fallback.
         const resolvedModel = model ?? this.getHostTopLevelValue("model") ?? DEFAULT_CODEX_MODEL;
 
-        // Copy the model catalog into the hermetic home so codex can resolve the
-        // model's metadata (context window etc.); without it the turn dies
-        // immediately with "Model metadata ... not found".
+        // Copy the model catalog so codex can resolve model metadata (without it the turn dies early).
         const catalogLines: string[] = [];
         const catalogSource = this.resolveHostModelCatalogPath();
         if (catalogSource && existsSync(catalogSource)) {
@@ -199,11 +163,10 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
             "",
             this.buildSandboxToml(),
             "",
-            // Pre-trust the test workdir (canonical path, see canonicalPath) so no
-            // directory-trust prompt is shown.
+            // Pre-trust the test workdir (canonical path) so no trust prompt is shown.
             `[projects.${tomlString(canonicalPath(workDir))}]`,
             'trust_level = "trusted"',
-            // See header comment: prevent the codex_apps connector stall.
+            // Disable codex_apps (plugin-management connector), which would stall the session.
             "",
             '[plugins."plugin-management@openai-curated-remote"]',
             "enabled = false",

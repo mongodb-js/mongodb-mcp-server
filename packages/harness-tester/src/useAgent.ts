@@ -8,26 +8,18 @@ import type { AgentHarness, AgentHarnessOptions } from "./harness/types.js";
 export interface AgentContext {
     harness: AgentHarness;
     workDir: () => string;
-    /** Cached `harness --version` + auth probe; the skip gate doesn't re-probe per test. */
+    /** Cached availability probe; the skip gate doesn't re-probe per test. */
     isHarnessAvailable: () => boolean;
-    /** Produce a full AgentHarnessOptions for the harness session. */
     buildOptions: (overrides?: Partial<AgentHarnessOptions>) => AgentHarnessOptions;
 }
 
 /**
- * Hook-style setup for an agent e2e suite. Call it inside a regular
- * `describe` block with the harness to drive:
- *
- *   describe("setup", () => {
- *     const { harness, buildOptions } = useAgent({ harness: new CodexTuiHarness() });
- *     it("...", async () => { ... });
- *   });
+ * Agent e2e suite setup: temp workdir, availability skip gate, and base
+ * session options. Call inside a `describe` block with the harness to drive.
  */
 export function useAgent({ harness }: { harness: AgentHarness }): AgentContext {
     let workDir = "";
 
-    // `harness --version` + auth probe is authoritative and stable for the run;
-    // cache it so the skip gate doesn't re-probe per test.
     let harnessAvailable: boolean | undefined;
     const isHarnessAvailable = (): boolean => (harnessAvailable ??= harness.isAvailable());
 
@@ -53,10 +45,7 @@ export function useAgent({ harness }: { harness: AgentHarness }): AgentContext {
         isHarnessAvailable,
         buildOptions: (overrides = {}) => ({
             workDir,
-            // Model resolution: explicit CI override wins; otherwise the
-            // config generation inherits the harness's default model.
-            // Per-harness env vars (AGENT_E2E_CODEX_MODEL / AGENT_E2E_CLAUDE_MODEL)
-            // take precedence over the shared AGENT_E2E_MODEL.
+            // Model: per-harness env var > shared AGENT_E2E_MODEL > harness default.
             ...((): { model?: string } => {
                 const model =
                     (harness.name === "codex-tui" && process.env.AGENT_E2E_CODEX_MODEL) ||
@@ -65,8 +54,7 @@ export function useAgent({ harness }: { harness: AgentHarness }): AgentContext {
                 return model ? { model } : {};
             })(),
             promptTimeoutMs: DEFAULT_PROMPT_TIMEOUT_MS,
-            // `AGENT_E2E_DEBUG` turns on per-session debug dumps (config,
-            // streams) for the whole suite without touching individual tests.
+            // AGENT_E2E_DEBUG: per-session debug dumps across the suite.
             debug: !!process.env.AGENT_E2E_DEBUG,
             ...overrides,
         }),

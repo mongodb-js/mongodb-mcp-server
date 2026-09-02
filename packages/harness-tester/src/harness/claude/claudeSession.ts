@@ -17,7 +17,7 @@ export interface ClaudeState {
 /** Delay between typing a prompt and pressing Enter (claude drops a same-tick Enter). */
 const TYPE_TO_ENTER_DELAY_MS = 800;
 
-/** The composer idle marker: claude's prompt line is exactly this. */
+/** Composer idle marker. */
 const COMPOSER_IDLE_MARKER = "❯";
 /** Footer marker present only while a turn is in progress. */
 const WORKING_FOOTER_MARKER = "esc to interrupt";
@@ -66,10 +66,7 @@ export class ClaudeTuiSession implements AgentSession {
 
     async prompt(prompt: string): Promise<AgentTurn> {
         const startText = await this.transcriptText();
-        // Submit the prompt into the composer. The Enter must be sent only
-        // after a short settle: claude drops the keypress when Enter arrives
-        // immediately after the typed text, leaving the prompt stuck in the
-        // composer and the turn never starting.
+        // Enter after a short settle: claude drops a same-tick Enter, leaving the prompt in the composer.
         await this.terminal.type(prompt);
         await sleep(TYPE_TO_ENTER_DELAY_MS);
         await this.terminal.keyboard.press("Enter");
@@ -92,9 +89,7 @@ export class ClaudeTuiSession implements AgentSession {
             };
             this.onState(state);
 
-            // The turn is done when claude stops *working*: the footer's
-            // `esc to interrupt` is gone and the composer has returned to its
-            // idle `❯` line.
+            // Turn done when the `esc to interrupt` footer is gone and the composer is idle.
             if (!state.working && state.composerIdle) {
                 if (isHarnessDebug("CLAUDE_TUI_HARNESS_DEBUG")) {
                     console.log(`[claude-tui][out] <<turn complete after ${state.elapsedMs}ms>>`);
@@ -103,16 +98,14 @@ export class ClaudeTuiSession implements AgentSession {
                 return await this.buildTurn(startText);
             }
 
-            // Stream the full transcript as it grows so a debug run shows
-            // everything claude prints, not just the composer/status lines.
+            // Debug: stream the transcript as it grows.
             if (isHarnessDebug("CLAUDE_TUI_HARNESS_DEBUG") && delta.length > (this.lastShownDeltaLength ?? 0)) {
                 const chunk = delta.slice(this.lastShownDeltaLength ?? 0);
                 console.log(`[claude-tui][out] ${chunk}`);
                 this.lastShownDeltaLength = delta.length;
             }
 
-            // Failure signals: the composer did not return and the session
-            // exited (e.g. the TUI crashed).
+            // Session exited (e.g. the TUI crashed).
             const exitCode = await this.terminal.getExitCode().catch(() => null);
             if (exitCode !== null) {
                 lastError = `claude TUI exited with code ${exitCode}`;
@@ -128,8 +121,7 @@ export class ClaudeTuiSession implements AgentSession {
         if (isHarnessDebug("CLAUDE_TUI_HARNESS_DEBUG")) {
             console.log(`[claude-tui][out] <<aborting: ${message}>>\n${delta}`);
         }
-        // Surface the failure as a missing reply so the test assertion fails
-        // loudly with the raw terminal content attached for diagnosis.
+        // Fail loudly with the raw transcript attached for diagnosis.
         return {
             text: `ERROR: ${message}${text ? "\n\n--- terminal content ---\n" + text : ""}`,
             toolCalls: [],
@@ -149,7 +141,7 @@ export class ClaudeTuiSession implements AgentSession {
         return footer.includes(WORKING_FOOTER_MARKER);
     }
 
-    /** Live (viewport-only) terminal text; the composer line is the last line. */
+    /** Live (viewport-only) terminal text. */
     private async viewportText(): Promise<string> {
         try {
             return await this.terminal.text({ full: false });
@@ -183,9 +175,7 @@ export class ClaudeTuiSession implements AgentSession {
     private async buildTurn(startText: string): Promise<AgentTurn> {
         const full = await this.transcriptText();
         let delta = diffTranscript(full, startText);
-        // The final reply (and the composer idle line) may still be in the live
-        // viewport rather than the scrollback when the turn completes; append
-        // the viewport so the parser sees the full turn content.
+        // Append the viewport: the final reply may still be live, not in the scrollback.
         const viewport = await this.viewportText();
         if (viewport && !delta.includes(viewport.replace(/\s+$/, ""))) {
             delta = delta + "\n" + viewport;

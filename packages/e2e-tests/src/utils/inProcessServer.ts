@@ -10,9 +10,7 @@ export interface InProcessServer {
 
 /**
  * Start the MongoDB MCP server in-process over streamable HTTP on a random
- * localhost port, using the same production wiring as the CLI
- * (`createRunnerFromConfig`). Returns a dispose function and the `/mcp` URL
- * codex (or any MCP client) will connect to.
+ * localhost port, using the same production wiring as the CLI.
  */
 export async function startInProcessServer(connectionString: string): Promise<InProcessServer> {
     const config = UserConfigSchema.parse({

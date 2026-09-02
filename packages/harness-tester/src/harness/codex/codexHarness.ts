@@ -44,11 +44,7 @@ export class CodexTuiHarness implements AgentHarness {
         return this.backend;
     }
 
-    /**
-     * Synchronous (required by `describe.skipIf`): binary runs `--version`,
-     * and auth counts as available when GROVE_API_KEY is set (the grove
-     * provider reads the key through `env_key = "GROVE_API_KEY"`).
-     */
+    /** Synchronous (required by `describe.skipIf`): binary `--version` + GROVE_API_KEY set. */
     isAvailable(): boolean {
         const binary = this.getBinaryPath();
         try {
@@ -65,9 +61,7 @@ export class CodexTuiHarness implements AgentHarness {
     }
 
     async start(options: AgentHarnessOptions): Promise<AgentSession> {
-        // Unique per-session CODEX_HOME so the developer's config is untouched
-        // and consecutive `start()` calls (e.g. tests sharing a suite workdir)
-        // never reuse persisted session state across sessions.
+        // Per-session CODEX_HOME: developer config untouched, no state reused across sessions.
         const config = new CodexHarnessConfig();
         const codexHome = path.join(options.workDir, `codex-home-${Math.random().toString(36).slice(2, 8)}`);
         await fs.mkdir(codexHome, { recursive: true });

@@ -44,10 +44,7 @@ export class ClaudeTuiHarness implements AgentHarness {
         return this.backend;
     }
 
-    /**
-     * Synchronous (required by `describe.skipIf`): binary runs `--version`,
-     * and auth counts as available when GROVE_API_KEY is set.
-     */
+    /** Synchronous (required by `describe.skipIf`): binary `--version` + GROVE_API_KEY set. */
     isAvailable(): boolean {
         const binary = this.getBinaryPath();
         try {
@@ -64,16 +61,12 @@ export class ClaudeTuiHarness implements AgentHarness {
     }
 
     async start(options: AgentHarnessOptions): Promise<AgentSession> {
-        // Unique per-session CLAUDE_CONFIG_DIR so the developer's config is
-        // untouched and consecutive `start()` calls (e.g. tests sharing a
-        // suite workdir) never reuse state or session JSONL across sessions.
+        // Per-session CLAUDE_CONFIG_DIR: developer config untouched, no state or JSONL reused.
         const config = new ClaudeHarnessConfig();
         const claudeHome = path.join(options.workDir, `claude-home-${Math.random().toString(36).slice(2, 8)}`);
         await fs.mkdir(claudeHome, { recursive: true });
 
-        // Pre-seed the onboarding/trust state and the MCP config file. The
-        // settings seeded here whitelist the session to MCP tools only, so no
-        // bypassPermissions / disallowedTools flags are needed on the CLI.
+        // Pre-seed onboarding/trust state + MCP config (whitelists MCP tools, so no permission flags needed).
         const mcpServerName = options.mcpServerName ?? "mongo";
         seedClaudeHome(claudeHome, options.workDir, mcpServerName);
         const mcpConfig = config.buildConfig(options);

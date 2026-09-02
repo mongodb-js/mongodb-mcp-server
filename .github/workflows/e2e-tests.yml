@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    # Only run on PRs explicitly labeled `e2e-tests` (the release PR from prepare-release.yml carries it automatically) or on main pushes/manual runs.
+    # Run on PRs labeled `e2e-tests` (release PRs carry it), main pushes, or manual runs.
     if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'e2e-tests')
     env:
       GROVE_API_KEY: ${{ secrets.AGENT_E2E_GROVE_API_KEY }}
@@ -44,9 +44,7 @@ jobs:
       - name: Install claude CLI
         run: npm install -g @anthropic-ai/claude-code && claude --version
       - name: Run agent e2e tests
-        # Drives codex + claude interactively through @microsoft/tui-test's
-        # headless terminal emulator (bundled with the npm package for all
-        # platforms).
+        # Drives codex + claude through tui-test's bundled headless terminal emulator.
         run: pnpm run test:e2e-tests
       - name: Upload agent e2e test report
         if: always()

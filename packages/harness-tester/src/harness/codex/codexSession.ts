@@ -17,7 +17,7 @@ export interface CodexState {
 /** Delay between typing a prompt and pressing Enter (codex drops a same-tick Enter). */
 const TYPE_TO_ENTER_DELAY_MS = 800;
 
-/** Terminal string shown by codex when the composer is idle (turn finished). */
+/** Composer idle marker (turn finished). */
 const COMPOSER_IDLE_MARKER = "Ask Codex to do anything";
 
 export class CodexTuiSession implements AgentSession {
@@ -51,10 +51,7 @@ export class CodexTuiSession implements AgentSession {
 
     async prompt(prompt: string): Promise<AgentTurn> {
         const startText = await this.transcriptText();
-        // Submit the prompt into the composer. The Enter must be sent only
-        // after a short settle: codex drops the keypress when Enter arrives
-        // immediately after the typed text (verified empirically), leaving the
-        // prompt stuck in the composer and the turn never starting.
+        // Enter after a short settle: codex drops a same-tick Enter, leaving the prompt in the composer.
         await this.terminal.type(prompt);
         await sleep(TYPE_TO_ENTER_DELAY_MS);
         await this.terminal.keyboard.press("Enter");
@@ -77,11 +74,8 @@ export class CodexTuiSession implements AgentSession {
             };
             this.onState(state);
 
-            // The turn is done when codex stops *working*: the transient
-            // `Working (Ns • esc to interrupt)` status in the live viewport is
-            // gone and the composer has returned to its idle prompt. The
-            // scrollback is not a reliable signal — the idle text lingers in
-            // it from earlier frames.
+            // Turn done when the `Working` status is gone and the composer is idle
+            // (scrollback idle text lingers, so it is not a reliable signal).
             if (!state.working && state.composerIdle) {
                 if (isHarnessDebug("CODEX_TUI_HARNESS_DEBUG")) {
                     console.log(`[codex-tui][out] <<turn complete after ${state.elapsedMs}ms>>`);
@@ -90,16 +84,14 @@ export class CodexTuiSession implements AgentSession {
                 return await this.buildTurn(startText);
             }
 
-            // Stream the full transcript as it grows so a debug run shows
-            // everything codex prints, not just the composer/status lines.
+            // Debug: stream the transcript as it grows.
             if (isHarnessDebug("CODEX_TUI_HARNESS_DEBUG") && delta.length > (this.lastShownDeltaLength ?? 0)) {
                 const chunk = delta.slice(this.lastShownDeltaLength ?? 0);
                 console.log(`[codex-tui][out] ${chunk}`);
                 this.lastShownDeltaLength = delta.length;
             }
 
-            // Failure signals: the composer did not return and the session
-            // exited (e.g. the TUI crashed).
+            // Session exited (e.g. the TUI crashed).
             const exitCode = await this.terminal.getExitCode().catch(() => null);
             if (exitCode !== null) {
                 lastError = `codex TUI exited with code ${exitCode}`;
@@ -115,8 +107,7 @@ export class CodexTuiSession implements AgentSession {
         if (isHarnessDebug("CODEX_TUI_HARNESS_DEBUG")) {
             console.log(`[codex-tui][out] <<aborting: ${message}>>\n${delta}`);
         }
-        // Surface the failure as a missing reply so the test assertion fails
-        // loudly with the raw transcript attached for diagnosis.
+        // Fail loudly with the raw transcript attached for diagnosis.
         return {
             text: `ERROR: ${message}${text ? "\n\n--- terminal content ---\n" + text : ""}`,
             toolCalls: [],
@@ -133,7 +124,7 @@ export class CodexTuiSession implements AgentSession {
         return /Working \(\d+s • esc to interrupt\)/.test(text);
     }
 
-    /** Live (viewport-only) terminal text; the composer line is the last line. */
+    /** Live (viewport-only) terminal text. */
     private async viewportText(): Promise<string> {
         try {
             return await this.terminal.text({ full: false });
@@ -167,9 +158,7 @@ export class CodexTuiSession implements AgentSession {
     private async buildTurn(startText: string): Promise<AgentTurn> {
         const full = await this.transcriptText();
         let delta = diffTranscript(full, startText);
-        // The final reply (and the composer idle line) may still be in the live
-        // viewport rather than the scrollback when the turn completes; append
-        // the viewport so the parser sees the full turn content.
+        // Append the viewport: the final reply may still be live, not in the scrollback.
         const viewport = await this.viewportText();
         if (viewport && !delta.includes(viewport.replace(/\s+$/, ""))) {
             delta = delta + "\n" + viewport;

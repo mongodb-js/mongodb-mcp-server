@@ -102,8 +102,7 @@ describe("parseClaudeTurn with session JSONL", () => {
         const turn1 = parseClaudeTurn({ transcript: "", claudeHomeDir: home, seenCallKeys });
         expect(turn1.toolCalls.map((tc) => tc.name)).toEqual(["list-databases"]);
 
-        // Turn 2 (same session): the earlier call is not re-returned; only the
-        // new find call is attributed to this turn.
+        // Turn 2 (same session): earlier call skipped; only the new `find` call is returned.
         appendToolUse({ id: "t2", name: "mcp__mongo__find", input: { collection: "c" } });
         const turn2 = parseClaudeTurn({ transcript: "", claudeHomeDir: home, seenCallKeys });
         expect(turn2.toolCalls.map((tc) => tc.name)).toEqual(["find"]);

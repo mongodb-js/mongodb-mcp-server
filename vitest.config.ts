@@ -103,8 +103,7 @@ export default defineConfig({
                 test: {
                     name: "e2e-tests",
                     include: ["packages/e2e-tests/src/**/*.test.ts"],
-                    // A single codex run can take minutes; multiple concurrent
-                    // harness sessions would multiply LLM cost and mongod instances.
+                    // Harness runs are slow; concurrency multiplies LLM cost and mongod instances.
                     testTimeout: 20 * 60 * 1000,
                     hookTimeout: 20 * 60 * 1000,
                     fileParallelism: false,

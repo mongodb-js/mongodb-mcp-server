@@ -6,17 +6,7 @@ export interface DescribeHarnessContext {
     harness: AgentHarness;
 }
 
-/**
- * Register a `describe("with <harness.name>")` block per registered harness.
- * Call it inside the suite's own describe:
- *
- *   describe("server setup", () => {
- *     describeHarness(({ harness }) => {
- *       const { buildOptions } = useMcpAgent({ harness });
- *       it("...", async () => { ... });
- *     });
- *   });
- */
+/** Register one `describe("with <harness.name>")` block per registered harness. */
 export function describeHarness(fn: (ctx: DescribeHarnessContext) => void): void {
     for (const Harness of AGENT_HARNESSES) {
         const harness = new Harness();

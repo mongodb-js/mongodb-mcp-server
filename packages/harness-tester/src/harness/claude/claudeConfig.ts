@@ -10,11 +10,7 @@ export const DEFAULT_CLAUDE_MODEL = "claude-haiku-4-5";
 /** Grove gateway Anthropic endpoint (no trailing /v1; claude appends it). */
 export const GROVE_ANTHROPIC_BASE_URL = "https://grove-gateway-prod.azure-api.net/grove-foundry-prod/anthropic";
 
-/**
- * Environment variables the harness sets on the spawned claude process.
- * Secret values (the grove key) are read from `GROVE_API_KEY` at spawn time
- * so the generated config files never contain them.
- */
+/** Env for the spawned claude process; the grove key is read live from `GROVE_API_KEY`, never written to config files. */
 export function buildClaudeEnv(options: AgentHarnessOptions): Record<string, string> {
     const groveApiKey = process.env.GROVE_API_KEY ?? "";
     // Model priority: explicit `options.model` (CI override) > env override > default.
@@ -28,13 +24,7 @@ export function buildClaudeEnv(options: AgentHarnessOptions): Record<string, str
     };
 }
 
-/**
- * {@link AgentHarnessConfig} for claude (Anthropic Claude Code CLI).
- *
- * Claude has no single config file to generate for this setup; `buildConfig`
- * returns the `--mcp-config` JSON document registering the MongoDB MCP
- * server, written to `mcp-config.json` inside the session home.
- */
+/** {@link AgentHarnessConfig} for claude: emits the `--mcp-config` JSON registering the MCP server. */
 export class ClaudeHarnessConfig implements AgentHarnessConfig {
     readonly homeDirEnvVar = "CLAUDE_CONFIG_DIR";
     readonly configFileName = "mcp-config.json";
@@ -57,21 +47,17 @@ export class ClaudeHarnessConfig implements AgentHarnessConfig {
         return JSON.stringify({ mcpServers: { [mcpServerName]: server } }, null, 2);
     }
 
-    /**
-     * The generated config holds no secrets (the API key is passed through the
-     * process environment), so redaction is the identity.
-     */
+    /** No secrets in the config (key is passed via env), so redaction is the identity. */
     redactSecrets(config: string): string {
         return config;
     }
 }
 
 /**
- * Pre-seed the hermetic claude home with the state that suppresses onboarding
- * and trust dialogs (see the module header). Mutates nothing outside the home.
+ * Pre-seed the hermetic claude home to suppress onboarding/trust dialogs.
+ * Mutates nothing outside the home.
  *
- * @param mcpServerName the MCP server name registered in mcp-config.json; the
- *        settings whitelist is scoped to its tools (`mcp__<name>__*`).
+ * @param mcpServerName MCP server name; the allow list is scoped to its tools (`mcp__<name>__*`).
  */
 export function seedClaudeHome(homeDir: string, workDir: string, mcpServerName = "mongo"): void {
     const canonical = canonicalPath(workDir);
@@ -79,16 +65,13 @@ export function seedClaudeHome(homeDir: string, workDir: string, mcpServerName =
         hasCompletedOnboarding: true,
         shiftEnterKeyBindingInstalled: true,
         theme: "dark",
-        // `noMCP`-style project entry: mark the test workdir trusted so the
-        // "Is this a project you created or one you trust?" gate never shows.
+        // Mark the test workdir trusted so the trust gate never shows.
         projects: {
             [canonical]: { hasTrustDialogAccepted: true, allowedTools: [] },
         },
     };
-    // Whitelist the session to MCP tools only: `dontAsk` mode never prompts
-    // and auto-denies anything not pre-approved, so the allow list below is
-    // the whole toolset — no bash, no file tools, no web. Assumes the session
-    // runs without a `--permission-mode` CLI override (see claudeHarness.ts).
+    // `dontAsk` auto-denies anything not in `allow`, so this list is the whole
+    // toolset (MCP tools only — no bash/file/web tools).
     const settingsJson = {
         permissions: {
             defaultMode: "dontAsk",
