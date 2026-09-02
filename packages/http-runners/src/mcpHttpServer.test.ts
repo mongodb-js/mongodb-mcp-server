@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
+import express from "express";
 import { MCPHttpServer } from "./mcpHttpServer.js";
 import { LoggerBase, Keychain } from "@mongodb-js/mcp-core";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
@@ -162,58 +163,58 @@ describe("MCPHttpServer stateless serving", () => {
         expect(body.error?.message).toBe("Internal server error");
     });
 
-    describe("authenticated mode (authenticate required)", () => {
-        it("rejects requests whose identity cannot be verified with 401", async () => {
-            const authenticate = vi.fn().mockResolvedValue(undefined);
-            class AuthedServer extends MCPHttpServer<ServerLike> {
-                constructor() {
-                    super({
-                        options: { http: { ...httpOptions, authenticate } },
-                        logger: new InMemoryLogger(),
-                        metrics: new MockMetrics(),
-                    });
-                }
-                protected override createServerForRequest(_: TransportRequestContext): Promise<ServerLike> {
-                    return Promise.resolve(makeFakeServer());
-                }
+    it("carries an explicit unauthenticated auth state when no identity is injected", async () => {
+        const seen = vi.fn();
+        class StateTrackingServer extends TestMCPHttpServer {
+            protected override createServerForRequest(request: TransportRequestContext): Promise<ServerLike> {
+                seen(request.authInfo);
+                return Promise.resolve(makeFakeServer());
             }
-            server = new AuthedServer() as unknown as TestMCPHttpServer;
-            await server.start();
+        }
+        logger = new InMemoryLogger();
+        server = new StateTrackingServer({ logger });
+        await server.start();
 
-            const res = await post("/mcp", MODERN_BODY);
-            expect(res.status).toBe(401);
+        const res = await post("/mcp", MODERN_BODY);
+        expect(res.status).toBe(200);
+        // No identity injected → the request is explicitly unauthenticated.
+        expect(seen).toHaveBeenCalledWith({ mode: "unauthenticated" });
+    });
+
+    it("normalizes an injected req.auth identity into the authenticated auth state", async () => {
+        const seen = vi.fn();
+        class AuthedServer extends MCPHttpServer<ServerLike> {
+            constructor() {
+                super({
+                    options: { http: httpOptions },
+                    logger: new InMemoryLogger(),
+                    metrics: new MockMetrics(),
+                });
+            }
+            protected override createServerForRequest(request: TransportRequestContext): Promise<ServerLike> {
+                seen(request.authInfo);
+                return Promise.resolve(makeFakeServer());
+            }
+        }
+        server = new AuthedServer() as unknown as TestMCPHttpServer;
+        // Host middleware injects the verified identity as `req.auth`, which
+        // `toNodeHandler` forwards as the handler's authInfo.
+        const app = (server as unknown as { app: express.Express }).app;
+        app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
+            (req as express.Request & { auth?: unknown }).auth = {
+                token: "tok",
+                clientId: "verified-client-1",
+                scopes: [],
+            };
+            next();
         });
+        await server.start();
 
-        it("threads the verified authInfo into the request context and serves the request", async () => {
-            const authenticate = vi.fn().mockResolvedValue({
-                token: "tok",
-                clientId: "verified-client-1",
-                scopes: [],
-            });
-            const seen = vi.fn();
-            class AuthedServer extends MCPHttpServer<ServerLike> {
-                constructor() {
-                    super({
-                        options: { http: { ...httpOptions, authenticate } },
-                        logger: new InMemoryLogger(),
-                        metrics: new MockMetrics(),
-                    });
-                }
-                protected override createServerForRequest(request: TransportRequestContext): Promise<ServerLike> {
-                    seen(request.authInfo);
-                    return Promise.resolve(makeFakeServer());
-                }
-            }
-            server = new AuthedServer() as unknown as TestMCPHttpServer;
-            await server.start();
-
-            const res = await post("/mcp", MODERN_BODY, { authorization: "Bearer good-token" });
-            expect(res.status).toBe(200);
-            expect(seen).toHaveBeenCalledWith({
-                token: "tok",
-                clientId: "verified-client-1",
-                scopes: [],
-            });
+        const res = await post("/mcp", MODERN_BODY, { authorization: "Bearer good-token" });
+        expect(res.status).toBe(200);
+        expect(seen).toHaveBeenCalledWith({
+            mode: "authenticated",
+            state: { token: "tok", clientId: "verified-client-1", scopes: [] },
         });
     });
 });

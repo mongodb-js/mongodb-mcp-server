@@ -447,17 +447,17 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
         const authedA1 = await hook({
             headers: { "x-mcp-client-name": "spoofed" },
             query: {},
-            authInfo: { token: "t", clientId: "verified-client-1", scopes: [] },
+            authInfo: { mode: "authenticated", state: { token: "t", clientId: "verified-client-1", scopes: [] } },
         });
         const authedA2 = await hook({
             headers: { "x-mcp-client-name": "other-spoof" },
             query: {},
-            authInfo: { token: "t", clientId: "verified-client-1", scopes: [] },
+            authInfo: { mode: "authenticated", state: { token: "t", clientId: "verified-client-1", scopes: [] } },
         });
         const authedB = await hook({
             headers: { "x-mcp-client-name": "spoofed" },
             query: {},
-            authInfo: { token: "t", clientId: "verified-client-2", scopes: [] },
+            authInfo: { mode: "authenticated", state: { token: "t", clientId: "verified-client-2", scopes: [] } },
         });
 
         const regA1 = (authedA1 as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
