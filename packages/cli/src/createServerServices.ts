@@ -1,6 +1,5 @@
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
-import type { CompositeLogger } from "@mongodb-js/mcp-core";
-import { Elicitation, Keychain, McpServer } from "@mongodb-js/mcp-core";
+import { CompositeLogger, Elicitation, Keychain, McpServer, LogId } from "@mongodb-js/mcp-core";
 import type { IMetrics, IDeviceId, ServerMetadata } from "@mongodb-js/mcp-types";
 import type { Client as AtlasLocalClient } from "@mongodb-js/atlas-local";
 import type { ResourceRegistry, ToolRegistry } from "./cliServer.js";
@@ -9,6 +8,7 @@ import {
     connectionErrorHandler,
     DeviceId,
     MCPConnectionStore,
+    validateConnectionString,
     type ConnectionRegistry,
 } from "@mongodb-js/mcp-tools-mongodb";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
@@ -55,6 +55,72 @@ export type AppServices = {
     monitoringServer: ReturnType<typeof createMonitoringServerFromConfig>;
 };
 
+/**
+ * Validates the app-fixed config once at startup: the connection string and
+ * Atlas API credentials. These fields are `overrideBehavior: "not-allowed"`,
+ * so request-level overrides cannot change them — the validation result is the
+ * same for every request, which is why it runs here rather than per request.
+ */
+export async function validateAppConfig({
+    config,
+    logger,
+    apiClient,
+}: {
+    config: UserConfig;
+    logger: CompositeLogger;
+    apiClient: ApiClient;
+}): Promise<void> {
+    // Validate connection string
+    if (config.connectionString) {
+        try {
+            validateConnectionString(config.connectionString, false);
+        } catch (error) {
+            throw new Error(
+                "Connection string validation failed with error: " +
+                    (error instanceof Error ? error.message : String(error)),
+                { cause: error }
+            );
+        }
+    }
+
+    // Validate API client credentials
+    if (config.apiClientId && config.apiClientSecret) {
+        try {
+            try {
+                const apiBaseUrl = new URL(config.apiBaseUrl);
+                if (apiBaseUrl.protocol !== "https:") {
+                    // Log a warning, but don't error out. This is to allow for testing against local or non-HTTPS endpoints.
+                    const message = `apiBaseUrl is configured to use ${apiBaseUrl.protocol}, which is not secure. It is strongly recommended to use HTTPS for secure communication.`;
+                    logger.warning({
+                        id: LogId.atlasApiBaseUrlInsecure,
+                        context: "server",
+                        message,
+                    });
+                }
+            } catch (error) {
+                throw new Error(`Invalid apiBaseUrl: ${error instanceof Error ? error.message : String(error)}`, {
+                    cause: error,
+                });
+            }
+
+            await apiClient.validateAuthConfig();
+        } catch (error) {
+            if (config.connectionString === undefined) {
+                throw new Error(
+                    `Failed to connect to MongoDB Atlas instance using the credentials from the config: ${error instanceof Error ? error.message : String(error)}`,
+                    { cause: error }
+                );
+            }
+
+            logger.warning({
+                id: LogId.atlasCheckCredentials,
+                context: "server",
+                message: `Failed to validate MongoDB Atlas API client credentials from the config: ${error instanceof Error ? error.message : String(error)}. Continuing since a connection string is also provided.`,
+            });
+        }
+    }
+}
+
 /** Builds every app-level service once: metrics, monitoring, keychain, device id, connection store, API client, exports, telemetry, Atlas Local client. */
 export async function createAppServicesFromConfig(options: CreateServerServicesOptions): Promise<AppServices> {
     const { config, serverMetadata, logger } = options;
@@ -71,6 +137,10 @@ export async function createAppServicesFromConfig(options: CreateServerServicesO
 
     const exportsManager = createExportsManagerFromConfig({ config, logger });
     const apiClient = createApiClientFromConfig({ config, serverMetadata, logger });
+
+    // Validate app-fixed config once at startup (see {@link validateAppConfig}).
+    await validateAppConfig({ config, logger, apiClient });
+
     const telemetry = createTelemetryFromConfig({
         config,
         logger,
@@ -157,6 +227,9 @@ export function createServerFromConfig({
         tools,
         resources,
         serverMetadata,
+        // Validated once at startup by `validateAppConfig`; the per-request
+        // server must not re-run the (network) credential validation.
+        configValidated: true,
     });
 }
 
