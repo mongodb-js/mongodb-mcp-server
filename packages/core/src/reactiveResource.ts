@@ -1,25 +1,23 @@
 import type {
-    ResourceServices,
-    ITelemetry,
     ReactiveResourceOptions,
     ResourceConfiguration,
     IResourceServer,
 } from "@mongodb-js/mcp-types";
 import type { ReadResourceCallback, ResourceMetadata } from "@modelcontextprotocol/server";
-import { LogId } from "./logId.js";
 
 /**
  * Abstract base class for implementing MCP resources.
  *
- * Resources are constructed by the host server with `(services, telemetry)`
- * (see the CLI's `registerResources`), which the base class receives as
- * constructor options. The resolved user configuration is read from
- * `services.config`.
+ * Resources are constructed by the host server with `({ server })`
+ * (see the CLI's `registerResources`). The server is the composition: resources
+ * read whatever they need (config, logger, keychain, telemetry, and any
+ * host-specific extras such as the connection registry) off the server itself,
+ * rather than copy services into discrete fields at construction.
  *
  * @example Basic Custom Resource
  * ```typescript
  * class MyResource extends ReactiveResource<string> {
- *   constructor(services: ResourceServices, telemetry: ITelemetry) {
+ *   constructor({ server }: { server: MyServer }) {
  *     super({
  *       resourceConfiguration: {
  *         name: "my-resource",
@@ -29,13 +27,12 @@ import { LogId } from "./logId.js";
  *       options: {
  *         initial: "disconnected",
  *       },
- *       services,
- *       telemetry,
+ *       server,
  *     });
  *   }
  *
  *   toOutput(): string {
- *     return this.current;
+ *     return this.server.config.logLevel;
  *   }
  * }
  * ```
@@ -43,15 +40,10 @@ import { LogId } from "./logId.js";
 export abstract class ReactiveResource<
     /** Value stored in the resource */
     Value,
-    TServices extends ResourceServices = ResourceServices,
     TServer extends IResourceServer = IResourceServer,
 > {
-    protected server?: TServer;
-    /** The individually-injected services, stored as discrete fields (no server-scoped session object). */
-    protected readonly config: TServices["config"];
-    protected readonly logger: TServices["logger"];
-    protected readonly keychain: TServices["keychain"];
-    protected telemetry: ITelemetry;
+    /** The host server this resource registers against and reads services from. */
+    protected server: TServer;
 
     protected current: Value;
     protected readonly name: string;
@@ -61,20 +53,15 @@ export abstract class ReactiveResource<
     constructor({
         resourceConfiguration,
         options,
-        services,
-        telemetry,
+        server,
         current,
     }: {
         resourceConfiguration: ResourceConfiguration;
         options: ReactiveResourceOptions<Value>;
-        services: TServices;
-        telemetry: ITelemetry;
+        server: TServer;
         current?: Value;
     }) {
-        this.config = services.config;
-        this.logger = services.logger;
-        this.keychain = services.keychain;
-        this.telemetry = telemetry;
+        this.server = server;
 
         this.name = resourceConfiguration.name;
         this.uri = resourceConfiguration.uri;

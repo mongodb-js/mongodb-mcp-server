@@ -95,7 +95,8 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
     public readonly apiClient: ApiClient;
     public readonly atlasLocalClient?: AtlasLocalClient;
     public readonly mcpServer: McpServer;
-    private readonly telemetry: AtlasTelemetry;
+    /** Telemetry for tracking tool/resource usage; read by resources off the server. */
+    public readonly telemetry: AtlasTelemetry;
     public readonly elicitation: Elicitation;
     private readonly toolConstructors: ToolRegistry;
     private readonly resourceConstructors: ResourceRegistry;
@@ -370,18 +371,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
 
     public registerResources(): void {
         for (const resourceConstructor of this.resourceConstructors) {
-            const resource = new resourceConstructor(
-                {
-                    config: this.config,
-                    logger: this.logger,
-                    keychain: this.keychain,
-                    connectionRegistry: this.connectionRegistry,
-                    exportsManager: this.exportsManager,
-                    apiClient: this.apiClient,
-                    atlasLocalClient: this.atlasLocalClient,
-                },
-                this.telemetry
-            );
+            const resource = new resourceConstructor({ server: this });
             resource.register(this);
         }
     }
