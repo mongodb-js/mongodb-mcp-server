@@ -261,6 +261,66 @@ describe("StreamsBuildTool", () => {
             );
         });
 
+        it("should create an MSK IAM Kafka connection without SASL credentials", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "msk-iam",
+                connectionType: "Kafka",
+                connectionConfig: {
+                    bootstrapServers: "broker1:9098",
+                    authentication: {
+                        mechanism: "AWS_MSK_IAM",
+                        aws: { roleArn: "arn:aws:iam::123456789012:role/msk-access" },
+                    },
+                    security: { protocol: "SASL_SSL" },
+                },
+            });
+
+            expect(mockApiClient.createStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        authentication: {
+                            mechanism: "AWS_MSK_IAM",
+                            aws: { roleArn: "arn:aws:iam::123456789012:role/msk-access" },
+                        },
+                    }),
+                }),
+                expect.anything()
+            );
+        });
+
+        it("should strip SASL credentials from an MSK IAM Kafka connection", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "msk-iam",
+                connectionType: "Kafka",
+                connectionConfig: {
+                    bootstrapServers: "broker1:9098",
+                    authentication: {
+                        mechanism: "AWS_MSK_IAM",
+                        username: "unneeded-user",
+                        password: "unneeded-secret",
+                        aws: { roleArn: "arn:aws:iam::123456789012:role/msk-access" },
+                    },
+                    security: { protocol: "SASL_SSL" },
+                },
+            });
+
+            expect(mockApiClient.createStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        authentication: {
+                            mechanism: "AWS_MSK_IAM",
+                            aws: { roleArn: "arn:aws:iam::123456789012:role/msk-access" },
+                        },
+                    }),
+                }),
+                expect.anything()
+            );
+        });
+
         it("should create Cluster connection and set default dbRoleToExecute", async () => {
             await exec({
                 ...baseArgs,
@@ -371,6 +431,47 @@ describe("StreamsBuildTool", () => {
 
             expect(mockApiClient.createStreamConnection).toHaveBeenCalledOnce();
             expect((result.content[0] as { text: string }).text).toContain("kafka1");
+        });
+
+        it("should elicit an IAM role after AWS_MSK_IAM is selected", async () => {
+            mockElicitation.requestInput
+                .mockResolvedValueOnce({
+                    accepted: true,
+                    fields: {
+                        bootstrapServers: "broker:9098",
+                        mechanism: "AWS_MSK_IAM",
+                        protocol: "SASL_SSL",
+                    },
+                })
+                .mockResolvedValueOnce({
+                    accepted: true,
+                    fields: { roleArn: "arn:aws:iam::123456789012:role/msk-access" },
+                });
+
+            await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "msk-iam",
+                connectionType: "Kafka",
+                connectionConfig: {},
+            });
+
+            expect(mockElicitation.requestInput).toHaveBeenCalledTimes(2);
+            const roleElicitationSchema = mockElicitation.requestInput.mock.calls[1][1] as {
+                properties: Record<string, unknown>;
+            };
+            expect(roleElicitationSchema.properties).toEqual({ roleArn: expect.any(Object) });
+            expect(mockApiClient.createStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        authentication: {
+                            mechanism: "AWS_MSK_IAM",
+                            aws: { roleArn: "arn:aws:iam::123456789012:role/msk-access" },
+                        },
+                    }),
+                }),
+                expect.anything()
+            );
         });
 
         it("should throw when connectionName is missing", async () => {
@@ -939,6 +1040,32 @@ describe("StreamsBuildTool", () => {
                         provider: "AWS",
                         vendor: "MSK",
                         arn: "arn:aws:kafka:us-east-1:123456789012:cluster/my-msk/abc-123",
+                    },
+                },
+                expect.anything()
+            );
+        });
+
+        it("should create an AWS MSK PrivateLink with IAM authentication", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "privatelink",
+                privateLinkConfig: {
+                    provider: "AWS",
+                    vendor: "MSK",
+                    arn: "arn:aws:kafka:us-east-1:123456789012:cluster/my-msk/abc-123",
+                    authenticationScheme: "IAM",
+                },
+            });
+
+            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1" } },
+                    body: {
+                        provider: "AWS",
+                        vendor: "MSK",
+                        arn: "arn:aws:kafka:us-east-1:123456789012:cluster/my-msk/abc-123",
+                        authenticationScheme: "IAM",
                     },
                 },
                 expect.anything()
