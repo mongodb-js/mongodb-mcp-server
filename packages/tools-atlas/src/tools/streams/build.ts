@@ -33,7 +33,12 @@ const KAFKA_FIELDS = {
     },
     mechanism: {
         title: "Authentication Mechanism",
-        description: "SASL mechanism: 'PLAIN', 'SCRAM-256', or 'SCRAM-512'",
+        description: "SASL mechanism: 'PLAIN', 'SCRAM-256', 'SCRAM-512', 'OAUTHBEARER', or 'AWS_MSK_IAM'",
+    },
+    roleArn: {
+        title: "AWS IAM Role ARN",
+        description:
+            "IAM role ARN registered in this Atlas project via Cloud Provider Access. Required for AWS_MSK_IAM authentication.",
     },
     username: {
         title: "Username",
@@ -150,7 +155,7 @@ export class StreamsBuildTool extends StreamsToolBase {
             .describe("Connection name. Required when resource='connection'."),
         connectionType: ConnectionType.optional().describe(
             "Connection type. Required when resource='connection'. " +
-                "Kafka: needs bootstrapServers, authentication, security config. " +
+                "Kafka: needs bootstrapServers, authentication, and security config. Use authentication.mechanism='AWS_MSK_IAM' with authentication.aws.roleArn for MSK IAM authentication. " +
                 "Cluster: needs clusterName and dbRoleToExecute. " +
                 "S3: needs aws.roleArn (must be registered via Atlas Cloud Provider Access). " +
                 "Https: needs url. " +
@@ -396,11 +401,43 @@ export class StreamsBuildTool extends StreamsToolBase {
         const auth = config.authentication as Record<string, unknown> | undefined;
         const security = config.security as Record<string, unknown> | undefined;
 
+        // The required authentication fields depend on the mechanism. Ask for the
+        // mechanism first, then validate again to collect either IAM role details
+        // or SASL credentials rather than presenting incompatible fields together.
+        if (!auth?.mechanism) {
+            const mechanismFields = StreamsBuildTool.collectMissingFields([
+                { key: "bootstrapServers", present: !!config.bootstrapServers, schema: KAFKA_FIELDS.bootstrapServers },
+                { key: "mechanism", present: false, schema: KAFKA_FIELDS.mechanism },
+                { key: "protocol", present: !!security?.protocol, schema: KAFKA_FIELDS.protocol },
+            ]);
+            const result = await this.elicitOrReportMissing(
+                "Kafka",
+                config,
+                mechanismFields,
+                context,
+                (fields, cfg) => {
+                    if (fields.bootstrapServers) cfg.bootstrapServers = fields.bootstrapServers;
+                    if (!cfg.authentication) cfg.authentication = {};
+                    if (fields.mechanism) (cfg.authentication as Record<string, unknown>).mechanism = fields.mechanism;
+                    if (!cfg.security) cfg.security = {};
+                    if (fields.protocol) (cfg.security as Record<string, unknown>).protocol = fields.protocol;
+                }
+            );
+            return result ?? this.validateKafkaConfig(config, context);
+        }
+
+        const isMskIam = auth.mechanism === "AWS_MSK_IAM";
+        if (isMskIam) {
+            // SASL credentials do not apply to MSK IAM and must not be sent to Atlas.
+            delete auth.username;
+            delete auth.password;
+        }
+        const awsAuth = auth.aws as Record<string, unknown> | undefined;
         const missingFields = StreamsBuildTool.collectMissingFields([
             { key: "bootstrapServers", present: !!config.bootstrapServers, schema: KAFKA_FIELDS.bootstrapServers },
-            { key: "mechanism", present: !!auth?.mechanism, schema: KAFKA_FIELDS.mechanism },
-            { key: "username", present: !!auth?.username, schema: KAFKA_FIELDS.username },
-            { key: "password", present: !!auth?.password, schema: KAFKA_FIELDS.password },
+            { key: "roleArn", present: !isMskIam || !!awsAuth?.roleArn, schema: KAFKA_FIELDS.roleArn },
+            { key: "username", present: isMskIam || !!auth?.username, schema: KAFKA_FIELDS.username },
+            { key: "password", present: isMskIam || !!auth?.password, schema: KAFKA_FIELDS.password },
             { key: "protocol", present: !!security?.protocol, schema: KAFKA_FIELDS.protocol },
         ]);
 
@@ -415,6 +452,10 @@ export class StreamsBuildTool extends StreamsToolBase {
             if (fields.mechanism) authObj.mechanism = fields.mechanism;
             if (fields.username) authObj.username = fields.username;
             if (fields.password) authObj.password = fields.password;
+            if (fields.roleArn) {
+                if (!authObj.aws) authObj.aws = {};
+                (authObj.aws as Record<string, unknown>).roleArn = fields.roleArn;
+            }
             if (!cfg.security) cfg.security = {};
             const secObj = cfg.security as Record<string, unknown>;
             if (fields.protocol) secObj.protocol = fields.protocol;
@@ -864,7 +905,7 @@ export class StreamsBuildTool extends StreamsToolBase {
             throw new StreamsInvalidArgumentError(
                 "privateLinkConfig is required. Provide provider and vendor-specific fields:\n" +
                     "  AWS CONFLUENT: {provider, vendor:'CONFLUENT', region, serviceEndpointId, dnsDomain, dnsSubDomain: string[] of full FQDNs ([] for serverless)}\n" +
-                    "  AWS MSK: {provider, vendor:'MSK', arn}\n" +
+                    "  AWS MSK: {provider, vendor:'MSK', arn, authenticationScheme:'TLS'|'SASL_SCRAM'|'IAM'}\n" +
                     "  AWS S3: {provider, vendor:'S3', region, serviceEndpointId:'com.amazonaws.<region>.s3'}\n" +
                     "  AWS KINESIS: {provider, vendor:'KINESIS', region, serviceEndpointId}\n" +
                     "  AZURE EVENTHUB: {provider, vendor:'EVENTHUB', region, dnsDomain, serviceEndpointId (full Azure Resource ID)}\n" +
