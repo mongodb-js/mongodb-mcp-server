@@ -16,24 +16,27 @@ export type RequestAuthInfo = {
 };
 
 /**
- * Resolves the verified identity of an inbound HTTP request from its raw
- * headers (e.g. by validating `Authorization: Bearer <token>` with OAuth2
- * introspection, JWKS, a shared secret, ...). This is the single auth
- * injection point for multi-tenant deployments: provide it and the server
- * requires every request to authenticate (unverified requests get 401) and
- * scopes state by the returned `clientId`. Omit it for unauthenticated
- * operation. The shape mirrors the Atlas API `AuthProvider` — a small
- * pluggable strategy supplied by the embedder, no config schema additions.
+ * The explicit authentication state of a request. Every HTTP request carries
+ * one or the other — there is no "unknown" — so per-request servers always
+ * know whether they are serving an authenticated client, and scope shared
+ * state (e.g. connections) by the verified `clientId` when authenticated.
+ * Identity is injected by the host (e.g. `req.auth` via the node adapter's
+ * pass-through, or directly on the request context); the server never
+ * authenticates on its own.
  */
-export type RequestAuthenticator = (
-    headers: Record<string, string | string[] | undefined>
-) => Promise<RequestAuthInfo | undefined>;
+export type RequestAuthState =
+    | { mode: "unauthenticated" }
+    | { mode: "authenticated"; state: RequestAuthInfo };
 
 export type TransportRequestContext = {
     headers?: Record<string, string | string[] | undefined>;
     query?: Record<string, string | string[] | undefined>;
-    /** Verified identity of the authenticated HTTP client, when auth is configured. */
-    authInfo?: RequestAuthInfo;
+    /**
+     * The explicit auth state of this request. When authenticated, shared state
+     * (connections) is scoped by `state.clientId`; unauthenticated requests are
+     * isolated from authenticated clients.
+     */
+    authInfo?: RequestAuthState;
 };
 
 export interface ITransportRunner {
