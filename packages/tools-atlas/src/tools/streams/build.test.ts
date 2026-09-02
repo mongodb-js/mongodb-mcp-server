@@ -434,21 +434,19 @@ describe("StreamsBuildTool", () => {
         });
 
         it("should elicit an IAM role after AWS_MSK_IAM is selected", async () => {
-            mockElicitation.requestInput
-                .mockResolvedValueOnce({
-                    accepted: true,
-                    fields: {
-                        bootstrapServers: "broker:9098",
-                        mechanism: "AWS_MSK_IAM",
-                        protocol: "SASL_SSL",
-                    },
-                })
-                .mockResolvedValueOnce({
-                    accepted: true,
-                    fields: { roleArn: "arn:aws:iam::123456789012:role/msk-access" },
-                });
+            // Round 1: the user selects the mechanism (MSK IAM) along with
+            // bootstrapServers and protocol; re-validation then asks for the
+            // IAM role ARN that AWS_MSK_IAM requires instead of SASL credentials.
+            mockElicitation.readInput.mockReturnValueOnce({
+                accepted: true,
+                fields: {
+                    bootstrapServers: "broker:9098",
+                    mechanism: "AWS_MSK_IAM",
+                    protocol: "SASL_SSL",
+                },
+            });
 
-            await exec({
+            const result = await exec({
                 ...baseArgs,
                 resource: "connection",
                 connectionName: "msk-iam",
@@ -456,22 +454,11 @@ describe("StreamsBuildTool", () => {
                 connectionConfig: {},
             });
 
-            expect(mockElicitation.requestInput).toHaveBeenCalledTimes(2);
-            const roleElicitationSchema = mockElicitation.requestInput.mock.calls[1][1] as {
-                properties: Record<string, unknown>;
+            expect(result.resultType).toBe("input_required");
+            const roleElicitationParams = mockElicitation.inputRequired.mock.calls[0][0] as {
+                schema: { required: string[]; properties: Record<string, unknown> };
             };
-            expect(roleElicitationSchema.properties).toEqual({ roleArn: expect.any(Object) });
-            expect(mockApiClient.createStreamConnection).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    body: expect.objectContaining({
-                        authentication: {
-                            mechanism: "AWS_MSK_IAM",
-                            aws: { roleArn: "arn:aws:iam::123456789012:role/msk-access" },
-                        },
-                    }),
-                }),
-                expect.anything()
-            );
+            expect(roleElicitationParams.schema.properties).toEqual({ roleArn: expect.any(Object) });
         });
 
         it("should throw when connectionName is missing", async () => {

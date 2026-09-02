@@ -410,19 +410,13 @@ export class StreamsBuildTool extends StreamsToolBase {
                 { key: "mechanism", present: false, schema: KAFKA_FIELDS.mechanism },
                 { key: "protocol", present: !!security?.protocol, schema: KAFKA_FIELDS.protocol },
             ]);
-            const result = await this.elicitOrReportMissing(
-                "Kafka",
-                config,
-                mechanismFields,
-                context,
-                (fields, cfg) => {
-                    if (fields.bootstrapServers) cfg.bootstrapServers = fields.bootstrapServers;
-                    if (!cfg.authentication) cfg.authentication = {};
-                    if (fields.mechanism) (cfg.authentication as Record<string, unknown>).mechanism = fields.mechanism;
-                    if (!cfg.security) cfg.security = {};
-                    if (fields.protocol) (cfg.security as Record<string, unknown>).protocol = fields.protocol;
-                }
-            );
+            const result = this.elicitOrReportMissing("Kafka", config, mechanismFields, context, (fields, cfg) => {
+                if (fields.bootstrapServers) cfg.bootstrapServers = fields.bootstrapServers;
+                if (!cfg.authentication) cfg.authentication = {};
+                if (fields.mechanism) (cfg.authentication as Record<string, unknown>).mechanism = fields.mechanism;
+                if (!cfg.security) cfg.security = {};
+                if (fields.protocol) (cfg.security as Record<string, unknown>).protocol = fields.protocol;
+            });
             return result ?? this.validateKafkaConfig(config, context);
         }
 
