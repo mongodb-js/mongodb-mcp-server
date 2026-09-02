@@ -4,6 +4,8 @@
 
   "mainEntryPointFilePath": "<projectFolder>/dist/esm/tools/index.d.ts",
 
+  // Public API report check disabled for the tools package; the Streams API surface is
+  // intentionally evolving. See https://github.com/mongodb-js/mongodb-mcp-server/pull/1454/changes
   "apiReport": {
     "enabled": false,
     "reportFolder": "<projectFolder>/../../api-extractor/reports/",
