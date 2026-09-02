@@ -15,6 +15,7 @@ import type {
     ConnectionMetadata,
     TelemetryToolMetadata,
     ToolEvent,
+    ToolServices,
     ToolServer,
     PreviewFeature,
     DefaultMetricDefinitions,

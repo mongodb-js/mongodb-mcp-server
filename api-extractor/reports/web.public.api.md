@@ -820,7 +820,7 @@ export type ToolExecutionContext<TConfig extends IToolConfig = IToolConfig> = {
 
 // @public
 export type ToolRequest<TConfig extends IToolConfig = IToolConfig> = {
-    readonly config: TConfig;
+    readonly server: ToolServer<ToolServices<TConfig>>;
     readonly raw?: ServerContext["mcpReq"];
     signal: AbortSignal;
     headers?: Record<string, unknown>;

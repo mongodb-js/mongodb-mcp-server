@@ -1206,8 +1206,8 @@ export class CreateIndexTool extends MongoDBToolBase {
                     dotProduct: "dotProduct";
                 }>>;
                 quantization: z.ZodDefault<z.ZodEnum<{
-                    none: "none";
                     binary: "binary";
+                    none: "none";
                     scalar: "scalar";
                 }>>;
             }, z.core.$strict>, z.ZodObject<{
@@ -3227,7 +3227,7 @@ export type ToolExecutionContext<TConfig extends IToolConfig = IToolConfig> = {
 
 // @public
 export type ToolRequest<TConfig extends IToolConfig = IToolConfig> = {
-    readonly config: TConfig;
+    readonly server: ToolServer<ToolServices<TConfig>>;
     readonly raw?: ServerContext["mcpReq"];
     signal: AbortSignal;
     headers?: Record<string, unknown>;
