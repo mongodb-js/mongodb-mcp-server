@@ -186,11 +186,14 @@ Options (pick one — recommend **A**):
 > and ephemeral/isolated when unauthenticated. The type itself is the explicit
 > requirement: there is no "unknown" auth state.
 >
-> Setting `HttpServerOptions.authMode: "authenticated"` opts the HTTP entry into
-> authenticated mode at construction: the handler is created enforcing that every
-> request carries verified identity — requests without host-supplied authInfo are
-> rejected with 401 before the SDK sees them, and the request context's authInfo
-> is always `{ mode: "authenticated", state }`.
+> `HttpServerOptions.authMode` is a required field (no implicit default):
+> `"authenticated"` opts the HTTP entry into authenticated mode at construction —
+> the handler is created enforcing that every request carries verified identity —
+> requests without host-supplied authInfo are rejected with 401 before the SDK
+> sees them, and the request context's authInfo is always
+> `{ mode: "authenticated", state }`. `"unauthenticated"` keeps the passive
+> behavior (authInfo carries whatever the host provides, defaulting to
+> `{ mode: "unauthenticated" }`).
 - **B. Global-only**: delete `connectionScope: "session"`; all runtime connections are
   shared. Simplest, but changes the documented security posture for unauthenticated
   multi-client HTTP deployments (any client can see/use any connectionId).

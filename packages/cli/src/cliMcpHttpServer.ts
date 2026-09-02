@@ -52,6 +52,10 @@ export function createHttpTransportRunnerFromConfig(appServices: AppServices): S
                 port: config.httpPort,
                 responseType: config.httpResponseType,
                 headers: config.httpHeaders,
+                // The CLI runner is unauthenticated by default; embedders who
+                // want enforced authenticated mode construct the HTTP server
+                // with authMode: "authenticated" themselves.
+                authMode: "unauthenticated",
             },
         },
     });

@@ -325,6 +325,7 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
                     port: config.httpPort,
                     responseType: config.httpResponseType,
                     headers: config.httpHeaders,
+                    authMode: "unauthenticated",
                 },
             },
         });
@@ -374,6 +375,7 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
                     port: config.httpPort,
                     responseType: config.httpResponseType,
                     headers: config.httpHeaders,
+                    authMode: "unauthenticated",
                 },
             },
         });
@@ -431,6 +433,7 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
                     port: config.httpPort,
                     responseType: config.httpResponseType,
                     headers: config.httpHeaders,
+                    authMode: "unauthenticated",
                 },
             },
         });
