@@ -1,4 +1,4 @@
-import type { TelemetryBaseEvent, TelemetryCommonProperties } from "./types.js";
+import type { TelemetryBaseEvent, TelemetryCommonProperties, TelemetryEvent } from "./types.js";
 import { LogId } from "@mongodb-js/mcp-core";
 import { detectContainerEnv as detectContainerEnvImpl } from "./containerEnv.js";
 import type { LoggerBase } from "@mongodb-js/mcp-core";
@@ -55,11 +55,12 @@ export type TelemetryConfig = {
     serverMetadata: ServerMetadata;
 
     /**
-     * Optional override for the underlying event cache. Defaults to the
-     * process-wide singleton returned by {@link EventCache.getInstance}.
-     * Mostly useful for tests or callers that need to isolate caching.
+     * Optional override for the underlying event cache. Defaults to a new
+     * cache owned exclusively by this pipeline, so events are only ever sent
+     * through the pipeline (and API client) that emitted them. Holds events
+     * that already include this pipeline's common properties.
      */
-    eventCache?: EventCache;
+    eventCache?: EventCache<TelemetryEvent<TelemetryCommonProperties>>;
 };
 
 /** The timeout for individual send requests in milliseconds. */
@@ -102,7 +103,7 @@ export class AtlasTelemetry implements ITelemetry {
      * of {@link getCommonProperties} should call `super` to include these.
      */
     private readonly pipelineCommonProperties: Partial<TelemetryCommonProperties>;
-    private readonly eventCache: EventCache;
+    private readonly eventCache: EventCache<TelemetryEvent<TelemetryCommonProperties>>;
     private readonly deviceId: IDeviceId;
     private backoffMs: number = INITIAL_BACKOFF_MS;
     private readonly timer = new Timer();
@@ -113,7 +114,7 @@ export class AtlasTelemetry implements ITelemetry {
         this.keychain = config.keychain;
         this.enabled = config.enabled;
         this.serverMetadata = config.serverMetadata;
-        this.eventCache = config.eventCache ?? EventCache.getInstance();
+        this.eventCache = config.eventCache ?? new EventCache<TelemetryEvent<TelemetryCommonProperties>>();
         this.deviceId = config.deviceId;
         this.pipelineCommonProperties = {};
     }
@@ -156,6 +157,10 @@ export class AtlasTelemetry implements ITelemetry {
     public async close(): Promise<void> {
         this.timer.cancel();
 
+        // Events emitted before setup finished are appended once setup resolves;
+        // wait for that so the final flush can include them.
+        await this.whenReady();
+
         this.logger.debug({
             id: LogId.telemetryClose,
             message: `Closing telemetry, attempting to flush up to ${BATCH_SIZE} of ${this.eventCache.size} remaining events`,
@@ -167,22 +172,47 @@ export class AtlasTelemetry implements ITelemetry {
     }
 
     /**
-     * Caches events for sending via the background timer.
+     * Merges the common properties into the events and caches them for
+     * sending via the background timer.
+     *
+     * The merge is deferred until setup has resolved `device_id` and
+     * `is_container_env`. Callbacks chained on an already-settled promise run
+     * in registration order, so events are cached in the order they were emitted.
      */
     public emitEvents(events: TelemetryBaseEvent[]): void {
         if (!this.isTelemetryEnabled()) {
             this.events.emit("events-skipped");
             return;
         }
-        this.eventCache.appendEvents(events);
+        void this.whenReady().then(() => {
+            const commonProperties = this.getCommonProperties();
+            this.eventCache.appendEvents(
+                events.map((event) => ({
+                    ...event,
+                    properties: { ...commonProperties, ...event.properties },
+                }))
+            );
+        });
     }
 
     /**
-     * Returns common properties merged onto every event. Invoked on every send
-     * so values resolved after construction — like MCP client identity — are
-     * captured. Defaults to server/platform metadata plus pipeline-resolved
-     * `device_id` and `is_container_env`. Extend {@link AtlasTelemetry} and
-     * override this method (calling `super`) to add host-specific properties.
+     * Resolves once setup has completed (or immediately if setup never ran).
+     * Never rejects — a failed setup must not turn emitEvents into an unhandled rejection.
+     */
+    private whenReady(): Promise<void> {
+        return (this.setupPromise ?? Promise.resolve()).then(
+            () => undefined,
+            () => undefined
+        );
+    }
+
+    /**
+     * Returns common properties merged onto every event at emit time, so each
+     * event carries the identity of the pipeline that produced it. Defaults to
+     * server/platform metadata plus pipeline-resolved `device_id` and
+     * `is_container_env`. Extend {@link AtlasTelemetry} and override this
+     * method (calling `super`) to add host-specific properties; those must be
+     * available before the events that should carry them are emitted.
      */
     public getCommonProperties(): TelemetryCommonProperties {
         return {
@@ -314,20 +344,14 @@ export class AtlasTelemetry implements ITelemetry {
         signal,
     }: {
         client: ApiClient;
-        events: TelemetryBaseEvent[];
+        events: TelemetryEvent<TelemetryCommonProperties>[];
         signal?: AbortSignal;
     }): Promise<SendResult> {
         try {
             const effectiveSignal = signal ?? AbortSignal.timeout(SEND_TIMEOUT_MS);
             const redact = <T>(value: T): T => this.keychain?.redact(value) ?? value;
             await client.sendEvents(
-                events.map((event) => ({
-                    ...event,
-                    properties: {
-                        ...redact(this.getCommonProperties()),
-                        ...redact(event.properties),
-                    },
-                })),
+                events.map((event) => ({ ...event, properties: redact(event.properties) })),
                 { signal: effectiveSignal }
             );
             return { status: "success" };
