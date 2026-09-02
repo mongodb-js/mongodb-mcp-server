@@ -6,7 +6,7 @@ import type { IAtlasConfig, IAtlasSession } from "../../atlasTool.js";
 import type { ITelemetry, ICompositeLogger } from "@mongodb-js/mcp-types";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
-import { Keychain } from "@mongodb-js/mcp-core";
+import { Keychain, ToolArgumentValidationError } from "@mongodb-js/mcp-core";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import type { RegisteredTool } from "@modelcontextprotocol/server";
 
@@ -107,6 +107,7 @@ describe("CreateAccessListTool", () => {
     });
 
     it("throws when no inputs are provided", async () => {
+        await expect(exec({ projectId })).rejects.toThrow(ToolArgumentValidationError);
         await expect(exec({ projectId })).rejects.toThrow(
             "One of ipAddresses, cidrBlocks, currentIpAddress must be provided."
         );
@@ -126,6 +127,7 @@ describe("CreateAccessListTool", () => {
         });
 
         it("directs the user to provide explicit IPs when no inputs are provided", async () => {
+            await expect(exec({ projectId })).rejects.toThrow(ToolArgumentValidationError);
             await expect(exec({ projectId })).rejects.toThrow("Either ipAddresses or cidrBlocks must be provided.");
         });
 

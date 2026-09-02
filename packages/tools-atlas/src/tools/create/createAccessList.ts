@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { type ToolArgs, type ToolResult } from "@mongodb-js/mcp-core";
+import { type ToolArgs, type ToolResult, ToolArgumentValidationError } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { AtlasToolBase } from "../../atlasTool.js";
 import { makeCurrentIpAccessListEntry, DEFAULT_ACCESS_LIST_COMMENT } from "../../helpers/accessListUtils.js";
@@ -51,10 +51,10 @@ export class CreateAccessListTool extends AtlasToolBase {
     ): Promise<ToolResult<typeof this.outputSchema>> {
         if (!ipAddresses?.length && !cidrBlocks?.length && !currentIpAddress) {
             if (!this.apiClient.supportsCurrentIpLookup) {
-                throw new Error("Either ipAddresses or cidrBlocks must be provided.");
+                throw new ToolArgumentValidationError("Either ipAddresses or cidrBlocks must be provided.");
             }
 
-            throw new Error("One of ipAddresses, cidrBlocks, currentIpAddress must be provided.");
+            throw new ToolArgumentValidationError("One of ipAddresses, cidrBlocks, currentIpAddress must be provided.");
         }
 
         const ipInputs = (ipAddresses || []).map((ipAddress) => ({
