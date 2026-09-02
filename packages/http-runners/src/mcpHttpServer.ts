@@ -8,6 +8,7 @@ import type {
     DefaultMetricDefinitions,
     TransportRequestContext,
     HttpServerOptions,
+    RequestAuthInfo,
     ServerLike,
 } from "@mongodb-js/mcp-types";
 import {
@@ -31,6 +32,8 @@ export type MCPHttpServerOptions<TMetrics extends DefaultMetricDefinitions = Def
     /** Metrics instance */
     metrics: IMetrics<TMetrics>;
 };
+
+
 
 /**
  * HTTP server that serves MCP requests over HTTP using the stateless
@@ -101,6 +104,9 @@ export abstract class MCPHttpServer<
                     query: ctx.requestInfo?.url
                         ? Object.fromEntries(new URL(ctx.requestInfo.url).searchParams)
                         : undefined,
+                    // Verified identity of the authenticated client (auth mode), threaded
+                    // through so the request-scoped server can scope state by clientId.
+                    authInfo: ctx.authInfo,
                 };
                 const server = await this.createServerForRequest(request);
                 await server.register();
@@ -128,14 +134,27 @@ export abstract class MCPHttpServer<
             });
         }
 
+        const authenticate = this.httpOptions.authenticate;
         this.app.post(
             "/mcp",
             this.withErrorHandling(async (req: express.Request, res: express.Response) => {
-                await toNodeHandler({ fetch: (request, opts) => this.modernHandler.fetch(request, opts) })(
-                    req,
-                    res,
-                    req.body
-                );
+                let authInfo: RequestAuthInfo | undefined;
+                if (authenticate) {
+                    // Auth is mandatory when an authenticator is configured:
+                    // resolve (and require) the verified identity for this
+                    // request, rejecting 401 when it cannot be established. The
+                    // verified identity is threaded into the handler so
+                    // per-request servers can scope state by clientId.
+                    authInfo = await authenticate(req.headers);
+                    if (!authInfo) {
+                        res.status(401).json({ error: "Unauthorized: could not verify request identity" });
+                        return;
+                    }
+                }
+                await toNodeHandler({
+                    fetch: (request, opts) =>
+                        this.modernHandler.fetch(request, { ...opts, authInfo }),
+                })(req, res, req.body);
             })
         );
     }

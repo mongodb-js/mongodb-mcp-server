@@ -184,8 +184,19 @@ export async function createAppServicesFromConfig(options: CreateServerServicesO
  */
 export const CLIENT_SCOPE_HEADER = "x-mcp-client-name";
 
-/** Derives a connection scope from the request's client-identity header, if present. */
+/**
+ * Derives a connection scope from the request. Precedence:
+ *  1. `authInfo.clientId` — the verified identity (auth mode): stable, cannot
+ *     be forged by the client, so each authenticated client gets its own
+ *     isolated namespace.
+ *  2. the `x-mcp-client-name` header — opt-in label for unauthenticated
+ *     deployments (see {@link CLIENT_SCOPE_HEADER}).
+ *  3. none — the caller falls back to an ephemeral scope.
+ */
 function clientScopeFromRequest(request?: TransportRequestContext): string | undefined {
+    if (request?.authInfo?.clientId) {
+        return request.authInfo.clientId;
+    }
     const header = request?.headers?.[CLIENT_SCOPE_HEADER];
     const name = typeof header === "string" && header.length > 0 ? header.trim() : undefined;
     return name;
