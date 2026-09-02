@@ -177,6 +177,16 @@ describe("CreateAccessListTool", () => {
             const b = registeredInputSchema(makeTool({ ...mockApiClient, supportsCurrentIpLookup: true }));
             expect(a).toBe(b);
         });
+
+        it("accepts a comment at the 80-character limit and rejects longer ones", () => {
+            const schema = registeredInputSchema(tool);
+            expect(schema.safeParse({ projectId, ipAddresses: ["192.168.1.1"], comment: "a".repeat(80) }).success).toBe(
+                true
+            );
+            expect(schema.safeParse({ projectId, ipAddresses: ["192.168.1.1"], comment: "a".repeat(81) }).success).toBe(
+                false
+            );
+        });
     });
 
     it("uses custom comment when provided", async () => {

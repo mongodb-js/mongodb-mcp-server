@@ -5,12 +5,17 @@ import { AtlasToolBase } from "../../atlasTool.js";
 import { makeCurrentIpAccessListEntry, DEFAULT_ACCESS_LIST_COMMENT } from "../../helpers/accessListUtils.js";
 import { AtlasArgs, CommonArgs } from "../../args.js";
 
+// Atlas rejects access list entry comments longer than this (INVALID_NETWORK_PERMISSION_COMMENT).
+const ACCESS_LIST_COMMENT_MAX_LENGTH = 80;
+export const ACCESS_LIST_COMMENT_TOO_LONG_ERROR = "Comment must be 80 characters or less.";
+
 export const CreateAccessListArgs = {
     projectId: AtlasArgs.projectId().describe("Atlas project ID"),
     ipAddresses: z.array(AtlasArgs.ipAddress()).describe("IP addresses to allow access from").optional(),
     cidrBlocks: z.array(AtlasArgs.cidrBlock()).describe("CIDR blocks to allow access from").optional(),
     currentIpAddress: z.boolean().describe("Add the current IP address").default(false),
     comment: CommonArgs.asciiOnlyString()
+        .max(ACCESS_LIST_COMMENT_MAX_LENGTH, ACCESS_LIST_COMMENT_TOO_LONG_ERROR)
         .describe("Comment for the access list entries")
         .default(DEFAULT_ACCESS_LIST_COMMENT)
         .optional(),
