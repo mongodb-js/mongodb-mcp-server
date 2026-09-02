@@ -1,5 +1,5 @@
 import type {
-    IResourceSession,
+    ResourceServices,
     ITelemetry,
     ReactiveResourceOptions,
     ResourceConfiguration,
@@ -11,15 +11,15 @@ import { LogId } from "./logId.js";
 /**
  * Abstract base class for implementing MCP resources.
  *
- * Resources are constructed by the host server with `(serverContext, telemetry)`
+ * Resources are constructed by the host server with `(services, telemetry)`
  * (see the CLI's `registerResources`), which the base class receives as
  * constructor options. The resolved user configuration is read from
- * `serverContext.config`.
+ * `services.config`.
  *
  * @example Basic Custom Resource
  * ```typescript
  * class MyResource extends ReactiveResource<string> {
- *   constructor(serverContext: IResourceSession, telemetry: ITelemetry) {
+ *   constructor(services: ResourceServices, telemetry: ITelemetry) {
  *     super({
  *       resourceConfiguration: {
  *         name: "my-resource",
@@ -29,7 +29,7 @@ import { LogId } from "./logId.js";
  *       options: {
  *         initial: "disconnected",
  *       },
- *       session: serverContext,
+ *       services,
  *       telemetry,
  *     });
  *   }
@@ -43,11 +43,14 @@ import { LogId } from "./logId.js";
 export abstract class ReactiveResource<
     /** Value stored in the resource */
     Value,
-    TSession extends IResourceSession = IResourceSession,
+    TServices extends ResourceServices = ResourceServices,
     TServer extends IResourceServer = IResourceServer,
 > {
     protected server?: TServer;
-    protected session: TSession;
+    /** The individually-injected services, stored as discrete fields (no server-scoped session object). */
+    protected readonly config: TServices["config"];
+    protected readonly logger: TServices["logger"];
+    protected readonly keychain: TServices["keychain"];
     protected telemetry: ITelemetry;
 
     protected current: Value;
@@ -58,17 +61,19 @@ export abstract class ReactiveResource<
     constructor({
         resourceConfiguration,
         options,
-        session,
+        services,
         telemetry,
         current,
     }: {
         resourceConfiguration: ResourceConfiguration;
         options: ReactiveResourceOptions<Value>;
-        session: TSession;
+        services: TServices;
         telemetry: ITelemetry;
         current?: Value;
     }) {
-        this.session = session;
+        this.config = services.config;
+        this.logger = services.logger;
+        this.keychain = services.keychain;
         this.telemetry = telemetry;
 
         this.name = resourceConfiguration.name;

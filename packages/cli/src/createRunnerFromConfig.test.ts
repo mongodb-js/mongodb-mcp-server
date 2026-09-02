@@ -52,16 +52,18 @@ vi.mock("@mongodb-js/mcp-core", async (importOriginal) => {
 });
 
 const { createdServers } = vi.hoisted(() => ({
-    createdServers: [] as Array<{ id: number; session: unknown }>,
+    createdServers: [] as Array<{ id: number; config: unknown; connectionRegistry: unknown }>,
 }));
 
 vi.mock("./cliServer.js", () => ({
     CliServer: class MockCliServer {
-        public session: unknown;
+        public config: unknown;
+        public connectionRegistry: unknown;
         public mcpServer = { server: {} };
-        constructor({ session }: { session: unknown }) {
-            this.session = session;
-            createdServers.push({ id: createdServers.length, session });
+        constructor(options: { config: unknown; connectionRegistry: unknown }) {
+            this.config = options.config;
+            this.connectionRegistry = options.connectionRegistry;
+            createdServers.push({ id: createdServers.length, ...options });
         }
         connect(): Promise<void> {
             return Promise.resolve();
@@ -179,8 +181,8 @@ describe("createServerFromConfig (request-scoped server)", () => {
 
         // Both request-scoped servers share the SAME app-level connection
         // registry: connections survive across requests.
-        expect(serverA.session.connectionRegistry).toBe(appServices.connectionRegistry);
-        expect(serverB.session.connectionRegistry).toBe(appServices.connectionRegistry);
+        expect(serverA.connectionRegistry).toBe(appServices.connectionRegistry);
+        expect(serverB.connectionRegistry).toBe(appServices.connectionRegistry);
 
         // App-level factories ran exactly once for the whole process.
         expect(createExportsManagerFromConfig).toHaveBeenCalledTimes(1);
@@ -215,8 +217,8 @@ describe("createServerFromConfig (request-scoped server)", () => {
         const serverB = createServerFromConfig({ config: configB, appServices });
 
         // Per-request config isolation: override applies to one request only.
-        expect((serverA.session as { config: { readOnly: boolean } }).config.readOnly).toBe(true);
-        expect((serverB.session as { config: { readOnly: boolean } }).config.readOnly).toBe(false);
+        expect((serverA.config as { readOnly: boolean }).readOnly).toBe(true);
+        expect((serverB.config as { readOnly: boolean }).readOnly).toBe(false);
 
         expect(createdServers).toHaveLength(2);
     });
@@ -343,15 +345,15 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
         expect(createdServers).toHaveLength(2);
 
         // Both request-scoped servers share the same app-level connection registry.
-        expect(
-            (serverA as { session: { connectionRegistry: unknown } }).session.connectionRegistry
-        ).toBe(appServices.connectionRegistry);
-        expect(
-            (serverB as { session: { connectionRegistry: unknown } }).session.connectionRegistry
-        ).toBe(appServices.connectionRegistry);
+        expect((serverA as { connectionRegistry: unknown }).connectionRegistry).toBe(
+            appServices.connectionRegistry
+        );
+        expect((serverB as { connectionRegistry: unknown }).connectionRegistry).toBe(
+            appServices.connectionRegistry
+        );
 
         // Request override isolation: only the first request got read-only=true
-        expect((serverA as { session: { config: { readOnly: boolean } } }).session.config.readOnly).toBe(true);
-        expect((serverB as { session: { config: { readOnly: boolean } } }).session.config.readOnly).toBe(false);
+        expect((serverA as { config: { readOnly: boolean } }).config.readOnly).toBe(true);
+        expect((serverB as { config: { readOnly: boolean } }).config.readOnly).toBe(false);
     });
 });

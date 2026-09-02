@@ -11,7 +11,7 @@ import { Keychain } from "@mongodb-js/mcp-core";
 import type { Secret } from "@mongodb-js/mcp-core";
 import { createEnvironment, useClearEnvironment } from "@mongodb-js/mcp-test-utils";
 import path from "path";
-import { TRANSPORT_PAYLOAD_LIMITS, DEFAULT_MAX_SESSIONS } from "@mongodb-js/mcp-cli";
+import { TRANSPORT_PAYLOAD_LIMITS } from "@mongodb-js/mcp-cli";
 import { getConfigMeta } from "@mongodb-js/mcp-cli";
 
 // Expected hardcoded values (what we had before)
@@ -44,11 +44,7 @@ const expectedDefaults = {
     httpHost: "127.0.0.1",
     mcpClientLogLevel: "debug",
     loggers: ["disk", "mcp"],
-    idleTimeoutMs: 10 * 60 * 1000, // 10 minutes
-    notificationTimeoutMs: 9 * 60 * 1000, // 9 minutes
-    maxSessions: DEFAULT_MAX_SESSIONS,
     maxActiveConnections: 10,
-    connectionScope: "session",
     httpHeaders: {},
     httpBodyLimit: TRANSPORT_PAYLOAD_LIMITS.http,
     maxDocumentsPerQuery: 100,
@@ -58,7 +54,6 @@ const expectedDefaults = {
     previewFeatures: [],
     dryRun: false,
     allowRequestOverrides: false,
-    externallyManagedSessions: false,
     httpResponseType: "sse",
     monitoringServerFeatures: ["health-check"],
     queryCountMaxTimeMsCap: 10000,
@@ -143,9 +138,6 @@ describe("config", () => {
                 { envVar: "MDB_MCP_HTTP_PORT", property: "httpPort", value: 8080 },
                 { envVar: "MDB_MCP_HTTP_HOST", property: "httpHost", value: "localhost" },
                 { envVar: "MDB_MCP_HTTP_BODY_LIMIT", property: "httpBodyLimit", value: 10 * 1024 * 1024 },
-                { envVar: "MDB_MCP_IDLE_TIMEOUT_MS", property: "idleTimeoutMs", value: 5000 },
-                { envVar: "MDB_MCP_NOTIFICATION_TIMEOUT_MS", property: "notificationTimeoutMs", value: 5000 },
-                { envVar: "MDB_MCP_MAX_SESSIONS", property: "maxSessions", value: 500 },
                 {
                     envVar: "MDB_MCP_ATLAS_TEMPORARY_DATABASE_USER_LIFETIME_MS",
                     property: "atlasTemporaryDatabaseUserLifetimeMs",
@@ -248,20 +240,8 @@ describe("config", () => {
                     expected: { httpBodyLimit: 50 * 1024 * 1024 },
                 },
                 {
-                    cli: ["--idleTimeoutMs", "42"],
-                    expected: { idleTimeoutMs: 42 },
-                },
-                {
                     cli: ["--logPath", "/var/"],
                     expected: { logPath: "/var/" },
-                },
-                {
-                    cli: ["--notificationTimeoutMs", "42"],
-                    expected: { notificationTimeoutMs: 42 },
-                },
-                {
-                    cli: ["--maxSessions", "42"],
-                    expected: { maxSessions: 42 },
                 },
                 {
                     cli: ["--atlasTemporaryDatabaseUserLifetimeMs", "12345"],

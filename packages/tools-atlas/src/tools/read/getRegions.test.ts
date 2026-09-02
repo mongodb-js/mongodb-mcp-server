@@ -8,6 +8,7 @@ import { ATLAS_REGIONS, GetRegionsArgsShape, GetRegionsTool } from "./getRegions
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import type { AtlasToolServer } from "../../atlasTool.js";
+import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
 
 describe("GetRegionsTool", () => {
     let mockSession: Partial<AtlasToolServer>;
@@ -56,7 +57,9 @@ describe("GetRegionsTool", () => {
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["invoke"](z.object(GetRegionsArgsShape).strict().parse(tool.normalizeRawArgs(args)), {} as never);
+        tool["invoke"](z.object(GetRegionsArgsShape).strict().parse(tool.normalizeRawArgs(args)), {
+            request: { config: (tool as unknown as { server: AtlasToolServer }).server.config, signal: new AbortController().signal },
+        } as unknown as ToolExecutionContext);
 
     beforeEach(() => {
         tool = buildTool();

@@ -36,9 +36,9 @@ describeWithAtlas("db users", (integration) => {
             }
 
             try {
-                const session = integration.mcpServer().session;
+                const session = integration.mcpServer();
                 assertApiClientIsAvailable(session);
-                const apiClient = session.apiClient;
+                const apiClient = session.getApiClient();
                 await apiClient.deleteDatabaseUser({
                     params: {
                         path: {
@@ -89,12 +89,12 @@ describeWithAtlas("db users", (integration) => {
                 expect(elements[0]?.text).toContain(userName);
                 expect(elements[0]?.text).not.toContain("testpassword");
 
-                expect(integration.mcpServer().session.keychain.allSecrets).toContainEqual({
+                expect(integration.mcpServer().keychain.allSecrets).toContainEqual({
                     value: userName,
                     kind: "user",
                 });
 
-                expect(integration.mcpServer().session.keychain.allSecrets).toContainEqual({
+                expect(integration.mcpServer().keychain.allSecrets).toContainEqual({
                     value: "testpassword",
                     kind: "password",
                 });
@@ -118,12 +118,12 @@ describeWithAtlas("db users", (integration) => {
                     .replace(/`/g, "")
                     .trim();
 
-                expect(integration.mcpServer().session.keychain.allSecrets).toContainEqual({
+                expect(integration.mcpServer().keychain.allSecrets).toContainEqual({
                     value: userName,
                     kind: "user",
                 });
 
-                expect(integration.mcpServer().session.keychain.allSecrets).toContainEqual({
+                expect(integration.mcpServer().keychain.allSecrets).toContainEqual({
                     value: password,
                     kind: "password",
                 });
@@ -131,7 +131,7 @@ describeWithAtlas("db users", (integration) => {
 
             it("should add current IP to access list when creating a database user", async () => {
                 const projectId = getProjectId();
-                const session = integration.mcpServer().session;
+                const session = integration.mcpServer();
                 assertApiClientIsAvailable(session);
                 const ipInfo = await session.apiClient.getIpInfo();
                 await createUserWithMCP();

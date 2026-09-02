@@ -8,6 +8,7 @@ import { Keychain } from "@mongodb-js/mcp-core";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import type { RegisteredTool } from "@modelcontextprotocol/server";
 import type { AtlasToolServer } from "../../atlasTool.js";
+import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
 
 const projectId = "507f1f77bcf86cd799439011";
 const currentIpAddress = "203.0.113.10";
@@ -60,7 +61,7 @@ describe("CreateAccessListTool", () => {
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["execute"](args as never, { signal: new AbortController().signal });
+        tool["execute"](args as never, { request: { config: (tool as unknown as { server: AtlasToolServer }).server.config, signal: new AbortController().signal } } as unknown as ToolExecutionContext);
 
     it("creates access list entries for IPs and CIDR blocks", async () => {
         const result = await exec({

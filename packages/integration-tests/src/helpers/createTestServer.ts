@@ -5,7 +5,6 @@ import { ExportsManager, MCPConnectionStore, type DeviceId } from "@mongodb-js/m
 import { AllTools, CliServer, Elicitation, connectionErrorHandler, packageInfo } from "mongodb-mcp-server";
 import type { UserConfig } from "mongodb-mcp-server";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
-import { ServerServices } from "@mongodb-js/mcp-cli";
 import {
     PrometheusMetrics,
     createDefaultMetrics,
@@ -77,24 +76,19 @@ export async function createTestServer(config: UserConfig, options: CreateTestSe
 
     const elicitation = new Elicitation({ server: mcpServer.server });
 
-    const serverServices = new ServerServices({
-        logger,
-        exportsManager,
-        connectionRegistry,
-        keychain,
-        apiClient,
-        connectionErrorHandler,
-        atlasLocalClient,
-        config,
-    });
-
     const metrics = options.metrics ?? new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
     return new CliServer({
-        session: serverServices,
+        config,
+        logger,
+        keychain,
+        connectionRegistry,
+        exportsManager,
+        apiClient,
+        connectionErrorHandler,
+        atlasLocalClient,
         mcpServer,
         telemetry: options.telemetry ?? (new NoopTelemetry() as unknown as AtlasTelemetry),
-        connectionErrorHandler,
         elicitation,
         metrics,
         tools: options.tools ?? AllTools,

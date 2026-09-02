@@ -10,6 +10,7 @@ import { Keychain } from "@mongodb-js/mcp-core";
 import { ensureCurrentIpInAccessList } from "../../helpers/accessListUtils.js";
 import type * as AccessListUtils from "../../helpers/accessListUtils.js";
 import type { AtlasToolServer } from "../../atlasTool.js";
+import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
 
 vi.mock("../../helpers/accessListUtils.js", async (importOriginal) => {
     const actual = await importOriginal<typeof AccessListUtils>();
@@ -73,7 +74,7 @@ describe("CreateDBUserTool", () => {
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown> = baseArgs) =>
-        tool["execute"](args as never, { signal: new AbortController().signal });
+        tool["execute"](args as never, { request: { config: (tool as unknown as { server: AtlasToolServer }).server.config, signal: new AbortController().signal } } as unknown as ToolExecutionContext);
 
     it("creates a user with a supplied password", async () => {
         const result = await exec({ ...baseArgs, password: "user-password" });

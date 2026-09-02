@@ -59,8 +59,8 @@ function expectAggregateDBStructuredContent(
 
 describeWithMongoDB("aggregate-db tool", (integration) => {
     afterEach(() => {
-        integration.mcpServer().session.config.readOnly = false;
-        integration.mcpServer().session.config.disabledTools = [];
+        integration.mcpServer().config.readOnly = false;
+        integration.mcpServer().config.disabledTools = [];
         syncMongoToolsConfigFromUserConfig(integration.mcpServer());
     });
 

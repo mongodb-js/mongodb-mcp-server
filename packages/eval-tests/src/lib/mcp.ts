@@ -5,7 +5,8 @@ import { Keychain } from "@mongodb-js/mcp-core";
 import {
     createLoggerFromConfig,
     createServerFromConfig,
-    createSharedServicesFromConfig,
+    createAppServicesFromConfig,
+    closeAppServices,
     Resources,
     UserConfigSchema,
     type UserConfig,
@@ -44,14 +45,14 @@ export class InMemoryMcpConnection {
         });
 
         const logger = await createLoggerFromConfig({ config, keychain: Keychain.root });
-        const sharedServices = await createSharedServicesFromConfig({
+        const appServices = await createAppServicesFromConfig({
             config,
             serverMetadata: packageInfo,
             tools: AllTools,
             resources: Resources,
             logger,
         });
-        const server = createServerFromConfig({ config, sharedServices });
+        const server = createServerFromConfig({ config, appServices });
 
         await server.connect(serverTransport);
 
@@ -62,6 +63,7 @@ export class InMemoryMcpConnection {
         return new InMemoryMcpConnection(client, async () => {
             await clientTransport.close();
             await server.close();
+            await closeAppServices(appServices);
         });
     }
 

@@ -1,10 +1,17 @@
 import { ReactiveResource, formatUntrustedData } from "@mongodb-js/mcp-core";
 import type { ITelemetry } from "@mongodb-js/mcp-types";
 import { connectCapableTools, summarizeConnection } from "@mongodb-js/mcp-tools-mongodb";
-import type { McpSession, CliServer } from "@mongodb-js/mcp-cli";
+import type { CliServer, ResourceServices } from "@mongodb-js/mcp-cli";
+import type { ConnectionRegistry } from "@mongodb-js/mcp-tools-mongodb";
 
-export class DebugResource extends ReactiveResource<undefined, readonly [], McpSession, CliServer> {
-    constructor(session: McpSession, telemetry: ITelemetry) {
+export type DebugResourceServices = ResourceServices & {
+    connectionRegistry: ConnectionRegistry;
+};
+
+export class DebugResource extends ReactiveResource<undefined, DebugResourceServices, CliServer> {
+    protected readonly connectionRegistry: ConnectionRegistry;
+
+    constructor(services: DebugResourceServices, telemetry: ITelemetry) {
         super({
             resourceConfiguration: {
                 name: "debug-mongodb",
@@ -16,15 +23,15 @@ export class DebugResource extends ReactiveResource<undefined, readonly [], McpS
             },
             options: {
                 initial: undefined,
-                events: [],
             },
-            session,
+            services,
             telemetry,
         });
+        this.connectionRegistry = services.connectionRegistry;
     }
 
     async toOutput(): Promise<string> {
-        const entries = await this.session.connectionRegistry.find(() => true);
+        const entries = await this.connectionRegistry.find(() => true);
         if (entries.length === 0) {
             const connectToolNames = connectCapableTools(this.server?.tools ?? [])
                 .map((tool) => `"${tool.name}"`)
@@ -40,7 +47,7 @@ export class DebugResource extends ReactiveResource<undefined, readonly [], McpS
             const summary = summarizeConnection(entry);
             let line = `- "${summary.connectionId}" (${summary.state}): ${summary.description}`;
             if (summary.state === "connected") {
-                const searchIndexesSupported = await entry.isSearchSupported(this.session.logger);
+                const searchIndexesSupported = await entry.isSearchSupported(this.logger as never);
                 line += searchIndexesSupported
                     ? " Search indexes are supported."
                     : " Search indexes are not supported.";

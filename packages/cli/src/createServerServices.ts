@@ -11,7 +11,6 @@ import {
     type ConnectionRegistry,
 } from "@mongodb-js/mcp-tools-mongodb";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
-import { ServerServices } from "./serverServices.js";
 import type { UserConfig } from "./config/userConfig.js";
 import { createExportsManagerFromConfig } from "./createExportsManagerFromConfig.js";
 import { createApiClientFromConfig } from "./createApiClientFromConfig.js";
@@ -103,7 +102,7 @@ export async function createAppServicesFromConfig(options: CreateServerServicesO
 
 /**
  * Creates one request-scoped server instance from an effective (possibly
- * request-overridden) config. Only the {@link ServerServices} config view and
+ * request-overridden) config. Only the effective config view and
  * the request-scoped {@link McpServer}/{@link Elicitation}/{@link CliServer}
  * are created fresh; every heavy dependency comes from {@link AppServices}.
  */
@@ -126,7 +125,11 @@ export function createServerFromConfig({
         server: mcpServer.server,
     });
 
-    const serverServices = new ServerServices({
+    // Services are injected individually into the request-scoped server; there
+    // is no per-client "session" object. The effective (possibly
+    // request-overridden) config is the only per-request value — every other
+    // service is shared from the app-level {@link AppServices}.
+    return new CliServer({
         config,
         logger,
         keychain,
@@ -135,13 +138,8 @@ export function createServerFromConfig({
         apiClient,
         connectionErrorHandler,
         atlasLocalClient,
-    });
-
-    return new CliServer({
-        session: serverServices,
         mcpServer,
         telemetry,
-        connectionErrorHandler,
         elicitation,
         metrics,
         tools,

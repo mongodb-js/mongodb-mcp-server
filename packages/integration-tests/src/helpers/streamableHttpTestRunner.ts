@@ -1,9 +1,5 @@
 import { StreamableHttpRunner, MCPHttpServer, type MonitoringServer } from "@mongodb-js/mcp-http-runners";
-import {
-    CompositeLogger,
-    type LoggerBase,
-    type AnyToolClass,
-} from "@mongodb-js/mcp-core";
+import { CompositeLogger, type LoggerBase, type AnyToolClass } from "@mongodb-js/mcp-core";
 import { createMonitoringServerFromConfig } from "@mongodb-js/mcp-cli";
 import {
     PrometheusMetrics,

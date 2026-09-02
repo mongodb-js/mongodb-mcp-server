@@ -42,9 +42,9 @@ describeWithAtlas("projects", (integration) => {
     const projectsToCleanup: string[] = [];
 
     afterAll(async () => {
-        const session = integration.mcpServer().session;
+        const session = integration.mcpServer();
         assertApiClientIsAvailable(session);
-        const apiClient = session.apiClient;
+        const apiClient = session.getApiClient();
         const projects =
             (await apiClient.listGroups()).results?.filter((project) => projectsToCleanup.includes(project.name)) || [];
 
@@ -77,7 +77,7 @@ describeWithAtlas("projects", (integration) => {
             // Prefer a pinned org from the environment; only hit the API when it is not provided.
             let orgId = process.env.DEV_ATLAS_MCP_ORG_ID;
             if (!orgId) {
-                const session = integration.mcpServer().session;
+                const session = integration.mcpServer();
                 assertApiClientIsAvailable(session);
                 const orgs = await session.apiClient.listOrgs();
                 orgId = orgs.results?.[0]?.id;
@@ -107,9 +107,9 @@ describeWithAtlas("projects", (integration) => {
             projName = `testProj-${new ObjectId().toString()}`;
             projectsToCleanup.push(projName);
 
-            const session = integration.mcpServer().session;
+            const session = integration.mcpServer();
             assertApiClientIsAvailable(session);
-            const apiClient = session.apiClient;
+            const apiClient = session.getApiClient();
             const orgs = await apiClient.listOrgs();
             orgId = (orgs.results && orgs.results[0]?.id) ?? "";
 

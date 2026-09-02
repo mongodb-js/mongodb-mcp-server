@@ -10,6 +10,7 @@ import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 import type { AtlasToolServer } from "../../atlasTool.js";
+import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
 
 describe("StreamsBuildTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
@@ -84,7 +85,12 @@ describe("StreamsBuildTool", () => {
     const baseArgs = { projectId: "proj1", workspaceName: "ws1" };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["execute"](args as never, { signal: new AbortController().signal });
+        tool["execute"](args as never, {
+            request: {
+                config: (tool as unknown as { server: AtlasToolServer }).server.config,
+                signal: new AbortController().signal,
+            },
+        } as unknown as ToolExecutionContext);
 
     describe("createWorkspace", () => {
         it("should create workspace with correct provider/region/tier", async () => {
