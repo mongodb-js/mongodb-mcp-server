@@ -1,4 +1,9 @@
-import { ApiClient, type HttpClient, userAgentFromServerMetadata } from "@mongodb-js/mcp-atlas-api-client";
+import {
+    ApiClient,
+    AuthProviderFactory,
+    type HttpClient,
+    userAgentFromServerMetadata,
+} from "@mongodb-js/mcp-atlas-api-client";
 import { getDefaultHttpClient } from "@mongodb-js/mcp-fetch";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ServerMetadata } from "@mongodb-js/mcp-types";
@@ -18,10 +23,11 @@ export function createApiClientFromConfig({
     // Shared, memoized proxy-aware fetch (see @mongodb-js/mcp-fetch).
     const httpClient: HttpClient = getDefaultHttpClient();
 
-    return new ApiClient(
+    const userAgent = userAgentFromServerMetadata(serverMetadata);
+    const authProvider = AuthProviderFactory.create(
         {
-            baseUrl: config.apiBaseUrl,
-            userAgent: userAgentFromServerMetadata(serverMetadata),
+            apiBaseUrl: config.apiBaseUrl,
+            userAgent,
             credentials: {
                 clientId: config.apiClientId,
                 clientSecret: config.apiClientSecret,
@@ -30,4 +36,14 @@ export function createApiClientFromConfig({
         },
         logger
     );
+
+    return new ApiClient({
+        options: {
+            baseUrl: config.apiBaseUrl,
+            userAgent,
+            httpClient,
+        },
+        logger,
+        authProvider,
+    });
 }

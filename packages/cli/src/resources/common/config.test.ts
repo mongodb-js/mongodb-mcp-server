@@ -25,8 +25,8 @@ describe("config resource", () => {
     function createResource(config: UserConfig): ConfigResource {
         const connectionRegistry = new MCPConnectionStore({ options: config, logger, deviceId }).view();
         const keychain = new Keychain();
-        const apiClient = new ApiClient(
-            {
+        const apiClient = new ApiClient({
+            options: {
                 baseUrl: config.apiBaseUrl,
                 userAgent: userAgentFromServerMetadata(testServerMetadata),
                 httpClient: {
@@ -34,8 +34,8 @@ describe("config resource", () => {
                     Request: globalThis.Request,
                 },
             },
-            logger
-        );
+            logger,
+        });
         const telemetry = AtlasTelemetry.create({
             logger,
             deviceId,

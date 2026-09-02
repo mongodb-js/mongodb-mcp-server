@@ -1,4 +1,9 @@
-import { ApiClient, ApiClientError, userAgentFromServerMetadata } from "@mongodb-js/mcp-atlas-api-client";
+import {
+    ApiClient,
+    ApiClientError,
+    AuthProviderFactory,
+    userAgentFromServerMetadata,
+} from "@mongodb-js/mcp-atlas-api-client";
 import {
     AtlasTelemetry,
     nextBackoffMs,
@@ -682,21 +687,29 @@ describe("AtlasTelemetry credentials handling", () => {
         },
     ])("sends telemetry events $label", async ({ clientId, clientSecret, expectedPath, expectAuthHeader }) => {
         const logger = new NoopLogger();
-        const apiClient = new ApiClient(
+        const httpClient = {
+            fetch: globalThis.fetch.bind(globalThis),
+            Request: globalThis.Request,
+        };
+        const userAgent = userAgentFromServerMetadata(TEST_SERVER_METADATA);
+        const authProvider = AuthProviderFactory.create(
             {
-                baseUrl: API_BASE,
-                userAgent: userAgentFromServerMetadata(TEST_SERVER_METADATA),
-                credentials: {
-                    clientId,
-                    clientSecret,
-                },
-                httpClient: {
-                    fetch: globalThis.fetch.bind(globalThis),
-                    Request: globalThis.Request,
-                },
+                apiBaseUrl: API_BASE,
+                userAgent,
+                credentials: { clientId, clientSecret },
+                httpClient,
             },
             logger
         );
+        const apiClient = new ApiClient({
+            options: {
+                baseUrl: API_BASE,
+                userAgent,
+                httpClient,
+            },
+            logger,
+            authProvider,
+        });
 
         // When credentials are present, short-circuit the OAuth token fetch
         // so the test stays focused on the telemetry dispatch rather than the

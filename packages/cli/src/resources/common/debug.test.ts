@@ -50,8 +50,8 @@ describe("debug resource", () => {
         }).view();
 
         const keychain = new Keychain();
-        const apiClient = new ApiClient(
-            {
+        const apiClient = new ApiClient({
+            options: {
                 baseUrl: config.apiBaseUrl,
                 userAgent: userAgentFromServerMetadata(testServerMetadata),
                 httpClient: {
@@ -59,8 +59,8 @@ describe("debug resource", () => {
                     Request: globalThis.Request,
                 },
             },
-            logger
-        );
+            logger,
+        });
 
         const telemetry = AtlasTelemetry.create({
             logger,
