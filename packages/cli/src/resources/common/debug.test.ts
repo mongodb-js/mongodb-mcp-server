@@ -1,15 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DebugResource } from "./debug.js";
+import { DebugResource, type DebugResourceServices } from "./debug.js";
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import { ApiClient, userAgentFromServerMetadata } from "@mongodb-js/mcp-atlas-api-client";
-import { ServerServices, UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
+import { UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
 import {
     PRECONFIGURED_CONNECTION_ID,
-    ExportsManager,
     DeviceId,
     MCPConnectionStore,
-    connectionErrorHandler,
     FakeConnectionManager,
     type ConnectionRegistry,
     type ConnectionManager,
@@ -32,7 +30,7 @@ describe("debug resource", () => {
     const deviceId = DeviceId.create(logger);
 
     let managers: FakeConnectionManager[];
-    let session: ServerServices;
+    let services: DebugResourceServices;
     let registry: ConnectionRegistry;
     let debugResource: DebugResource;
 
@@ -51,36 +49,35 @@ describe("debug resource", () => {
             deviceId,
         }).view();
 
-        session = new ServerServices({
-            logger,
-            exportsManager: ExportsManager.init({ options: config, logger }),
-            connectionRegistry: registry,
-            keychain: new Keychain(),
-            connectionErrorHandler,
-            apiClient: new ApiClient(
-                {
-                    baseUrl: config.apiBaseUrl,
-                    userAgent: userAgentFromServerMetadata(testServerMetadata),
-                    httpClient: {
-                        fetch: globalThis.fetch.bind(globalThis),
-                        Request: globalThis.Request,
-                    },
+        const keychain = new Keychain();
+        const apiClient = new ApiClient(
+            {
+                baseUrl: config.apiBaseUrl,
+                userAgent: userAgentFromServerMetadata(testServerMetadata),
+                httpClient: {
+                    fetch: globalThis.fetch.bind(globalThis),
+                    Request: globalThis.Request,
                 },
-                logger
-            ),
-            config,
-        });
+            },
+            logger
+        );
 
         const telemetry = AtlasTelemetry.create({
             logger,
             deviceId,
-            apiClient: session.apiClient,
-            keychain: session.keychain,
+            apiClient,
+            keychain,
             enabled: false,
             serverMetadata: testServerMetadata,
         });
 
-        debugResource = new DebugResource(session, telemetry);
+        services = {
+            config,
+            logger,
+            keychain,
+            connectionRegistry: registry,
+        };
+        debugResource = new DebugResource(services, telemetry);
     }
 
     beforeEach(() => {

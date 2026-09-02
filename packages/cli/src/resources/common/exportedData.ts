@@ -1,18 +1,28 @@
 import { ResourceTemplate } from "@modelcontextprotocol/server";
 import type { CompleteResourceTemplateCallback, ListResourcesCallback, ReadResourceTemplateCallback } from "@modelcontextprotocol/server";
 import { LogId } from "@mongodb-js/mcp-core";
-import type { CliServer, McpSession } from "@mongodb-js/mcp-cli";
+import type { CliServer, ResourceServices } from "@mongodb-js/mcp-cli";
+import type { ICompositeLogger } from "@mongodb-js/mcp-types";
+import type { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
+
+export type ExportedDataServices = ResourceServices & {
+    exportsManager: ExportsManager;
+};
 
 export class ExportedData {
     private readonly name = "exported-data";
-    private readonly description = "Data files exported in the current session.";
+    private readonly description = "Data files exported through the export tool.";
     private readonly uri = "exported-data://{exportName}";
     private server?: CliServer;
-    private readonly session: McpSession;
+    private readonly logger: ICompositeLogger;
+    private readonly exportsManager: ExportsManager;
+    private readonly keychain: ResourceServices["keychain"];
 
-    constructor(session: McpSession) {
-        this.session = session;
+    constructor(services: ExportedDataServices) {
+        this.logger = services.logger;
+        this.exportsManager = services.exportsManager;
+        this.keychain = services.keychain;
     }
 
     public register(server: CliServer): void {
@@ -35,11 +45,11 @@ export class ExportedData {
             { description: this.description },
             this.readResourceCallback
         );
-        this.session.exportsManager.on("export-available", (uri: string): void => {
+        this.exportsManager.on("export-available", (uri: string): void => {
             server.sendResourceListChanged();
             server.sendResourceUpdated(uri);
         });
-        this.session.exportsManager.on("export-expired", (): void => {
+        this.exportsManager.on("export-expired", (): void => {
             server.sendResourceListChanged();
         });
     }
@@ -47,7 +57,7 @@ export class ExportedData {
     private listResourcesCallback: ListResourcesCallback = () => {
         try {
             return {
-                resources: this.session.exportsManager.availableExports.map(
+                resources: this.exportsManager.availableExports.map(
                     ({ exportName, exportTitle, exportURI }) => ({
                         name: exportName,
                         description: exportTitle,
@@ -57,7 +67,7 @@ export class ExportedData {
                 ),
             };
         } catch (error) {
-            this.session.logger.error({
+            this.logger.error({
                 id: LogId.exportedDataListError,
                 context: "Error when listing exported data resources",
                 message: error instanceof Error ? error.message : String(error),
@@ -70,7 +80,7 @@ export class ExportedData {
 
     private autoCompleteExportName: CompleteResourceTemplateCallback = (value) => {
         try {
-            return this.session.exportsManager.availableExports
+            return this.exportsManager.availableExports
                 .filter(({ exportName, exportTitle }) => {
                     const lcExportName = exportName.toLowerCase();
                     const lcExportTitle = exportTitle.toLowerCase();
@@ -79,7 +89,7 @@ export class ExportedData {
                 })
                 .map(({ exportName }) => exportName);
         } catch (error) {
-            this.session.logger.error({
+            this.logger.error({
                 id: LogId.exportedDataAutoCompleteError,
                 context: "Error when autocompleting exported data",
                 message: error instanceof Error ? error.message : String(error),
@@ -94,7 +104,7 @@ export class ExportedData {
                 throw new Error("Cannot retrieve exported data, exportName not provided.");
             }
 
-            const { content, docsTransformed } = await this.session.exportsManager.readExport(exportName);
+            const { content, docsTransformed } = await this.exportsManager.readExport(exportName);
 
             const text = formatUntrustedData(`The exported data contains ${docsTransformed} documents.`, content)
                 .map((t) => t.text)

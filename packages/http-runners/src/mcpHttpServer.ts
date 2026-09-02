@@ -1,9 +1,5 @@
 import { createMcpHandler } from "@modelcontextprotocol/server";
-import type {
-    McpHttpHandler,
-    McpRequestContext,
-    McpServer,
-} from "@modelcontextprotocol/server";
+import type { McpHttpHandler, McpRequestContext, McpServer } from "@modelcontextprotocol/server";
 import { toNodeHandler } from "@modelcontextprotocol/node";
 import express from "express";
 import type {
@@ -14,7 +10,12 @@ import type {
     HttpServerOptions,
     ServerLike,
 } from "@mongodb-js/mcp-types";
-import { LogId, JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED, UserFacingError, requestIdAttr } from "@mongodb-js/mcp-core";
+import {
+    LogId,
+    JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
+    UserFacingError,
+    requestIdAttr,
+} from "@mongodb-js/mcp-core";
 import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
 
 /**

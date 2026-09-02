@@ -15,7 +15,7 @@ describeWithAtlas("shared-tier-alerts-hook integration", (integration) => {
                     clusterName: "integration-test-cluster",
                     instanceType: "FREE",
                     apiClient,
-                    logger: server.session.logger,
+                    logger: server.logger,
                 })
             ).resolves.toBeDefined();
 

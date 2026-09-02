@@ -253,7 +253,7 @@ export function validateAutoConnectBehavior(
 
         afterEach(async () => {
             const store = integration.connectionStore();
-            const registry = integration.mcpServer().session.connectionRegistry;
+            const registry = integration.mcpServer().connectionRegistry;
             if (await registry.peek(PRECONFIGURED_CONNECTION_ID)) {
                 await registry.disconnect(PRECONFIGURED_CONNECTION_ID);
                 // Directly reach into the store: tests seed/remove the preconfigured

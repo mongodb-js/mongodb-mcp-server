@@ -8,6 +8,7 @@ import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import type { AtlasToolServer } from "../../atlasTool.js";
+import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
 
 const orgId = "507f1f77bcf86cd799439011";
 
@@ -68,8 +69,11 @@ describe("ListProjectsTool", () => {
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown> = {}) =>
         tool["execute"]({ limit: 10, pageNum: 1, includeCount: false, ...args } as never, {
-            signal: new AbortController().signal,
-        });
+            request: {
+                config: (tool as unknown as { server: AtlasToolServer }).server.config,
+                signal: new AbortController().signal,
+            },
+            } as unknown as ToolExecutionContext);
 
     it("returns projects when orgId filter is provided", async () => {
         mockApiClient.getOrgGroups!.mockResolvedValue({ results: [projectApiResponse], totalCount: 1 });

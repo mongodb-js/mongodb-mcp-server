@@ -1,6 +1,5 @@
 import { MCPConnectionStore, ExportsManager, DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
-import { Session } from "@mongodb-js/mcp-cli";
 import { createTestApiClient, defaultTestConfig, expectDefined, InMemoryLogger } from "./integrationHelpers.js";
 import { describeWithMongoDB } from "./mongodbHelpers.js";
 import { afterEach, describe, expect, it } from "vitest";
@@ -178,28 +177,20 @@ describe("CliServer integration test", () => {
         const deviceId = DeviceId.create(logger);
         const connectionRegistry = new MCPConnectionStore({ options: config, logger, deviceId }).view();
         const exportsManager = ExportsManager.init({ options: config, logger });
-        const session = new Session({
+        const keychain = Keychain.root;
+        const apiClient = createTestApiClient({
+            baseUrl: config.apiBaseUrl,
+            serverMetadata: { mcpServerName: "test", version: "1" },
             logger,
-            exportsManager,
-            connectionRegistry,
-            keychain: Keychain.root,
-            connectionErrorHandler,
-            atlasLocalClient: await createAtlasLocalClient({ logger }),
-            apiClient: createTestApiClient({
-                baseUrl: config.apiBaseUrl,
-                serverMetadata: { mcpServerName: "test", version: "1" },
-                logger,
-                clientId: config.apiClientId,
-                clientSecret: config.apiClientSecret,
-            }),
-            config,
+            clientId: config.apiClientId,
+            clientSecret: config.apiClientSecret,
         });
 
         const telemetry = AtlasTelemetry.create({
             logger,
             deviceId,
-            apiClient: session.apiClient,
-            keychain: session.keychain,
+            apiClient,
+            keychain,
             enabled: false,
             serverMetadata: {
                 mcpServerName: "test-server",
@@ -213,11 +204,17 @@ describe("CliServer integration test", () => {
         });
 
         const server = new CliServer({
-            session,
+            config,
+            logger,
+            keychain,
+            connectionRegistry,
+            exportsManager,
+            apiClient,
+            connectionErrorHandler,
+            atlasLocalClient: await createAtlasLocalClient({ logger }),
             telemetry,
             mcpServer: mcpServerInstance,
             elicitation,
-            connectionErrorHandler,
             tools: [...tools],
             metrics: new MockMetrics(),
             serverMetadata: {

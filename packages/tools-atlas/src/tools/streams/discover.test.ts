@@ -9,6 +9,7 @@ import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 import type { AtlasToolServer } from "../../atlasTool.js";
+import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
 
 describe("StreamsDiscoverTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
@@ -67,7 +68,12 @@ describe("StreamsDiscoverTool", () => {
     const baseArgs = { projectId: "proj1" };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["execute"](args as never, { signal: new AbortController().signal });
+        tool["execute"](args as never, {
+            request: {
+                config: (tool as unknown as { server: AtlasToolServer }).server.config,
+                signal: new AbortController().signal,
+            },
+        } as unknown as ToolExecutionContext);
 
     describe("list-workspaces", () => {
         it("should return workspace list when workspaces exist", async () => {

@@ -1,6 +1,7 @@
 import { ReactiveResource } from "@mongodb-js/mcp-core";
 import type { ITelemetry } from "@mongodb-js/mcp-types";
-import type { UserConfig, McpSession, CliServer } from "@mongodb-js/mcp-cli";
+import type { UserConfig, CliServer, ResourceServices } from "@mongodb-js/mcp-cli";
+import type { ConnectionRegistry } from "@mongodb-js/mcp-tools-mongodb";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import { connectCapableTools } from "@mongodb-js/mcp-tools-mongodb";
 
@@ -17,8 +18,13 @@ function redactDriverOptions(driverOptions: Record<string, unknown>): Record<str
     return { ...rest, autoEncryption: "set; client-side field level encryption is configured" };
 }
 
-export class ConfigResource extends ReactiveResource<UserConfig, readonly [], McpSession, CliServer> {
-    constructor(session: McpSession, telemetry: ITelemetry) {
+export type ConfigResourceServices = Omit<ResourceServices, "config"> & {
+    config: UserConfig;
+    connectionRegistry: ConnectionRegistry;
+};
+
+export class ConfigResource extends ReactiveResource<UserConfig, ConfigResourceServices, CliServer> {
+    constructor(services: ConfigResourceServices, telemetry: ITelemetry) {
         super({
             resourceConfiguration: {
                 name: "config",
@@ -29,10 +35,9 @@ export class ConfigResource extends ReactiveResource<UserConfig, readonly [], Mc
                 },
             },
             options: {
-                initial: { ...session.config },
-                events: [],
+                initial: { ...services.config },
             },
-            session,
+            services,
             telemetry,
         });
     }
@@ -54,7 +59,7 @@ export class ConfigResource extends ReactiveResource<UserConfig, readonly [], Mc
 
         // Backstop: redact any remaining registered secrets (keychain) before egress, matching
         // the redaction applied on every logging path. Redact per-value so JSON stays valid.
-        return JSON.stringify(this.session.keychain.redact(result));
+        return JSON.stringify(this.keychain.redact(result));
     }
 
     /**

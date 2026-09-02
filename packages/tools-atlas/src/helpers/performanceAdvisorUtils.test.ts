@@ -9,7 +9,7 @@ import {
 } from "./performanceAdvisorUtils.js";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 
-const context = { requestInfo: { headers: { "x-request-id": "req-pa-1" } } };
+const context = { headers: { "x-request-id": "req-pa-1" } };
 
 function makeApiClient(overrides: Partial<Record<string, ReturnType<typeof vi.fn>>>): ApiClient & {
     logger: { debug: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn> };

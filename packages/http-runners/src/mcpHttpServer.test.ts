@@ -113,11 +113,7 @@ describe("MCPHttpServer stateless serving", () => {
         await server.start();
     }
 
-    async function post(
-        path: string,
-        body: string,
-        headers: Record<string, string> = {}
-    ): Promise<Response> {
+    async function post(path: string, body: string, headers: Record<string, string> = {}): Promise<Response> {
         return fetch(`${server.serverAddress}${path}`, {
             method: "POST",
             headers: { "content-type": "application/json", "mcp-method": "tools/list", ...headers },

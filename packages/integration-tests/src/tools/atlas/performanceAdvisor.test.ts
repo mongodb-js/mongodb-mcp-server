@@ -29,7 +29,7 @@ describeWithAtlas("performanceAdvisor", (integration) => {
         afterAll(async () => {
             const projectId = getProjectId();
             if (projectId) {
-                const session = integration.mcpServer().session;
+                const session = integration.mcpServer();
                 await deleteCluster(session, projectId, clusterName);
             }
         }, DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS);
@@ -37,7 +37,7 @@ describeWithAtlas("performanceAdvisor", (integration) => {
         describe("atlas-get-performance-advisor", () => {
             beforeAll(async () => {
                 const projectId = getProjectId();
-                const session = integration.mcpServer().session;
+                const session = integration.mcpServer();
                 assertApiClientIsAvailable(session);
                 await session.apiClient.createCluster({
                     params: {
@@ -104,7 +104,7 @@ describeWithAtlas("performanceAdvisor", (integration) => {
 
             it("returns performance advisor data from a paid tier cluster", async () => {
                 const projectId = getProjectId();
-                const session = integration.mcpServer().session;
+                const session = integration.mcpServer();
                 assertApiClientIsAvailable(session);
                 await session.apiClient.getCluster({
                     params: {
@@ -172,7 +172,7 @@ describe("mocked atlas-get-performance-advisor", () => {
 
         projectId = new ObjectId().toString();
 
-        const session = integration.mcpServer().session;
+        const session = integration.mcpServer();
 
         // Mock the API client methods since we can't guarantee performance advisor data
         mockSuggestedIndexes = vi.fn().mockResolvedValue({

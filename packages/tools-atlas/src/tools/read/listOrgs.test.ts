@@ -8,6 +8,7 @@ import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import type { AtlasToolServer } from "../../atlasTool.js";
+import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
 
 describe("ListOrganizationsTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
@@ -53,8 +54,11 @@ describe("ListOrganizationsTool", () => {
         tool["execute"](
             { limit: 10, pageNum: 1, includeCount: false, ...args },
             {
-                signal: new AbortController().signal,
-            }
+                request: {
+                    config: (tool as unknown as { server: AtlasToolServer }).server.config,
+                    signal: new AbortController().signal,
+                },
+                } as unknown as ToolExecutionContext
         );
 
     it("returns organizations when they exist", async () => {

@@ -35,8 +35,11 @@ function makeTool(config: Partial<IMongoDBConfig>): (...values: unknown[]) => vo
         uiRegistry: { get: vi.fn().mockResolvedValue(null) } as never,
     };
 
-    const tool = new FindTool(server) as unknown as { assertMqlIsAllowed: (...values: unknown[]) => void };
-    return (...values: unknown[]) => tool.assertMqlIsAllowed(...values);
+    const tool = new FindTool(server) as unknown as {
+        assertMqlIsAllowed: (config: IMongoDBConfig, ...values: unknown[]) => void;
+    };
+    const toolConfig = server.config as IMongoDBConfig;
+    return (...values: unknown[]) => tool.assertMqlIsAllowed(toolConfig, ...values);
 }
 
 const jsProjection = { computed: { $function: { body: "function() { return 1; }", args: [], lang: "js" } } };

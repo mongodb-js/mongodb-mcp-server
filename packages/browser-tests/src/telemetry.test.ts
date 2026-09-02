@@ -7,8 +7,6 @@ import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 
 type MockTelemetrySession = {
     apiClient: ApiClient;
-    sessionId: string;
-    mcpClient: { name: string; version: string };
     logger: CompositeLogger;
     keychain: Keychain;
 };
@@ -38,8 +36,6 @@ describe("Telemetry in browser environment", () => {
     function createMockSession(apiClient: ApiClient): MockTelemetrySession {
         return {
             apiClient,
-            sessionId: "browser-session-id",
-            mcpClient: { name: "browser-test-client", version: "1.0.0" },
             logger: new CompositeLogger(),
             keychain: new Keychain(),
         };

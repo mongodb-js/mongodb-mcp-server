@@ -1,6 +1,5 @@
 import { ToolBase } from "@mongodb-js/mcp-core";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
-import type { TelemetryToolMetadata, IToolConfig, ToolCategory, ISession } from "@mongodb-js/mcp-types";
+import type { TelemetryToolMetadata, IToolConfig, ToolCategory, ToolServices, ToolServer } from "@mongodb-js/mcp-types";
 import { getSharedProxyFetch } from "@mongodb-js/mcp-fetch";
 
 export const DEFAULT_ASSISTANT_BASE_URL = "https://knowledge.mongodb.com/api/v1/";
@@ -10,23 +9,23 @@ export interface IAssistantConfig extends IToolConfig {
     serverVersion?: string;
 }
 
-export interface IAssistantSession extends ISession {
-    config: IAssistantConfig;
-}
+export type AssistantToolServices = ToolServices<IAssistantConfig>;
 
-export abstract class AssistantToolBase extends ToolBase<IAssistantSession> {
+export type AssistantToolServer = ToolServer<AssistantToolServices>;
+
+export abstract class AssistantToolBase extends ToolBase<AssistantToolServer> {
     static category: ToolCategory = "assistant";
 
     protected baseUrl: URL;
     protected requiredHeaders: Headers;
 
-    constructor(params: ToolConstructorParams<IAssistantSession>) {
-        super(params);
-        this.baseUrl = new URL(params.session.config.assistantBaseUrl ?? DEFAULT_ASSISTANT_BASE_URL);
+    constructor(server: AssistantToolServer) {
+        super(server);
+        this.baseUrl = new URL(server.config.assistantBaseUrl ?? DEFAULT_ASSISTANT_BASE_URL);
         this.requiredHeaders = new Headers({
             "x-request-origin": "mongodb-mcp-server",
-            "user-agent": params.session.config.serverVersion
-                ? `mongodb-mcp-server/v${params.session.config.serverVersion}`
+            "user-agent": server.config.serverVersion
+                ? `mongodb-mcp-server/v${server.config.serverVersion}`
                 : "mongodb-mcp-server",
         });
     }

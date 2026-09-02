@@ -8,7 +8,6 @@
 import { readFileSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import {
     ATLAS_CREATE_CLUSTER_README_DESCRIPTION,
     ATLAS_PAUSE_RESUME_CLUSTER_README_DESCRIPTION,
@@ -17,7 +16,7 @@ import { AllTools } from "mongodb-mcp-server";
 import { UIRegistry } from "@mongodb-js/mcp-ui/registry";
 import { UserConfigSchema } from "mongodb-mcp-server";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
-import type { DefaultMetricDefinitions, ISession, IToolConfig } from "@mongodb-js/mcp-types";
+import type { DefaultMetricDefinitions, IToolConfig, ToolServices, ToolServer } from "@mongodb-js/mcp-types";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -41,19 +40,14 @@ function extractToolInformation(): ToolInfo[] {
     const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
     for (const ToolClass of AllTools) {
-        // Create a minimal instance to access instance properties
-        // We need to provide dummy params since we only need name and description
-        const dummyParams: ToolConstructorParams<ISession<IToolConfig>, DefaultMetricDefinitions> = {
-            name: ToolClass.toolName,
-            category: ToolClass.category,
-            operationType: ToolClass.operationType,
-            session: {
-                on: () => {},
-                off: () => {},
-                emit: () => false,
-                connectionManager: null,
-                config: UserConfigSchema.parse({}),
-            } as never,
+        // Create a minimal instance to access instance properties.
+        // Tool constructors now receive a single `ToolServer` argument (name,
+        // category and operationType are read from the class statics), so only
+        // the services surface needs to be stubbed to instantiate.
+        const dummyServer: ToolServer<ToolServices<IToolConfig>, DefaultMetricDefinitions> = {
+            config: UserConfigSchema.parse({}),
+            logger: undefined as never,
+            keychain: undefined as never,
             telemetry: {
                 emitEvents: () => {},
             } as never,
@@ -73,7 +67,7 @@ function extractToolInformation(): ToolInfo[] {
         };
 
         try {
-            const instance = new ToolClass(dummyParams);
+            const instance = new ToolClass(dummyServer);
 
             const description = instance.description || "No description available";
             tools.push({

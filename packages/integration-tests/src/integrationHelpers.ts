@@ -19,7 +19,6 @@ import type { AnyToolClass, LoggerBase } from "@mongodb-js/mcp-core";
 import type { AnyResourceClass, OperationType, ServerMetadata } from "@mongodb-js/mcp-types";
 import { ApiClient, type HttpClient, userAgentFromServerMetadata } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics, sleep } from "@mongodb-js/mcp-test-utils";
-import { ServerServices, type McpSession } from "@mongodb-js/mcp-cli";
 export { sleep };
 import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 export const defaultTestConfig: UserConfig = {
@@ -82,7 +81,6 @@ type ToolInfo = Awaited<ReturnType<Client["listTools"]>>["tools"][number];
 export interface IntegrationTest {
     mcpClient: () => Client;
     mcpServer: () => CliServer & {
-        session: McpSession;
         userConfig: UserConfig;
         getApiClient: () => ApiClient;
     };
@@ -95,15 +93,16 @@ export const DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS = 1_200_000;
 /** Max time to wait for a resource-updated notification in tests. */
 const RESOURCE_CHANGED_NOTIFICATION_TIMEOUT_MS = 30_000;
 
-/** MongoDB tools hold a shallow config snapshot from registration; merge live session config into each tool. */
-export function syncMongoToolsConfigFromUserConfig(mcpServer: CliServer): void {
-    const { session } = mcpServer;
-    for (const tool of mcpServer.tools) {
-        if (tool.category === "mongodb") {
-            Object.assign((tool as unknown as { session: McpSession }).session.config, session.config);
-        }
-    }
-}
+/**
+ * No-op kept for call-site compatibility.
+ *
+ * The request-centric design delivers config to tools through
+ * `ToolExecutionContext.request.config`, which is built from the server's
+ * effective config for every call. Tests that mutate `mcpServer().config`
+ * (e.g. readOnly / disabledTools) see those mutations on the next tool call
+ * automatically, so no per-tool config syncing is needed.
+ */
+export function syncMongoToolsConfigFromUserConfig(_mcpServer: CliServer): void {}
 
 export function setupIntegrationTest(
     getUserConfig: () => UserConfig,
@@ -169,33 +168,25 @@ export function setupIntegrationTest(
         connectionStore = new MCPConnectionStore({ options: userConfig, logger, deviceId });
         const connectionRegistry = connectionStore.view();
 
-        const serverServices = new ServerServices({
+        const keychain = new Keychain();
+
+        const apiClient = createTestApiClient({
+            baseUrl: userConfig.apiBaseUrl,
+            serverMetadata: { mcpServerName: "mongodb-mcp-test", version: "1" },
             logger,
-            exportsManager,
-            connectionRegistry,
-            keychain: new Keychain(),
-            connectionErrorHandler,
-            atlasLocalClient: await createAtlasLocalClient({ logger }),
-            apiClient: createTestApiClient({
-                baseUrl: userConfig.apiBaseUrl,
-                serverMetadata: { mcpServerName: "mongodb-mcp-test", version: "1" },
-                logger,
-                clientId: userConfig.apiClientId,
-                clientSecret: userConfig.apiClientSecret,
-            }),
-            config: userConfig,
+            clientId: userConfig.apiClientId,
+            clientSecret: userConfig.apiClientSecret,
         });
-        const session = serverServices;
 
         // Mock hasValidAccessToken for tests
         if (!userConfig.apiClientId && !userConfig.apiClientSecret) {
             const mockFn = vi.fn().mockResolvedValue(undefined);
             const mockCloseFn = vi.fn().mockResolvedValue(undefined);
-            Object.defineProperty(session, "apiClient", {
-                value: {
-                    validateAuthConfig: mockFn,
-                    close: mockCloseFn,
-                },
+            Object.defineProperty(apiClient, "validateAuthConfig", {
+                value: mockFn,
+            });
+            Object.defineProperty(apiClient, "close", {
+                value: mockCloseFn,
             });
         }
 
@@ -204,8 +195,8 @@ export function setupIntegrationTest(
         const telemetry = AtlasTelemetry.create({
             logger,
             deviceId,
-            apiClient: session.apiClient,
-            keychain: session.keychain,
+            apiClient,
+            keychain,
             enabled: false,
             serverMetadata: packageInfo,
         });
@@ -232,11 +223,17 @@ export function setupIntegrationTest(
         } = serverOptions ?? {};
 
         mcpServer = new CliServer({
-            session,
+            config: userConfig,
+            logger,
+            keychain,
+            connectionRegistry,
+            exportsManager,
+            apiClient,
+            connectionErrorHandler,
+            atlasLocalClient: await createAtlasLocalClient({ logger }),
             telemetry,
             mcpServer: mcpServerInstance,
             elicitation,
-            connectionErrorHandler,
             uiRegistry,
             metrics: new MockMetrics(),
             serverMetadata: {
@@ -260,8 +257,8 @@ export function setupIntegrationTest(
             // Disconnect every connection between tests. Explicit entries are
             // revoked; the preconfigured entry (if any) survives disconnected
             // and re-dials on next use.
-            for (const entry of await mcpServer.session.connectionRegistry.find(() => true)) {
-                await mcpServer.session.connectionRegistry.disconnect(entry.connectionId);
+            for (const entry of await mcpServer.connectionRegistry.find(() => true)) {
+                await mcpServer.connectionRegistry.disconnect(entry.connectionId);
             }
         }
 
@@ -289,7 +286,6 @@ export function setupIntegrationTest(
     };
 
     const getMcpServer = (): CliServer & {
-        session: McpSession;
         userConfig: UserConfig;
         getApiClient: () => ApiClient;
     } => {
@@ -297,18 +293,15 @@ export function setupIntegrationTest(
             throw new Error("beforeEach() hook not ran yet");
         }
 
-        return Object.assign(
-            mcpServer as CliServer & { session: McpSession; userConfig: UserConfig; getApiClient: () => ApiClient },
-            {
-                userConfig: mcpServer.session.config,
-                getApiClient: (): ApiClient => {
-                    if (!mcpServer?.session.apiClient) {
-                        throw new Error("apiClient not available");
-                    }
-                    return mcpServer.session.apiClient as unknown as ApiClient;
-                },
-            }
-        );
+        return Object.assign(mcpServer, {
+            userConfig: mcpServer.config,
+            getApiClient: (): ApiClient => {
+                if (!mcpServer?.apiClient) {
+                    throw new Error("apiClient not available");
+                }
+                return mcpServer.apiClient as unknown as ApiClient;
+            },
+        });
     };
 
     const getConnectionStore = (): MCPConnectionStore => {

@@ -19,7 +19,7 @@ import { OIDCMockProvider } from "@mongodb-js/oidc-mock-provider";
  * the one under test.
  */
 async function connectionEntry(integration: MongoDBIntegrationTestCase): Promise<ConnectionEntry> {
-    const entry = (await integration.mcpServer().session.connectionRegistry.find(() => true))[0];
+    const entry = (await integration.mcpServer().connectionRegistry.find(() => true))[0];
     if (!entry) {
         throw new Error("Expected the OIDC test connection to be registered");
     }

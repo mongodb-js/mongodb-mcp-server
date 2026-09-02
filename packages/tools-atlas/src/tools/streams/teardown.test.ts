@@ -10,6 +10,7 @@ import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 import type { AtlasToolServer } from "../../atlasTool.js";
+import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
 
 describe("StreamsTeardownTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
@@ -71,7 +72,12 @@ describe("StreamsTeardownTool", () => {
     const baseArgs = { projectId: "proj1" };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["execute"](args as never, { signal: new AbortController().signal });
+        tool["execute"](args as never, {
+            request: {
+                config: (tool as unknown as { server: AtlasToolServer }).server.config,
+                signal: new AbortController().signal,
+            },
+        } as unknown as ToolExecutionContext);
     const confirmMsg = (args: Record<string, unknown>): string => tool["getConfirmationMessage"](args as never);
 
     describe("error classification boundary", () => {
@@ -151,7 +157,13 @@ describe("StreamsTeardownTool", () => {
 
             await tool["execute"](
                 { ...baseArgs, resource: "processor", workspaceName: "ws1", resourceName: "proc1" } as never,
-                { signal: new AbortController().signal, requestInfo: { headers: { "x-request-id": "req-del-1" } } }
+                {
+                    request: {
+                        config: (tool as unknown as { server: AtlasToolServer }).server.config,
+                        signal: new AbortController().signal,
+                        headers: { "x-request-id": "req-del-1" },
+                    },
+                } as unknown as ToolExecutionContext
             );
 
             expect(mockLogger.debug).toHaveBeenCalledWith(

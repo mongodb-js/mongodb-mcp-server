@@ -195,7 +195,7 @@ describeWithMongoDB("Connection Manager", (integration) => {
 
     describe("when disconnected", () => {
         it("should be marked explicitly as disconnected", async () => {
-            const entry = await integration.mcpServer().session.connectionRegistry.createEntry({
+            const entry = await integration.mcpServer().connectionRegistry.createEntry({
                 name: "disconnected-test",
             });
             expect(entry.state.tag).toEqual("disconnected");
@@ -216,7 +216,7 @@ describeWithMongoDB(
             listDatabasesSpy: MockInstance;
             connectionState: ConnectionStateConnected;
         }> {
-            const session = integration.mcpServer().session;
+            const session = integration.mcpServer();
             const entry = await session.connectionRegistry.connect({
                 settings: { connectionString },
             });
@@ -262,7 +262,7 @@ describeWithMongoDB(
 
                 const { getSearchIndexesSpy, connectionState } = await connectAndSpy(restrictedConnectionString);
 
-                const result = await connectionState.isSearchSupported(integration.mcpServer().session.logger);
+                const result = await connectionState.isSearchSupported(integration.mcpServer().logger);
                 expect(result).toBe(false);
 
                 expect(getSearchIndexesSpy).toHaveBeenCalledTimes(1);
@@ -282,7 +282,7 @@ describeWithMongoDB(
                 const { getSearchIndexesSpy, listDatabasesSpy, connectionState } =
                     await connectAndSpy(restrictedConnectionString);
 
-                const result = await connectionState.isSearchSupported(integration.mcpServer().session.logger);
+                const result = await connectionState.isSearchSupported(integration.mcpServer().logger);
                 expect(result).toBe(true);
 
                 expect(listDatabasesSpy).toHaveBeenCalledTimes(1);
@@ -311,7 +311,7 @@ describeWithMongoDB(
                     databases: [{ name: "admin" }, { name: "config" }, { name: "local" }],
                 });
 
-                const result = await connectionState.isSearchSupported(integration.mcpServer().session.logger);
+                const result = await connectionState.isSearchSupported(integration.mcpServer().logger);
 
                 // False because when probing #mongodb-mcp, it will fail with SearchNotEnabled
                 // because the instance we're connected to is not search-capable.
@@ -353,7 +353,7 @@ describeWithMongoDB(
                     })
                 );
 
-                const result = await connectionState.isSearchSupported(integration.mcpServer().session.logger);
+                const result = await connectionState.isSearchSupported(integration.mcpServer().logger);
                 expect(result).toBe(true);
 
                 const probed = getSearchIndexesSpy.mock.calls.map((call) => call[0] as string);
@@ -382,7 +382,7 @@ describeWithMongoDB(
 
                 listDatabasesSpy.mockRejectedValueOnce(new Error("simulated failure"));
 
-                const result = await connectionState.isSearchSupported(integration.mcpServer().session.logger);
+                const result = await connectionState.isSearchSupported(integration.mcpServer().logger);
                 // False because when probing #mongodb-mcp, it will fail with SearchNotEnabled
                 // because the instance we're connected to is not search-capable.
                 expect(result).toBe(false);
@@ -404,7 +404,7 @@ describeWithMongoDB(
                 const { getSearchIndexesSpy, listDatabasesSpy, connectionState } =
                     await connectAndSpy(rootConnectionString);
 
-                const logger = integration.mcpServer().session.logger;
+                const logger = integration.mcpServer().logger;
                 const first = await connectionState.isSearchSupported(logger);
                 const second = await connectionState.isSearchSupported(logger);
                 const third = await connectionState.isSearchSupported(logger);
@@ -451,7 +451,7 @@ describeWithMongoDB(
         });
 
         it("returns true when Atlas Local Search is enabled", async () => {
-            const session = integration.mcpServer().session;
+            const session = integration.mcpServer();
             const entry = await session.connectionRegistry.connect({
                 settings: { connectionString: integration.connectionString() },
             });
@@ -461,7 +461,7 @@ describeWithMongoDB(
                 throw new Error(`Expected state 'connected', got '${state.tag}'`);
             }
 
-            const result = await state.isSearchSupported(integration.mcpServer().session.logger);
+            const result = await state.isSearchSupported(integration.mcpServer().logger);
             expect(result).toBe(true);
         });
     },

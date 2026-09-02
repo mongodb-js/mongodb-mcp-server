@@ -39,7 +39,7 @@ export class ListKnowledgeSourcesTool extends AssistantToolBase {
         });
         if (!response.ok) {
             const message = `Failed to list knowledge sources: ${response.statusText}`;
-            this.session.logger.debug({
+            this.server.logger.debug({
                 id: LogId.assistantListKnowledgeSourcesError,
                 context: "assistant-list-knowledge-sources",
                 message,

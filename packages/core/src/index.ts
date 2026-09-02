@@ -16,7 +16,7 @@ export {
     toToolExecutionContext,
     type ToolClass,
     type AnyToolClass,
-    type ToolConstructorParams,
+    type ToolServerParam,
     type AnyToolBase,
     type ToolArgs,
     type ToolResult,

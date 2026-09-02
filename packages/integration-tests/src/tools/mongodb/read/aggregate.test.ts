@@ -480,7 +480,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
                 .insertMany([{ name: "Alice" }, { name: "Bob" }]);
 
             const connectionId = await connect(integration.mcpClient(), integration.connectionString());
-            const entry = await integration.mcpServer().session.connectionRegistry.peek(connectionId);
+            const entry = await integration.mcpServer().connectionRegistry.peek(connectionId);
             expectDefined(entry);
 
             vi.spyOn(ConnectionEntry.prototype, "isSearchSupported").mockResolvedValue(true);
@@ -510,7 +510,7 @@ describeWithMongoDB("aggregate tool", (integration) => {
 
         it("should skip pre-filter validation and let the server decide for $vectorSearch aggregations", async () => {
             const connectionId = await connect(integration.mcpClient(), integration.connectionString());
-            const entry = await integration.mcpServer().session.connectionRegistry.peek(connectionId);
+            const entry = await integration.mcpServer().connectionRegistry.peek(connectionId);
             expectDefined(entry);
 
             vi.spyOn(ConnectionEntry.prototype, "isSearchSupported").mockResolvedValue(true);

@@ -66,7 +66,7 @@ export class SearchKnowledgeTool extends AssistantToolBase {
         });
         if (!response.ok) {
             const message = `Failed to search knowledge base: ${response.statusText}`;
-            this.session.logger.debug({
+            this.server.logger.debug({
                 id: LogId.assistantSearchKnowledgeError,
                 context: "assistant-search-knowledge",
                 message,

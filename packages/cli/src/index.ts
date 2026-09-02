@@ -1,6 +1,7 @@
 // CLI server class and types
 export { CliServer } from "./cliServer.js";
-export type { CliServerOptions, ToolRegistry, ResourceRegistry, McpSession } from "./cliServer.js";
+export type { CliServerOptions, ToolRegistry, ResourceRegistry } from "./cliServer.js";
+export type { ResourceServices } from "./resources/resourceServices.js";
 // Main CLI exports
 export { runMcpCli, type RunMcpCliOptions } from "./runMcpCli.js";
 export { startRunner, type StartRunnerOptions } from "./startRunner.js";
@@ -31,9 +32,6 @@ export {
 } from "./createMonitoringServerFromConfig.js";
 
 export type { CliHandler, CliHandlerContext } from "./cliHandler.js";
-
-export { ServerServices } from "./serverServices.js";
-export type { ServerServicesOptions } from "./serverServices.js";
 
 // Config parsing and types
 export { parseUserConfig, type ParserOptions, defaultParserOptions } from "./config/parseUserConfig.js";

@@ -31,5 +31,3 @@ export const TRANSPORT_PAYLOAD_LIMITS: Record<TransportType, number> = {
     /** Enforced limit for HTTP transport configured in Express middleware) */
     http: 100 * 1024,
 } as const;
-
-

@@ -63,7 +63,6 @@ describe("AtlasTelemetry", () => {
     let keychain: Keychain;
     let telemetry: AtlasTelemetry;
     let mockDeviceId: IDeviceId;
-    const sessionId = "test-session-id";
     const mcpClient = { name: "test-agent", version: "1.0.0" };
 
     type TestAtlasTelemetryOptions = {
@@ -84,7 +83,6 @@ describe("AtlasTelemetry", () => {
                 transport: "stdio",
                 mcp_client_version: mcpClient.version,
                 mcp_client_name: mcpClient.name,
-                session_id: sessionId,
                 config_atlas_auth: mockApiClient.isAuthConfigured() ? "true" : "false",
                 config_connection_string: "false",
                 ...this.commonPropertiesOverride?.(),
@@ -310,7 +308,6 @@ describe("AtlasTelemetry", () => {
             expect(commonProps).toMatchObject({
                 mcp_client_version: "1.0.0",
                 mcp_client_name: "test-agent",
-                session_id: "test-session-id",
                 config_atlas_auth: "true",
                 device_id: "test-device-id",
             });
@@ -544,7 +541,6 @@ describe("AtlasTelemetry", () => {
 
             it("should redact sensitive data from CommonProperties", async () => {
                 keychain.register("test-device-id", "password");
-                keychain.register(sessionId, "password");
 
                 await telemetry.setupPromise;
                 await emitEventsForTest([createTestEvent()]);
@@ -556,12 +552,10 @@ describe("AtlasTelemetry", () => {
                 expectDefined(sentEvent);
 
                 expect(sentEvent.properties.device_id).toBe("<password>");
-                expect(sentEvent.properties.session_id).toBe("<password>");
             });
 
             it("should redact sensitive data that is added to events", async () => {
                 keychain.register("test-device-id", "password");
-                keychain.register(sessionId, "password");
                 keychain.register("test-component", "password");
 
                 await telemetry.setupPromise;
@@ -574,7 +568,6 @@ describe("AtlasTelemetry", () => {
                 expectDefined(sentEvent);
 
                 expect(sentEvent.properties.device_id).toBe("<password>");
-                expect(sentEvent.properties.session_id).toBe("<password>");
                 expect(sentEvent.properties.component).toBe("<password>");
             });
         });

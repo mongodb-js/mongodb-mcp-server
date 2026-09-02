@@ -43,7 +43,7 @@ describeWithAtlasLocal("atlas-local-list-deployments", (integration) => {
     });
 
     it("should return structuredContent for mocked listDeployments", async () => {
-        const client = integration.mcpServer().session.atlasLocalClient;
+        const client = integration.mcpServer().atlasLocalClient;
         expectDefined(client);
 
         const spy = vi.spyOn(client, "listDeployments").mockResolvedValue(SAMPLE_LIST_DEPLOYMENTS);

@@ -1,19 +1,9 @@
 import type express from "express";
 import { StreamableHttpRunner } from "@mongodb-js/mcp-http-runners";
-import {
-    SessionStore,
-    type ISessionStore,
-    type LoggerBase,
-    type AnyToolClass,
-    CompositeLogger,
-    Keychain,
-    LogId,
-} from "@mongodb-js/mcp-core";
-import type { NegotiatedClientState, SessionCloseReason } from "@mongodb-js/mcp-types";
-import type { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
+import { type LoggerBase, type AnyToolClass, CompositeLogger, Keychain, LogId } from "@mongodb-js/mcp-core";
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
-import { defaultTestConfig, InMemoryLogger, sleep } from "../integrationHelpers.js";
+import { defaultTestConfig, InMemoryLogger } from "../integrationHelpers.js";
 import {
     type UserConfig,
     type OperationType,
@@ -26,13 +16,10 @@ import {
 import { AllTools } from "mongodb-mcp-server";
 import type { CallToolResult } from "@mongodb-js/mcp-types";
 import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
-import type { IncomingMessage } from "node:http";
-import { AsyncLocalStorage } from "node:async_hooks";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 import {
     createStreamableHttpTestRunner,
     getServerAddress,
-    getSessionStore,
     TestMCPHttpServer,
 } from "../helpers/streamableHttpTestRunner.js";
 
@@ -63,12 +50,8 @@ describe("StreamableHttpRunner", () => {
     let clients: Client[] = [];
 
     const connectClient = async ({
-        sessionId = undefined,
-        shouldInitialize = true,
         additionalHeaders = {},
     }: {
-        sessionId?: string;
-        shouldInitialize?: boolean;
         additionalHeaders?: Record<string, string>;
     }): Promise<Client> => {
         const client = new Client({
@@ -76,21 +59,10 @@ describe("StreamableHttpRunner", () => {
             version: "0.0.0",
         });
 
-        const requestHeaders: Record<string, string> = {
-            ...additionalHeaders,
-        };
-        if (sessionId) {
-            requestHeaders["mcp-session-id"] = sessionId;
-        }
-
         const transport = new StreamableHTTPClientTransport(new URL(`${getServerAddress(runner)}/mcp`), {
             requestInit: {
-                headers: requestHeaders,
+                headers: additionalHeaders,
             },
-            // If `sessionId` is set, the client will skip the initialize request.
-            // If we want to ensure the initialization request is sent, we set `sessionId` to undefined,
-            // even if we have an external session ID to use.
-            sessionId: shouldInitialize ? undefined : sessionId,
         });
 
         await client.connect(transport);
@@ -283,7 +255,6 @@ describe("StreamableHttpRunner", () => {
 
     const sendHttpRequest = async (
         method: "initialize" | "tools/list",
-        sessionId?: string,
         additionalHeaders: Record<string, string> = {}
     ): Promise<Response> => {
         const headers: Record<string, string> = {
@@ -291,9 +262,6 @@ describe("StreamableHttpRunner", () => {
             accept: "application/json, text/event-stream",
             ...additionalHeaders,
         };
-        if (sessionId) {
-            headers["mcp-session-id"] = sessionId;
-        }
 
         const response = await fetch(`${getServerAddress(runner)}/mcp`, {
             method: "POST",
@@ -319,508 +287,21 @@ describe("StreamableHttpRunner", () => {
         return response;
     };
 
-    const getSessionFromStore = async (sessionId: string): Promise<NodeStreamableHTTPServerTransport | undefined> => {
-        const sessionStore = getSessionStore(runner);
-        return await sessionStore.getSession(sessionId);
-    };
-
-    describe("with maxSessions configuration", () => {
+    describe("2025-era stateless fallback", () => {
         beforeEach(async () => {
-            config.maxSessions = 2;
             runner = await createStreamableHttpRunner(config);
             await runner.start();
         });
 
-        it("allows sessions up to the configured limit", async () => {
-            await expect(connectClient({})).resolves.toBeDefined();
-            await expect(connectClient({})).resolves.toBeDefined();
-        });
-
-        it("rejects a new session once the limit is reached", async () => {
-            await connectClient({});
-            await connectClient({});
-
+        it("should serve an initialize request without a session ID", async () => {
             const response = await sendHttpRequest("initialize");
-            expect(response.status).toBe(503);
-            const body = (await response.json()) as { error?: { code: number } };
-            expect(body.error?.code).toBe(-32006); // JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED
+
+            expect(response.ok).toBe(true);
+            // Stateless serving never returns an `mcp-session-id` header.
+            expect(response.headers.get("mcp-session-id")).toBeNull();
         });
 
-        it("allows a new session once an existing one is closed", async () => {
-            // `client.close()` only tears down the client-side connection, it doesn't
-            // terminate the server-side session (see the "even after closing" test
-            // above) — so we free the slot with an explicit DELETE instead.
-            const first = await sendHttpRequest("initialize");
-            const sessionId = first.headers.get("mcp-session-id");
-            expect(sessionId).toBeTruthy();
-            await sendHttpRequest("initialize");
-
-            await fetch(`${runner["mcpHttpServer"].serverAddress}/mcp`, {
-                method: "DELETE",
-                headers: { "mcp-session-id": sessionId ?? "" },
-            });
-
-            const third = await sendHttpRequest("initialize");
-            expect(third.ok).toBe(true);
-        });
-    });
-
-    describe("with externallyManagedSessions enabled", () => {
-        beforeEach(async () => {
-            config.externallyManagedSessions = true;
-
-            runner = await createStreamableHttpRunner(config);
-            await runner.start();
-        });
-
-        for (const responseType of ["json", "sse"] as const) {
-            describe(`and httpResponseType set to ${responseType}`, () => {
-                beforeEach(async () => {
-                    config.httpResponseType = responseType;
-                    await runner?.close();
-                    runner = await createStreamableHttpRunner(config);
-                    await runner.start();
-                });
-
-                it("should create a new session with external session ID on initialize", async () => {
-                    const sessionId = "test-external-session-123";
-                    const client = await connectClient({ sessionId });
-                    const response = await client.listTools();
-
-                    expect(response).toBeDefined();
-                    expect(response.tools).toBeDefined();
-                    expect(response.tools.length).toBeGreaterThan(0);
-
-                    // Verify the session is stored with the external ID
-                    const storedSession = await getSessionFromStore(sessionId);
-                    expect(storedSession).toBeDefined();
-                });
-
-                it("should reuse existing session with the same external session ID", async () => {
-                    const sessionId = "test-external-session-456";
-
-                    // First request creates the session (raw non-initialize
-                    // request: the v2 SDK client strips a pre-set session id
-                    // on handshake requests, so external session ids are
-                    // exercised through the raw transport here).
-                    const response1 = await sendHttpRequest("tools/list", sessionId);
-                    expect(response1.ok).toBe(true);
-
-                    const session1 = await getSessionFromStore(sessionId);
-                    expect(session1).toBeDefined();
-
-                    // Second request reuses the session
-                    const response2 = await sendHttpRequest("tools/list", sessionId);
-                    expect(response2.ok).toBe(true);
-
-                    const session2 = await getSessionFromStore(sessionId);
-                    expect(session2).toBe(session1);
-                });
-
-                it("should reuse existing session with the same external session ID, even after closing", async () => {
-                    const sessionId = "test-external-session-456";
-
-                    // First client creates the session
-                    const client1 = await connectClient({ sessionId });
-                    const response1 = await client1.listTools();
-                    expect(response1.tools).toBeDefined();
-
-                    const session1 = await getSessionFromStore(sessionId);
-                    expect(session1).toBeDefined();
-
-                    // Tearing down the client must not terminate the
-                    // server-side session: `close()` only releases the
-                    // client-side connection (the SDK's `terminateSession()`
-                    // is what sends the server-side DELETE).
-                    await client1.close();
-
-                    // Second client reuses the session
-                    const client2 = await connectClient({ sessionId });
-                    const response2 = await client2.listTools();
-                    expect(response2.tools).toBeDefined();
-
-                    // Verify it's the same session - the session should persist even after the first client closes
-                    const session2 = await getSessionFromStore(sessionId);
-                    expect(session2).toBe(session1);
-                });
-
-                it("should allow multiple external sessions to coexist", async () => {
-                    const sessionId1 = "session-1";
-                    const sessionId2 = "session-2";
-                    const sessionId3 = "session-3";
-
-                    // Connect multiple clients with different session IDs and confirm
-                    // they each have their own session
-                    const client1 = await connectClient({ sessionId: sessionId1 });
-                    const client2 = await connectClient({ sessionId: sessionId2 });
-                    const client3 = await connectClient({ sessionId: sessionId3 });
-
-                    const response1 = await client1.listTools();
-                    const response2 = await client2.listTools();
-                    const response3 = await client3.listTools();
-
-                    expect(response1.tools).toBeDefined();
-                    expect(response2.tools).toBeDefined();
-                    expect(response3.tools).toBeDefined();
-
-                    const session1 = await getSessionFromStore(sessionId1);
-                    const session2 = await getSessionFromStore(sessionId2);
-                    const session3 = await getSessionFromStore(sessionId3);
-
-                    expect(session1).toBeDefined();
-                    expect(session2).toBeDefined();
-                    expect(session3).toBeDefined();
-
-                    expect(session1).not.toBe(session2);
-                    expect(session1).not.toBe(session3);
-                    expect(session2).not.toBe(session3);
-                });
-
-                it("should create session for non-initialize request with unknown session ID", async () => {
-                    const sessionId = "new-session-on-non-init";
-
-                    const response = await sendHttpRequest("tools/list", sessionId);
-                    expect(response.ok).toBe(true);
-
-                    const session = await getSessionFromStore(sessionId);
-                    expect(session).toBeDefined();
-                });
-
-                it("should create session for non-initialize request with unknown session ID through fetch", async () => {
-                    // This is the same as the previous test but using fetch directly instead of the Client/Transport
-                    const externalSessionId = "new-session-using-fetch";
-
-                    const response = await sendHttpRequest("tools/list", externalSessionId);
-                    expect(response.ok).toBe(true);
-
-                    if (responseType === "json") {
-                        const data = (await response.json()) as { result: { tools: unknown[] } | undefined };
-                        expect(data.result?.tools).toBeDefined();
-                    } else {
-                        const data = await response.text();
-                        expect(data).toContain("event: message");
-                        expect(data).toContain('data: {"result":{"tools":');
-                    }
-
-                    const session = await getSessionFromStore(externalSessionId);
-                    expect(session).toBeDefined();
-                });
-
-                it("should reject requests without session ID", async () => {
-                    const response = await sendHttpRequest("tools/list");
-
-                    expect(response.status).toBe(400);
-                    const data = (await response.json()) as { error?: { code: number; message: string } };
-                    expect(data.error?.code).toBe(-32004);
-                    expect(data.error?.message).toBe("invalid request");
-                });
-
-                describe("session idle timeout", () => {
-                    beforeEach(async () => {
-                        config.idleTimeoutMs = 1000;
-                        config.notificationTimeoutMs = 500;
-
-                        await runner?.close();
-                        runner = await createStreamableHttpRunner(config);
-                        await runner.start();
-                    });
-
-                    it("should timeout idle sessions after inactivity period", async () => {
-                        const sessionId = "session-to-timeout";
-                        const client = await connectClient({ sessionId });
-                        await client.listTools();
-
-                        const sessionBefore = await getSessionFromStore(sessionId);
-                        expect(sessionBefore).toBeDefined();
-                        await sleep(1100);
-
-                        const sessionAfter = await getSessionFromStore(sessionId);
-                        expect(sessionAfter).toBeUndefined();
-                    });
-                });
-
-                it(`should return ${responseType} responses`, async () => {
-                    const externalSessionId = "json-response-session";
-
-                    const response = await sendHttpRequest("initialize", externalSessionId);
-
-                    expect(response.ok).toBe(true);
-
-                    const expectedContentType = responseType === "json" ? "application/json" : "text/event-stream";
-                    expect(response.headers.get("content-type")).toContain(expectedContentType);
-
-                    const body = await response.text();
-                    switch (responseType) {
-                        case "json":
-                            {
-                                expect(response.headers.get("content-type")).toContain("application/json");
-                                const data = JSON.parse(body) as { result?: unknown };
-                                expect(data.result).toBeDefined();
-                            }
-                            break;
-                        case "sse":
-                            {
-                                expect(response.headers.get("content-type")).toContain("text/event-stream");
-                                expect(body).toContain("event: message");
-                                expect(body).toContain("data: ");
-                            }
-                            break;
-                    }
-                });
-            });
-        }
-
-        describe("concurrent implicit session initialization", () => {
-            it("should only initialize one session when multiple requests arrive simultaneously", async () => {
-                const sessionId = "concurrent-init-session";
-
-                const responses = await Promise.all([
-                    sendHttpRequest("tools/list", sessionId),
-                    sendHttpRequest("tools/list", sessionId),
-                    sendHttpRequest("tools/list", sessionId),
-                ]);
-
-                for (const response of responses) {
-                    expect(response.ok).toBe(true);
-                }
-
-                const session = await getSessionFromStore(sessionId);
-                expect(session).toBeDefined();
-            });
-
-            it("should use separate sessions for different session IDs arriving concurrently", async () => {
-                const sessionId1 = "concurrent-session-1";
-                const sessionId2 = "concurrent-session-2";
-
-                const responses = await Promise.all([
-                    sendHttpRequest("tools/list", sessionId1),
-                    sendHttpRequest("tools/list", sessionId2),
-                ]);
-
-                for (const response of responses) {
-                    expect(response.ok).toBe(true);
-                }
-
-                const session1 = await getSessionFromStore(sessionId1);
-                const session2 = await getSessionFromStore(sessionId2);
-                expect(session1).toBeDefined();
-                expect(session2).toBeDefined();
-                expect(session1).not.toBe(session2);
-            });
-
-            it("should reuse existing session after concurrent initialization completes", async () => {
-                const sessionId = "concurrent-then-reuse";
-
-                const responses = await Promise.all([
-                    sendHttpRequest("tools/list", sessionId),
-                    sendHttpRequest("tools/list", sessionId),
-                ]);
-                for (const response of responses) {
-                    expect(response.ok).toBe(true);
-                }
-
-                const sessionBefore = await getSessionFromStore(sessionId);
-                expect(sessionBefore).toBeDefined();
-
-                // A follow-up request should reuse the same session without re-initialization
-                const followUp = await sendHttpRequest("tools/list", sessionId);
-                expect(followUp.ok).toBe(true);
-
-                const sessionAfter = await getSessionFromStore(sessionId);
-                expect(sessionAfter).toBe(sessionBefore);
-            });
-
-            describe("with ownership session store", () => {
-                const ownerStorage = new AsyncLocalStorage<string | undefined>();
-
-                class OwnershipSessionStore implements ISessionStore<NodeStreamableHTTPServerTransport> {
-                    private readonly inner: ISessionStore<NodeStreamableHTTPServerTransport>;
-                    private readonly sessionOwners = new Map<string, string>();
-
-                    constructor(inner: ISessionStore<NodeStreamableHTTPServerTransport>) {
-                        this.inner = inner;
-                    }
-
-                    async getSession(sessionId: string): Promise<NodeStreamableHTTPServerTransport | undefined> {
-                        const owner = this.sessionOwners.get(sessionId);
-                        const caller = ownerStorage.getStore();
-                        if (owner !== undefined && caller !== owner) {
-                            return undefined;
-                        }
-                        return this.inner.getSession(sessionId);
-                    }
-
-                    async addSession(params: {
-                        sessionId: string;
-                        transport: NodeStreamableHTTPServerTransport;
-                        logger: LoggerBase;
-                    }): Promise<void> {
-                        await this.inner.addSession(params);
-                        const caller = ownerStorage.getStore();
-                        if (caller) {
-                            this.sessionOwners.set(params.sessionId, caller);
-                        }
-                    }
-
-                    closeSession(params: { sessionId: string; reason?: SessionCloseReason }): Promise<void> {
-                        return this.inner.closeSession(params);
-                    }
-
-                    closeAllSessions(): Promise<void> {
-                        return this.inner.closeAllSessions();
-                    }
-
-                    saveNegotiatedClientState(sessionId: string, state: NegotiatedClientState): Promise<void> {
-                        return this.inner.saveNegotiatedClientState(sessionId, state);
-                    }
-
-                    loadNegotiatedClientState(sessionId: string): Promise<NegotiatedClientState | undefined> {
-                        return this.inner.loadNegotiatedClientState(sessionId);
-                    }
-                }
-
-                function wrapAppHandle(ownershipRunner: StreamableHttpRunner<CliServer>): void {
-                    type HandleFn = (req: IncomingMessage, ...rest: unknown[]) => void;
-                    const mcpHttpServer = (
-                        ownershipRunner as unknown as { mcpHttpServer: { app: { handle: HandleFn } } }
-                    ).mcpHttpServer;
-                    const appObj = mcpHttpServer.app;
-                    const originalHandle: HandleFn = appObj.handle.bind(appObj);
-                    appObj.handle = (req: IncomingMessage, ...rest: unknown[]): void => {
-                        const ownerId = req.headers["x-owner-id"] as string | undefined;
-                        ownerStorage.run(ownerId, () => originalHandle(req, ...rest));
-                    };
-                }
-
-                beforeEach(async () => {
-                    await runner?.close();
-
-                    // Create runner with custom session store
-                    const logger = new CompositeLogger({ loggers: [] });
-                    const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
-
-                    const innerSessionStore = new SessionStore<NodeStreamableHTTPServerTransport>({
-                        options: {
-                            idleTimeoutMS: config.idleTimeoutMs,
-                            notificationTimeoutMS: config.notificationTimeoutMs,
-                            maxSessions: config.maxSessions,
-                        },
-                        logger,
-                        metrics: metrics,
-                    });
-
-                    const ownershipStore = new OwnershipSessionStore(innerSessionStore);
-
-                    const mcpHttpServer = new TestMCPHttpServer({
-                        userConfig: config,
-                        options: {
-                            http: {
-                                host: config.httpHost,
-                                port: config.httpPort,
-                                bodyLimit: config.httpBodyLimit,
-                                responseType: config.httpResponseType,
-                            },
-                            session: {
-                                idleTimeoutMs: config.idleTimeoutMs,
-                                notificationTimeoutMs: config.notificationTimeoutMs,
-                                externallyManagedSessions: config.externallyManagedSessions,
-                            },
-                        },
-                        logger,
-                        metrics: metrics,
-                        sessionStore: ownershipStore,
-                        tools: AllTools,
-                    });
-
-                    const ownershipRunner = new StreamableHttpRunner<CliServer>({
-                        mcpHttpServer,
-                        logger,
-                    });
-
-                    await ownershipRunner.start();
-                    wrapAppHandle(ownershipRunner);
-
-                    runner = ownershipRunner;
-                });
-
-                it("should deny access when a different owner tries to use another owner's session", async () => {
-                    const sessionId = "owned-session";
-
-                    const ownerAResponse = await sendHttpRequest("tools/list", sessionId, {
-                        "x-owner-id": "owner-a",
-                    });
-                    expect(ownerAResponse.ok).toBe(true);
-
-                    const ownerAFollowUp = await sendHttpRequest("tools/list", sessionId, {
-                        "x-owner-id": "owner-a",
-                    });
-                    expect(ownerAFollowUp.ok).toBe(true);
-
-                    const ownerBResponse = await sendHttpRequest("tools/list", sessionId, {
-                        "x-owner-id": "owner-b",
-                    });
-                    expect(ownerBResponse.ok).toBe(false);
-                    expect(ownerBResponse.status).toBe(400);
-
-                    const ownerBOwnSession = await sendHttpRequest("tools/list", "owner-b-session", {
-                        "x-owner-id": "owner-b",
-                    });
-                    expect(ownerBOwnSession.ok).toBe(true);
-
-                    const ownerACrossAccess = await sendHttpRequest("tools/list", "owner-b-session", {
-                        "x-owner-id": "owner-a",
-                    });
-                    expect(ownerACrossAccess.ok).toBe(false);
-                    expect(ownerACrossAccess.status).toBe(400);
-                });
-
-                it("should enforce ownership even when a rival request races the initializer", async () => {
-                    const sessionId = "raced-session";
-
-                    // Fire requests from owner A and owner B simultaneously for
-                    // the same session ID. Only one can win the initialization;
-                    // the other must be denied because the session will be owned
-                    // by whichever owner's request initializes it first.
-                    const [responseA, responseB] = await Promise.all([
-                        sendHttpRequest("tools/list", sessionId, { "x-owner-id": "owner-a" }),
-                        sendHttpRequest("tools/list", sessionId, { "x-owner-id": "owner-b" }),
-                    ]);
-
-                    const succeeded = [responseA, responseB].filter((r) => r.ok);
-                    const denied = [responseA, responseB].filter((r) => !r.ok);
-                    expect(succeeded).toHaveLength(1);
-                    expect(denied).toHaveLength(1);
-                    expect(denied[0]!.status).toBe(400);
-
-                    const winnerOwner = responseA.ok ? "owner-a" : "owner-b";
-                    const loserOwner = responseA.ok ? "owner-b" : "owner-a";
-
-                    // Winner can still use the session
-                    const winnerFollowUp = await sendHttpRequest("tools/list", sessionId, {
-                        "x-owner-id": winnerOwner,
-                    });
-                    expect(winnerFollowUp.ok).toBe(true);
-
-                    // Loser is still denied
-                    const loserFollowUp = await sendHttpRequest("tools/list", sessionId, {
-                        "x-owner-id": loserOwner,
-                    });
-                    expect(loserFollowUp.ok).toBe(false);
-                    expect(loserFollowUp.status).toBe(400);
-                });
-            });
-        });
-    });
-
-    describe("with externallyManagedSessions disabled", () => {
-        beforeEach(async () => {
-            config.externallyManagedSessions = false;
-
-            runner = await createStreamableHttpRunner(config);
-            await runner.start();
-        });
-
-        it("should return SSE responses instead of JSON", async () => {
+        it("should return SSE responses for 2025-era requests", async () => {
             const response = await sendHttpRequest("initialize");
 
             expect(response.ok).toBe(true);
@@ -832,66 +313,12 @@ describe("StreamableHttpRunner", () => {
             expect(data).toContain("data: ");
         });
 
-        for (const responseType of ["json", "sse"] as const) {
-            describe(`and httpResponseType set to ${responseType}`, () => {
-                beforeEach(async () => {
-                    config.httpResponseType = responseType;
-                    await runner?.close();
-                    runner = await createStreamableHttpRunner(config);
-                    await runner.start();
-                });
-
-                it(`should return ${responseType} responses`, async () => {
-                    const response = await sendHttpRequest("initialize");
-
-                    expect(response.ok).toBe(true);
-                    switch (responseType) {
-                        case "json":
-                            {
-                                expect(response.headers.get("content-type")).toContain("application/json");
-                                const data = (await response.json()) as { result?: unknown };
-                                expect(data.result).toBeDefined();
-                            }
-                            break;
-                        case "sse":
-                            {
-                                expect(response.headers.get("content-type")).toContain("text/event-stream");
-                                const data = await response.text();
-                                expect(data).toContain("event: message");
-                                expect(data).toContain("data: ");
-                            }
-                            break;
-                    }
-                });
-
-                it("should return error when session not found", async () => {
-                    const unknownSessionId = "unknown-session-id";
-
-                    const response = await sendHttpRequest("tools/list", unknownSessionId);
-                    expect(response.status).toBe(404);
-                    const data = (await response.json()) as { error?: { code: number; message: string } };
-                    expect(data.error?.code).toBe(-32003);
-                    expect(data.error?.message).toBe("session not found");
-
-                    const sessionStore = getSessionStore(runner);
-                    const session = await sessionStore.getSession(unknownSessionId);
-                    expect(session).toBeUndefined();
-                });
-
-                it("should error when client provides session ID at initialization", async () => {
-                    const providedSessionId = "some-session-id";
-
-                    const response = await sendHttpRequest("initialize", providedSessionId);
-                    expect(response.ok).toBe(false);
-                    expect(response.status).toBe(400);
-                    const data = (await response.json()) as { error?: { code: number; message: string } };
-                    expect(data.error?.code).toBe(-32005);
-                    expect(data.error?.message).toBe(
-                        "cannot provide sessionId when externally managed sessions are disabled"
-                    );
-                });
-            });
-        }
+        it("should serve a non-initialize request without a session ID", async () => {
+            // The stateless fallback (`sessionIdGenerator: undefined`) does not
+            // validate `mcp-session-id`, so claim-less requests succeed without one.
+            const response = await sendHttpRequest("tools/list");
+            expect(response.ok).toBe(true);
+        });
     });
 
     describe("createMcpHttpServer factory", () => {
@@ -899,28 +326,18 @@ describe("StreamableHttpRunner", () => {
             const middlewareCalls: string[] = [];
 
             class CustomTestMCPHttpServer extends TestMCPHttpServer {
-                protected override setupMiddlewares(): void {
+                protected override async setupRoutes(): Promise<void> {
                     this.app.use((_req: express.Request, _res: express.Response, next: express.NextFunction) => {
                         middlewareCalls.push("middleware-executed");
                         next();
                     });
-                    super.setupMiddlewares();
+                    await super.setupRoutes();
                 }
             }
 
             // Create runner with custom MCPHttpServer
             const logger = new CompositeLogger({ loggers: [] });
             const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
-
-            const sessionStore = new SessionStore<NodeStreamableHTTPServerTransport>({
-                options: {
-                    idleTimeoutMS: config.idleTimeoutMs,
-                    notificationTimeoutMS: config.notificationTimeoutMs,
-                    maxSessions: config.maxSessions,
-                },
-                logger,
-                metrics: metrics,
-            });
 
             const customMcpHttpServer = new CustomTestMCPHttpServer({
                 userConfig: config,
@@ -929,17 +346,12 @@ describe("StreamableHttpRunner", () => {
                         host: config.httpHost,
                         port: config.httpPort,
                         bodyLimit: config.httpBodyLimit,
+                        headers: config.httpHeaders,
                         responseType: config.httpResponseType,
-                    },
-                    session: {
-                        idleTimeoutMs: config.idleTimeoutMs,
-                        notificationTimeoutMs: config.notificationTimeoutMs,
-                        externallyManagedSessions: config.externallyManagedSessions,
                     },
                 },
                 logger,
-                metrics: metrics,
-                sessionStore,
+                metrics,
                 tools: AllTools,
             });
 
@@ -959,11 +371,11 @@ describe("StreamableHttpRunner", () => {
 
         it("should allow factory to create a server that rejects requests", async () => {
             class RejectingMCPHttpServer extends TestMCPHttpServer {
-                protected override setupMiddlewares(): void {
+                protected override async setupRoutes(): Promise<void> {
                     this.app.use((_req: express.Request, res: express.Response) => {
                         res.status(403).json({ error: "blocked by middleware" });
                     });
-                    super.setupMiddlewares();
+                    await super.setupRoutes();
                 }
             }
 
@@ -971,33 +383,20 @@ describe("StreamableHttpRunner", () => {
             const logger = new CompositeLogger({ loggers: [] });
             const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
-            const sessionStore = new SessionStore<NodeStreamableHTTPServerTransport>({
-                options: {
-                    idleTimeoutMS: config.idleTimeoutMs,
-                    notificationTimeoutMS: config.notificationTimeoutMs,
-                    maxSessions: config.maxSessions,
-                },
-                logger,
-                metrics: metrics,
-            });
-
             const rejectingMcpHttpServer = new RejectingMCPHttpServer({
                 userConfig: config,
                 options: {
                     http: {
                         host: config.httpHost,
                         port: config.httpPort,
+                        bodyLimit: config.httpBodyLimit,
+                        headers: config.httpHeaders,
                         responseType: config.httpResponseType,
-                    },
-                    session: {
-                        idleTimeoutMs: config.idleTimeoutMs,
-                        notificationTimeoutMs: config.notificationTimeoutMs,
-                        externallyManagedSessions: config.externallyManagedSessions,
                     },
                 },
                 logger,
-                metrics: metrics,
-                sessionStore,
+                metrics,
+                tools: AllTools,
             });
 
             runner = new StreamableHttpRunner<CliServer>({
@@ -1175,9 +574,9 @@ describe("StreamableHttpRunner", () => {
     });
 
     it("should pass the request headers as part of tool execution context", async () => {
-        let confirmRequestInfoReceived: ((requestInfo: ToolExecutionContext["requestInfo"]) => void) | undefined;
-        const requestInfoReceived = new Promise<ToolExecutionContext["requestInfo"]>((resolve) => {
-            confirmRequestInfoReceived = resolve;
+        let confirmRequestReceived: ((request: ToolExecutionContext["request"]) => void) | undefined;
+        const requestReceived = new Promise<ToolExecutionContext["request"]>((resolve) => {
+            confirmRequestReceived = resolve;
         });
 
         class RandomTool extends ToolBase {
@@ -1188,9 +587,9 @@ describe("StreamableHttpRunner", () => {
             static operationType: OperationType = "metadata";
             protected execute(
                 _: ToolArgs<typeof this.argsShape>,
-                { requestInfo }: ToolExecutionContext
+                { request }: ToolExecutionContext
             ): Promise<CallToolResult> {
-                confirmRequestInfoReceived?.(requestInfo);
+                confirmRequestReceived?.(request);
                 return Promise.resolve({
                     content: [
                         {
@@ -1218,9 +617,9 @@ describe("StreamableHttpRunner", () => {
             name: "random-tool",
             arguments: {},
         });
-        const requestInfo = await requestInfoReceived;
-        expect(requestInfo).toBeDefined();
-        const authorizationToken = requestInfo?.headers?.["authorization"] ?? requestInfo?.headers?.["Authorization"];
+        const request = await requestReceived;
+        expect(request).toBeDefined();
+        const authorizationToken = request?.headers?.["authorization"] ?? request?.headers?.["Authorization"];
         expect(authorizationToken).toBe("Bearer 1234");
     });
 });
