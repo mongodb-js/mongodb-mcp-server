@@ -29,7 +29,7 @@ export class RenameCollectionTool extends MongoDBToolBase {
         { connectionId, database, collection, newName, dropTarget }: ToolArgs<typeof this.argsShape>,
         { request }: ToolExecutionContext<IMongoDBConfig>
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        if (dropTarget && request.config.disabledTools.includes("delete")) {
+        if (dropTarget && request.server.config.disabledTools.includes("delete")) {
             // Renaming with `dropTarget: true` drops the existing target collection, which is a
             // destructive delete operation. Since this tool's operation type is `update`, it remains
             // available even when delete operations are disabled, so reject `dropTarget` in that case

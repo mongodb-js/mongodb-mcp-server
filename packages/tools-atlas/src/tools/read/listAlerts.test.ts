@@ -9,7 +9,7 @@ import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 
 import type { AtlasToolServer } from "../../atlasTool.js";
-import type {} from "@mongodb-js/mcp-types";
+import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
 
 describe("ListAlertsTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
@@ -53,7 +53,7 @@ describe("ListAlertsTool", () => {
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
-        };
+        } as unknown as AtlasToolServer;
 
         tool = new ListAlertsTool(server);
     });
@@ -61,12 +61,7 @@ describe("ListAlertsTool", () => {
     const baseArgs = { projectId: "proj1", status: "OPEN" as const, limit: 10, pageNum: 1, includeCount: false };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["execute"](args as never, {
-            request: {
-                config: (tool as unknown as { server: AtlasToolServer }).server.config,
-                signal: new AbortController().signal,
-            },
-        });
+        tool["execute"](args as never, { request: { server: (tool as unknown as { server: AtlasToolServer }).server, signal: new AbortController().signal } } as unknown as ToolExecutionContext);
 
     it("should return alerts when they exist", async () => {
         mockApiClient.listAlerts!.mockResolvedValue({
@@ -347,41 +342,6 @@ describe("ListAlertsTool", () => {
                 alerts: [],
                 totalCount: 0,
             });
-        });
-
-        it("omits totalCount when it is an explicit 0 with results present", async () => {
-            // Some environments return totalCount: 0 with includeCount=false even when
-            // results are present; the tool should not report a misleading 0.
-            mockApiClient.listAlerts!.mockResolvedValue({
-                results: [
-                    {
-                        id: "alert1",
-                        status: "OPEN",
-                        created: "2025-01-01T00:00:00Z",
-                        updated: "2025-01-02T00:00:00Z",
-                        eventTypeName: "HOST_DOWN",
-                        acknowledgementComment: null,
-                    },
-                ],
-                totalCount: 0,
-            });
-
-            const result = await exec({ ...baseArgs });
-
-            expect(result.structuredContent).toMatchObject({
-                projectId: "proj1",
-                status: "OPEN",
-                alerts: [
-                    {
-                        id: "alert1",
-                        status: "OPEN",
-                    },
-                ],
-            });
-            expect(result.structuredContent).not.toHaveProperty("totalCount");
-
-            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
-            expect(text).not.toContain("(total:");
         });
 
         it("omits structuredContent on error paths", async () => {

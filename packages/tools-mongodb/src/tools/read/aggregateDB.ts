@@ -61,7 +61,7 @@ export class AggregateDBTool extends MongoDBToolBase {
         let aggregationCursor: AggregationCursor | undefined = undefined;
         try {
             const provider = await this.resolveConnection(connectionId);
-            this.assertOnlyUsesPermittedStages(request.config, pipeline);
+            this.assertOnlyUsesPermittedStages(request.server.config, pipeline);
 
             let successMessage: string;
             let documents: unknown[];
@@ -84,15 +84,15 @@ export class AggregateDBTool extends MongoDBToolBase {
                 successMessage = "The aggregation pipeline executed successfully.";
             } else {
                 const cappedResultsPipeline = [...pipeline];
-                if (request.config.maxDocumentsPerQuery > 0) {
-                    cappedResultsPipeline.push({ $limit: request.config.maxDocumentsPerQuery });
+                if (request.server.config.maxDocumentsPerQuery > 0) {
+                    cappedResultsPipeline.push({ $limit: request.server.config.maxDocumentsPerQuery });
                 }
                 aggregationCursor = provider.aggregateDb(database, cappedResultsPipeline, {
                     ...this.getOperationOptions(request),
                 });
 
                 const [totalDocuments, cursorResults] = await Promise.all([
-                    this.countAggregationResultDocuments(request.config, {
+                    this.countAggregationResultDocuments(request.server.config, {
                         provider,
                         database,
                         pipeline,
@@ -100,7 +100,7 @@ export class AggregateDBTool extends MongoDBToolBase {
                     }),
                     collectCursorUntilMaxBytesLimit({
                         cursor: aggregationCursor,
-                        configuredMaxBytesPerQuery: request.config.maxBytesPerQuery,
+                        configuredMaxBytesPerQuery: request.server.config.maxBytesPerQuery,
                         toolResponseBytesLimit: responseBytesLimit,
                         abortSignal: request.signal,
                     }),
@@ -111,9 +111,9 @@ export class AggregateDBTool extends MongoDBToolBase {
                 // maxDocumentsPerQuery then we know for sure that the results were
                 // capped.
                 const aggregationResultsCappedByMaxDocumentsLimit =
-                    request.config.maxDocumentsPerQuery > 0 &&
+                    request.server.config.maxDocumentsPerQuery > 0 &&
                     !!totalDocuments &&
-                    totalDocuments > request.config.maxDocumentsPerQuery;
+                    totalDocuments > request.server.config.maxDocumentsPerQuery;
 
                 documents = bsonToJson(cursorResults.documents);
                 aggResultsCount = totalDocuments;

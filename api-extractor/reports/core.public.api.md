@@ -44,6 +44,7 @@ import { ToolAnnotations } from '@modelcontextprotocol/server';
 import type { ToolCategory } from '@mongodb-js/mcp-types';
 import type { ToolExecutionContext } from '@mongodb-js/mcp-types';
 import type { ToolServer } from '@mongodb-js/mcp-types';
+import type { ToolServices } from '@mongodb-js/mcp-types';
 import type { Transport } from '@modelcontextprotocol/server';
 import type { TransportType } from '@mongodb-js/mcp-types';
 import { z } from 'zod';
@@ -448,7 +449,7 @@ export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined>
 export type ToolServerParam<TServer extends ToolServer = ToolServer> = TServer;
 
 // @public
-export function toToolExecutionContext<TConfig extends IToolConfig = IToolConfig>(ctx: ServerContext, config: TConfig, clientInfoProvider?: () => Implementation | undefined): ToolExecutionContext<TConfig>;
+export function toToolExecutionContext<TConfig extends IToolConfig = IToolConfig>(ctx: ServerContext, server: ToolServer<ToolServices<TConfig>>, clientInfoProvider?: () => Implementation | undefined): ToolExecutionContext<TConfig>;
 
 // @public
 export const TRANSPORT_PAYLOAD_LIMITS: Record<TransportType, number>;
