@@ -195,7 +195,7 @@ describe("UpgradeClusterTool", () => {
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
         tool["invoke"](args, {
-            request: { config: (tool as unknown as { server: AtlasToolServer }).server.config, signal: new AbortController().signal },
+            request: { server: (tool as unknown as { server: AtlasToolServer }).server, signal: new AbortController().signal },
         } as unknown as ToolExecutionContext);
 
     beforeEach(() => {

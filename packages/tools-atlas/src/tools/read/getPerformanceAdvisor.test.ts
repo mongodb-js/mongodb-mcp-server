@@ -66,7 +66,7 @@ describe("GetPerformanceAdvisorTool", () => {
     };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["execute"](args as never, { request: { config: (tool as unknown as { server: AtlasToolServer }).server.config, signal: new AbortController().signal } } as unknown as ToolExecutionContext);
+        tool["execute"](args as never, { request: { server: (tool as unknown as { server: AtlasToolServer }).server, signal: new AbortController().signal } } as unknown as ToolExecutionContext);
 
     const text = (result: { content: unknown[] }): string =>
         result.content.map((c) => (c as { text: string }).text).join("\n");

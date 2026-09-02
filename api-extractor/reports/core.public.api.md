@@ -36,7 +36,6 @@ import type { PreviewFeature } from '@mongodb-js/mcp-types';
 import type { ReactiveResourceOptions } from '@mongodb-js/mcp-types';
 import type { ResourceConfiguration } from '@mongodb-js/mcp-types';
 import type { ResourceMetadata } from '@modelcontextprotocol/server';
-import type { ResourceServices } from '@mongodb-js/mcp-types';
 import { Secret } from 'mongodb-redact';
 import { ServerContext } from '@modelcontextprotocol/server';
 import type { SupportedConnectionState } from '@mongodb-js/mcp-types';
@@ -45,6 +44,7 @@ import { ToolAnnotations } from '@modelcontextprotocol/server';
 import type { ToolCategory } from '@mongodb-js/mcp-types';
 import type { ToolExecutionContext } from '@mongodb-js/mcp-types';
 import type { ToolServer } from '@mongodb-js/mcp-types';
+import type { ToolServices } from '@mongodb-js/mcp-types';
 import type { Transport } from '@modelcontextprotocol/server';
 import type { TransportType } from '@mongodb-js/mcp-types';
 import { z } from 'zod';
@@ -327,31 +327,22 @@ export class NoopTelemetry implements ITelemetry {
 // @public
 export abstract class ReactiveResource<
 /** Value stored in the resource */
-Value, TServices extends ResourceServices = ResourceServices, TServer extends IResourceServer = IResourceServer> {
+Value, TServer extends IResourceServer = IResourceServer> {
     constructor(input: {
         resourceConfiguration: ResourceConfiguration;
         options: ReactiveResourceOptions<Value>;
-        services: TServices;
-        telemetry: ITelemetry;
+        server: TServer;
         current?: Value;
     });
-    protected readonly config: TServices["config"];
     // (undocumented)
     protected current: Value;
-    // (undocumented)
-    protected readonly keychain: TServices["keychain"];
-    // (undocumented)
-    protected readonly logger: TServices["logger"];
     // (undocumented)
     protected readonly name: string;
     // (undocumented)
     register(server: TServer): void;
     // (undocumented)
     protected readonly resourceConfig: ResourceMetadata;
-    // (undocumented)
-    protected server?: TServer;
-    // (undocumented)
-    protected telemetry: ITelemetry;
+    protected server: TServer;
     // (undocumented)
     abstract toOutput(): string | Promise<string>;
     // (undocumented)
@@ -458,7 +449,7 @@ export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined>
 export type ToolServerParam<TServer extends ToolServer = ToolServer, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = TServer;
 
 // @public
-export function toToolExecutionContext<TConfig extends IToolConfig = IToolConfig>(ctx: ServerContext, config: TConfig, clientInfoProvider?: () => Implementation | undefined): ToolExecutionContext<TConfig>;
+export function toToolExecutionContext<TConfig extends IToolConfig = IToolConfig>(ctx: ServerContext, server: ToolServer<ToolServices<TConfig>>, clientInfoProvider?: () => Implementation | undefined): ToolExecutionContext<TConfig>;
 
 // @public
 export const TRANSPORT_PAYLOAD_LIMITS: Record<TransportType, number>;

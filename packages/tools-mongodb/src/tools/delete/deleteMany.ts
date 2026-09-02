@@ -41,10 +41,10 @@ export class DeleteManyTool extends MongoDBToolBase {
     ): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.resolveConnection(connectionId);
 
-        this.assertMqlIsAllowed(request.config, filter);
+        this.assertMqlIsAllowed(request.server.config, filter);
 
         // Check if delete operation uses an index if enabled
-        if (request.config.indexCheck) {
+        if (request.server.config.indexCheck) {
             await checkIndexUsage({
                 database,
                 collection,
@@ -61,7 +61,7 @@ export class DeleteManyTool extends MongoDBToolBase {
                             ],
                         },
                         verbosity: "queryPlanner",
-                        ...(request.config.maxTimeMS !== undefined && { maxTimeMS: request.config.maxTimeMS }),
+                        ...(request.server.config.maxTimeMS !== undefined && { maxTimeMS: request.server.config.maxTimeMS }),
                     });
                 },
                 logger: this.server.logger,

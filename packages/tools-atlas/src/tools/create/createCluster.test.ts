@@ -82,7 +82,7 @@ describe("CreateClusterTool", () => {
             z.object(CreateClusterArgsShape).strict().parse(tool.normalizeRawArgs(args)),
             {
                 request: {
-                    config: (tool as unknown as { server: AtlasToolServer }).server.config,
+                    server: (tool as unknown as { server: AtlasToolServer }).server,
                     signal: new AbortController().signal,
                 },
             } as unknown as ToolExecutionContext

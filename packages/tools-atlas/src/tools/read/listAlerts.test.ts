@@ -61,7 +61,7 @@ describe("ListAlertsTool", () => {
     const baseArgs = { projectId: "proj1", status: "OPEN" as const, limit: 10, pageNum: 1, includeCount: false };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["execute"](args as never, { request: { config: (tool as unknown as { server: AtlasToolServer }).server.config, signal: new AbortController().signal } } as unknown as ToolExecutionContext);
+        tool["execute"](args as never, { request: { server: (tool as unknown as { server: AtlasToolServer }).server, signal: new AbortController().signal } } as unknown as ToolExecutionContext);
 
     it("should return alerts when they exist", async () => {
         mockApiClient.listAlerts!.mockResolvedValue({

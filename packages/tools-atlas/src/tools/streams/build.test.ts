@@ -87,7 +87,7 @@ describe("StreamsBuildTool", () => {
     const exec = (args: Record<string, unknown>) =>
         tool["execute"](args as never, {
             request: {
-                config: (tool as unknown as { server: AtlasToolServer }).server.config,
+                server: (tool as unknown as { server: AtlasToolServer }).server,
                 signal: new AbortController().signal,
             },
         } as unknown as ToolExecutionContext);
@@ -708,7 +708,7 @@ describe("StreamsBuildTool", () => {
             expect(result.isError).toBe(true);
             const text = (result.content[0] as { text: string }).text;
             expect(text).toContain("$$NOW");
-            expect(text).toContain("not available in streaming context");
+            expect(text).toContain("not available in streaming request");
             expect(mockApiClient.createStreamProcessor).not.toHaveBeenCalled();
         });
 
