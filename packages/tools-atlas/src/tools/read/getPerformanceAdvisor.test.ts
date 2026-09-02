@@ -8,7 +8,6 @@ import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import type { AtlasToolServer } from "../../atlasTool.js";
-import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
 
 const emptyDropSuggestions = {
     hiddenIndexes: [],
@@ -54,7 +53,7 @@ describe("GetPerformanceAdvisorTool", () => {
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
-        } as unknown as AtlasToolServer;
+        };
 
         tool = new GetPerformanceAdvisorTool(server);
     });
@@ -66,7 +65,12 @@ describe("GetPerformanceAdvisorTool", () => {
     };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["execute"](args as never, { request: { server: (tool as unknown as { server: AtlasToolServer }).server, signal: new AbortController().signal } } as unknown as ToolExecutionContext);
+        tool["execute"](args as never, {
+            request: {
+                server: (tool as unknown as { server: AtlasToolServer }).server,
+                signal: new AbortController().signal,
+            },
+        });
 
     const text = (result: { content: unknown[] }): string =>
         result.content.map((c) => (c as { text: string }).text).join("\n");

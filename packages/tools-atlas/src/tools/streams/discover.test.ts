@@ -7,9 +7,7 @@ import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
-import type {} from "@mongodb-js/mcp-metrics";
 import type { AtlasToolServer } from "../../atlasTool.js";
-import type {} from "@mongodb-js/mcp-types";
 
 describe("StreamsDiscoverTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;

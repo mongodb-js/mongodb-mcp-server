@@ -14,8 +14,20 @@ const config: IToolConfig = {
 
 const server: ToolServer = { config, logger: loggerStub(), keychain: { allSecrets: [] } } as ToolServer;
 
-function loggerStub() {
-    return { debug: () => {}, info: () => {}, warning: () => {}, error: () => {}, log: () => {} };
+function loggerStub(): {
+    debug: () => void;
+    info: () => void;
+    warning: () => void;
+    error: () => void;
+    log: () => void;
+} {
+    return {
+        debug: (): void => {},
+        info: (): void => {},
+        warning: (): void => {},
+        error: (): void => {},
+        log: (): void => {},
+    };
 }
 
 function makeCtx(overrides: Partial<ServerContext> = {}): ServerContext {

@@ -10,7 +10,6 @@ import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import { Keychain } from "@mongodb-js/mcp-core";
-import type {} from "@mongodb-js/mcp-metrics";
 import type { IAtlasConfig } from "@mongodb-js/mcp-tools-atlas";
 import type { AtlasToolServer } from "../atlasTool.js";
 

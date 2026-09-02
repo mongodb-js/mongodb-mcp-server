@@ -619,7 +619,7 @@ export abstract class ToolBase<
      * Multi-round-trip elicitation (protocol revision 2026-07-28): on the
      * first entry this reads `context.request.inputResponses` and, when this
      * round carries no answer yet, returns `undefined` — the caller must
-     * return {@link IElicitation.confirmationRequired} from its handler
+     * return `IElicitation.confirmationRequired` from its handler
      * instead of proceeding. On re-entry it resolves to `true` when the user
      * accepted and `false` when they declined.
      *
@@ -635,7 +635,7 @@ export abstract class ToolBase<
      * object under `request`).
      * @returns `true` when confirmed, `false` when declined, `undefined` when
      * this round carries no answer yet (return
-     * {@link IElicitation.confirmationRequired} instead).
+     * `IElicitation.confirmationRequired` instead).
      */
     protected requestConfirmation(message: string, context: ToolExecutionContext): boolean | undefined {
         const confirmed = this.server.elicitation.readConfirmation(context.request.inputResponses);
@@ -783,9 +783,7 @@ export abstract class ToolBase<
                 (args, ctx) =>
                     this.invoke(
                         args,
-                        toToolExecutionContext(ctx, this.server, () =>
-                            server.mcpServer?.server?.getClientVersion()
-                        )
+                        toToolExecutionContext(ctx, this.server, () => server.mcpServer?.server?.getClientVersion())
                     )
             );
 

@@ -265,9 +265,6 @@ importers:
       '@modelcontextprotocol/core':
         specifier: ^2.0.0
         version: 2.0.0
-      '@modelcontextprotocol/node':
-        specifier: ^2.0.0
-        version: 2.0.0(@modelcontextprotocol/server@2.0.0)(hono@4.12.14)
       '@modelcontextprotocol/server':
         specifier: ^2.0.0
         version: 2.0.0
@@ -480,9 +477,6 @@ importers:
       '@modelcontextprotocol/client':
         specifier: ^2.0.0
         version: 2.0.0
-      '@modelcontextprotocol/node':
-        specifier: ^2.0.0
-        version: 2.0.0(@modelcontextprotocol/server@2.0.0)(hono@4.12.14)
       '@modelcontextprotocol/server':
         specifier: ^2.0.0
         version: 2.0.0
