@@ -3,7 +3,7 @@ import { ConfigResource } from "./config.js";
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import { ApiClient, userAgentFromServerMetadata } from "@mongodb-js/mcp-atlas-api-client";
-import { UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
+import { UserConfigSchema, type UserConfig, type CliServer } from "@mongodb-js/mcp-cli";
 import { DeviceId, MCPConnectionStore } from "@mongodb-js/mcp-tools-mongodb";
 
 const defaultTestConfig: UserConfig = {
@@ -44,15 +44,15 @@ describe("config resource", () => {
             enabled: false,
             serverMetadata: testServerMetadata,
         });
-        return new ConfigResource(
-            {
+        return new ConfigResource({
+            server: {
                 config,
                 logger,
                 keychain,
+                telemetry,
                 connectionRegistry,
-            },
-            telemetry
-        );
+            } as unknown as CliServer,
+        });
     }
 
     it("should not leak AWS KMS credentials in connectOptions", () => {
@@ -94,7 +94,7 @@ describe("config resource", () => {
 
         const resource = createResource(config);
         // Register a secret that would otherwise appear in the output (logPath).
-        resource["keychain"].register(config.logPath, "url");
+        (resource as unknown as { server: { keychain: Keychain } }).server.keychain.register(config.logPath, "url");
 
         const output = resource.toOutput();
         expect(output).not.toContain(config.logPath);

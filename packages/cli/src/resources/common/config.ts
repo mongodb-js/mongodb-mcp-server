@@ -1,7 +1,5 @@
 import { ReactiveResource, Keychain, redactValues } from "@mongodb-js/mcp-core";
-import type { ITelemetry } from "@mongodb-js/mcp-types";
-import type { UserConfig, CliServer, ResourceServices } from "@mongodb-js/mcp-cli";
-import type { ConnectionRegistry } from "@mongodb-js/mcp-tools-mongodb";
+import type { UserConfig, CliServer } from "@mongodb-js/mcp-cli";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import { connectCapableTools } from "@mongodb-js/mcp-tools-mongodb";
 
@@ -18,13 +16,8 @@ function redactDriverOptions(driverOptions: Record<string, unknown>): Record<str
     return { ...rest, autoEncryption: "set; client-side field level encryption is configured" };
 }
 
-export type ConfigResourceServices = Omit<ResourceServices, "config"> & {
-    config: UserConfig;
-    connectionRegistry: ConnectionRegistry;
-};
-
-export class ConfigResource extends ReactiveResource<UserConfig, ConfigResourceServices, CliServer> {
-    constructor(services: ConfigResourceServices, telemetry: ITelemetry) {
+export class ConfigResource extends ReactiveResource<UserConfig, CliServer> {
+    constructor({ server }: { server: CliServer }) {
         super({
             resourceConfiguration: {
                 name: "config",
@@ -35,10 +28,9 @@ export class ConfigResource extends ReactiveResource<UserConfig, ConfigResourceS
                 },
             },
             options: {
-                initial: { ...services.config },
+                initial: { ...server.config },
             },
-            services,
-            telemetry,
+            server,
         });
     }
 
@@ -59,18 +51,17 @@ export class ConfigResource extends ReactiveResource<UserConfig, ConfigResourceS
 
         // Backstop: redact any remaining registered secrets (keychain) before egress, matching
         // the redaction applied on every logging path. Redact per-value so JSON stays valid.
-        const secrets = [...this.keychain.allSecrets, ...Keychain.root.allSecrets];
+        const secrets = [...this.server.keychain.allSecrets, ...Keychain.root.allSecrets];
         return JSON.stringify(redactValues(result, secrets));
     }
 
     /**
-     * The host server surface the resource can read tool state from. At runtime
-     * resources are registered by {@link CliServer} (see `registerResources`),
-     * which carries the registered tools alongside the `IResourceServer`
-     * contract (mcpServer + change notifications).
+     * The host server surface the resource can read tool state from. The server
+     * carries the registered tools alongside the `IResourceServer` contract
+     * (mcpServer + change notifications).
      */
     private connectToolsGuidance(): string {
-        const connectToolNames = connectCapableTools(this.server?.tools ?? [])
+        const connectToolNames = connectCapableTools(this.server.tools)
             .map((tool) => `"${tool.name}"`)
             .join(", ");
         return connectToolNames

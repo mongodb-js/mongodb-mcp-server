@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DebugResource, type DebugResourceServices } from "./debug.js";
+import { DebugResource } from "./debug.js";
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import { ApiClient, userAgentFromServerMetadata } from "@mongodb-js/mcp-atlas-api-client";
-import { UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
+import { UserConfigSchema, type UserConfig, type CliServer } from "@mongodb-js/mcp-cli";
 import {
     PRECONFIGURED_CONNECTION_ID,
     DeviceId,
@@ -30,7 +30,6 @@ describe("debug resource", () => {
     const deviceId = DeviceId.create(logger);
 
     let managers: FakeConnectionManager[];
-    let services: DebugResourceServices;
     let registry: ConnectionRegistry;
     let debugResource: DebugResource;
 
@@ -71,13 +70,16 @@ describe("debug resource", () => {
             serverMetadata: testServerMetadata,
         });
 
-        services = {
-            config,
-            logger,
-            keychain,
-            connectionRegistry: registry,
-        };
-        debugResource = new DebugResource(services, telemetry);
+        debugResource = new DebugResource({
+            server: {
+                config,
+                logger,
+                keychain,
+                telemetry,
+                connectionRegistry: registry,
+                tools: [],
+            } as unknown as CliServer,
+        });
     }
 
     beforeEach(() => {
@@ -97,7 +99,10 @@ describe("debug resource", () => {
             },
             { name: "find", category: "mongodb", operationType: "read", isEnabled: (): boolean => true },
         ];
-        (debugResource as unknown as { server: { tools: typeof fakeTools } }).server = { tools: fakeTools };
+        (debugResource as unknown as { server: { tools: typeof fakeTools; connectionRegistry: ConnectionRegistry } }).server = {
+            tools: fakeTools,
+            connectionRegistry: registry,
+        };
 
         const output = await debugResource.toOutput();
 
