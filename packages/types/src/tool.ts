@@ -82,24 +82,28 @@ export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant" | "
  * The request object passed to tool implementations: everything derived from
  * the individual request being handled. It is built fresh for each tool call
  * and deliberately lives nowhere else — the server holds no per-client or
- * per-request state, so the effective (possibly request-overridden) config
- * and the raw SDK request context travel with the call. Tools read it as
- * `request.config` / `request.raw` (see `ToolExecutionContext.request`).
+ * per-request state. Because every server is request-scoped, the effective
+ * (possibly request-overridden) config lives on it and is read as
+ * `request.server.config`; the raw SDK request context and other per-request
+ * data travel on the request itself (see `ToolExecutionContext.request`).
  */
 export type ToolRequest<TConfig extends IToolConfig = IToolConfig> = {
     /**
-     * The effective configuration for this request — the base server config
-     * merged with any request-level overrides (e.g. HTTP header/query
-     * overrides applied per request). Request-scoped: derived fresh for each
-     * call, never stored on the server. See `raw` for the original request
-     * this was built around.
+     * The request-scoped server instance this request was built around. The
+     * SDK's serving entries construct a fresh server per request
+     * (`createMcpHandler` once per HTTP request, `serveStdio` once per
+     * connection), so the server already carries the effective (possibly
+     * request-overridden) config: read it as `request.server.config`. The
+     * tool's construction-time `this.server` is the same instance and remains
+     * a valid shortcut. There is no `request.config` alias — the server is
+     * the single carrier of the effective config.
      */
-    readonly config: TConfig;
+    readonly server: ToolServer<ToolServices<TConfig>>;
     /**
      * The original request this request object was built around: the SDK's
      * per-request `mcpReq` object the tool call handler received. Undefined
      * when the tool is invoked directly in unit tests without a real SDK
-     * request. Prefer the normalized fields (`config`, `headers`, `id`,
+     * request. Prefer the normalized fields (`server`, `headers`, `id`,
      * `clientInfo`, ...); reach for `raw` only when the typed surface does
      * not cover what you need.
      */
@@ -148,9 +152,10 @@ export type ToolRequest<TConfig extends IToolConfig = IToolConfig> = {
 /**
  * Request-scoped context provided during tool execution. The request object
  * ({@link ToolRequest}) holds everything derived from the individual request
- * — the effective `config`, the original `raw` request, signal, request id,
- * client identity, elicitation state — and is built fresh per call by
- * `toToolExecutionContext`. Tools receive it as the `request` argument.
+ * — the request-scoped `server` (which carries the effective config), the
+ * original `raw` request, signal, request id, client identity, elicitation
+ * state — and is built fresh per call by `toToolExecutionContext`. Tools
+ * receive it as the `request` argument.
  */
 export type ToolExecutionContext<TConfig extends IToolConfig = IToolConfig> = {
     /** The request object this execution is built around. */

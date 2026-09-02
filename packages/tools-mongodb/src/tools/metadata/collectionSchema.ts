@@ -51,7 +51,7 @@ export class CollectionSchemaTool extends MongoDBToolBase {
         );
         const { documents } = await collectCursorUntilMaxBytesLimit({
             cursor,
-            configuredMaxBytesPerQuery: request.config.maxBytesPerQuery,
+            configuredMaxBytesPerQuery: request.server.config.maxBytesPerQuery,
             toolResponseBytesLimit: responseBytesLimit,
             abortSignal: request.signal,
         });

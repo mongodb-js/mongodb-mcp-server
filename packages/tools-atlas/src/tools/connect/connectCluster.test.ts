@@ -116,12 +116,7 @@ describe("ConnectClusterTool", () => {
         const args = { projectId: "proj1", clusterName: "cluster1", connectionType: "standard" as const };
 
         it("names the entry combining the project and cluster names", async () => {
-            const result = await tool["execute"](args, {
-                request: {
-                    config: (tool as unknown as { server: AtlasToolServer }).server.config,
-                    signal: new AbortController().signal,
-                },
-            });
+            const result = await tool["execute"](args, { request: { server: (tool as unknown as { server: AtlasToolServer }).server, signal: new AbortController().signal } } as unknown as ToolExecutionContext);
 
             expect(mockApiClient.getGroup).toHaveBeenCalledWith(
                 { params: { path: { groupId: "proj1" } } },
@@ -136,12 +131,7 @@ describe("ConnectClusterTool", () => {
         it("falls back to the cluster name alone when the project lookup fails", async () => {
             mockApiClient.getGroup?.mockRejectedValue(new Error("forbidden"));
 
-            const result = await tool["execute"](args, {
-                request: {
-                    config: (tool as unknown as { server: AtlasToolServer }).server.config,
-                    signal: new AbortController().signal,
-                },
-            });
+            const result = await tool["execute"](args, { request: { server: (tool as unknown as { server: AtlasToolServer }).server, signal: new AbortController().signal } } as unknown as ToolExecutionContext);
 
             expect(result.structuredContent?.state).toBe("connected");
             const connectionId = result.structuredContent?.connectionId;
@@ -150,18 +140,8 @@ describe("ConnectClusterTool", () => {
         });
 
         it("reuses the existing entry when called again for the same cluster", async () => {
-            const first = await tool["execute"](args, {
-                request: {
-                    config: (tool as unknown as { server: AtlasToolServer }).server.config,
-                    signal: new AbortController().signal,
-                },
-            });
-            const second = await tool["execute"](args, {
-                request: {
-                    config: (tool as unknown as { server: AtlasToolServer }).server.config,
-                    signal: new AbortController().signal,
-                },
-            });
+            const first = await tool["execute"](args, { request: { server: (tool as unknown as { server: AtlasToolServer }).server, signal: new AbortController().signal } } as unknown as ToolExecutionContext);
+            const second = await tool["execute"](args, { request: { server: (tool as unknown as { server: AtlasToolServer }).server, signal: new AbortController().signal } } as unknown as ToolExecutionContext);
 
             expect(second.structuredContent?.connectionId).toBe(first.structuredContent?.connectionId);
             expect(first.structuredContent?.createdTemporaryUser).toBe(true);
@@ -172,21 +152,11 @@ describe("ConnectClusterTool", () => {
         });
 
         it("creates a separate entry for a different cluster", async () => {
-            const first = await tool["execute"](args, {
-                request: {
-                    config: (tool as unknown as { server: AtlasToolServer }).server.config,
-                    signal: new AbortController().signal,
-                },
-            });
+            const first = await tool["execute"](args, { request: { server: (tool as unknown as { server: AtlasToolServer }).server, signal: new AbortController().signal } } as unknown as ToolExecutionContext);
             mockApiClient.getCluster?.mockResolvedValue({ ...CLUSTER_DESCRIPTION, name: "cluster2" });
             const second = await tool["execute"](
                 { ...args, clusterName: "cluster2" },
-                {
-                    request: {
-                        config: (tool as unknown as { server: AtlasToolServer }).server.config,
-                        signal: new AbortController().signal,
-                    },
-                }
+                { request: { server: (tool as unknown as { server: AtlasToolServer }).server, signal: new AbortController().signal } } as unknown as ToolExecutionContext
             );
 
             expect(second.structuredContent?.connectionId).not.toBe(first.structuredContent?.connectionId);
@@ -198,11 +168,11 @@ describe("ConnectClusterTool", () => {
         it("includes x-request-id in attempt and success debug logs", async () => {
             const context: ToolExecutionContext = {
                 request: {
-                    config: (tool as unknown as { server: AtlasToolServer }).server.config,
+                    server: (tool as unknown as { server: AtlasToolServer }).server,
                     signal: new AbortController().signal,
                     headers: { "x-request-id": "req-connect-abc" },
                 },
-            };
+            } as unknown as ToolExecutionContext;
 
             const entry = await connectionRegistry.createEntry({ name: ATLAS_INFO.clusterName });
             await tool["connectToCluster"](entry, "mongodb://localhost", ATLAS_INFO, context.request);
@@ -225,13 +195,13 @@ describe("ConnectClusterTool", () => {
             );
         });
 
-        it("omits x-request-id from log attributes when context has no headers", async () => {
+        it("omits x-request-id from log attributes when context carries no headers", async () => {
             const context: ToolExecutionContext = {
                 request: {
-                    config: (tool as unknown as { server: AtlasToolServer }).server.config,
+                    server: (tool as unknown as { server: AtlasToolServer }).server,
                     signal: new AbortController().signal,
                 },
-            };
+            } as unknown as ToolExecutionContext;
 
             const entry = await connectionRegistry.createEntry({ name: ATLAS_INFO.clusterName });
             await tool["connectToCluster"](entry, "mongodb://localhost", ATLAS_INFO, context.request);

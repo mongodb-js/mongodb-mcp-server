@@ -87,7 +87,7 @@ describe("StreamsBuildTool", () => {
     const exec = (args: Record<string, unknown>) =>
         tool["execute"](args as never, {
             request: {
-                config: (tool as unknown as { server: AtlasToolServer }).server.config,
+                server: (tool as unknown as { server: AtlasToolServer }).server,
                 signal: new AbortController().signal,
             },
         });

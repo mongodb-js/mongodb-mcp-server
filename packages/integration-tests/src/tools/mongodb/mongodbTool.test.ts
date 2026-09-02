@@ -15,7 +15,7 @@ import {
     type IMongoDBConfig,
 } from "@mongodb-js/mcp-tools-mongodb";
 import * as MongoDbTools from "@mongodb-js/mcp-tools-mongodb";
-import type { OperationType, ToolRequest } from "@mongodb-js/mcp-types";
+import type { OperationType, ToolRequest, ToolServer } from "@mongodb-js/mcp-types";
 import type { ToolArgs } from "@mongodb-js/mcp-core";
 import { type UserConfig } from "mongodb-mcp-server";
 import { CliServer } from "@mongodb-js/mcp-cli";
@@ -515,7 +515,7 @@ describe("MongoDBTool implementations", () => {
 
             const signal = AbortSignal.timeout(5000);
             const options = randomTool["getOperationOptions"]({
-                config: { maxTimeMS: mcpServer?.config.maxTimeMS },
+                server: mcpServer as unknown as ToolServer,
                 signal,
             } as ToolRequest<IMongoDBConfig>);
 
@@ -531,7 +531,7 @@ describe("MongoDBTool implementations", () => {
 
             const signal = AbortSignal.timeout(5000);
             const options = randomTool["getOperationOptions"]({
-                config: { maxTimeMS: mcpServer?.config.maxTimeMS },
+                server: mcpServer as unknown as ToolServer,
                 signal,
             } as ToolRequest<IMongoDBConfig>);
 
@@ -545,7 +545,7 @@ describe("MongoDBTool implementations", () => {
             const randomTool = tool as RandomTool;
 
             const options = randomTool["getOperationOptions"]({
-                config: { maxTimeMS: mcpServer?.config.maxTimeMS },
+                server: mcpServer as unknown as ToolServer,
                 signal: undefined as AbortSignal | undefined,
             } as ToolRequest<IMongoDBConfig>);
 
@@ -559,7 +559,7 @@ describe("MongoDBTool implementations", () => {
             const randomTool = tool as RandomTool;
 
             const options = randomTool["getOperationOptions"]({
-                config: { maxTimeMS: mcpServer?.config.maxTimeMS },
+                server: mcpServer as unknown as ToolServer,
                 signal: undefined as AbortSignal | undefined,
             } as ToolRequest<IMongoDBConfig>);
 
@@ -574,7 +574,7 @@ describe("MongoDBTool implementations", () => {
 
             const signal = AbortSignal.timeout(5000);
             const options = randomTool["getOperationOptions"]({
-                config: { maxTimeMS: mcpServer?.config.maxTimeMS },
+                server: mcpServer as unknown as ToolServer,
                 signal,
             } as ToolRequest<IMongoDBConfig>);
 
@@ -588,7 +588,7 @@ describe("MongoDBTool implementations", () => {
             const randomTool = tool as RandomTool;
 
             const options = randomTool["getOperationOptions"]({
-                config: { maxTimeMS: mcpServer?.config.maxTimeMS },
+                server: mcpServer as unknown as ToolServer,
                 signal: undefined as AbortSignal | undefined,
             } as ToolRequest<IMongoDBConfig>);
 

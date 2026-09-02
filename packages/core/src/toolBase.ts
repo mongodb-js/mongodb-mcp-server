@@ -40,11 +40,10 @@ import { redact } from "mongodb-redact";
  * and the HTTP request under `ctx.http` (see the SDK's v1 → v2 migration
  * guide).
  *
- * @param config The effective configuration for this request. Passed through
- * to the execution context as `request.config` — the server holds no
- * per-request state, so the effective (possibly request-overridden) config
- * travels with the call instead of being baked onto any server-scoped
- * object.
+ * @param server The request-scoped server this request was built around.
+ * Carried on the execution context as `request.server` — the server is
+ * constructed fresh per request, so it already holds the effective
+ * (possibly request-overridden) config, read as `request.server.config`.
  * @param clientInfoProvider Optional source of the client identity negotiated
  * (or envelope-declared) for the request's server instance. The server holds
  * no per-client state, so the identity is carried on the execution context
@@ -52,7 +51,7 @@ import { redact } from "mongodb-redact";
  */
 export function toToolExecutionContext<TConfig extends IToolConfig = IToolConfig>(
     ctx: ServerContext,
-    config: TConfig,
+    server: ToolServer<ToolServices<TConfig>>,
     clientInfoProvider?: () => Implementation | undefined
 ): ToolExecutionContext<TConfig> {
     const headers: Record<string, unknown> = Object.fromEntries(ctx.http?.req?.headers ?? []);
@@ -61,7 +60,7 @@ export function toToolExecutionContext<TConfig extends IToolConfig = IToolConfig
     const mcpReq = (ctx as Partial<ServerContext>).mcpReq;
     return {
         request: {
-            config,
+            server,
             // raw is the original per-request `mcpReq` (id, method, _meta,
             // envelope, signal, ...) this request was built around.
             raw: mcpReq,
@@ -254,10 +253,10 @@ export type AnyToolClass = Omit<ToolClass<any, any>, "new"> & {
  * ## Protected Members Available to Subclasses
  *
  * - `server` - The server this tool reads its app-level services from
- *   (logger, keychain, telemetry, metrics, ...)
- * - `server.config` - The base server configuration (`IToolConfig`); the
- *   effective per-request config travels on the request object
- *   (`request.config`) instead
+ *   (logger, keychain, telemetry, metrics, ...). Every server is
+ *   request-scoped (the SDK constructs a fresh one per HTTP request), so
+ *   `server.config` already holds the effective per-request config — read it
+ *   directly, or via `request.server.config` on the execution context.
  * - `server.telemetry` - Telemetry service for tracking usage
  * - `server.elicitation` - Service for requesting user confirmations
  *
@@ -774,15 +773,16 @@ export abstract class ToolBase<
                     annotations: this.annotations,
                     _meta: this.toolMeta,
                 },
-                // The effective config and client identity are carried on the
-                // request rather than baked onto any server-scoped object: the
-                // config is the effective (possibly request-overridden) config
-                // for this request, and the identity is merged in here. Both
-                // travel to the tool on the execution context.
+                // The request-scoped server and client identity are carried on
+                // the request rather than baked onto any server-scoped object:
+                // the server is the effective (possibly request-overridden)
+                // per-request server for this call (config read as
+                // `request.server.config`), and the identity is merged in here.
+                // Both travel to the tool on the execution context.
                 (args, ctx) =>
                     this.invoke(
                         args,
-                        toToolExecutionContext(ctx, this.server.config, () =>
+                        toToolExecutionContext(ctx, this.server, () =>
                             server.mcpServer?.server?.getClientVersion()
                         )
                     )

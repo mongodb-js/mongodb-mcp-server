@@ -16,9 +16,9 @@ describe("inspectCluster", () => {
         const context = {
             signal: new AbortController().signal,
             headers: { "x-request-id": "req-cluster-1" },
-        };
+        } as { signal: AbortSignal; headers: Record<string, unknown> };
 
-        await expect(inspectCluster(apiClient, "proj1", "cluster1", context)).rejects.toThrow();
+        await expect(inspectCluster(apiClient, "proj1", "cluster1", context as never)).rejects.toThrow();
 
         expect(error).toHaveBeenCalledWith(
             expect.objectContaining({
