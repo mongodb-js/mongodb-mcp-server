@@ -2767,9 +2767,9 @@ export class StreamsBuildTool extends StreamsToolBase {
     argsShape: {
         projectId: z.ZodString;
         resource: z.ZodEnum<{
-            workspace: "workspace";
-            connection: "connection";
             processor: "processor";
+            connection: "connection";
+            workspace: "workspace";
             privatelink: "privatelink";
         }>;
         workspaceName: z.ZodOptional<z.ZodString>;
@@ -2881,9 +2881,9 @@ export class StreamsBuildTool extends StreamsToolBase {
     // (undocumented)
     outputSchema: {
         resource: z.ZodEnum<{
-            workspace: "workspace";
-            connection: "connection";
             processor: "processor";
+            connection: "connection";
+            workspace: "workspace";
             privatelink: "privatelink";
         }>;
     };
@@ -3133,9 +3133,9 @@ export class StreamsTeardownTool extends StreamsToolBase {
     argsShape: {
         projectId: z.ZodString;
         resource: z.ZodEnum<{
-            workspace: "workspace";
-            connection: "connection";
             processor: "processor";
+            connection: "connection";
+            workspace: "workspace";
             privatelink: "privatelink";
             peering: "peering";
         }>;
@@ -3153,9 +3153,9 @@ export class StreamsTeardownTool extends StreamsToolBase {
     // (undocumented)
     outputSchema: {
         resource: z.ZodEnum<{
-            workspace: "workspace";
-            connection: "connection";
             processor: "processor";
+            connection: "connection";
+            workspace: "workspace";
             privatelink: "privatelink";
             peering: "peering";
         }>;
