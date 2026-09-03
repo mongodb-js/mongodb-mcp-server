@@ -218,6 +218,7 @@ describe("connectionInfo", () => {
             username: "testuser",
             projectId: "project123",
             clusterName: "TestCluster",
+            clusterId: "cluster123",
             instanceType: "FREE",
         };
 
@@ -264,6 +265,7 @@ describe("connectionInfo", () => {
             const result = getConnectionStringInfo(connectionString, config, {
                 projectId: "test-project-id",
                 clusterName: "test-cluster",
+                clusterId: "test-cluster-id",
             });
 
             expect(result).toEqual({

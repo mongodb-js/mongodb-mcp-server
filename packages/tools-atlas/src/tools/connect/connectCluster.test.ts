@@ -29,6 +29,7 @@ const ATLAS_INFO: AtlasClusterConnectionInfo = {
     username: "user1",
     projectId: "proj1",
     clusterName: "cluster1",
+    clusterId: "cluster1-id",
     instanceType: "DEDICATED",
 };
 
@@ -36,6 +37,7 @@ const ATLAS_INFO: AtlasClusterConnectionInfo = {
 // clusters skip the shared-tier alerts hook, keeping execute() free of extra
 // API calls.
 const CLUSTER_DESCRIPTION = {
+    id: "cluster1-id",
     name: "cluster1",
     stateName: "IDLE",
     replicationSpecs: [
@@ -130,6 +132,30 @@ describe("ConnectClusterTool", () => {
             const connectionId = result.structuredContent?.connectionId;
             const entry = await connectionRegistry.peek(connectionId);
             expect(entry?.name).toMatch(/^test-project-cluster1-[0-9a-f]{4}$/);
+        });
+
+        it("records the cluster id alongside the project and cluster name on the connection", async () => {
+            const result = await tool["execute"](args, { signal: new AbortController().signal });
+
+            const connectionId = result.structuredContent?.connectionId;
+            const entry = await connectionRegistry.peek(connectionId);
+            expect(entry?.state.connectedAtlasCluster).toMatchObject({
+                projectId: "proj1",
+                clusterName: "cluster1",
+                clusterId: "cluster1-id",
+                instanceType: "DEDICATED",
+            });
+        });
+
+        it("fails before creating a temporary user when the Atlas API omits the cluster id", async () => {
+            const { id: _id, ...withoutId } = CLUSTER_DESCRIPTION;
+            void _id;
+            mockApiClient.getCluster?.mockResolvedValue(withoutId);
+
+            await expect(tool["execute"](args, { signal: new AbortController().signal })).rejects.toThrow(
+                'Atlas did not return an id for cluster "cluster1" in project "proj1"'
+            );
+            expect(mockApiClient.createDatabaseUser).not.toHaveBeenCalled();
         });
 
         it("falls back to the cluster name alone when the project lookup fails", async () => {

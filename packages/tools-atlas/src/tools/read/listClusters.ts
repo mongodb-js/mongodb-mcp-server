@@ -18,6 +18,7 @@ export const ListClustersArgs = {
 
 export const ClusterOutputSchema = {
     name: z.string().optional(),
+    clusterId: z.string().optional(),
     instanceType: z.enum(["FREE", "DEDICATED", "FLEX"]),
     instanceSize: z.string().optional(),
     provider: z.string().optional(),

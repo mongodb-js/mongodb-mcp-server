@@ -156,6 +156,7 @@ describeWithMongoDB("Connection Manager", (integration) => {
                 username: "",
                 projectId: "",
                 clusterName: "My Atlas Cluster",
+                clusterId: "my-atlas-cluster-id",
                 instanceType: "FREE" as const,
             };
 
@@ -198,6 +199,7 @@ describeWithMongoDB("Connection Manager", (integration) => {
             const atlas = {
                 projectId: "test-project-id",
                 clusterName: "My Atlas Cluster",
+                clusterId: "my-atlas-cluster-id",
             };
 
             beforeEach(async () => {

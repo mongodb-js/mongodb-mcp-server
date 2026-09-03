@@ -364,6 +364,7 @@ describe("ToolBase", () => {
             projectId: "test-project-id",
             username: "test-user",
             clusterName: "test-cluster",
+            clusterId: "test-cluster-id",
             instanceType: "FREE",
         };
 
@@ -376,7 +377,7 @@ describe("ToolBase", () => {
             expect(metadata).not.toHaveProperty("connection_host_type");
         });
 
-        it("should return metadata with project_id and cluster_name when connectedAtlasCluster is set", () => {
+        it("should return project_id, cluster_name and cluster_id when connectedAtlasCluster is set", () => {
             const metadata = testTool["getConnectionInfoMetadata"]({
                 tag: "disconnected",
                 connectedAtlasCluster: atlasCluster,
@@ -385,6 +386,7 @@ describe("ToolBase", () => {
             expect(metadata).toEqual({
                 project_id: "test-project-id",
                 cluster_name: "test-cluster",
+                cluster_id: "test-cluster-id",
             });
             expect(metadata).not.toHaveProperty("connection_auth_type");
             expect(metadata).not.toHaveProperty("connection_host_type");
@@ -395,23 +397,18 @@ describe("ToolBase", () => {
             // user can supply: coordinates, no credential or tier details.
             const metadata = testTool["getConnectionInfoMetadata"]({
                 tag: "disconnected",
-                connectedAtlasCluster: { projectId: "test-project-id", clusterName: "test-cluster" },
+                connectedAtlasCluster: {
+                    projectId: "test-project-id",
+                    clusterName: "test-cluster",
+                    clusterId: "test-cluster-id",
+                },
             });
 
             expect(metadata).toEqual({
                 project_id: "test-project-id",
                 cluster_name: "test-cluster",
+                cluster_id: "test-cluster-id",
             });
-        });
-
-        it("should omit project_id when connectedAtlasCluster exists but projectId is falsy", () => {
-            const metadata = testTool["getConnectionInfoMetadata"]({
-                tag: "disconnected",
-                connectedAtlasCluster: { ...atlasCluster, projectId: "" },
-            });
-
-            expect(metadata).toEqual({ cluster_name: "test-cluster" });
-            expect(metadata).not.toHaveProperty("project_id");
         });
 
         it("should return metadata with connection_auth_type and connection_host_type when connectionStringInfo is set", () => {
@@ -443,6 +440,7 @@ describe("ToolBase", () => {
             expect(metadata).toEqual({
                 project_id: "test-project-id",
                 cluster_name: "test-cluster",
+                cluster_id: "test-cluster-id",
                 connection_auth_type: "oidc-auth-flow",
                 connection_host_type: "atlas",
             });

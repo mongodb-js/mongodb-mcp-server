@@ -202,6 +202,7 @@ export type AtlasCloudProvider = z.infer<typeof atlasCloudProviderSchema>;
 export type AtlasClusterConnectionInfo = {
     projectId: string;
     clusterName: string;
+    clusterId: string;
     username?: string;
     instanceType?: "FREE" | "FLEX" | "DEDICATED";
 };
@@ -553,8 +554,8 @@ export const ConnectionConfig: z.ZodObject<{
     dbRoleToExecute: z.ZodOptional<z.ZodObject<{
         role: z.ZodOptional<z.ZodString>;
         type: z.ZodOptional<z.ZodEnum<{
-            CUSTOM: "CUSTOM";
             BUILT_IN: "BUILT_IN";
+            CUSTOM: "CUSTOM";
         }>>;
     }, z.core.$strip>>;
     aws: z.ZodOptional<z.ZodObject<{
@@ -798,9 +799,9 @@ export const ConnectionSummarySchema: z.ZodObject<{
         explicit: "explicit";
     }>;
     state: z.ZodOptional<z.ZodEnum<{
+        disconnected: "disconnected";
         connected: "connected";
         connecting: "connecting";
-        disconnected: "disconnected";
         errored: "errored";
     }>>;
     description: z.ZodString;
@@ -1048,13 +1049,13 @@ export const CreateDBUserArgs: {
     password: z.ZodOptional<z.ZodString>;
     roles: z.ZodArray<z.ZodObject<{
         roleName: z.ZodUnion<readonly [z.ZodEnum<{
-            backup: "backup";
-            read: "read";
             atlasAdmin: "atlasAdmin";
+            backup: "backup";
             clusterMonitor: "clusterMonitor";
             dbAdmin: "dbAdmin";
             dbAdminAnyDatabase: "dbAdminAnyDatabase";
             enableSharding: "enableSharding";
+            read: "read";
             readAnyDatabase: "readAnyDatabase";
             readWrite: "readWrite";
             readWriteAnyDatabase: "readWriteAnyDatabase";
@@ -1074,13 +1075,13 @@ export class CreateDBUserTool extends AtlasToolBase {
         password: z.ZodOptional<z.ZodString>;
         roles: z.ZodArray<z.ZodObject<{
             roleName: z.ZodUnion<readonly [z.ZodEnum<{
-                backup: "backup";
-                read: "read";
                 atlasAdmin: "atlasAdmin";
+                backup: "backup";
                 clusterMonitor: "clusterMonitor";
                 dbAdmin: "dbAdmin";
                 dbAdminAnyDatabase: "dbAdminAnyDatabase";
                 enableSharding: "enableSharding";
+                read: "read";
                 readAnyDatabase: "readAnyDatabase";
                 readWrite: "readWrite";
                 readWriteAnyDatabase: "readWriteAnyDatabase";
@@ -1183,8 +1184,8 @@ export class CreateIndexTool extends MongoDBToolBase {
                 }>>;
                 quantization: z.ZodDefault<z.ZodEnum<{
                     none: "none";
-                    binary: "binary";
                     scalar: "scalar";
+                    binary: "binary";
                 }>>;
             }, z.core.$strict>, z.ZodObject<{
                 type: z.ZodLiteral<"autoEmbed">;
@@ -1226,9 +1227,9 @@ export class CreateIndexTool extends MongoDBToolBase {
         collection: z.ZodString;
         indexName: z.ZodString;
         indexType: z.ZodEnum<{
-            search: "search";
-            vectorSearch: "vectorSearch";
             classic: "classic";
+            vectorSearch: "vectorSearch";
+            search: "search";
         }>;
     };
     // (undocumented)
@@ -1389,8 +1390,8 @@ export class DisconnectTool extends MongoDBToolBase {
     // (undocumented)
     outputSchema: {
         outcome: z.ZodEnum<{
-            disconnected: "disconnected";
             removed: "removed";
+            disconnected: "disconnected";
         }>;
     };
     // (undocumented)
@@ -1462,8 +1463,8 @@ export class DropIndexTool extends MongoDBToolBase {
     argsShape: {
         indexName: z.ZodString;
         type: z.ZodEnum<{
-            search: "search";
             classic: "classic";
+            search: "search";
         }>;
         collection: z.ZodString;
         database: z.ZodString;
@@ -1586,9 +1587,9 @@ export class ExplainTool extends MongoDBToolBase {
     outputSchema: {
         explainResult: z.ZodRecord<z.ZodString, z.ZodUnknown>;
         method: z.ZodEnum<{
-            find: "find";
-            count: "count";
             aggregate: "aggregate";
+            count: "count";
+            find: "find";
         }>;
         verbosity: z.ZodEnum<{
             queryPlanner: "queryPlanner";
@@ -2177,6 +2178,7 @@ export class ListClustersTool extends AtlasToolBase {
             projectName: z.ZodOptional<z.ZodString>;
         }, z.core.$strip>, z.ZodObject<{
             name: z.ZodOptional<z.ZodString>;
+            clusterId: z.ZodOptional<z.ZodString>;
             instanceType: z.ZodEnum<{
                 FREE: "FREE";
                 DEDICATED: "DEDICATED";
@@ -2250,9 +2252,9 @@ export class ListConnectionsTool extends MongoDBToolBase {
                 explicit: "explicit";
             }>;
             state: z.ZodOptional<z.ZodEnum<{
+                disconnected: "disconnected";
                 connected: "connected";
                 connecting: "connecting";
-                disconnected: "disconnected";
                 errored: "errored";
             }>>;
             description: z.ZodString;
@@ -2456,8 +2458,8 @@ export class LoadSampleDatasetTool extends AtlasToolBase {
         jobId: z.ZodString;
         clusterName: z.ZodString;
         state: z.ZodEnum<{
-            WORKING: "WORKING";
             FAILED: "FAILED";
+            WORKING: "WORKING";
             COMPLETED: "COMPLETED";
         }>;
         createDate: z.ZodString;
@@ -2764,8 +2766,8 @@ export class StreamsBuildTool extends StreamsToolBase {
         projectId: z.ZodString;
         resource: z.ZodEnum<{
             processor: "processor";
-            workspace: "workspace";
             connection: "connection";
+            workspace: "workspace";
             privatelink: "privatelink";
         }>;
         workspaceName: z.ZodOptional<z.ZodString>;
@@ -2776,17 +2778,17 @@ export class StreamsBuildTool extends StreamsToolBase {
         }>>;
         region: z.ZodOptional<z.ZodString>;
         tier: z.ZodOptional<z.ZodEnum<{
-            SP50: "SP50";
-            SP30: "SP30";
-            SP10: "SP10";
-            SP5: "SP5";
             SP2: "SP2";
+            SP5: "SP5";
+            SP10: "SP10";
+            SP30: "SP30";
+            SP50: "SP50";
         }>>;
         includeSampleData: z.ZodOptional<z.ZodBoolean>;
         connectionName: z.ZodOptional<z.ZodString>;
         connectionType: z.ZodOptional<z.ZodEnum<{
-            Cluster: "Cluster";
             Kafka: "Kafka";
+            Cluster: "Cluster";
             S3: "S3";
             Https: "Https";
             AWSKinesisDataStreams: "AWSKinesisDataStreams";
@@ -2817,8 +2819,8 @@ export class StreamsBuildTool extends StreamsToolBase {
             dbRoleToExecute: z.ZodOptional<z.ZodObject<{
                 role: z.ZodOptional<z.ZodString>;
                 type: z.ZodOptional<z.ZodEnum<{
-                    CUSTOM: "CUSTOM";
                     BUILT_IN: "BUILT_IN";
+                    CUSTOM: "CUSTOM";
                 }>>;
             }, z.core.$strip>>;
             aws: z.ZodOptional<z.ZodObject<{
@@ -2878,8 +2880,8 @@ export class StreamsBuildTool extends StreamsToolBase {
     outputSchema: {
         resource: z.ZodEnum<{
             processor: "processor";
-            workspace: "workspace";
             connection: "connection";
+            workspace: "workspace";
             privatelink: "privatelink";
         }>;
     };
@@ -2945,10 +2947,10 @@ export class StreamsDiscoverTool extends StreamsToolBase {
             connectionCount: z.ZodNumber;
         }, z.core.$strip>>;
         processorState: z.ZodOptional<z.ZodEnum<{
-            FAILED: "FAILED";
             STARTED: "STARTED";
             STOPPED: "STOPPED";
             CREATED: "CREATED";
+            FAILED: "FAILED";
         }>>;
         tier: z.ZodOptional<z.ZodString>;
         stats: z.ZodOptional<z.ZodObject<{
@@ -3012,11 +3014,11 @@ export class StreamsManageTool extends StreamsToolBase {
         }>;
         resourceName: z.ZodOptional<z.ZodString>;
         tier: z.ZodOptional<z.ZodEnum<{
-            SP50: "SP50";
-            SP30: "SP30";
-            SP10: "SP10";
-            SP5: "SP5";
             SP2: "SP2";
+            SP5: "SP5";
+            SP10: "SP10";
+            SP30: "SP30";
+            SP50: "SP50";
         }>>;
         resumeFromCheckpoint: z.ZodOptional<z.ZodBoolean>;
         startAtOperationTime: z.ZodOptional<z.ZodString>;
@@ -3029,11 +3031,11 @@ export class StreamsManageTool extends StreamsToolBase {
         newName: z.ZodOptional<z.ZodString>;
         newRegion: z.ZodOptional<z.ZodString>;
         newTier: z.ZodOptional<z.ZodEnum<{
-            SP50: "SP50";
-            SP30: "SP30";
-            SP10: "SP10";
-            SP5: "SP5";
             SP2: "SP2";
+            SP5: "SP5";
+            SP10: "SP10";
+            SP30: "SP30";
+            SP50: "SP50";
         }>>;
         connectionConfig: z.ZodOptional<z.ZodObject<{
             bootstrapServers: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>]>, z.ZodTransform<string, string | string[]>>>;
@@ -3058,8 +3060,8 @@ export class StreamsManageTool extends StreamsToolBase {
             dbRoleToExecute: z.ZodOptional<z.ZodObject<{
                 role: z.ZodOptional<z.ZodString>;
                 type: z.ZodOptional<z.ZodEnum<{
-                    CUSTOM: "CUSTOM";
                     BUILT_IN: "BUILT_IN";
+                    CUSTOM: "CUSTOM";
                 }>>;
             }, z.core.$strip>>;
             aws: z.ZodOptional<z.ZodObject<{
@@ -3100,10 +3102,10 @@ export class StreamsManageTool extends StreamsToolBase {
     // (undocumented)
     outputSchema: {
         processorState: z.ZodOptional<z.ZodEnum<{
-            FAILED: "FAILED";
             STARTED: "STARTED";
             STOPPED: "STOPPED";
             CREATED: "CREATED";
+            FAILED: "FAILED";
         }>>;
         connectionState: z.ZodOptional<z.ZodEnum<{
             DELETING: "DELETING";
@@ -3130,8 +3132,8 @@ export class StreamsTeardownTool extends StreamsToolBase {
         projectId: z.ZodString;
         resource: z.ZodEnum<{
             processor: "processor";
-            workspace: "workspace";
             connection: "connection";
+            workspace: "workspace";
             privatelink: "privatelink";
             peering: "peering";
         }>;
@@ -3150,8 +3152,8 @@ export class StreamsTeardownTool extends StreamsToolBase {
     outputSchema: {
         resource: z.ZodEnum<{
             processor: "processor";
-            workspace: "workspace";
             connection: "connection";
+            workspace: "workspace";
             privatelink: "privatelink";
             peering: "peering";
         }>;

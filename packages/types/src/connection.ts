@@ -2,19 +2,21 @@
  * Atlas cluster connection info containing details about the connected Atlas cluster.
  * When provided, indicates the connection is to an Atlas cluster.
  *
- * Only the cluster's projectId + name are required, because they are all a host is
- * guaranteed to know. A host that establishes the connection without minting a
- * temporary database user — via its own credential issuance, X.509, a
- * pre-provisioned user, a proxy — still knows which cluster it connected to and
- * needs to be able to specify it: this field is what marks a connection as
- * pointing at Atlas, and leaving it unset prevents project attribution on tool
- * telemetry, the `atlas` host type, and the ability of `pause-resume-cluster`
- * to find connections to the cluster it just paused.
+ * The cluster's projectId, name and id are required. A host that establishes the
+ * connection without minting a temporary database user — via its own credential
+ * issuance, X.509, a pre-provisioned user, a proxy — still knows which cluster it
+ * connected to and needs to be able to specify it: this field is what marks a
+ * connection as pointing at Atlas, and leaving it unset prevents cluster
+ * attribution on tool telemetry, the `atlas` host type, and the ability of
+ * `pause-resume-cluster` to find connections to the cluster it just paused.
+ * Hosts that only know the cluster name should resolve the id through the Atlas
+ * API before connecting.
  */
 export type AtlasClusterConnectionInfo = {
-    /** Which Atlas cluster this connection points at. Always known. */
+    /** Which Atlas cluster this connection points at. */
     projectId: string;
     clusterName: string;
+    clusterId: string;
 
     /**
      * The temporary database user backing the connection. Set only by
