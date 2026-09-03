@@ -4,6 +4,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { ExplainOutput } from "@mongodb-js/mcp-tools-mongodb";
 import { ExplainPlan, type Stage } from "./logic/ExplainPlan.js";
 import { ExplainTree } from "./view/ExplainTree.js";
+import { SegmentedControl } from "./view/SegmentedControl.js";
 import { getTheme, spacing, type ExplainTheme } from "./theme.js";
 
 /** The host delivers the full CallToolResult via `ui/notifications/tool-result`. */
@@ -132,9 +133,55 @@ const PlannerOnlyFallback: React.FunctionComponent<{ plan: ExplainPlan; verbosit
     </div>
 );
 
+const TreeIcon = (): ReactElement => (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2">
+        <rect x="5" y="1" width="4" height="3" rx="0.5" />
+        <rect x="1" y="10" width="4" height="3" rx="0.5" />
+        <rect x="9" y="10" width="4" height="3" rx="0.5" />
+        <path d="M7 4V7M3 7H11M3 7V10M11 7V10" />
+    </svg>
+);
+
+const BracesIcon = (): ReactElement => (
+    <svg
+        width="14"
+        height="14"
+        viewBox="0 0 14 14"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+    >
+        <path d="M5.5 2.5C4 2.5 4 3.5 4 4.5V6c0 1-1 1.5-1 1.5s1 .5 1 1.5v1.5c0 1 0 2 1.5 2" />
+        <path d="M8.5 2.5c1.5 0 1.5 1 1.5 2V6c0 1 1 1.5 1 1.5s-1 .5-1 1.5v1.5c0 1 0 2-1.5 2" />
+    </svg>
+);
+
+/** Full raw-output view (the "Raw Output" segment), replacing the collapsed disclosure in tree mode. */
+const RawOutputView: React.FunctionComponent<{ data: unknown; theme: ExplainTheme }> = ({ data, theme }) => (
+    <pre
+        data-testid="explain-raw-view"
+        style={{
+            margin: 0,
+            padding: spacing[400],
+            fontSize: 11,
+            lineHeight: "16px",
+            border: `1px solid ${theme.detailsBorderColor}`,
+            borderRadius: spacing[200],
+            backgroundColor: theme.detailsBackgroundColor,
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
+            overflow: "auto",
+        }}
+    >
+        {JSON.stringify(data, null, 2)}
+    </pre>
+);
+
 export const Explain = (): ReactElement => {
     const [result, setResult] = useState<ToolResult | null>(null);
     const [darkMode, setDarkMode] = useState(false);
+    const [view, setView] = useState<"tree" | "raw">("tree");
 
     const { app, error } = useApp({
         appInfo: APP_INFO,
@@ -198,9 +245,25 @@ export const Explain = (): ReactElement => {
     } else if (plan.executionStats?.executionStages) {
         body = (
             <>
-                <SummaryBar plan={plan} method={data.method} verbosity={data.verbosity} theme={theme} />
-                <ExplainTree executionStats={plan.executionStats} darkMode={darkMode} />
-                <RawExplain data={plan.originalExplainData} theme={theme} />
+                <div style={{ marginBottom: spacing[400] }}>
+                    <SegmentedControl
+                        theme={theme}
+                        value={view}
+                        onChange={(next) => setView(next === "raw" ? "raw" : "tree")}
+                        options={[
+                            { value: "tree", label: "Visual Tree", icon: <TreeIcon /> },
+                            { value: "raw", label: "Raw Output", icon: <BracesIcon /> },
+                        ]}
+                    />
+                </div>
+                {view === "tree" ? (
+                    <>
+                        <SummaryBar plan={plan} method={data.method} verbosity={data.verbosity} theme={theme} />
+                        <ExplainTree executionStats={plan.executionStats} darkMode={darkMode} />
+                    </>
+                ) : (
+                    <RawOutputView data={plan.originalExplainData} theme={theme} />
+                )}
             </>
         );
     } else {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-import { render, screen, waitFor, act, cleanup } from "@testing-library/react";
+import { render, screen, waitFor, act, cleanup, fireEvent } from "@testing-library/react";
 
 /**
  * Mock the ext-apps host bridge: captures the handlers the widget registers in
@@ -137,6 +137,32 @@ describe("Explain", () => {
         // winning plan outline lists the stage
         expect(screen.getByTestId("explain-planner-outline")).toHaveTextContent("COLLSCAN");
         expect(screen.queryByTestId("explain-tree")).not.toBeInTheDocument();
+    });
+
+    it("toggles between visual tree and raw output views", async () => {
+        render(<Explain />);
+
+        sendToolResult(classicExplainResult, "executionStats");
+
+        await waitFor(() => {
+            expect(screen.getByTestId("explain-tree")).toBeInTheDocument();
+        });
+
+        // visual tree is the default selected segment
+        expect(screen.getByRole("button", { name: /Visual Tree/ })).toHaveAttribute("aria-pressed", "true");
+
+        fireEvent.click(screen.getByRole("button", { name: /Raw Output/ }));
+
+        await waitFor(() => {
+            expect(screen.getByTestId("explain-raw-view")).toBeInTheDocument();
+        });
+        expect(screen.queryByTestId("explain-tree")).not.toBeInTheDocument();
+        expect(screen.getByTestId("explain-raw-view")).toHaveTextContent('"FETCH"');
+
+        fireEvent.click(screen.getByRole("button", { name: /Visual Tree/ }));
+        await waitFor(() => {
+            expect(screen.getByTestId("explain-tree")).toBeInTheDocument();
+        });
     });
 
     it("applies the dark theme from the host context", async () => {

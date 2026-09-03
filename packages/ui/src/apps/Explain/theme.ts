@@ -59,6 +59,8 @@ export interface ExplainTheme {
     clockMsColor: string;
     clockPreviousArcColor: string;
     clockCurrentArcColor: string;
+    segmentedSelectedBackgroundColor: string;
+    segmentedSelectedTextColor: string;
 }
 
 export const lightTheme: ExplainTheme = {
@@ -81,6 +83,8 @@ export const lightTheme: ExplainTheme = {
     clockMsColor: css(color.blue["400"]),
     clockPreviousArcColor: css(color.neutral["200"]),
     clockCurrentArcColor: css(color.blue["400"]),
+    segmentedSelectedBackgroundColor: css(color.light.background["inverse-primary"]),
+    segmentedSelectedTextColor: css(color.light.text["inverse-primary"]),
 };
 
 export const darkTheme: ExplainTheme = {
@@ -103,6 +107,8 @@ export const darkTheme: ExplainTheme = {
     clockMsColor: css(color.blue["200"]),
     clockPreviousArcColor: css(color.neutral["600"]),
     clockCurrentArcColor: css(color.blue["200"]),
+    segmentedSelectedBackgroundColor: css(color.dark.background["inverse-primary"]),
+    segmentedSelectedTextColor: css(color.dark.text["inverse-primary"]),
 };
 
 export const getTheme = (darkMode: boolean): ExplainTheme => (darkMode ? darkTheme : lightTheme);
