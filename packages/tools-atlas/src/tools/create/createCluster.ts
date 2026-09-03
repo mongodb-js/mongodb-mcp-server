@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { type ToolArgs, type ToolResult } from "@mongodb-js/mcp-core";
+import { type ToolArgs, type ToolResult, ToolArgumentValidationError } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext, ToolRequest, CallToolResult } from "@mongodb-js/mcp-types";
 import type { IAtlasConfig } from "../../atlasTool.js";
 import { AtlasToolBase } from "../../atlasTool.js";
@@ -113,7 +113,7 @@ function buildVersionConfig(version: MongoDBVersion): {
     return { versionReleaseSystem: "LTS", mongoDBMajorVersion: version };
 }
 
-class CreateClusterError extends Error {}
+class CreateClusterError extends ToolArgumentValidationError {}
 
 export const CreateClusterArgsShape = {
     projectId: AtlasArgs.projectId().describe(

@@ -1,7 +1,7 @@
 import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase, type IMongoDBConfig } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
-import { formatUntrustedData } from "@mongodb-js/mcp-core";
+import { formatUntrustedData, ToolArgumentValidationError } from "@mongodb-js/mcp-core";
 import { z } from "zod";
 import type { Document } from "mongodb";
 import { AggregateArgs } from "../read/aggregate.js";
@@ -69,7 +69,9 @@ export class ExplainTool extends MongoDBToolBase {
         const method = methods[0];
 
         if (!method) {
-            throw new Error("No method provided. Expected one of the following: `aggregate`, `find`, or `count`");
+            throw new ToolArgumentValidationError(
+                "No method provided. Expected one of the following: `aggregate`, `find`, or `count`"
+            );
         }
 
         let result: Document;

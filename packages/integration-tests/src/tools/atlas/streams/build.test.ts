@@ -132,7 +132,13 @@ describeWithStreams("atlas-streams-build", (integration) => {
                 }
             });
 
-            it("creates a SchemaRegistry connection with dummy creds", async () => {
+            // TODO(MCP-645): Skipped — the Atlas API validates SchemaRegistry connection URLs
+            // strictly at create time and rejects placeholder/reachable-but-not-registry URLs with
+            // "Invalid url." (both `dummy-registry.example.com` and `cloud-dev.mongodb.com`
+            // fail). This requires a real, reachable Confluent Schema Registry to succeed, so it
+            // can't run against the test environment. The connection-creation logic is covered by
+            // unit tests in packages/tools-atlas/src/tools/streams/build.test.ts.
+            it.skip("creates a SchemaRegistry connection with dummy creds", async () => {
                 const response = await integration.mcpClient().callTool({
                     name: "atlas-streams-build",
                     arguments: {

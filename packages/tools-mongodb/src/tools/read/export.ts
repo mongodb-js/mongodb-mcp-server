@@ -2,7 +2,7 @@ import { z } from "zod";
 import { ObjectId } from "bson";
 import type { AggregationCursor, FindCursor } from "mongodb";
 import type { CallToolResult } from "@mongodb-js/mcp-types";
-import type { ToolArgs } from "@mongodb-js/mcp-core";
+import { type ToolArgs, ToolArgumentValidationError } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase, type IMongoDBConfig } from "../../mongodbTool.js";
 import { FindArgs } from "./find.js";
@@ -72,7 +72,9 @@ export class ExportTool extends MongoDBToolBase {
         const provider = await this.resolveConnection(connectionId);
         const exportTarget = target[0];
         if (!exportTarget) {
-            throw new Error("Export target not provided. Expected one of the following: `aggregate`, `find`");
+            throw new ToolArgumentValidationError(
+                "Export target not provided. Expected one of the following: `aggregate`, `find`"
+            );
         }
 
         let cursor: FindCursor | AggregationCursor;

@@ -16,6 +16,7 @@ const vitestDefaultExcludes = [
 const NON_UNIT_PACKAGES = [
     "packages/accuracy-tests/**",
     "packages/browser-tests/**",
+    "packages/e2e-tests/**",
     "packages/eval-tests/**",
     "packages/integration-tests/**",
     "packages/scripts/**",
@@ -95,6 +96,18 @@ export default defineConfig({
                         ...ATLAS_CLUSTER_TESTS,
                         ...LONG_RUNNING_TESTS,
                     ],
+                },
+            },
+            {
+                extends: true,
+                test: {
+                    name: "e2e-tests",
+                    include: ["packages/e2e-tests/src/**/*.test.ts"],
+                    // Harness runs are slow; concurrency multiplies LLM cost and mongod instances.
+                    testTimeout: 20 * 60 * 1000,
+                    hookTimeout: 20 * 60 * 1000,
+                    fileParallelism: false,
+                    maxWorkers: 1,
                 },
             },
             {

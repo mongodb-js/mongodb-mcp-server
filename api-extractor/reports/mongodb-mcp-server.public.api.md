@@ -325,7 +325,6 @@ export interface CliServerOptions<TMetrics extends DefaultMetricDefinitions = De
     // (undocumented)
     atlasLocalClient?: Client;
     config: UserConfig;
-    readonly configValidated?: boolean;
     // (undocumented)
     connectionErrorHandler: ConnectionErrorHandler;
     // (undocumented)
@@ -972,6 +971,11 @@ export type ToolArgs<T extends ZodRawShape> = {
 };
 
 // @public
+export class ToolArgumentValidationError extends UserFacingError {
+    constructor(message: string);
+}
+
+// @public
 export abstract class ToolBase<TServer extends ToolServer = ToolServer, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
     constructor(server: TServer);
     // (undocumented)
@@ -1219,6 +1223,11 @@ export const UserConfigSchema: z.ZodObject<{
     }>]>>;
     browser: z.ZodOptional<z.ZodUnion<readonly [z.ZodLiteral<false>, z.ZodString]>>;
 }, z.core.$strip>;
+
+// @public
+export class UserFacingError extends Error {
+    constructor(message: string);
+}
 
 // (No @packageDocumentation comment for this package)
 

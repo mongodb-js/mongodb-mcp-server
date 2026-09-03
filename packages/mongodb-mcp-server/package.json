@@ -83,6 +83,7 @@
     "vitest": "^4.1.11"
   },
   "dependencies": {
+    "@modelcontextprotocol/node": "^2.0.0",
     "@mongodb-js/mcp-atlas-api-client": "workspace:*",
     "@mongodb-js/mcp-atlas-telemetry": "workspace:*",
     "@mongodb-js/mcp-cli": "workspace:*",
@@ -97,8 +98,7 @@
     "@mongodb-js/mcp-tools-mongodb": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
     "@mongodb-js/mcp-ui": "workspace:*",
-    "@mongosh/service-provider-node-driver": "^5.0.2",
-    "@modelcontextprotocol/node": "^2.0.0"
+    "@mongosh/service-provider-node-driver": "^5.0.2"
   },
   "engines": {
     "node": "^20.19.0 || ^22.13.0 || >= 24.0.0"

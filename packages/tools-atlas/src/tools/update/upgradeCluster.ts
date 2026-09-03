@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { type ToolArgs, type ToolResult } from "@mongodb-js/mcp-core";
+import { type ToolArgs, type ToolResult, ToolArgumentValidationError } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext, ToolRequest, CallToolResult } from "@mongodb-js/mcp-types";
 import { AtlasToolBase, type IAtlasConfig } from "../../atlasTool.js";
 import { formatCluster } from "../../helpers/cluster.js";
@@ -244,7 +244,7 @@ function buildScaleClusterBody(
     return { replicationSpecs };
 }
 
-class UpgradeClusterError extends Error {}
+class UpgradeClusterError extends ToolArgumentValidationError {}
 
 type DedicatedScalingArgs = {
     targetTier?: string;

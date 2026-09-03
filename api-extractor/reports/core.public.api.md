@@ -379,6 +379,11 @@ export type ToolArgs<T extends ZodRawShape> = {
 };
 
 // @public
+export class ToolArgumentValidationError extends UserFacingError {
+    constructor(message: string);
+}
+
+// @public
 export abstract class ToolBase<TServer extends ToolServer = ToolServer, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
     constructor(server: TServer);
     // (undocumented)

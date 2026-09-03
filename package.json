@@ -36,6 +36,7 @@
     "test:atlas": "vitest --project integration-atlas --coverage --run",
     "test:atlas-local": "vitest --project integration-atlas-local --coverage --run",
     "test:accuracy": "pnpm --filter @mongodb-js/mcp-accuracy-tests test",
+    "test:e2e-tests": "vitest --project e2e-tests --run --no-coverage",
     "test:browser": "pnpm --filter @mongodb-js/mcp-browser-tests test",
     "test:long-running-tests": "vitest --project long-running-tests --coverage",
     "test:local": "vitest --project unit --project integration --project ui --coverage --run",

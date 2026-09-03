@@ -4,7 +4,7 @@ export { NoopLogger } from "./logging/noopLogger.js";
 export { CompositeLogger } from "./logging/compositeLogger.js";
 export { Keychain, registerGlobalSecretToRedact } from "./keychain.js";
 export { NoopTelemetry } from "./telemetry/noopTelemetry.js";
-export { UserFacingError } from "./errors.js";
+export { UserFacingError, ToolArgumentValidationError } from "./errors.js";
 export type { Secret } from "mongodb-redact";
 export { McpServer } from "@modelcontextprotocol/server";
 export type { InputRequiredResult, CallToolResult } from "@modelcontextprotocol/server";
