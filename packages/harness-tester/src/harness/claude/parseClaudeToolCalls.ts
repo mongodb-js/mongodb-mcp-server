@@ -62,25 +62,15 @@ export function collectSessionJsonlToolCalls(claudeHomeDir: string, seenCallKeys
             }
         }
     };
-    const walk = (dir: string): void => {
-        let entries: fs.Dirent[];
-        try {
-            entries = fs.readdirSync(dir, { withFileTypes: true });
-        } catch {
-            return;
-        }
-        for (const e of entries) {
-            const fp = path.join(dir, e.name);
-            if (e.isDirectory()) {
-                walk(fp);
-            } else if (e.name.endsWith(".jsonl")) {
-                collectFrom(fp);
-            }
-        }
-    };
     try {
         if (fs.existsSync(projectsDir)) {
-            walk(projectsDir);
+            // `recursive` collects every entry under `projectsDir` in a single call.
+            const entries = fs.readdirSync(projectsDir, { recursive: true, withFileTypes: true });
+            for (const e of entries) {
+                if (e.isFile() && e.name.endsWith(".jsonl")) {
+                    collectFrom(path.join(e.parentPath, e.name));
+                }
+            }
         }
     } catch {
         // best-effort: return whatever was collected before the read failed
