@@ -54,7 +54,6 @@ describe("ListOrganizationsTool", () => {
             { limit: 10, pageNum: 1, includeCount: false, ...args },
             {
                 request: {
-                    server: (tool as unknown as { server: AtlasToolServer }).server,
                     signal: new AbortController().signal,
                 },
             }

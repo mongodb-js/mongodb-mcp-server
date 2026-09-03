@@ -15,7 +15,6 @@ import type {
     ConnectionMetadata,
     TelemetryToolMetadata,
     ToolEvent,
-    ToolServices,
     ToolServer,
     PreviewFeature,
     DefaultMetricDefinitions,
@@ -40,19 +39,18 @@ import { LogId } from "./logId.js";
  * and the HTTP request under `ctx.http` (see the SDK's v1 → v2 migration
  * guide).
  *
- * @param server The request-scoped server this request was built around.
- * Carried on the execution context as `request.server` — the server is
- * constructed fresh per request, so it already holds the effective
- * (possibly request-overridden) config, read as `request.server.config`.
- * @param clientInfoProvider Optional source of the client identity negotiated
- * (or envelope-declared) for the request's server instance. The server holds
- * no per-client state, so the identity is carried on the execution context
- * instead.
+ * The request-scoped server is NOT carried on the execution context's request:
+ * a tool reads services/config off its construction-time `this.server` (the
+ * same request-scoped instance, which already holds the effective
+ * possibly-request-overridden config). The execution context carries only
+ * per-request data.
+ * @param clientInfo The client identity negotiated (or envelope-declared) for
+ * the request's server instance. The server holds no per-client state, so the
+ * identity is carried on the execution context instead.
  */
 export function toToolExecutionContext<TConfig extends IToolConfig = IToolConfig>(
     ctx: ServerContext,
-    server: ToolServer<ToolServices<TConfig>>,
-    clientInfoProvider?: () => Implementation | undefined
+    clientInfo?: Implementation
 ): ToolExecutionContext<TConfig> {
     const headers: Record<string, unknown> = Object.fromEntries(ctx.http?.req?.headers ?? []);
     // Tests capture the raw `McpServer.registerTool` callback and invoke it
@@ -60,7 +58,6 @@ export function toToolExecutionContext<TConfig extends IToolConfig = IToolConfig
     const mcpReq = (ctx as Partial<ServerContext>).mcpReq;
     return {
         request: {
-            server,
             // raw is the original per-request `mcpReq` (id, method, _meta,
             // envelope, signal, ...) this request was built around.
             raw: mcpReq,
@@ -72,7 +69,7 @@ export function toToolExecutionContext<TConfig extends IToolConfig = IToolConfig
             sendNotification: mcpReq?.notify
                 ? (notification: unknown): Promise<void> => mcpReq.notify(notification as Notification)
                 : undefined,
-            clientInfo: clientInfoProvider ? normalizeClientInfo(clientInfoProvider()) : undefined,
+            clientInfo: normalizeClientInfo(clientInfo),
         },
     };
 }
@@ -270,7 +267,7 @@ export type AnyToolClass = Omit<ToolClass<any, any>, "new"> & {
  *   (logger, keychain, telemetry, metrics, ...). Every server is
  *   request-scoped (the SDK constructs a fresh one per HTTP request), so
  *   `server.config` already holds the effective per-request config — read it
- *   directly, or via `request.server.config` on the execution context.
+ *   directly off `this.server`.
  * - `server.telemetry` - Telemetry service for tracking usage
  * - `server.elicitation` - Service for requesting user confirmations
  *
@@ -794,17 +791,12 @@ export abstract class ToolBase<
                     annotations: this.annotations,
                     _meta: this.toolMeta,
                 },
-                // The request-scoped server and client identity are carried on
-                // the request rather than baked onto any server-scoped object:
-                // the server is the effective (possibly request-overridden)
-                // per-request server for this call (config read as
-                // `request.server.config`), and the identity is merged in here.
-                // Both travel to the tool on the execution context.
+                // The request-scoped server is already the tool's construction-time
+                // `this.server` (same instance), so tools read config/services off
+                // `this.server` rather than the request. Per-request identity travels
+                // on the execution context via `toToolExecutionContext`.
                 (args, ctx) =>
-                    this.invoke(
-                        args,
-                        toToolExecutionContext(ctx, this.server, () => server.mcpServer?.server?.getClientVersion())
-                    )
+                    this.invoke(args, toToolExecutionContext(ctx, server.mcpServer?.server?.getClientVersion()))
             );
 
         return true;

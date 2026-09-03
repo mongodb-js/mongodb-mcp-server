@@ -77,7 +77,6 @@ describe("StreamsManageTool", () => {
     const exec = (args: Record<string, unknown>) =>
         tool["execute"](args as never, {
             request: {
-                server: (tool as unknown as { server: AtlasToolServer }).server,
                 signal: new AbortController().signal,
             },
         });
@@ -328,7 +327,6 @@ describe("StreamsManageTool", () => {
 
             await tool["execute"]({ ...baseArgs, action: "stop-processor", resourceName: "proc1" } as never, {
                 request: {
-                    server: (tool as unknown as { server: AtlasToolServer }).server,
                     signal: new AbortController().signal,
                     headers: { "x-request-id": "req-stop-1" },
                 },

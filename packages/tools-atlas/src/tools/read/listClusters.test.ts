@@ -87,7 +87,6 @@ describe("ListClustersTool", () => {
     const exec = (args: Record<string, unknown> = { projectId }) =>
         tool["execute"](args as never, {
             request: {
-                server: (tool as unknown as { server: AtlasToolServer }).server,
                 signal: new AbortController().signal,
             },
         });

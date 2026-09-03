@@ -41,7 +41,7 @@ function extractToolInformation(): ToolInfo[] {
 
     for (const ToolClass of AllTools) {
         // Create a minimal instance to access instance properties.
-        // Tool constructors now receive a single `ToolServer` argument (name,
+        // Tool constructors now receive `{ server, transportRequest }` (name,
         // category and operationType are read from the class statics), so only
         // the services surface needs to be stubbed to instantiate.
         const dummyServer: ToolServer<ToolServices<IToolConfig>, DefaultMetricDefinitions> = {
@@ -67,7 +67,7 @@ function extractToolInformation(): ToolInfo[] {
         };
 
         try {
-            const instance = new ToolClass(dummyServer);
+            const instance = new ToolClass({ server: dummyServer });
 
             const description = instance.description || "No description available";
             tools.push({

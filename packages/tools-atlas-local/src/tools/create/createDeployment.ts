@@ -34,7 +34,7 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
 
     protected async executeWithAtlasLocalClient(
         { deploymentName, loadSampleData, imageTag }: ToolArgs<typeof this.argsShape>,
-        { client, context }: { client: Client; context: ToolExecutionContext<IAtlasLocalConfig> }
+        { client }: { client: Client; context: ToolExecutionContext<IAtlasLocalConfig> }
     ): Promise<ToolResult<typeof CreateDeploymentOutputSchema> & Pick<CallToolResult, "_meta">> {
         const deploymentOptions: CreateDeploymentOptions = {
             name: deploymentName,
@@ -44,9 +44,7 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
             },
             loadSampleData,
             imageTag,
-            ...(context.request.server.config.voyageApiKey
-                ? { voyageApiKey: context.request.server.config.voyageApiKey }
-                : {}),
+            ...(this.server.config.voyageApiKey ? { voyageApiKey: this.server.config.voyageApiKey } : {}),
             doNotTrack: !this.server.telemetry.isTelemetryEnabled(),
         };
         // Create the deployment

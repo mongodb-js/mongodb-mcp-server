@@ -67,7 +67,6 @@ describe("GetPerformanceAdvisorTool", () => {
     const exec = (args: Record<string, unknown>) =>
         tool["execute"](args as never, {
             request: {
-                server: (tool as unknown as { server: AtlasToolServer }).server,
                 signal: new AbortController().signal,
             },
         });

@@ -93,7 +93,7 @@ describe("ToolBase", () => {
 
             const result = await testTool["invoke"](
                 { param1: "test" },
-                { request: { server: mockServer, signal: new AbortController().signal } }
+                { request: { signal: new AbortController().signal } }
             );
 
             expect(result.content).toEqual([{ type: "text", text: "Test tool executed successfully" }]);
@@ -105,7 +105,7 @@ describe("ToolBase", () => {
 
             const result = await testTool["invoke"](
                 { param1: "test" },
-                { request: { server: mockServer, signal: new AbortController().signal } }
+                { request: { signal: new AbortController().signal } }
             );
 
             expect(result.content).toEqual([{ type: "text", text: "Test tool executed successfully" }]);
@@ -120,7 +120,7 @@ describe("ToolBase", () => {
 
             const result = await testTool["invoke"](
                 { param1: "test", param2: 42 },
-                { request: { server: mockServer, signal: new AbortController().signal } }
+                { request: { signal: new AbortController().signal } }
             );
 
             expect(result).toEqual(expected);
@@ -139,7 +139,6 @@ describe("ToolBase", () => {
                 { param1: "test", param2: 42 },
                 {
                     request: {
-                        server: mockServer,
                         signal: new AbortController().signal,
                         inputResponses: { confirmation: {} },
                     },
@@ -156,7 +155,7 @@ describe("ToolBase", () => {
 
             const result = await testTool["invoke"](
                 { param1: "test" },
-                { request: { server: mockServer, signal: new AbortController().signal } }
+                { request: { signal: new AbortController().signal } }
             );
 
             expect(result.isError).toBe(true);
@@ -181,7 +180,7 @@ describe("ToolBase", () => {
 
             const result = await testTool["invoke"](
                 { param1: "test" },
-                { request: { server: mockServer, signal: new AbortController().signal } }
+                { request: { signal: new AbortController().signal } }
             );
 
             expect(result.isError).toBe(true);
@@ -200,7 +199,7 @@ describe("ToolBase", () => {
             mockReadConfirmation.mockReturnValue(true);
 
             const context: ToolExecutionContext = {
-                request: { server: mockServer, signal: new AbortController().signal, id: 7 },
+                request: { signal: new AbortController().signal, id: 7 },
             };
             const result = testTool["requestConfirmation"]("Custom message", context);
 
@@ -212,7 +211,6 @@ describe("ToolBase", () => {
             mockReadConfirmation.mockReturnValue(undefined);
             const context: ToolExecutionContext = {
                 request: {
-                    server: mockServer,
                     signal: new AbortController().signal,
                     id: 42,
                     inputResponses: { confirmation: { action: "accept", content: { confirmation: "Yes" } } },
@@ -235,7 +233,7 @@ describe("ToolBase", () => {
 
             const result = await createConfirmingTool()["invoke"](
                 {},
-                { request: { server: mockServer, signal: new AbortController().signal } }
+                { request: { signal: new AbortController().signal } }
             );
 
             expect(result.isError).toBeUndefined();
@@ -247,7 +245,7 @@ describe("ToolBase", () => {
 
             const result = await createConfirmingTool()["invoke"](
                 {},
-                { request: { server: mockServer, signal: new AbortController().signal } }
+                { request: { signal: new AbortController().signal } }
             );
 
             expect(result.isError).toBe(true);
@@ -261,7 +259,7 @@ describe("ToolBase", () => {
 
                 const result = await createConfirmingTool()["invoke"](
                     {},
-                    { request: { server: mockServer, signal: new AbortController().signal } }
+                    { request: { signal: new AbortController().signal } }
                 );
                 expect(result.content).toEqual([{ type: "text", text: "executed" }]);
             } finally {
@@ -681,13 +679,12 @@ describe("ToolBase", () => {
     describe("invoke logging", () => {
         const contextWithRequestId: ToolExecutionContext = {
             request: {
-                server: mockServer,
                 signal: new AbortController().signal,
                 headers: { "x-request-id": "req-test-123" },
             },
         };
         const contextWithoutRequestId: ToolExecutionContext = {
-            request: { server: mockServer, signal: new AbortController().signal },
+            request: { signal: new AbortController().signal },
         };
 
         it("includes x-request-id in debug logs when context carries it", async () => {

@@ -69,7 +69,6 @@ describe("ListProjectsTool", () => {
     const exec = (args: Record<string, unknown> = {}) =>
         tool["execute"]({ limit: 10, pageNum: 1, includeCount: false, ...args } as never, {
             request: {
-                server: (tool as unknown as { server: AtlasToolServer }).server,
                 signal: new AbortController().signal,
             },
         });

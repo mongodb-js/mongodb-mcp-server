@@ -117,7 +117,6 @@ describe("ConnectClusterTool", () => {
         it("names the entry combining the project and cluster names", async () => {
             const result = await tool["execute"](args, {
                 request: {
-                    server: (tool as unknown as { server: AtlasToolServer }).server,
                     signal: new AbortController().signal,
                 },
             });
@@ -137,7 +136,6 @@ describe("ConnectClusterTool", () => {
 
             const result = await tool["execute"](args, {
                 request: {
-                    server: (tool as unknown as { server: AtlasToolServer }).server,
                     signal: new AbortController().signal,
                 },
             });
@@ -151,13 +149,11 @@ describe("ConnectClusterTool", () => {
         it("reuses the existing entry when called again for the same cluster", async () => {
             const first = await tool["execute"](args, {
                 request: {
-                    server: (tool as unknown as { server: AtlasToolServer }).server,
                     signal: new AbortController().signal,
                 },
             });
             const second = await tool["execute"](args, {
                 request: {
-                    server: (tool as unknown as { server: AtlasToolServer }).server,
                     signal: new AbortController().signal,
                 },
             });
@@ -173,7 +169,6 @@ describe("ConnectClusterTool", () => {
         it("creates a separate entry for a different cluster", async () => {
             const first = await tool["execute"](args, {
                 request: {
-                    server: (tool as unknown as { server: AtlasToolServer }).server,
                     signal: new AbortController().signal,
                 },
             });
@@ -182,7 +177,6 @@ describe("ConnectClusterTool", () => {
                 { ...args, clusterName: "cluster2" },
                 {
                     request: {
-                        server: (tool as unknown as { server: AtlasToolServer }).server,
                         signal: new AbortController().signal,
                     },
                 }
@@ -197,7 +191,6 @@ describe("ConnectClusterTool", () => {
         it("includes x-request-id in attempt and success debug logs", async () => {
             const context: ToolExecutionContext<IAtlasConfig> = {
                 request: {
-                    server: (tool as unknown as { server: AtlasToolServer }).server,
                     signal: new AbortController().signal,
                     headers: { "x-request-id": "req-connect-abc" },
                 },
@@ -227,7 +220,6 @@ describe("ConnectClusterTool", () => {
         it("omits x-request-id from log attributes when context carries no headers", async () => {
             const context: ToolExecutionContext<IAtlasConfig> = {
                 request: {
-                    server: (tool as unknown as { server: AtlasToolServer }).server,
                     signal: new AbortController().signal,
                 },
             };

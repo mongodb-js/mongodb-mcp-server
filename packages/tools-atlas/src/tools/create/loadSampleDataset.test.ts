@@ -87,7 +87,6 @@ describe("LoadSampleDatasetTool", () => {
     const exec = (args: Record<string, unknown>) =>
         tool["execute"](z.object(LoadSampleDatasetArgs).parse(args) as never, {
             request: {
-                server: (tool as unknown as { server: AtlasToolServer }).server,
                 signal: new AbortController().signal,
             },
         });

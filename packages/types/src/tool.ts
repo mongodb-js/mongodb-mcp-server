@@ -82,30 +82,23 @@ export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant" | "
  * The request object passed to tool implementations: everything derived from
  * the individual request being handled. It is built fresh for each tool call
  * and deliberately lives nowhere else — the server holds no per-client or
- * per-request state. Because every server is request-scoped, the effective
- * (possibly request-overridden) config lives on it and is read as
- * `request.server.config`; the raw SDK request context and other per-request
- * data travel on the request itself (see `ToolExecutionContext.request`).
+ * per-request state. The request-scoped server (and the effective,
+ * possibly request-overridden config it carries) is NOT on the request: tools
+ * read it off their construction-time `this.server` (the same instance). The
+ * per-request data (raw SDK request, signal, id, headers, client identity,
+ * ...) travels on the request itself (see `ToolExecutionContext.request`).
  */
+// TConfig is retained for backward compatibility with existing `ToolRequest<...>`
+// annotations even though the request no longer carries the config-typed server.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export type ToolRequest<TConfig extends IToolConfig = IToolConfig> = {
-    /**
-     * The request-scoped server instance this request was built around. The
-     * SDK's serving entries construct a fresh server per request
-     * (`createMcpHandler` once per HTTP request, `serveStdio` once per
-     * connection), so the server already carries the effective (possibly
-     * request-overridden) config: read it as `request.server.config`. The
-     * tool's construction-time `this.server` is the same instance and remains
-     * a valid shortcut. There is no `request.config` alias — the server is
-     * the single carrier of the effective config.
-     */
-    readonly server: ToolServer<ToolServices<TConfig>>;
     /**
      * The original request this request object was built around: the SDK's
      * per-request `mcpReq` object the tool call handler received. Undefined
      * when the tool is invoked directly in unit tests without a real SDK
-     * request. Prefer the normalized fields (`server`, `headers`, `id`,
-     * `clientInfo`, ...); reach for `raw` only when the typed surface does
-     * not cover what you need.
+     * request. Prefer the normalized fields (`headers`, `id`, `clientInfo`,
+     * ...); reach for `raw` only when the typed surface does not cover what
+     * you need.
      */
     readonly raw?: ServerContext["mcpReq"];
     /** AbortSignal for cancellation support */

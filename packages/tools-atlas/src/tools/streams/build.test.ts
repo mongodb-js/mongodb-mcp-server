@@ -87,7 +87,6 @@ describe("StreamsBuildTool", () => {
     const exec = async (args: Record<string, unknown>): Promise<CallToolResult> =>
         (await tool["execute"](args as never, {
             request: {
-                server: (tool as unknown as { server: AtlasToolServer }).server,
                 signal: new AbortController().signal,
             },
         })) as CallToolResult;

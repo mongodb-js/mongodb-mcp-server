@@ -73,10 +73,10 @@ export class FindTool extends MongoDBToolBase {
         try {
             const provider = await this.resolveConnection(connectionId);
 
-            this.assertMqlIsAllowed(request.server.config, filter, projection);
+            this.assertMqlIsAllowed(this.server.config, filter, projection);
 
             // Check if find operation uses an index if enabled
-            if (request.server.config.indexCheck) {
+            if (this.server.config.indexCheck) {
                 await checkIndexUsage({
                     database,
                     collection,
@@ -95,7 +95,7 @@ export class FindTool extends MongoDBToolBase {
                 });
             }
 
-            const limitOnFindCursor = this.getLimitForFindCursor(request.server.config, limit);
+            const limitOnFindCursor = this.getLimitForFindCursor(this.server.config, limit);
 
             findCursor = provider.find(database, collection, filter, {
                 projection,
@@ -113,19 +113,16 @@ export class FindTool extends MongoDBToolBase {
                             // use `limitOnFindCursor` calculated above, and
                             // we don't use the limit provided to the tool either.
                             maxTimeMS:
-                                request.server.config.maxTimeMS !== undefined
-                                    ? Math.min(
-                                          request.server.config.maxTimeMS,
-                                          request.server.config.queryCountMaxTimeMsCap
-                                      )
-                                    : request.server.config.queryCountMaxTimeMsCap,
+                                this.server.config.maxTimeMS !== undefined
+                                    ? Math.min(this.server.config.maxTimeMS, this.server.config.queryCountMaxTimeMsCap)
+                                    : this.server.config.queryCountMaxTimeMsCap,
                             signal: request.signal,
                         }),
                     undefined
                 ),
                 collectCursorUntilMaxBytesLimit({
                     cursor: findCursor,
-                    configuredMaxBytesPerQuery: request.server.config.maxBytesPerQuery,
+                    configuredMaxBytesPerQuery: this.server.config.maxBytesPerQuery,
                     toolResponseBytesLimit: responseBytesLimit,
                     abortSignal: request.signal,
                 }),

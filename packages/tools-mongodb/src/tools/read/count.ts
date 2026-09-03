@@ -38,10 +38,10 @@ export class CountTool extends MongoDBToolBase {
     ): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.resolveConnection(connectionId);
 
-        this.assertMqlIsAllowed(request.server.config, query);
+        this.assertMqlIsAllowed(this.server.config, query);
 
         // Check if count operation uses an index if enabled
-        if (request.server.config.indexCheck) {
+        if (this.server.config.indexCheck) {
             await checkIndexUsage({
                 database,
                 collection,
@@ -55,8 +55,8 @@ export class CountTool extends MongoDBToolBase {
                                 query,
                             },
                             verbosity: "queryPlanner",
-                            ...(request.server.config.maxTimeMS !== undefined && {
-                                maxTimeMS: request.server.config.maxTimeMS,
+                            ...(this.server.config.maxTimeMS !== undefined && {
+                                maxTimeMS: this.server.config.maxTimeMS,
                             }),
                         },
                         {

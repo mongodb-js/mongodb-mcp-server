@@ -47,7 +47,7 @@ export class LogsTool extends MongoDBToolBase {
             "admin",
             {
                 getLog: type,
-                ...(request.server.config.maxTimeMS !== undefined && { maxTimeMS: request.server.config.maxTimeMS }),
+                ...(this.server.config.maxTimeMS !== undefined && { maxTimeMS: this.server.config.maxTimeMS }),
             },
             {
                 signal: request.signal,

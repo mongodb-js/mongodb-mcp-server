@@ -41,14 +41,15 @@ export class UpdateManyTool extends MongoDBToolBase {
 
     protected async execute(
         { connectionId, database, collection, filter, update, upsert }: ToolArgs<typeof this.argsShape>,
-        { request }: ToolExecutionContext<IMongoDBConfig>
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        _context: ToolExecutionContext<IMongoDBConfig>
     ): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.resolveConnection(connectionId);
 
-        this.assertMqlIsAllowed(request.server.config, filter);
+        this.assertMqlIsAllowed(this.server.config, filter);
 
         // Check if update operation uses an index if enabled
-        if (request.server.config.indexCheck) {
+        if (this.server.config.indexCheck) {
             await checkIndexUsage({
                 database,
                 collection,
@@ -67,8 +68,8 @@ export class UpdateManyTool extends MongoDBToolBase {
                             ],
                         },
                         verbosity: "queryPlanner",
-                        ...(request.server.config.maxTimeMS !== undefined && {
-                            maxTimeMS: request.server.config.maxTimeMS,
+                        ...(this.server.config.maxTimeMS !== undefined && {
+                            maxTimeMS: this.server.config.maxTimeMS,
                         }),
                     });
                 },

@@ -80,7 +80,7 @@ export class ExportTool extends MongoDBToolBase {
         let cursor: FindCursor | AggregationCursor;
         if (exportTarget.name === "find") {
             const { filter, projection, sort, limit } = exportTarget.arguments;
-            this.assertMqlIsAllowed(request.server.config, filter, projection);
+            this.assertMqlIsAllowed(this.server.config, filter, projection);
             cursor = provider.find(database, collection, filter ?? {}, {
                 projection,
                 sort,
@@ -91,7 +91,7 @@ export class ExportTool extends MongoDBToolBase {
             });
         } else {
             const { pipeline } = exportTarget.arguments;
-            this.assertMqlIsAllowed(request.server.config, pipeline);
+            this.assertMqlIsAllowed(this.server.config, pipeline);
             cursor = provider.aggregate(database, collection, pipeline, {
                 promoteValues: false,
                 bsonRegExp: true,
@@ -130,7 +130,7 @@ export class ExportTool extends MongoDBToolBase {
         // This special case is to make it easier to work with exported data for
         // clients that still cannot reference resources (Cursor).
         // More information here: https://jira.mongodb.org/browse/MCP-104
-        if (this.isServerRunningLocally(request.server.config)) {
+        if (this.isServerRunningLocally(this.server.config)) {
             toolCallContent.push({
                 type: "text",
                 text: `Optionally, when the export is finished, the exported data can also be accessed under path - "${exportPath}"`,

@@ -59,7 +59,6 @@ describe("GetRegionsTool", () => {
     const exec = async (args: Record<string, unknown>): Promise<CallToolResult> =>
         (await tool["invoke"](z.object(GetRegionsArgsShape).strict().parse(tool.normalizeRawArgs(args)), {
             request: {
-                server: (tool as unknown as { server: AtlasToolServer }).server,
                 signal: new AbortController().signal,
             },
         })) as CallToolResult;

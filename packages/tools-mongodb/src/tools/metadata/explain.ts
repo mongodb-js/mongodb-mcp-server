@@ -78,7 +78,7 @@ export class ExplainTool extends MongoDBToolBase {
         switch (method.name) {
             case "aggregate": {
                 const { pipeline } = method.arguments;
-                this.assertMqlIsAllowed(request.server.config, pipeline);
+                this.assertMqlIsAllowed(this.server.config, pipeline);
                 result = await provider
                     .aggregate(
                         database,
@@ -96,7 +96,7 @@ export class ExplainTool extends MongoDBToolBase {
             }
             case "find": {
                 const { filter, ...rest } = method.arguments;
-                this.assertMqlIsAllowed(request.server.config, filter, rest.projection);
+                this.assertMqlIsAllowed(this.server.config, filter, rest.projection);
                 result = await provider
                     .find(database, collection, filter, {
                         ...rest,
@@ -107,7 +107,7 @@ export class ExplainTool extends MongoDBToolBase {
             }
             case "count": {
                 const { query } = method.arguments;
-                this.assertMqlIsAllowed(request.server.config, query);
+                this.assertMqlIsAllowed(this.server.config, query);
                 result = await provider.runCommandWithCheck(
                     database,
                     {

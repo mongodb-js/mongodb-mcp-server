@@ -44,7 +44,6 @@ import { ToolAnnotations } from '@modelcontextprotocol/server';
 import type { ToolCategory } from '@mongodb-js/mcp-types';
 import type { ToolExecutionContext } from '@mongodb-js/mcp-types';
 import type { ToolServer } from '@mongodb-js/mcp-types';
-import type { ToolServices } from '@mongodb-js/mcp-types';
 import type { Transport } from '@modelcontextprotocol/server';
 import type { TransportRequestContext } from '@mongodb-js/mcp-types';
 import type { TransportType } from '@mongodb-js/mcp-types';
@@ -455,7 +454,7 @@ export type ToolServerParam<TServer extends ToolServer = ToolServer> = {
 };
 
 // @public
-export function toToolExecutionContext<TConfig extends IToolConfig = IToolConfig>(ctx: ServerContext, server: ToolServer<ToolServices<TConfig>>, clientInfoProvider?: () => Implementation | undefined): ToolExecutionContext<TConfig>;
+export function toToolExecutionContext<TConfig extends IToolConfig = IToolConfig>(ctx: ServerContext, clientInfo?: Implementation): ToolExecutionContext<TConfig>;
 
 // @public
 export const TRANSPORT_PAYLOAD_LIMITS: Record<TransportType, number>;
