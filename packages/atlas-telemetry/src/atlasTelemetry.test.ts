@@ -272,6 +272,29 @@ describe("AtlasTelemetry", () => {
             expect(sentEvent.properties.session_id).toBe("session-at-emit");
         });
 
+        it("should not reject or throw when getCommonProperties throws", async () => {
+            vi.clearAllTimers();
+            telemetry = createAtlasTelemetry({
+                commonPropertiesOverride: () => {
+                    throw new Error("override failed");
+                },
+            });
+            await telemetry.setupPromise;
+            const unhandled = vi.fn();
+            process.on("unhandledRejection", unhandled);
+
+            try {
+                expect(() => telemetry.emitEvents([createTestEvent()])).not.toThrow();
+                await vi.advanceTimersByTimeAsync(SEND_INTERVAL_MS);
+            } finally {
+                process.off("unhandledRejection", unhandled);
+            }
+
+            expect(unhandled).not.toHaveBeenCalled();
+            expect(mockEventCache.appendEvents).not.toHaveBeenCalled();
+            expect(mockApiClient.sendEvents).not.toHaveBeenCalled();
+        });
+
         it("should add device_id to events emitted before setup completes", async () => {
             vi.clearAllTimers();
             let resolveDeviceId: (value: string) => void = () => {};

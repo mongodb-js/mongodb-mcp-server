@@ -34,7 +34,7 @@ export class EventCache<T extends TelemetryBaseEvent = TelemetryBaseEvent> {
      * Runs a callback with exclusive access to the cache so operations
      * are serialized across all callers (e.g. the send timer racing a close() flush).
      */
-    private async runExclusive<T>(fn: () => Promise<T>): Promise<T> {
+    private async runExclusive<R>(fn: () => Promise<R>): Promise<R> {
         const prevOperation = this.currentOperation;
 
         let resolve: (() => void) | undefined;

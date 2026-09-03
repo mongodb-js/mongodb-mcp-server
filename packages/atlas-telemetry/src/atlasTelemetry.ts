@@ -157,9 +157,14 @@ export class AtlasTelemetry implements ITelemetry {
     public async close(): Promise<void> {
         this.timer.cancel();
 
-        // Events emitted before setup finished are appended once setup resolves;
-        // wait for that so the final flush can include them.
-        await this.whenReady();
+        // The whole close is best-effort and bounded by CLOSE_TIMEOUT_MS: waiting for
+        // setup (so events emitted before it finished make it into the cache) and the
+        // final flush share the same budget, so a hung setup cannot block shutdown.
+        const signal = AbortSignal.timeout(CLOSE_TIMEOUT_MS);
+        await Promise.race([
+            this.whenReady(),
+            new Promise<void>((resolve) => signal.addEventListener("abort", () => resolve(), { once: true })),
+        ]);
 
         this.logger.debug({
             id: LogId.telemetryClose,
@@ -167,8 +172,7 @@ export class AtlasTelemetry implements ITelemetry {
             context: "telemetry",
         });
 
-        // Best-effort: send one final batch before closing, bounded by CLOSE_TIMEOUT_MS
-        await this.sendBatch({ signal: AbortSignal.timeout(CLOSE_TIMEOUT_MS) });
+        await this.sendBatch({ signal });
     }
 
     /**
@@ -184,15 +188,26 @@ export class AtlasTelemetry implements ITelemetry {
             this.events.emit("events-skipped");
             return;
         }
-        void this.whenReady().then(() => {
-            const commonProperties = this.getCommonProperties();
-            this.eventCache.appendEvents(
-                events.map((event) => ({
-                    ...event,
-                    properties: { ...commonProperties, ...event.properties },
-                }))
-            );
-        });
+        this.whenReady()
+            .then(() => {
+                const commonProperties = this.getCommonProperties();
+                this.eventCache.appendEvents(
+                    events.map((event) => ({
+                        ...event,
+                        properties: { ...commonProperties, ...event.properties },
+                    }))
+                );
+            })
+            .catch((error: unknown) => {
+                // Telemetry must never take the process down via an unhandled rejection,
+                // e.g. when a getCommonProperties override throws.
+                this.logger.debug({
+                    id: LogId.telemetryEmitFailure,
+                    context: "telemetry",
+                    message: `Error caching telemetry events: ${error instanceof Error ? error.message : String(error)}`,
+                    noRedaction: true,
+                });
+            });
     }
 
     /**
