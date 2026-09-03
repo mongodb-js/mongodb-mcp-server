@@ -14,7 +14,6 @@ import type {
 } from "@mongodb-js/mcp-types";
 import type { ConnectionMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { redact } from "mongodb-redact";
 import { ErrorCodes, MongoDBError } from "./common/errors.js";
 import type { ConnectionEntry, ConnectionRegistry } from "./common/connectionRegistry.js";
 import { assertNoServerSideJS, isWriteStage, type WriteStageTarget } from "./helpers/mqlGuards.js";
@@ -274,7 +273,7 @@ export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
                     // interpolated into any handler's (default or injected) output.
                     const connectionError = new MongoDBError(
                         rawConnectionError.code,
-                        redact(rawConnectionError.message, this.server.keychain.allSecrets)
+                        this.server.keychain.redact(rawConnectionError.message)
                     );
                     const outcome = await this.server.connectionErrorHandler(connectionError, {
                         availableTools: this.registrationServer?.tools ?? [],

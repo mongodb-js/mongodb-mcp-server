@@ -11,6 +11,7 @@ import type {
 import type { ToolArgs, InputRequiredResult } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
 import { ConnectionConfig, PrivateLinkConfig, StreamsArgs } from "../../streams/streamsArgs.js";
+import { StreamsInvalidArgumentError } from "../../streams/errors.js";
 
 const BuildResource = z.enum(["workspace", "connection", "processor", "privatelink"]);
 
@@ -39,7 +40,12 @@ const KAFKA_FIELDS = {
     },
     mechanism: {
         title: "Authentication Mechanism",
-        description: "SASL mechanism: 'PLAIN', 'SCRAM-256', or 'SCRAM-512'",
+        description: "SASL mechanism: 'PLAIN', 'SCRAM-256', 'SCRAM-512', 'OAUTHBEARER', or 'AWS_MSK_IAM'",
+    },
+    roleArn: {
+        title: "AWS IAM Role ARN",
+        description:
+            "IAM role ARN registered in this Atlas project via Cloud Provider Access. Required for AWS_MSK_IAM authentication.",
     },
     username: {
         title: "Username",
@@ -156,7 +162,7 @@ export class StreamsBuildTool extends StreamsToolBase {
             .describe("Connection name. Required when resource='connection'."),
         connectionType: ConnectionType.optional().describe(
             "Connection type. Required when resource='connection'. " +
-                "Kafka: needs bootstrapServers, authentication, security config. " +
+                "Kafka: needs bootstrapServers, authentication, and security config. Use authentication.mechanism='AWS_MSK_IAM' with authentication.aws.roleArn for MSK IAM authentication. " +
                 "Cluster: needs clusterName and dbRoleToExecute. " +
                 "S3: needs aws.roleArn (must be registered via Atlas Cloud Provider Access). " +
                 "Https: needs url. " +
@@ -243,7 +249,7 @@ export class StreamsBuildTool extends StreamsToolBase {
 
     private requireWorkspaceName(args: ToolArgs<typeof this.argsShape>): string {
         if (!args.workspaceName) {
-            throw new Error("workspaceName is required for this resource type.");
+            throw new StreamsInvalidArgumentError("workspaceName is required for this resource type.");
         }
         return args.workspaceName;
     }
@@ -254,10 +260,12 @@ export class StreamsBuildTool extends StreamsToolBase {
     ): Promise<CallToolResult> {
         const workspaceName = this.requireWorkspaceName(args);
         if (!args.cloudProvider) {
-            throw new Error("cloudProvider is required when creating a workspace. Choose from: AWS, AZURE, GCP.");
+            throw new StreamsInvalidArgumentError(
+                "cloudProvider is required when creating a workspace. Choose from: AWS, AZURE, GCP."
+            );
         }
         if (!args.region) {
-            throw new Error(
+            throw new StreamsInvalidArgumentError(
                 "region is required when creating a workspace (e.g. 'VIRGINIA_USA', 'eastus2', 'US_CENTRAL1')."
             );
         }
@@ -314,10 +322,10 @@ export class StreamsBuildTool extends StreamsToolBase {
     ): Promise<CallToolResult | InputRequiredResult> {
         const workspaceName = this.requireWorkspaceName(args);
         if (!args.connectionName) {
-            throw new Error("connectionName is required when adding a connection.");
+            throw new StreamsInvalidArgumentError("connectionName is required when adding a connection.");
         }
         if (!args.connectionType) {
-            throw new Error(
+            throw new StreamsInvalidArgumentError(
                 "connectionType is required. Choose from: Kafka, Cluster, S3, Https, AWSKinesisDataStreams, AWSLambda, SchemaRegistry, Sample."
             );
         }
@@ -400,11 +408,37 @@ export class StreamsBuildTool extends StreamsToolBase {
         const auth = config.authentication as Record<string, unknown> | undefined;
         const security = config.security as Record<string, unknown> | undefined;
 
+        // The required authentication fields depend on the mechanism. Ask for the
+        // mechanism first, then validate again to collect either IAM role details
+        // or SASL credentials rather than presenting incompatible fields together.
+        if (!auth?.mechanism) {
+            const mechanismFields = StreamsBuildTool.collectMissingFields([
+                { key: "bootstrapServers", present: !!config.bootstrapServers, schema: KAFKA_FIELDS.bootstrapServers },
+                { key: "mechanism", present: false, schema: KAFKA_FIELDS.mechanism },
+                { key: "protocol", present: !!security?.protocol, schema: KAFKA_FIELDS.protocol },
+            ]);
+            const result = this.elicitOrReportMissing("Kafka", config, mechanismFields, request, (fields, cfg) => {
+                if (fields.bootstrapServers) cfg.bootstrapServers = fields.bootstrapServers;
+                if (!cfg.authentication) cfg.authentication = {};
+                if (fields.mechanism) (cfg.authentication as Record<string, unknown>).mechanism = fields.mechanism;
+                if (!cfg.security) cfg.security = {};
+                if (fields.protocol) (cfg.security as Record<string, unknown>).protocol = fields.protocol;
+            });
+            return result ?? this.validateKafkaConfig(config, request);
+        }
+
+        const isMskIam = auth.mechanism === "AWS_MSK_IAM";
+        if (isMskIam) {
+            // SASL credentials do not apply to MSK IAM and must not be sent to Atlas.
+            delete auth.username;
+            delete auth.password;
+        }
+        const awsAuth = auth.aws as Record<string, unknown> | undefined;
         const missingFields = StreamsBuildTool.collectMissingFields([
             { key: "bootstrapServers", present: !!config.bootstrapServers, schema: KAFKA_FIELDS.bootstrapServers },
-            { key: "mechanism", present: !!auth?.mechanism, schema: KAFKA_FIELDS.mechanism },
-            { key: "username", present: !!auth?.username, schema: KAFKA_FIELDS.username },
-            { key: "password", present: !!auth?.password, schema: KAFKA_FIELDS.password },
+            { key: "roleArn", present: !isMskIam || !!awsAuth?.roleArn, schema: KAFKA_FIELDS.roleArn },
+            { key: "username", present: isMskIam || !!auth?.username, schema: KAFKA_FIELDS.username },
+            { key: "password", present: isMskIam || !!auth?.password, schema: KAFKA_FIELDS.password },
             { key: "protocol", present: !!security?.protocol, schema: KAFKA_FIELDS.protocol },
         ]);
 
@@ -419,6 +453,10 @@ export class StreamsBuildTool extends StreamsToolBase {
             if (fields.mechanism) authObj.mechanism = fields.mechanism;
             if (fields.username) authObj.username = fields.username;
             if (fields.password) authObj.password = fields.password;
+            if (fields.roleArn) {
+                if (!authObj.aws) authObj.aws = {};
+                (authObj.aws as Record<string, unknown>).roleArn = fields.roleArn;
+            }
             if (!cfg.security) cfg.security = {};
             const secObj = cfg.security as Record<string, unknown>;
             if (fields.protocol) secObj.protocol = fields.protocol;
@@ -784,10 +822,10 @@ export class StreamsBuildTool extends StreamsToolBase {
     ): Promise<CallToolResult> {
         const workspaceName = this.requireWorkspaceName(args);
         if (!args.processorName) {
-            throw new Error("processorName is required when deploying a processor.");
+            throw new StreamsInvalidArgumentError("processorName is required when deploying a processor.");
         }
         if (!args.pipeline || args.pipeline.length === 0) {
-            throw new Error(
+            throw new StreamsInvalidArgumentError(
                 "pipeline is required. Provide an array of aggregation stages starting with $source and ending with a terminal stage ($merge, $emit, $https, or $externalFunction)."
             );
         }
@@ -865,10 +903,10 @@ export class StreamsBuildTool extends StreamsToolBase {
         request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult> {
         if (!args.privateLinkConfig) {
-            throw new Error(
+            throw new StreamsInvalidArgumentError(
                 "privateLinkConfig is required. Provide provider and vendor-specific fields:\n" +
                     "  AWS CONFLUENT: {provider, vendor:'CONFLUENT', region, serviceEndpointId, dnsDomain, dnsSubDomain: string[] of full FQDNs ([] for serverless)}\n" +
-                    "  AWS MSK: {provider, vendor:'MSK', arn}\n" +
+                    "  AWS MSK: {provider, vendor:'MSK', arn, authenticationScheme:'TLS'|'SASL_SCRAM'|'IAM'}\n" +
                     "  AWS S3: {provider, vendor:'S3', region, serviceEndpointId:'com.amazonaws.<region>.s3'}\n" +
                     "  AWS KINESIS: {provider, vendor:'KINESIS', region, serviceEndpointId}\n" +
                     "  AZURE EVENTHUB: {provider, vendor:'EVENTHUB', region, dnsDomain, serviceEndpointId (full Azure Resource ID)}\n" +
@@ -877,7 +915,9 @@ export class StreamsBuildTool extends StreamsToolBase {
             );
         }
         if (!args.privateLinkConfig.provider) {
-            throw new Error("privateLinkConfig.provider is required. Choose from: AWS, AZURE, GCP.");
+            throw new StreamsInvalidArgumentError(
+                "privateLinkConfig.provider is required. Choose from: AWS, AZURE, GCP."
+            );
         }
 
         const body: Record<string, unknown> = {

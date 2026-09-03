@@ -902,7 +902,7 @@ describe("keychain management", () => {
     for (const { cliArg, secretKind } of testCases) {
         it(`should register ${cliArg} as a secret of kind ${secretKind} in the root keychain`, () => {
             parseUserConfig({ args: [`--${cliArg}`, cliArg] });
-            expect(keychain.allSecrets).toEqual([{ value: cliArg, kind: secretKind }]);
+            expect(keychain.redact(cliArg)).toBe(`<${secretKind}>`);
         });
     }
 
@@ -915,8 +915,7 @@ describe("keychain management", () => {
         it(`should register ${secretKey} as a secret in the root keychain`, () => {
             parseUserConfig({ args: [`--${secretKey}`, secretKey] });
 
-            const registeredSecret = keychain.allSecrets.find((s) => s.value === secretKey);
-            expect(registeredSecret).toBeDefined();
+            expect(keychain.redact(secretKey)).toMatch(/^<[a-z ]+>$/);
         });
     }
 });

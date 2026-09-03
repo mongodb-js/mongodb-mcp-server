@@ -1,4 +1,4 @@
-import { ReactiveResource, Keychain, redactValues } from "@mongodb-js/mcp-core";
+import { ReactiveResource } from "@mongodb-js/mcp-core";
 import type { UserConfig, CliServer } from "@mongodb-js/mcp-cli";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import { connectCapableTools } from "@mongodb-js/mcp-tools-mongodb";
@@ -51,8 +51,8 @@ export class ConfigResource extends ReactiveResource<UserConfig, CliServer> {
 
         // Backstop: redact any remaining registered secrets (keychain) before egress, matching
         // the redaction applied on every logging path. Redact per-value so JSON stays valid.
-        const secrets = [...this.server.keychain.allSecrets, ...Keychain.root.allSecrets];
-        return JSON.stringify(redactValues(result, secrets));
+        // keychain.redact merges root + server secrets before egress
+        return JSON.stringify(this.server.keychain.redact(result));
     }
 
     /**

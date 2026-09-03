@@ -18,9 +18,19 @@ export const ConnectionConfig = z
             ),
         authentication: z
             .object({
-                mechanism: z.enum(["PLAIN", "SCRAM-256", "SCRAM-512", "OAUTHBEARER"]).optional(),
+                mechanism: z.enum(["PLAIN", "SCRAM-256", "SCRAM-512", "OAUTHBEARER", "AWS_MSK_IAM"]).optional(),
                 username: z.string().optional(),
                 password: z.string().optional(),
+                aws: z
+                    .object({
+                        roleArn: z
+                            .string()
+                            .optional()
+                            .describe("IAM role ARN registered via Atlas Cloud Provider Access."),
+                    })
+                    .passthrough()
+                    .optional()
+                    .describe("AWS configuration for AWS_MSK_IAM Kafka authentication."),
             })
             .passthrough()
             .optional()
@@ -113,6 +123,12 @@ export const PrivateLinkConfig = z
                 "PrivateLink vendor. If the user does not specify a vendor, ask them which vendor to use before proceeding. If they decline or say none, omit this field — the Atlas API will default to GENERIC. Valid values — AWS: 'CONFLUENT', 'MSK', 'KINESIS', 'S3'. Azure: 'EVENTHUB', 'CONFLUENT'. GCP: 'CONFLUENT'."
             ),
         arn: z.string().optional().describe("Amazon Resource Name (ARN). Required for AWS MSK vendor."),
+        authenticationScheme: z
+            .enum(["TLS", "SASL_SCRAM", "IAM"])
+            .optional()
+            .describe(
+                "Authentication scheme for an AWS MSK PrivateLink endpoint. Use 'IAM' for MSK IAM authentication, 'SASL_SCRAM' for SCRAM, or 'TLS' for mutual TLS."
+            ),
         dnsDomain: z
             .string()
             .optional()

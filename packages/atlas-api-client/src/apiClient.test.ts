@@ -55,8 +55,8 @@ describe("ApiClient", () => {
             authProvider: credentialedProvider(),
         });
 
-        apiClient.authProvider.validate = vi.fn().mockResolvedValue(true);
-        apiClient.authProvider.getAuthHeaders = vi.fn().mockResolvedValue({
+        apiClient.authProvider!.validate = vi.fn().mockResolvedValue(true);
+        apiClient.authProvider!.getAuthHeaders = vi.fn().mockResolvedValue({
             Authorization: "Bearer mockToken",
         });
     });
@@ -381,7 +381,7 @@ describe("ApiClient", () => {
             const mockFetch = vi.spyOn(global, "fetch");
             mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
 
-            apiClient.authProvider.getAuthHeaders = vi.fn().mockRejectedValue(new Error("No access token available"));
+            apiClient.authProvider!.getAuthHeaders = vi.fn().mockRejectedValue(new Error("No access token available"));
 
             await apiClient.sendEvents(mockEvents);
 
@@ -404,7 +404,7 @@ describe("ApiClient", () => {
             const mockFetch = vi.spyOn(global, "fetch");
             mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
 
-            apiClient.authProvider.getAuthHeaders = vi.fn().mockResolvedValue(undefined);
+            apiClient.authProvider!.getAuthHeaders = vi.fn().mockResolvedValue(undefined);
 
             await apiClient.sendEvents(mockEvents);
 
@@ -454,7 +454,7 @@ describe("ApiClient", () => {
                 .mockResolvedValueOnce(new Response(null, { status: 500 }));
 
             const mockToken = "test-token";
-            apiClient.authProvider.getAuthHeaders = vi.fn().mockResolvedValue({
+            apiClient.authProvider!.getAuthHeaders = vi.fn().mockResolvedValue({
                 Authorization: `Bearer ${mockToken}`,
             });
 

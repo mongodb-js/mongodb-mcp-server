@@ -32,11 +32,9 @@ export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extend
         if (!attributes) {
             return undefined;
         }
-        const redacted: Record<string, string> = {};
-        for (const [key, value] of Object.entries(attributes)) {
-            redacted[key] = this.redactIfNecessary(value, noRedaction);
-        }
-        return redacted;
+        return Object.fromEntries(
+            Object.entries(attributes).map(([key, value]) => [key, this.redactIfNecessary(value, noRedaction)])
+        );
     }
 
     private redactIfNecessary(message: string, noRedaction: LogPayload["noRedaction"]): string {

@@ -44,7 +44,7 @@ describe("CreateAccessListTool", () => {
                 confirmationRequiredTools: [],
                 previewFeatures: [],
                 disabledTools: [],
-            } as AtlasToolServer["config"],
+            } as unknown as AtlasToolServer["config"],
         } as unknown as AtlasToolServer;
 
         const server: AtlasToolServer = {

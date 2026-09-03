@@ -23,6 +23,7 @@
   "scripts": {
     "compile": "tsc --project tsconfig.build.json",
     "build": "pnpm compile",
+    "check": "tsc --noEmit --project tsconfig.check.json",
     "pretest": "pnpm compile",
     "test": "vitest --run",
     "build:update-package-version": "node scripts/updatePackageVersion.ts"
@@ -37,6 +38,6 @@
   "devDependencies": {
     "@types/node": "^25.6.0",
     "typescript": "^5.9.2",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
   }
 }

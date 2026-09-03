@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import type express from "express";
 import { MCPHttpServer } from "./mcpHttpServer.js";
-import { LoggerBase, Keychain } from "@mongodb-js/mcp-core";
+import { RedactingLoggerBase, Keychain } from "@mongodb-js/mcp-core";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 import type {
     DefaultMetricDefinitions,
@@ -28,7 +28,7 @@ class MockMetrics
     }
 }
 
-class InMemoryLogger extends LoggerBase implements ICompositeLogger {
+class InMemoryLogger extends RedactingLoggerBase implements ICompositeLogger {
     protected type: LoggerType = "console";
     public messages: { level: LogLevel; payload: LogPayload }[] = [];
     public attributes: Record<string, string> = {};
@@ -96,7 +96,7 @@ class TestMCPHttpServer extends MCPHttpServer<ServerLike> {
         });
     }
 
-    protected override createServerForRequest(): Promise<ServerLike> {
+    protected override createServerForRequest(_request: TransportRequestContext): Promise<ServerLike> {
         return Promise.resolve(makeFakeServer());
     }
 }

@@ -12,7 +12,7 @@ const config: IToolConfig = {
     previewFeatures: [],
 };
 
-const server: ToolServer = { config, logger: loggerStub(), keychain: { allSecrets: [] } } as ToolServer;
+const server: ToolServer = { config, logger: loggerStub(), keychain: { redact: (value: unknown) => value } } as unknown as ToolServer;
 
 function loggerStub(): {
     debug: () => void;

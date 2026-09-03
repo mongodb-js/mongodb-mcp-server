@@ -25,7 +25,7 @@ function makeTool(config: Partial<IMongoDBConfig>): (...values: unknown[]) => vo
             ...config,
         } as unknown as IMongoDBConfig,
         logger: mockLogger,
-        keychain: { allSecrets: [] } as never,
+        keychain: { redact: (value: unknown) => value } as never,
         connectionRegistry: {} as never,
         connectionErrorHandler: (() => ({ errorHandled: false, result: undefined })) as never,
         exportsManager: { createJSONExport: vi.fn() },

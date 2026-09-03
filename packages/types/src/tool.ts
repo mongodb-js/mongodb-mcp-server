@@ -25,7 +25,7 @@ export type ToolServices<TConfig extends IToolConfig = IToolConfig> = {
     readonly config: TConfig;
     /** Logger for the server */
     readonly logger: ICompositeLogger;
-    /** Secrets registered for redaction (used by ToolBase error handling). */
+    /** Redacts registered secrets from a value (used by ToolBase error handling). */
     readonly keychain: IKeychain;
 };
 

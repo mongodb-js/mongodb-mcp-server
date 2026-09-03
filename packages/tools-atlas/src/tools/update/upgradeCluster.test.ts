@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
 import { UpgradeClusterTool } from "./upgradeCluster.js";
 import type { IAtlasConfig } from "../../atlasTool.js";
-import type { ITelemetry, ICompositeLogger } from "@mongodb-js/mcp-types";
+import type { ITelemetry, ICompositeLogger, CallToolResult } from "@mongodb-js/mcp-types";
 import { Keychain } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
@@ -191,14 +191,14 @@ describe("UpgradeClusterTool", () => {
         return new UpgradeClusterTool(server);
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    const exec = (args: Record<string, unknown>) =>
-        tool["invoke"](args, {
+    // tools under test never return input_required; narrow the invoke() result.
+    const exec = async (args: Record<string, unknown>): Promise<CallToolResult> =>
+        (await tool["invoke"](args, {
             request: {
                 server: (tool as unknown as { server: AtlasToolServer }).server,
                 signal: new AbortController().signal,
             },
-        });
+        })) as CallToolResult;
 
     beforeEach(() => {
         tool = buildTool();

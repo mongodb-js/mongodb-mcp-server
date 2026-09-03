@@ -294,6 +294,22 @@ describe("ListProjectsTool", () => {
             });
         });
 
+        it("treats an explicit totalCount of 0 with results as unknown and falls back to the page length", async () => {
+            // Some environments return totalCount: 0 with includeCount=false even when
+            // results are present; the tool should not report 0 in that case.
+            mockApiClient.listGroups!.mockResolvedValue({
+                results: [projectApiResponse],
+                totalCount: 0,
+            });
+
+            const result = await exec();
+
+            expect(result.structuredContent).toEqual({
+                projects: [formattedProject],
+                totalCount: 1,
+            });
+        });
+
         it("omits structuredContent on error paths", async () => {
             mockApiClient.getOrgGroups!.mockRejectedValue(new Error("API failure"));
 

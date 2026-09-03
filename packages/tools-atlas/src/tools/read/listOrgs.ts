@@ -54,13 +54,17 @@ export class ListOrganizationsTool extends AtlasToolBase {
             name: org.name,
             id: org.id,
         }));
-        const totalCount = data?.totalCount ?? orgs.length;
+        // The API omits totalCount when includeCount=false, but some environments return an
+        // explicit 0 even when results are present; only trust a positive count and fall back
+        // to the returned page length otherwise.
+        const apiTotalCount = data?.totalCount ?? 0;
+        const hasAccurateCount = apiTotalCount > 0;
+        const totalCount = hasAccurateCount ? apiTotalCount : orgs.length;
         // Without includeCount the API omits totalCount, so a full page is the signal
         // that more results may exist on later pages.
-        const moreResultsAvailable =
-            data?.totalCount !== undefined
-                ? (pageNum - 1) * limit + orgs.length < data.totalCount
-                : orgs.length === limit;
+        const moreResultsAvailable = hasAccurateCount
+            ? (pageNum - 1) * limit + orgs.length < apiTotalCount
+            : orgs.length === limit;
 
         if (!orgs.length) {
             return {

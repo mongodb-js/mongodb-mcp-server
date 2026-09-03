@@ -64,7 +64,7 @@ export type {
     TelemetryConfig,
 } from "@mongodb-js/mcp-atlas-telemetry";
 export { Keychain, registerGlobalSecretToRedact } from "@mongodb-js/mcp-core";
-export type { Secret } from "mongodb-redact";
+export type { Secret } from "@mongodb-js/mcp-types";
 export { Elicitation } from "@mongodb-js/mcp-core";
 export { applyConfigOverrides, ConfigOverrideError, getConfigMeta, nameToConfigKey } from "@mongodb-js/mcp-cli";
 export { onlyStricterLogLevelOverride } from "@mongodb-js/mcp-cli";

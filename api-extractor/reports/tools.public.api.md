@@ -561,9 +561,13 @@ export const ConnectionConfig: z.ZodObject<{
             "SCRAM-256": "SCRAM-256";
             "SCRAM-512": "SCRAM-512";
             OAUTHBEARER: "OAUTHBEARER";
+            AWS_MSK_IAM: "AWS_MSK_IAM";
         }>>;
         username: z.ZodOptional<z.ZodString>;
         password: z.ZodOptional<z.ZodString>;
+        aws: z.ZodOptional<z.ZodObject<{
+            roleArn: z.ZodOptional<z.ZodString>;
+        }, z.core.$loose>>;
     }, z.core.$loose>>;
     security: z.ZodOptional<z.ZodObject<{
         protocol: z.ZodOptional<z.ZodEnum<{
@@ -576,8 +580,8 @@ export const ConnectionConfig: z.ZodObject<{
     dbRoleToExecute: z.ZodOptional<z.ZodObject<{
         role: z.ZodOptional<z.ZodString>;
         type: z.ZodOptional<z.ZodEnum<{
-            CUSTOM: "CUSTOM";
             BUILT_IN: "BUILT_IN";
+            CUSTOM: "CUSTOM";
         }>>;
     }, z.core.$strip>>;
     aws: z.ZodOptional<z.ZodObject<{
@@ -1535,6 +1539,7 @@ export const ErrorCodes: {
     readonly ForbiddenServerSideJS: 1000009;
     readonly UnknownConnectionId: 1000010;
     readonly ConfirmationDeclined: 1000011;
+    readonly InvalidArgument: 1000012;
 };
 
 // @public (undocumented)
@@ -2630,6 +2635,11 @@ export const PrivateLinkConfig: z.ZodObject<{
     region: z.ZodOptional<z.ZodString>;
     vendor: z.ZodOptional<z.ZodString>;
     arn: z.ZodOptional<z.ZodString>;
+    authenticationScheme: z.ZodOptional<z.ZodEnum<{
+        TLS: "TLS";
+        SASL_SCRAM: "SASL_SCRAM";
+        IAM: "IAM";
+    }>>;
     dnsDomain: z.ZodOptional<z.ZodString>;
     dnsSubDomain: z.ZodOptional<z.ZodArray<z.ZodString>>;
     serviceEndpointId: z.ZodOptional<z.ZodString>;
@@ -2747,9 +2757,9 @@ export class StreamsBuildTool extends StreamsToolBase {
     argsShape: {
         projectId: z.ZodString;
         resource: z.ZodEnum<{
-            processor: "processor";
             workspace: "workspace";
             connection: "connection";
+            processor: "processor";
             privatelink: "privatelink";
         }>;
         workspaceName: z.ZodOptional<z.ZodString>;
@@ -2760,17 +2770,17 @@ export class StreamsBuildTool extends StreamsToolBase {
         }>>;
         region: z.ZodOptional<z.ZodString>;
         tier: z.ZodOptional<z.ZodEnum<{
-            SP50: "SP50";
-            SP30: "SP30";
-            SP10: "SP10";
-            SP5: "SP5";
             SP2: "SP2";
+            SP5: "SP5";
+            SP10: "SP10";
+            SP30: "SP30";
+            SP50: "SP50";
         }>>;
         includeSampleData: z.ZodOptional<z.ZodBoolean>;
         connectionName: z.ZodOptional<z.ZodString>;
         connectionType: z.ZodOptional<z.ZodEnum<{
-            Cluster: "Cluster";
             Kafka: "Kafka";
+            Cluster: "Cluster";
             S3: "S3";
             Https: "Https";
             AWSKinesisDataStreams: "AWSKinesisDataStreams";
@@ -2786,9 +2796,13 @@ export class StreamsBuildTool extends StreamsToolBase {
                     "SCRAM-256": "SCRAM-256";
                     "SCRAM-512": "SCRAM-512";
                     OAUTHBEARER: "OAUTHBEARER";
+                    AWS_MSK_IAM: "AWS_MSK_IAM";
                 }>>;
                 username: z.ZodOptional<z.ZodString>;
                 password: z.ZodOptional<z.ZodString>;
+                aws: z.ZodOptional<z.ZodObject<{
+                    roleArn: z.ZodOptional<z.ZodString>;
+                }, z.core.$loose>>;
             }, z.core.$loose>>;
             security: z.ZodOptional<z.ZodObject<{
                 protocol: z.ZodOptional<z.ZodEnum<{
@@ -2801,8 +2815,8 @@ export class StreamsBuildTool extends StreamsToolBase {
             dbRoleToExecute: z.ZodOptional<z.ZodObject<{
                 role: z.ZodOptional<z.ZodString>;
                 type: z.ZodOptional<z.ZodEnum<{
-                    CUSTOM: "CUSTOM";
                     BUILT_IN: "BUILT_IN";
+                    CUSTOM: "CUSTOM";
                 }>>;
             }, z.core.$strip>>;
             aws: z.ZodOptional<z.ZodObject<{
@@ -2845,6 +2859,11 @@ export class StreamsBuildTool extends StreamsToolBase {
             region: z.ZodOptional<z.ZodString>;
             vendor: z.ZodOptional<z.ZodString>;
             arn: z.ZodOptional<z.ZodString>;
+            authenticationScheme: z.ZodOptional<z.ZodEnum<{
+                TLS: "TLS";
+                SASL_SCRAM: "SASL_SCRAM";
+                IAM: "IAM";
+            }>>;
             dnsDomain: z.ZodOptional<z.ZodString>;
             dnsSubDomain: z.ZodOptional<z.ZodArray<z.ZodString>>;
             serviceEndpointId: z.ZodOptional<z.ZodString>;
@@ -2861,9 +2880,9 @@ export class StreamsBuildTool extends StreamsToolBase {
     // (undocumented)
     outputSchema: {
         resource: z.ZodEnum<{
-            processor: "processor";
             workspace: "workspace";
             connection: "connection";
+            processor: "processor";
             privatelink: "privatelink";
         }>;
     };
@@ -2929,10 +2948,10 @@ export class StreamsDiscoverTool extends StreamsToolBase {
             connectionCount: z.ZodNumber;
         }, z.core.$strip>>;
         processorState: z.ZodOptional<z.ZodEnum<{
-            FAILED: "FAILED";
             STARTED: "STARTED";
             STOPPED: "STOPPED";
             CREATED: "CREATED";
+            FAILED: "FAILED";
         }>>;
         tier: z.ZodOptional<z.ZodString>;
         stats: z.ZodOptional<z.ZodObject<{
@@ -2996,11 +3015,11 @@ export class StreamsManageTool extends StreamsToolBase {
         }>;
         resourceName: z.ZodOptional<z.ZodString>;
         tier: z.ZodOptional<z.ZodEnum<{
-            SP50: "SP50";
-            SP30: "SP30";
-            SP10: "SP10";
-            SP5: "SP5";
             SP2: "SP2";
+            SP5: "SP5";
+            SP10: "SP10";
+            SP30: "SP30";
+            SP50: "SP50";
         }>>;
         resumeFromCheckpoint: z.ZodOptional<z.ZodBoolean>;
         startAtOperationTime: z.ZodOptional<z.ZodString>;
@@ -3013,11 +3032,11 @@ export class StreamsManageTool extends StreamsToolBase {
         newName: z.ZodOptional<z.ZodString>;
         newRegion: z.ZodOptional<z.ZodString>;
         newTier: z.ZodOptional<z.ZodEnum<{
-            SP50: "SP50";
-            SP30: "SP30";
-            SP10: "SP10";
-            SP5: "SP5";
             SP2: "SP2";
+            SP5: "SP5";
+            SP10: "SP10";
+            SP30: "SP30";
+            SP50: "SP50";
         }>>;
         connectionConfig: z.ZodOptional<z.ZodObject<{
             bootstrapServers: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodArray<z.ZodString>]>, z.ZodTransform<string, string | string[]>>>;
@@ -3027,9 +3046,13 @@ export class StreamsManageTool extends StreamsToolBase {
                     "SCRAM-256": "SCRAM-256";
                     "SCRAM-512": "SCRAM-512";
                     OAUTHBEARER: "OAUTHBEARER";
+                    AWS_MSK_IAM: "AWS_MSK_IAM";
                 }>>;
                 username: z.ZodOptional<z.ZodString>;
                 password: z.ZodOptional<z.ZodString>;
+                aws: z.ZodOptional<z.ZodObject<{
+                    roleArn: z.ZodOptional<z.ZodString>;
+                }, z.core.$loose>>;
             }, z.core.$loose>>;
             security: z.ZodOptional<z.ZodObject<{
                 protocol: z.ZodOptional<z.ZodEnum<{
@@ -3042,8 +3065,8 @@ export class StreamsManageTool extends StreamsToolBase {
             dbRoleToExecute: z.ZodOptional<z.ZodObject<{
                 role: z.ZodOptional<z.ZodString>;
                 type: z.ZodOptional<z.ZodEnum<{
-                    CUSTOM: "CUSTOM";
                     BUILT_IN: "BUILT_IN";
+                    CUSTOM: "CUSTOM";
                 }>>;
             }, z.core.$strip>>;
             aws: z.ZodOptional<z.ZodObject<{
@@ -3084,16 +3107,16 @@ export class StreamsManageTool extends StreamsToolBase {
     // (undocumented)
     outputSchema: {
         processorState: z.ZodOptional<z.ZodEnum<{
-            FAILED: "FAILED";
             STARTED: "STARTED";
             STOPPED: "STOPPED";
             CREATED: "CREATED";
+            FAILED: "FAILED";
         }>>;
         connectionState: z.ZodOptional<z.ZodEnum<{
-            DELETING: "DELETING";
             FAILED: "FAILED";
             PENDING: "PENDING";
             READY: "READY";
+            DELETING: "DELETING";
         }>>;
         region: z.ZodOptional<z.ZodString>;
         tier: z.ZodOptional<z.ZodString>;
@@ -3114,8 +3137,8 @@ export class StreamsTeardownTool extends StreamsToolBase {
         projectId: z.ZodString;
         resource: z.ZodEnum<{
             processor: "processor";
-            workspace: "workspace";
             connection: "connection";
+            workspace: "workspace";
             privatelink: "privatelink";
             peering: "peering";
         }>;
@@ -3134,8 +3157,8 @@ export class StreamsTeardownTool extends StreamsToolBase {
     outputSchema: {
         resource: z.ZodEnum<{
             processor: "processor";
-            workspace: "workspace";
             connection: "connection";
+            workspace: "workspace";
             privatelink: "privatelink";
             peering: "peering";
         }>;

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Keychain } from "@mongodb-js/mcp-core";
 import type { IAtlasConfig } from "../../atlasTool.js";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
-import type { ITelemetry, ICompositeLogger } from "@mongodb-js/mcp-types";
+import type { ITelemetry, ICompositeLogger, CallToolResult } from "@mongodb-js/mcp-types";
 import { ATLAS_REGIONS, GetRegionsArgsShape, GetRegionsTool } from "./getRegions.js";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
@@ -54,14 +54,15 @@ describe("GetRegionsTool", () => {
         return new GetRegionsTool(server);
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    const exec = (args: Record<string, unknown>) =>
-        tool["invoke"](z.object(GetRegionsArgsShape).strict().parse(tool.normalizeRawArgs(args)), {
+    // The invoke() result is narrowed to CallToolResult: the tool under test
+    // never returns input_required.
+    const exec = async (args: Record<string, unknown>): Promise<CallToolResult> =>
+        (await tool["invoke"](z.object(GetRegionsArgsShape).strict().parse(tool.normalizeRawArgs(args)), {
             request: {
                 server: (tool as unknown as { server: AtlasToolServer }).server,
                 signal: new AbortController().signal,
             },
-        });
+        })) as CallToolResult;
 
     beforeEach(() => {
         tool = buildTool();

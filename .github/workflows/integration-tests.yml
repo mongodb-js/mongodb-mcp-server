@@ -1,0 +1,245 @@
+---
+name: Integration Tests
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  run-integration-tests:
+    name: Run Integration tests
+    if: github.event_name == 'push' || (github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-docker-action@v5
+        name: Setup Docker Environment
+        with:
+          set-host: true
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: package.json
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm run build
+      - name: Run integration tests
+        run: pnpm exec vitest --project integration --run
+        env:
+          MDB_MONGOT_PASSWORD: ${{ secrets.TEST_MDB_MONGOT_PASSWORD }}
+          MDB_VOYAGE_API_KEY: ${{ secrets.TEST_MDB_MCP_VOYAGE_API_KEY }}
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: integration-test-results
+          path: coverage/lcov.info
+
+  run-atlas-tests:
+    name: Run Atlas tests
+    if: github.event_name == 'push' || (github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: package.json
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm run build
+      - name: Run tests
+        env:
+          MDB_MCP_API_CLIENT_ID: ${{ secrets.TEST_ATLAS_CLIENT_ID }}
+          MDB_MCP_API_CLIENT_SECRET: ${{ secrets.TEST_ATLAS_CLIENT_SECRET }}
+          MDB_MCP_API_BASE_URL: ${{ vars.TEST_ATLAS_BASE_URL }}
+          MDB_MCP_AZURE_CMK_SUBSCRIPTION_ID: ${{ secrets.TEST_MDB_MCP_AZURE_CMK_SUBSCRIPTION_ID }}
+          MDB_MCP_AZURE_CMK_TENANT_ID: ${{ secrets.TEST_MDB_MCP_AZURE_CMK_TENANT_ID }}
+          MDB_MCP_AZURE_CMK_ATLAS_APP_ID: ${{ secrets.TEST_MDB_MCP_AZURE_CMK_ATLAS_APP_ID }}
+          MDB_MCP_AZURE_CMK_SERVICE_PRINCIPAL_ID: ${{ secrets.TEST_MDB_MCP_AZURE_CMK_SERVICE_PRINCIPAL_ID }}
+          MDB_MCP_AZURE_CMK_RESOURCE_GROUP_NAME: ${{ secrets.TEST_MDB_MCP_AZURE_CMK_RESOURCE_GROUP_NAME }}
+          MDB_MCP_AZURE_CMK_KEY_VAULT_NAME: ${{ secrets.TEST_MDB_MCP_AZURE_CMK_KEY_VAULT_NAME }}
+          MDB_MCP_AZURE_CMK_KEY_IDENTIFIER: ${{ secrets.TEST_MDB_MCP_AZURE_CMK_KEY_IDENTIFIER }}
+        run: pnpm exec vitest --project integration-atlas --run
+      - name: Upload test results
+        uses: actions/upload-artifact@v7.0.1
+        if: always()
+        with:
+          name: atlas-test-results
+          path: coverage/lcov.info
+
+  run-atlas-streams-tests:
+    name: Run Atlas Streams tests
+    if: github.event_name == 'push' || (github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: package.json
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm run build
+      - name: Run tests
+        env:
+          MDB_MCP_API_CLIENT_ID: ${{ secrets.TEST_ATLAS_CLIENT_ID }}
+          MDB_MCP_API_CLIENT_SECRET: ${{ secrets.TEST_ATLAS_CLIENT_SECRET }}
+          MDB_MCP_API_BASE_URL: ${{ vars.TEST_ATLAS_BASE_URL }}
+        run: pnpm exec vitest --project=streams-tests --run packages/integration-tests/src/tools/atlas/streams
+      - name: Upload test results
+        uses: actions/upload-artifact@v7.0.1
+        if: always()
+        with:
+          name: atlas-streams-test-results
+          path: coverage/lcov.info
+
+  # TEMPORARILY DISABLED: Atlas cluster tests (packages/integration-tests/src/tools/atlas/clusters.test.ts
+  # and sampleDataset.test.ts) keep timing out and fail CI; they should be fixed as a separate effort.
+  # Recent failed runs (the "Run tests" step is killed at the 120-minute job limit):
+  #   - https://github.com/mongodb-js/mongodb-mcp-server/actions/runs/32493378779
+  #   - https://github.com/mongodb-js/mongodb-mcp-server/actions/runs/32493317767
+  # To re-enable: remove `if: false` below and restore run-atlas-clusters-tests to the coverage
+  # job's `needs` list and artifact download step.
+  run-atlas-clusters-tests:
+    name: Run Atlas Clusters tests
+    if: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: package.json
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm run build
+      - name: Run tests
+        env:
+          MDB_MCP_API_CLIENT_ID: ${{ secrets.TEST_ATLAS_CLIENT_ID }}
+          MDB_MCP_API_CLIENT_SECRET: ${{ secrets.TEST_ATLAS_CLIENT_SECRET }}
+          MDB_MCP_API_BASE_URL: ${{ vars.TEST_ATLAS_BASE_URL }}
+        run: pnpm exec vitest --project=clusters-tests --run packages/integration-tests/src/tools/atlas
+      - name: Upload test results
+        uses: actions/upload-artifact@v7.0.1
+        if: always()
+        with:
+          name: atlas-clusters-test-results
+          path: coverage/lcov.info
+
+  run-atlas-local-tests:
+    name: Run Atlas Local tests
+    if: github.event_name == 'push' || (github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: package.json
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm run build
+      - name: Pre-pull Atlas Local images
+        run: |
+          docker pull mongodb/mongodb-atlas-local:preview &
+          docker pull mongodb/mongodb-atlas-local:latest &
+          wait
+      - name: Run tests
+        run: pnpm exec vitest --project integration-atlas-local --run
+      - name: Upload test results
+        uses: actions/upload-artifact@v7.0.1
+        if: always()
+        with:
+          name: atlas-local-test-results
+          path: coverage/lcov.info
+
+  coverage:
+    name: Report Coverage
+    if: github.event_name == 'push' || (github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    needs: [
+        run-integration-tests,
+        run-atlas-tests,
+        run-atlas-streams-tests,
+        # run-atlas-clusters-tests temporarily disabled (see job above)
+        run-atlas-local-tests,
+      ]
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: package.json
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Download integration test results
+        uses: actions/download-artifact@v8
+        with:
+          name: integration-test-results
+          path: coverage/integration
+      - name: Download atlas test results
+        uses: actions/download-artifact@v8
+        with:
+          name: atlas-test-results
+          path: coverage/atlas
+      - name: Download atlas streams test results
+        uses: actions/download-artifact@v8
+        with:
+          name: atlas-streams-test-results
+          path: coverage/atlas-streams
+      # - name: Download atlas clusters test results
+      #   uses: actions/download-artifact@v8
+      #   with:
+      #     name: atlas-clusters-test-results
+      #     path: coverage/atlas-clusters
+      - name: Download atlas local test results
+        uses: actions/download-artifact@v8
+        with:
+          name: atlas-local-test-results
+          path: coverage/atlas-local
+      - name: Merge coverage reports
+        run: |
+          pnpm dlx lcov-result-merger@5.0.1 "coverage/*/lcov.info" "coverage/lcov.info"
+      - name: Coveralls GitHub Action
+        uses: coverallsapp/github-action@8d6379e14d29928660c4ba802d8e85393440b329 # v2.3.8
+        with:
+          file: coverage/lcov.info
+          parallel: true
+          parallel-finished: true
