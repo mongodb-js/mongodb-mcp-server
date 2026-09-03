@@ -10,10 +10,10 @@ export { startRunner, type StartRunnerOptions } from "./startRunner.js";
 export {
     createRunnerFromConfig,
     type CreateRunnerFromConfigOptions,
-    createAppServicesFromConfig,
+    createSharedServicesFromConfig,
     createServerFromConfig,
-    closeAppServices,
-    type AppServices,
+    closeSharedServices,
+    type SharedServerServices,
     type CreateServerServicesOptions,
     CLIENT_SCOPE_HEADER,
     CliMcpHttpServer,

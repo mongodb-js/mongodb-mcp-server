@@ -7,7 +7,7 @@ import type {
     DefaultMetricDefinitions,
     IMetrics,
     ICompositeLogger,
-    ServerLike,
+    BaseServer,
     TransportRequestContext,
     HttpServerOptions,
     LogLevel,
@@ -73,7 +73,7 @@ const MODERN_BODY = JSON.stringify({
     },
 });
 
-function makeFakeServer(): ServerLike {
+function makeFakeServer(): BaseServer {
     const mcpServer = new McpServer({ name: "test-server", version: "1.0.0" });
     mcpServer.registerTool(
         "echo",
@@ -87,7 +87,7 @@ function makeFakeServer(): ServerLike {
     };
 }
 
-class TestMCPHttpServer extends MCPHttpServer<ServerLike> {
+class TestMCPHttpServer extends MCPHttpServer<BaseServer> {
     constructor({ logger }: { logger: InMemoryLogger }) {
         super({
             options: { http: httpOptions },
@@ -96,7 +96,7 @@ class TestMCPHttpServer extends MCPHttpServer<ServerLike> {
         });
     }
 
-    protected override createServerForRequest(_request: TransportRequestContext): Promise<ServerLike> {
+    protected override createServerForRequest(_request: TransportRequestContext): Promise<BaseServer> {
         return Promise.resolve(makeFakeServer());
     }
 }
@@ -134,7 +134,7 @@ describe("MCPHttpServer stateless serving", () => {
     it("registers the request-scoped server for every request", async () => {
         const register = vi.fn().mockResolvedValue(undefined);
         class RegisterTrackingServer extends TestMCPHttpServer {
-            protected override createServerForRequest(): Promise<ServerLike> {
+            protected override createServerForRequest(): Promise<BaseServer> {
                 return Promise.resolve({ ...makeFakeServer(), register });
             }
         }
@@ -149,7 +149,7 @@ describe("MCPHttpServer stateless serving", () => {
 
     it("returns a 500 when the server factory throws", async () => {
         class ThrowingServer extends TestMCPHttpServer {
-            protected override createServerForRequest(): Promise<ServerLike> {
+            protected override createServerForRequest(): Promise<BaseServer> {
                 return Promise.reject(new Error("factory boom"));
             }
         }
@@ -168,7 +168,7 @@ describe("MCPHttpServer stateless serving", () => {
     it("carries an explicit unauthenticated auth state when no identity is injected", async () => {
         const seen = vi.fn();
         class StateTrackingServer extends TestMCPHttpServer {
-            protected override createServerForRequest(request: TransportRequestContext): Promise<ServerLike> {
+            protected override createServerForRequest(request: TransportRequestContext): Promise<BaseServer> {
                 seen(request.authInfo);
                 return Promise.resolve(makeFakeServer());
             }
@@ -185,7 +185,7 @@ describe("MCPHttpServer stateless serving", () => {
 
     it("normalizes an injected req.auth identity into the authenticated auth state", async () => {
         const seen = vi.fn();
-        class AuthedServer extends MCPHttpServer<ServerLike> {
+        class AuthedServer extends MCPHttpServer<BaseServer> {
             constructor() {
                 super({
                     options: { http: httpOptions },
@@ -193,7 +193,7 @@ describe("MCPHttpServer stateless serving", () => {
                     metrics: new MockMetrics(),
                 });
             }
-            protected override createServerForRequest(request: TransportRequestContext): Promise<ServerLike> {
+            protected override createServerForRequest(request: TransportRequestContext): Promise<BaseServer> {
                 seen(request.authInfo);
                 return Promise.resolve(makeFakeServer());
             }
@@ -221,7 +221,7 @@ describe("MCPHttpServer stateless serving", () => {
     });
 
     describe("authenticated mode (authMode: 'authenticated')", () => {
-        class AuthedModeServer extends MCPHttpServer<ServerLike> {
+        class AuthedModeServer extends MCPHttpServer<BaseServer> {
             constructor({ onRequest }: { onRequest?: (request: TransportRequestContext) => void } = {}) {
                 super({
                     options: { http: { ...httpOptions, authMode: "authenticated" } },
@@ -231,7 +231,7 @@ describe("MCPHttpServer stateless serving", () => {
                 this.onRequest = onRequest;
             }
             private readonly onRequest?: (request: TransportRequestContext) => void;
-            protected override createServerForRequest(request: TransportRequestContext): Promise<ServerLike> {
+            protected override createServerForRequest(request: TransportRequestContext): Promise<BaseServer> {
                 this.onRequest?.(request);
                 return Promise.resolve(makeFakeServer());
             }

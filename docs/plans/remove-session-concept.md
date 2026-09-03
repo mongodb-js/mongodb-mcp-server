@@ -3,7 +3,7 @@
 > Branch: `refactor/remove-session-concept` (based on `chore/protocol-revision-2026-07-28`)
 > Status: **In progress.** Phases 0–1 (session removal, request-centric tool context) and
 > Phase 3A (client-identity connection scoping, including authenticated multi-tenant mode)
-> have landed. Phase 2 has partially landed: `AppServices` (shared once per process) and
+> have landed. Phase 2 has partially landed: `SharedServerServices` (shared once per process) and
 > startup-only config validation are in; the per-request target is now a **minimal** server
 > because the SDK's HTTP entry mandates a fresh `McpServer` per request (see Phase 2).
 
@@ -63,7 +63,7 @@ These are what "removing sessions" actually has to solve:
    entry forces a fresh `McpServer` per request (see Phase 2), but the rest of what a
    request used to build fresh — `CompositeLogger`, `AtlasTelemetry`, exports directory
    (each request minted a new `ObjectId` dir), `Elicitation` onboarding — is now shared
-   via `AppServices`. What remains per request: `McpServer` + `Elicitation` (bound to the
+   via `SharedServerServices`. What remains per request: `McpServer` + `Elicitation` (bound to the
    instance) + `CliServer` + tool instantiation/registration, which Phase 2 trims and
    amortizes.
 3. **Exports directory lifecycle is tied to `Session.close()`**; with a per-request
@@ -167,7 +167,7 @@ Concretely:
 > requests. Phase 2 is about making the mandatory per-request instance **minimal**,
 > not eliminating it.
 
-- **Done — `AppServices`**: `createAppServicesFromConfig` (collapsed from
+- **Done — `SharedServerServices`**: `createSharedServicesFromConfig` (collapsed from
   `createSharedServicesFromConfig` + `createServerFromConfig`) builds every heavy
   dependency once per process — root logger, metrics, monitoring, `Keychain`,
   device id, `MCPConnectionStore`, `ApiClient`, `ExportsManager`,
@@ -302,7 +302,7 @@ Options (pick one — recommend **A**):
    registration-time reads are request-correct too (same instance). The residual
    trade-off is purely cost: each request re-instantiates tools and re-registers them
    on the fresh `McpServer`; Phase 2 amortizes it (static schema caches, shared
-   `AppServices`, no re-validation).
+   `SharedServerServices`, no re-validation).
 4. **Performance reality check**: the current modern path is _worse_ than stateless —
    it rebuilds the entire server per request (telemetry clients, exports dirs, logger).
    The plan fixes this, but until Phase 2 lands, HTTP-per-request is expensive.

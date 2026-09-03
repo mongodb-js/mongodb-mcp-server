@@ -740,7 +740,7 @@ export class MCPConnectionManager extends ConnectionManager {
 }
 
 // @public
-export abstract class MCPHttpServer<TServer extends ServerLike = ServerLike, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> extends ExpressBasedHttpServer {
+export abstract class MCPHttpServer<TServer extends BaseServer = BaseServer, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> extends ExpressBasedHttpServer {
     constructor(input: MCPHttpServerOptions<TMetrics>);
     protected createModernHandler(): McpHttpHandler;
     protected abstract createServerForRequest(request: TransportRequestContext): Promise<TServer>;
@@ -899,7 +899,7 @@ export abstract class StdioRunner implements ITransportRunner {
 }
 
 // @public
-export class StreamableHttpRunner<TServer extends ServerLike = ServerLike, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> implements ITransportRunner {
+export class StreamableHttpRunner<TServer extends BaseServer = BaseServer, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> implements ITransportRunner {
     constructor(input: StreamableHttpRunnerOptions<TServer, TMetrics>);
     close(): Promise<void>;
     // (undocumented)
@@ -912,7 +912,7 @@ export class StreamableHttpRunner<TServer extends ServerLike = ServerLike, TMetr
 }
 
 // @public
-export type StreamableHttpRunnerOptions<TServer extends ServerLike = ServerLike, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
+export type StreamableHttpRunnerOptions<TServer extends BaseServer = BaseServer, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
     logger: CompositeLogger;
     mcpHttpServer: MCPHttpServer<TServer, TMetrics>;
     monitoringServer?: MonitoringServer<TMetrics>;

@@ -10,7 +10,7 @@ import type { McpServer } from "@modelcontextprotocol/server";
  * (connections, exports, API clients, telemetry) live once per process and
  * are referenced by, not owned by, each request's server instance.
  */
-export type ServerLike = {
+export type BaseServer = {
     /**
      * Registers resources, capabilities, tools, request handlers and lifecycle
      * hooks on the underlying MCP server without connecting it to a transport.

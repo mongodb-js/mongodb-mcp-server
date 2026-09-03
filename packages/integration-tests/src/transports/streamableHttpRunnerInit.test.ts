@@ -11,13 +11,13 @@ import { NoopLogger, CompositeLogger, type LoggerBase } from "@mongodb-js/mcp-co
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 import type { McpServer } from "@modelcontextprotocol/server";
 import type { UserConfig } from "@mongodb-js/mcp-cli";
-import type { DefaultMetricDefinitions, ServerLike } from "@mongodb-js/mcp-types";
+import type { DefaultMetricDefinitions, BaseServer } from "@mongodb-js/mcp-types";
 
 /**
  * Minimal concrete implementation of MCPHttpServer for testing.
  */
-class TestMCPHttpServer extends MCPHttpServer<ServerLike> {
-    protected override createServerForRequest(): Promise<ServerLike> {
+class TestMCPHttpServer extends MCPHttpServer<BaseServer> {
+    protected override createServerForRequest(): Promise<BaseServer> {
         return Promise.resolve({
             register: vi.fn().mockResolvedValue(undefined),
             mcpServer: {} as unknown as McpServer,
@@ -34,7 +34,7 @@ function createStreamableHttpRunnerFromConfig(options: {
     monitoringServer?: MonitoringServer;
     loggers?: LoggerBase[];
     metrics?: MockMetrics;
-}): StreamableHttpRunner<ServerLike> {
+}): StreamableHttpRunner<BaseServer> {
     const { userConfig } = options;
     const logger = new CompositeLogger({ loggers: options.loggers ?? [] });
     const metrics = options.metrics ?? new MockMetrics();
@@ -75,7 +75,7 @@ function createStreamableHttpRunnerFromConfig(options: {
         metrics,
     });
 
-    return new StreamableHttpRunner<ServerLike>({
+    return new StreamableHttpRunner<BaseServer>({
         mcpHttpServer,
         monitoringServer,
         logger,

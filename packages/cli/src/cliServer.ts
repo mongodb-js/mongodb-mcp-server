@@ -24,7 +24,7 @@ export type ToolRegistry = AnyToolClass[];
 export type ResourceRegistry = readonly AnyResourceClass[];
 
 export interface CliServerOptions<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
-    /** The individually-injected services for this request-scoped server. There is no server-scoped "session" (or services) object: every service is constructed once per process (see `createAppServicesFromConfig`) and handed to the request-scoped server instance directly. MongoDB connection state lives in the app-level `connectionRegistry` and is addressed per request by `connectionId`; per-client identity travels on the tool request (`ToolExecutionContext.request.clientInfo`). */
+    /** The individually-injected services for this request-scoped server. There is no server-scoped "session" (or services) object: every service is constructed once per process (see `createSharedServicesFromConfig`) and handed to the request-scoped server instance directly. MongoDB connection state lives in the app-level `connectionRegistry` and is addressed per request by `connectionId`; per-client identity travels on the tool request (`ToolExecutionContext.request.clientInfo`). */
     config: UserConfig;
     /**
      * Set when the app-fixed config has already been validated once at startup

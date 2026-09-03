@@ -1,24 +1,24 @@
 import { StdioRunner } from "@mongodb-js/mcp-core";
 import type { McpServer } from "@modelcontextprotocol/server";
-import { createServerFromConfig, closeAppServices, type AppServices } from "./createServerServices.js";
+import { createServerFromConfig, closeSharedServices, type SharedServerServices } from "./createServerServices.js";
 
 /**
  * Stdio runner that creates a fresh {@link CliServer} per stdio connection.
- * App-level infrastructure comes from {@link AppServices} and is closed once
+ * App-level infrastructure comes from {@link SharedServerServices} and is closed once
  * when the runner stops.
  */
 export class CliStdioRunner extends StdioRunner {
-    private readonly appServices: AppServices;
+    private readonly sharedServices: SharedServerServices;
 
-    constructor({ appServices }: { appServices: AppServices }) {
-        super({ logger: appServices.logger });
-        this.appServices = appServices;
+    constructor({ sharedServices }: { sharedServices: SharedServerServices }) {
+        super({ logger: sharedServices.logger });
+        this.sharedServices = sharedServices;
     }
 
     protected override async createServer(): Promise<McpServer> {
         const server = createServerFromConfig({
-            config: this.appServices.config,
-            appServices: this.appServices,
+            config: this.sharedServices.config,
+            sharedServices: this.sharedServices,
         });
         await server.register();
         return server.mcpServer;
@@ -27,6 +27,6 @@ export class CliStdioRunner extends StdioRunner {
     /** Stops the stdio runner and releases app-level services. */
     public override async close(): Promise<void> {
         await super.close();
-        await closeAppServices(this.appServices);
+        await closeSharedServices(this.sharedServices);
     }
 }

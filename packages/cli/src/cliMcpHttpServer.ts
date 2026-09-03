@@ -2,7 +2,7 @@ import { MCPHttpServer, StreamableHttpRunner } from "@mongodb-js/mcp-http-runner
 import type { HttpServerOptions } from "@mongodb-js/mcp-types";
 import type { TransportRequestContext } from "@mongodb-js/mcp-types";
 import type { CliServer } from "./cliServer.js";
-import { createServerFromConfig, closeAppServices, type AppServices } from "./createServerServices.js";
+import { createServerFromConfig, closeSharedServices, type SharedServerServices } from "./createServerServices.js";
 import { applyConfigOverrides } from "./config/configOverrides.js";
 
 export type CliMcpHttpServerOptions = {
@@ -12,40 +12,40 @@ export type CliMcpHttpServerOptions = {
 /**
  * HTTP server that creates a fresh {@link CliServer} per request, applying
  * request-level config overrides (`applyConfigOverrides`). App-level
- * infrastructure comes from {@link AppServices} and never carries per-client
+ * infrastructure comes from {@link SharedServerServices} and never carries per-client
  * state: no sessions, no per-request transports held in memory.
  */
 export class CliMcpHttpServer extends MCPHttpServer<CliServer> {
-    private readonly appServices: AppServices;
+    private readonly sharedServices: SharedServerServices;
 
-    constructor({ appServices, options }: { appServices: AppServices; options: CliMcpHttpServerOptions }) {
+    constructor({ sharedServices, options }: { sharedServices: SharedServerServices; options: CliMcpHttpServerOptions }) {
         super({
             options,
-            logger: appServices.logger,
-            metrics: appServices.metrics,
+            logger: sharedServices.logger,
+            metrics: sharedServices.metrics,
         });
-        this.appServices = appServices;
+        this.sharedServices = sharedServices;
     }
 
     protected override async createServerForRequest(request: TransportRequestContext): Promise<CliServer> {
-        const config = applyConfigOverrides({ baseConfig: this.appServices.config, request });
+        const config = applyConfigOverrides({ baseConfig: this.sharedServices.config, request });
 
-        return Promise.resolve(createServerFromConfig({ config, appServices: this.appServices, request }));
+        return Promise.resolve(createServerFromConfig({ config, sharedServices: this.sharedServices, request }));
     }
 
     /** Stops the HTTP server and releases app-level services. */
     public override async stop(): Promise<void> {
         await super.stop();
-        await closeAppServices(this.appServices);
+        await closeSharedServices(this.sharedServices);
     }
 }
 
 /** Creates the HTTP transport runner with a {@link CliMcpHttpServer} and app-level services. */
-export function createHttpTransportRunnerFromConfig(appServices: AppServices): StreamableHttpRunner {
-    const { config, logger, monitoringServer } = appServices;
+export function createHttpTransportRunnerFromConfig(sharedServices: SharedServerServices): StreamableHttpRunner {
+    const { config, logger, monitoringServer } = sharedServices;
 
     const mcpHttpServer = new CliMcpHttpServer({
-        appServices,
+        sharedServices,
         options: {
             http: {
                 host: config.httpHost,

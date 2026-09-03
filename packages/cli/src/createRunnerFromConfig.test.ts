@@ -78,10 +78,10 @@ vi.mock("./cliServer.js", () => ({
 import {
     createRunnerFromConfig,
     createHttpTransportRunnerFromConfig,
-    createAppServicesFromConfig,
+    createSharedServicesFromConfig,
     createServerFromConfig,
     CliMcpHttpServer,
-    type AppServices,
+    type SharedServerServices,
 } from "./createRunnerFromConfig.js";
 import { createExportsManagerFromConfig } from "./createExportsManagerFromConfig.js";
 import { createApiClientFromConfig } from "./createApiClientFromConfig.js";
@@ -89,7 +89,7 @@ import { createTelemetryFromConfig } from "./createTelemetryFromConfig.js";
 import { createMonitoringServerFromConfig } from "./createMonitoringServerFromConfig.js";
 import { CliServer } from "./cliServer.js";
 
-describe("createAppServicesFromConfig", () => {
+describe("createSharedServicesFromConfig", () => {
     const serverMetadata = {
         mcpServerName: "MongoDB MCP Server",
         version: "1.2.3-test",
@@ -106,7 +106,7 @@ describe("createAppServicesFromConfig", () => {
             loggers: ["stderr"],
         });
 
-        const appServices = await createAppServicesFromConfig({
+        const sharedServices = await createSharedServicesFromConfig({
             config,
             serverMetadata,
             tools: [],
@@ -118,13 +118,13 @@ describe("createAppServicesFromConfig", () => {
         expect(createExportsManagerFromConfig).toHaveBeenCalledWith(expect.objectContaining({ config }));
         expect(createApiClientFromConfig).toHaveBeenCalledWith(expect.objectContaining({ config, serverMetadata }));
         expect(createTelemetryFromConfig).toHaveBeenCalledWith(expect.objectContaining({ config, serverMetadata }));
-        expect(appServices.config).toBe(config);
-        expect(appServices.metrics).toBeDefined();
-        expect(appServices.keychain).toBeDefined();
-        expect(appServices.deviceId).toBeDefined();
-        expect(appServices.connectionStore).toBeDefined();
-        expect(appServices.connectionRegistry).toBeDefined();
-        expect(appServices.atlasLocalClient).toBeUndefined();
+        expect(sharedServices.config).toBe(config);
+        expect(sharedServices.metrics).toBeDefined();
+        expect(sharedServices.keychain).toBeDefined();
+        expect(sharedServices.deviceId).toBeDefined();
+        expect(sharedServices.connectionStore).toBeDefined();
+        expect(sharedServices.connectionRegistry).toBeDefined();
+        expect(sharedServices.atlasLocalClient).toBeUndefined();
     });
 });
 
@@ -140,10 +140,10 @@ describe("createServerFromConfig (request-scoped server)", () => {
         createdServers.length = 0;
     });
 
-    async function makeAppServices(
-        config: Parameters<typeof createAppServicesFromConfig>[0]["config"]
-    ): Promise<AppServices> {
-        return createAppServicesFromConfig({
+    async function makeSharedServerServices(
+        config: Parameters<typeof createSharedServicesFromConfig>[0]["config"]
+    ): Promise<SharedServerServices> {
+        return createSharedServicesFromConfig({
             config,
             serverMetadata,
             tools: [],
@@ -158,8 +158,8 @@ describe("createServerFromConfig (request-scoped server)", () => {
             loggers: ["stderr"],
         });
 
-        const appServices = await makeAppServices(config);
-        const server = createServerFromConfig({ config, appServices });
+        const sharedServices = await makeSharedServerServices(config);
+        const server = createServerFromConfig({ config, sharedServices });
 
         expect(server).toBeInstanceOf(CliServer);
         expect(createExportsManagerFromConfig).toHaveBeenCalledTimes(1);
@@ -173,17 +173,17 @@ describe("createServerFromConfig (request-scoped server)", () => {
             telemetry: "disabled",
         });
 
-        const appServices = await makeAppServices(config);
+        const sharedServices = await makeSharedServerServices(config);
 
-        const serverA = createServerFromConfig({ config, appServices });
-        const serverB = createServerFromConfig({ config, appServices });
+        const serverA = createServerFromConfig({ config, sharedServices });
+        const serverB = createServerFromConfig({ config, sharedServices });
 
         expect(serverA).not.toBe(serverB);
 
         // Both request-scoped servers share the SAME app-level connection
         // registry: connections survive across requests.
-        expect(serverA.connectionRegistry).toBe(appServices.connectionRegistry);
-        expect(serverB.connectionRegistry).toBe(appServices.connectionRegistry);
+        expect(serverA.connectionRegistry).toBe(sharedServices.connectionRegistry);
+        expect(serverB.connectionRegistry).toBe(sharedServices.connectionRegistry);
 
         // App-level factories ran exactly once for the whole process.
         expect(createExportsManagerFromConfig).toHaveBeenCalledTimes(1);
@@ -199,7 +199,7 @@ describe("createServerFromConfig (request-scoped server)", () => {
             readOnly: false,
         });
 
-        const appServices = await makeAppServices(config);
+        const sharedServices = await makeSharedServerServices(config);
         const { applyConfigOverrides } = await import("./config/configOverrides.js");
 
         const requestA: TransportRequestContext = {
@@ -214,8 +214,8 @@ describe("createServerFromConfig (request-scoped server)", () => {
         const configA = applyConfigOverrides({ baseConfig: config, request: requestA });
         const configB = applyConfigOverrides({ baseConfig: config, request: requestB });
 
-        const serverA = createServerFromConfig({ config: configA, appServices });
-        const serverB = createServerFromConfig({ config: configB, appServices });
+        const serverA = createServerFromConfig({ config: configA, sharedServices });
+        const serverB = createServerFromConfig({ config: configB, sharedServices });
 
         // Per-request config isolation: override applies to one request only.
         expect((serverA.config as { readOnly: boolean }).readOnly).toBe(true);
@@ -283,10 +283,10 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
         createdServers.length = 0;
     });
 
-    async function makeAppServices(
-        config: Parameters<typeof createAppServicesFromConfig>[0]["config"]
-    ): Promise<AppServices> {
-        return createAppServicesFromConfig({
+    async function makeSharedServerServices(
+        config: Parameters<typeof createSharedServicesFromConfig>[0]["config"]
+    ): Promise<SharedServerServices> {
+        return createSharedServicesFromConfig({
             config,
             serverMetadata,
             tools: [],
@@ -301,8 +301,8 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
             telemetry: "disabled",
         });
 
-        const appServices = await makeAppServices(config);
-        const runner = createHttpTransportRunnerFromConfig(appServices);
+        const sharedServices = await makeSharedServerServices(config);
+        const runner = createHttpTransportRunnerFromConfig(sharedServices);
 
         expect(runner).toBeInstanceOf(StreamableHttpRunner);
         expect(createdServers).toHaveLength(0);
@@ -316,9 +316,9 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
             readOnly: false,
         });
 
-        const appServices = await makeAppServices(config);
+        const sharedServices = await makeSharedServerServices(config);
         const mcpHttpServer = new CliMcpHttpServer({
-            appServices,
+            sharedServices,
             options: {
                 http: {
                     host: config.httpHost,
@@ -349,10 +349,10 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
         // HTTP requests (even anonymous ones) get isolated registry views over
         // the shared store — never the app-level registry itself.
         expect((serverA as { connectionRegistry: unknown }).connectionRegistry).not.toBe(
-            appServices.connectionRegistry
+            sharedServices.connectionRegistry
         );
         expect((serverB as { connectionRegistry: unknown }).connectionRegistry).not.toBe(
-            appServices.connectionRegistry
+            sharedServices.connectionRegistry
         );
 
         // Request override isolation: only the first request got read-only=true
@@ -366,9 +366,9 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
             telemetry: "disabled",
         });
 
-        const appServices = await makeAppServices(config);
+        const sharedServices = await makeSharedServerServices(config);
         const mcpHttpServer = new CliMcpHttpServer({
-            appServices,
+            sharedServices,
             options: {
                 http: {
                     host: config.httpHost,
@@ -403,7 +403,7 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
 
         // An anonymous request is isolated too: it never sees identified
         // clients' connections (and holds no cross-request state).
-        expect(regGlobal).not.toBe(appServices.connectionRegistry);
+        expect(regGlobal).not.toBe(sharedServices.connectionRegistry);
 
         // Behavioral scoping: a connection created by "alice" is visible to
         // alice's later request (same stable scope across requests), but
@@ -424,9 +424,9 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
             telemetry: "disabled",
         });
 
-        const appServices = await makeAppServices(config);
+        const sharedServices = await makeSharedServerServices(config);
         const mcpHttpServer = new CliMcpHttpServer({
-            appServices,
+            sharedServices,
             options: {
                 http: {
                     host: config.httpHost,

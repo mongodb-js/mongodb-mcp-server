@@ -8,7 +8,7 @@ import type {
     DefaultMetricDefinitions,
     TransportRequestContext,
     HttpServerOptions,
-    ServerLike,
+    BaseServer,
 } from "@mongodb-js/mcp-types";
 import {
     LogId,
@@ -60,7 +60,7 @@ export type MCPHttpServerOptions<TMetrics extends DefaultMetricDefinitions = Def
  * ```
  */
 export abstract class MCPHttpServer<
-    TServer extends ServerLike = ServerLike,
+    TServer extends BaseServer = BaseServer,
     TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > extends ExpressBasedHttpServer {
     /** The 2026-07-28 serving entry; every request is routed here. */

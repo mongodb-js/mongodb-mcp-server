@@ -37,7 +37,7 @@ export type CreateServerServicesOptions = {
  * in the shared `connectionStore`, exports in the shared `exportsManager`,
  * and per-client identity travels on each tool request instead.
  */
-export type AppServices = {
+export type SharedServerServices = {
     config: UserConfig;
     serverMetadata: ServerMetadata;
     tools: ToolRegistry;
@@ -123,7 +123,7 @@ export async function validateAppConfig({
 }
 
 /** Builds every app-level service once: metrics, monitoring, keychain, device id, connection store, API client, exports, telemetry, Atlas Local client. */
-export async function createAppServicesFromConfig(options: CreateServerServicesOptions): Promise<AppServices> {
+export async function createSharedServicesFromConfig(options: CreateServerServicesOptions): Promise<SharedServerServices> {
     const { config, serverMetadata, logger } = options;
     const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
     const monitoringServer = createMonitoringServerFromConfig({ config, logger, metrics });
@@ -213,7 +213,7 @@ function ephemeralClientScope(): string {
  * request-overridden) config. Only the effective config view, the connection
  * registry view and the request-scoped
  * {@link McpServer}/{@link Elicitation}/{@link CliServer} are created fresh;
- * every heavy dependency comes from {@link AppServices}.
+ * every heavy dependency comes from {@link SharedServerServices}.
  *
  * When `request` is present (HTTP), the server's connection registry is an
  * isolated scoped+owned view over the shared store: a client that identifies
@@ -226,11 +226,11 @@ function ephemeralClientScope(): string {
  */
 export function createServerFromConfig({
     config,
-    appServices,
+    sharedServices,
     request,
 }: {
     config: UserConfig;
-    appServices: AppServices;
+    sharedServices: SharedServerServices;
     request?: TransportRequestContext;
 }): CliServer {
     const {
@@ -246,7 +246,7 @@ export function createServerFromConfig({
         exportsManager,
         telemetry,
         atlasLocalClient,
-    } = appServices;
+    } = sharedServices;
 
     // HTTP: every request gets an isolated view (identified → stable scope,
     // anonymous → ephemeral scope). Non-HTTP (no request): the shared registry.
@@ -267,7 +267,7 @@ export function createServerFromConfig({
     // is no per-client "session" object. The effective (possibly
     // request-overridden) config and the (possibly client-scoped) connection
     // registry view are the only per-request values — every other service is
-    // shared from the app-level {@link AppServices}.
+    // shared from the app-level {@link SharedServerServices}.
     return new CliServer({
         config,
         logger,
@@ -296,8 +296,8 @@ export function createServerFromConfig({
  * works (revoking Atlas entries deletes their temporary database users through
  * it), then telemetry flushes last.
  */
-export async function closeAppServices(appServices: AppServices): Promise<void> {
-    const { telemetry, connectionStore, exportsManager, apiClient } = appServices;
+export async function closeSharedServices(sharedServices: SharedServerServices): Promise<void> {
+    const { telemetry, connectionStore, exportsManager, apiClient } = sharedServices;
     await Promise.allSettled([connectionStore.closeAll(), exportsManager.close()]);
     await Promise.allSettled([apiClient.close(), telemetry.close()]);
 }
