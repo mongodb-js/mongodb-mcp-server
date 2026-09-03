@@ -265,6 +265,9 @@ export type ConnectionMetadata = AtlasMetadata &
         connection_id?: string;
         connection_auth_type?: string;
         connection_host_type?: string;
+        /** Atlas cluster the connection points at, when it is an Atlas connection. */
+        cluster_name?: string;
+        cluster_id?: string;
         shared_tier_alerts_detected?: TelemetryBoolSet;
         shared_tier_tier?: SharedTierTier;
         shared_tier_alerts?: SharedTierMetricName[];

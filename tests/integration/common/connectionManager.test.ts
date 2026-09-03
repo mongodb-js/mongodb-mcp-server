@@ -152,8 +152,8 @@ describeWithMongoDB("Connection Manager", (integration) => {
                 username: "",
                 projectId: "",
                 clusterName: "My Atlas Cluster",
+                clusterId: "my-atlas-cluster-id",
                 instanceType: "FREE" as const,
-                expiryDate: new Date(),
             };
 
             beforeEach(async () => {
@@ -185,6 +185,40 @@ describeWithMongoDB("Connection Manager", (integration) => {
 
             it("should be marked explicitly as errored", () => {
                 expect(manager.currentConnectionState.tag).toEqual("errored");
+            });
+        });
+
+        describe("when fails to connect to a new atlas cluster given only its coordinates", () => {
+            // A host that issues its own credentials (X.509, a pre-provisioned
+            // user, a proxy) knows the cluster but none of the temporary-user
+            // details, and must still be able to mark the connection as Atlas.
+            const atlas = {
+                projectId: "test-project-id",
+                clusterName: "My Atlas Cluster",
+                clusterId: "my-atlas-cluster-id",
+            };
+
+            beforeEach(async () => {
+                try {
+                    await manager.connect({
+                        connectionString: "mongodb://localhost:xxxxx",
+                        atlas,
+                    });
+                } catch (_error: unknown) {
+                    void _error;
+                }
+            });
+
+            it("should carry the coordinates and the atlas host type on the errored state", () => {
+                expect(connectionManagerSpies["connection-error"]).toHaveBeenCalledWith({
+                    tag: "errored",
+                    connectedAtlasCluster: atlas,
+                    connectionStringInfo: {
+                        authType: "scram",
+                        hostType: "atlas",
+                    },
+                    errorReason: "Unable to parse localhost:xxxxx with URL",
+                });
             });
         });
     });
