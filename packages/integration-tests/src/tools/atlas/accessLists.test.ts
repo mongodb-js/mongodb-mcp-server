@@ -102,7 +102,7 @@ describeWithAtlas("ip access lists", (integration) => {
                 expect(response.isError).toBe(true);
                 const message = getResponseContent(response.content);
                 expect(message).toContain("Input validation error:");
-                expect(message).toContain("Comment must be 80 characters or less.");
+                expect(message).toContain("comment: Too big: expected string to have <=80 characters");
             });
         });
 
