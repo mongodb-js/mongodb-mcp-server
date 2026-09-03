@@ -34,7 +34,7 @@ export abstract class TuiSessionBase implements AgentSession {
     protected constructor(terminal: TuiTest, options: AgentHarnessOptions, onState?: (state: TuiState) => void) {
         this.terminal = terminal;
         this.options = options;
-        this.onState = onState ?? ((state) => this.printState(state));
+        this.onState = onState ?? ((state): void => this.printState(state));
     }
 
     /** Agent label used in debug/error output (e.g. "codex"). */

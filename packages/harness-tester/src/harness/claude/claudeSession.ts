@@ -1,7 +1,7 @@
 import type { TuiTest } from "@microsoft/tui-test";
 import { parseClaudeTurn } from "./parseClaudeToolCalls.js";
 import { TuiSessionBase, type TuiState } from "../tuiSession.js";
-import type { AgentHarnessOptions } from "../types.js";
+import type { AgentHarnessOptions, ToolCallRecord } from "../types.js";
 
 export type ClaudeState = TuiState;
 
@@ -36,7 +36,7 @@ export class ClaudeTuiSession extends TuiSessionBase {
         return text.includes(COMPOSER_IDLE_MARKER);
     }
 
-    protected extractToolCalls(_delta: string) {
+    protected extractToolCalls(): ToolCallRecord[] {
         // The session JSONL is the authoritative source; the TUI scrollback only renders the
         // server name, so tool-level calls are read from the JSONL rather than the transcript.
         return parseClaudeTurn({ claudeHomeDir: this.claudeHome, seenCallKeys: this.seenCallKeys }).toolCalls;

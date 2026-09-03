@@ -1,7 +1,7 @@
 import type { TuiTest } from "@microsoft/tui-test";
 import { parseTuiTranscript } from "./codexParseTuiTranscript.js";
 import { TuiSessionBase, type TuiState } from "../tuiSession.js";
-import type { AgentHarnessOptions } from "../types.js";
+import type { AgentHarnessOptions, ToolCallRecord } from "../types.js";
 
 export type CodexState = TuiState;
 
@@ -25,7 +25,7 @@ export class CodexTuiSession extends TuiSessionBase {
         return text.includes(COMPOSER_IDLE_MARKER);
     }
 
-    protected extractToolCalls(delta: string) {
+    protected extractToolCalls(delta: string): ToolCallRecord[] {
         return parseTuiTranscript(delta).toolCalls;
     }
 }
