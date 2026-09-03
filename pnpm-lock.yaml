@@ -367,6 +367,39 @@ importers:
         specifier: ^4.1.11
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.11)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.1.4(@types/node@25.6.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
 
+  packages/e2e-tests:
+    devDependencies:
+      '@modelcontextprotocol/client':
+        specifier: ^2.0.0
+        version: 2.0.0
+      '@mongodb-js/harness-tester':
+        specifier: workspace:*
+        version: link:../harness-tester
+      '@mongodb-js/mcp-cli':
+        specifier: workspace:*
+        version: link:../cli
+      '@mongodb-js/mcp-core':
+        specifier: workspace:*
+        version: link:../core
+      '@mongodb-js/mcp-test-utils':
+        specifier: workspace:*
+        version: link:../test-utils
+      '@types/node':
+        specifier: ^25.6.0
+        version: 25.6.0
+      mongodb:
+        specifier: ^7.1.1
+        version: 7.2.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9)
+      mongodb-mcp-server:
+        specifier: workspace:*
+        version: link:../mongodb-mcp-server
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.5
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.11)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.1.4(@types/node@25.6.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+
   packages/eval-tests:
     dependencies:
       '@ai-sdk/mcp':
@@ -434,6 +467,22 @@ importers:
       vitest:
         specifier: ^4.1.11
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.11)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.1.4(@types/node@25.6.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+
+  packages/harness-tester:
+    dependencies:
+      '@microsoft/tui-test':
+        specifier: 0.1.0-beta.2
+        version: 0.1.0-beta.2
+      vitest:
+        specifier: ^4.1.5
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.11)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.1.4(@types/node@25.6.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+    devDependencies:
+      '@types/node':
+        specifier: ^25.6.0
+        version: 25.6.0
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
 
   packages/http-runners:
     dependencies:
@@ -2296,6 +2345,56 @@ packages:
 
   '@microsoft/tsdoc@0.16.0':
     resolution: {integrity: sha512-xgAyonlVVS+q7Vc7qLW0UrJU7rSFcETRWsqdXZtjzRU8dF+6CkozTK4V4y1LwOX7j8r/vHphjDeMeGI4tNGeGA==}
+
+  '@microsoft/tui-test-darwin-arm64@0.1.0-beta.2':
+    resolution: {integrity: sha512-3o9O7WQGE5vQcVuEZe2U9uajmi4PyalRFI14nccGSH8JoTIajBSZiRGV+6TFsxG4Gbfo5a+eVSeaa2eD4n5+5A==}
+    engines: {node: '>=20'}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@microsoft/tui-test-darwin-x64@0.1.0-beta.2':
+    resolution: {integrity: sha512-qI+Eyn7hYzG5fUU7C5mMJG6fcfuk5HKYm6Ha74SC7J8cW8OtqYt5tVPfSlVGgTaaC0W/pcC8AWAXbLD0fbEGfQ==}
+    engines: {node: '>=20'}
+    cpu: [x64]
+    os: [darwin]
+
+  '@microsoft/tui-test-linux-arm64-gnu@0.1.0-beta.2':
+    resolution: {integrity: sha512-bxB/MBk5mtfpobhE7QYYLGMh4Tk+OPoiR361+siz42ZQRR1G6HZYcy6iEmnqLE/85/vqQvUhGRHA//F2b8j7SA==}
+    engines: {node: '>=20'}
+    cpu: [arm64]
+    os: [linux]
+    libc: [glibc]
+
+  '@microsoft/tui-test-linux-arm64-musl@0.1.0-beta.2':
+    resolution: {integrity: sha512-ERHvfe1+/vFyf7NroEUJJz6fp4l2mIGtyi9dARhkQyJAVuZ9kCpeUIjktRSOeG3Y7JzfSfAJ4UQxC+9/gFEQgQ==}
+    engines: {node: '>=20'}
+    cpu: [arm64]
+    os: [linux]
+    libc: [musl]
+
+  '@microsoft/tui-test-linux-x64-gnu@0.1.0-beta.2':
+    resolution: {integrity: sha512-m614FBXWmUUBXX2UUEeF9KIsGHWeQdydqosVuuGLdOSGS/uw2/ioSo35MhHcwAXrkPqeInBrP43DJYDkufvhyQ==}
+    engines: {node: '>=20'}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+
+  '@microsoft/tui-test-linux-x64-musl@0.1.0-beta.2':
+    resolution: {integrity: sha512-EhT8NiqT7w6kc+vNtkKkIxFephMIinTM3rGjfYv+uXRcPWNVlHmBuV5179oPh4LSy7aVh4QY/ke2DRVFIOyDzw==}
+    engines: {node: '>=20'}
+    cpu: [x64]
+    os: [linux]
+    libc: [musl]
+
+  '@microsoft/tui-test-win32-x64-msvc@0.1.0-beta.2':
+    resolution: {integrity: sha512-JZozhcE5q5G2INwemvS88nL6jXZjuvU5M45zxh25VbIlfeczFe0yGODWfHQ+QrIwwYm3aAMRhXjFqWciKuzodA==}
+    engines: {node: '>=20'}
+    cpu: [x64]
+    os: [win32]
+
+  '@microsoft/tui-test@0.1.0-beta.2':
+    resolution: {integrity: sha512-xSnK4OUPjBHP/bfKgDiNB6AZNbGwHdGpDw/owR2uCdeCKBB/knraDWxMraPRFQcreMEtph0vWfOii4ESXIuSrg==}
+    engines: {node: '>=20'}
 
   '@modelcontextprotocol/client@2.0.0':
     resolution: {integrity: sha512-8f1OghQ2rjzIOfqgUCP+8GiUWqRs89njoWLNqAe8kWmDePv3s1fZXseej+QXemssEuuOvLLmLO/kqM3IQHtISw==}
@@ -9468,6 +9567,37 @@ snapshots:
       resolve: 1.22.12
 
   '@microsoft/tsdoc@0.16.0': {}
+
+  '@microsoft/tui-test-darwin-arm64@0.1.0-beta.2':
+    optional: true
+
+  '@microsoft/tui-test-darwin-x64@0.1.0-beta.2':
+    optional: true
+
+  '@microsoft/tui-test-linux-arm64-gnu@0.1.0-beta.2':
+    optional: true
+
+  '@microsoft/tui-test-linux-arm64-musl@0.1.0-beta.2':
+    optional: true
+
+  '@microsoft/tui-test-linux-x64-gnu@0.1.0-beta.2':
+    optional: true
+
+  '@microsoft/tui-test-linux-x64-musl@0.1.0-beta.2':
+    optional: true
+
+  '@microsoft/tui-test-win32-x64-msvc@0.1.0-beta.2':
+    optional: true
+
+  '@microsoft/tui-test@0.1.0-beta.2':
+    optionalDependencies:
+      '@microsoft/tui-test-darwin-arm64': 0.1.0-beta.2
+      '@microsoft/tui-test-darwin-x64': 0.1.0-beta.2
+      '@microsoft/tui-test-linux-arm64-gnu': 0.1.0-beta.2
+      '@microsoft/tui-test-linux-arm64-musl': 0.1.0-beta.2
+      '@microsoft/tui-test-linux-x64-gnu': 0.1.0-beta.2
+      '@microsoft/tui-test-linux-x64-musl': 0.1.0-beta.2
+      '@microsoft/tui-test-win32-x64-msvc': 0.1.0-beta.2
 
   '@modelcontextprotocol/client@2.0.0':
     dependencies:

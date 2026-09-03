@@ -1,0 +1,95 @@
+import fs from "node:fs";
+import path from "node:path";
+import { normalizeToolName } from "../shared.js";
+import type { ToolCallRecord } from "../types.js";
+
+export { normalizeToolName };
+
+export interface ClaudeTranscriptParseResult {
+    toolCalls: ToolCallRecord[];
+}
+
+/**
+ * Exact tool calls from the session JSONL claude writes per session under
+ * `$CLAUDE_CONFIG_DIR/projects/<dir>/<session>.jsonl`.
+ */
+export function collectSessionJsonlToolCalls(claudeHomeDir: string, seenCallKeys?: Set<string>): ToolCallRecord[] {
+    const projectsDir = path.join(claudeHomeDir, "projects");
+    const records: ToolCallRecord[] = [];
+    // A persistent per-session key set skips calls from earlier turns; otherwise dedupe is per call.
+    const seen = seenCallKeys ?? new Set<string>();
+    const collectFrom = (file: string): void => {
+        let text: string;
+        try {
+            text = fs.readFileSync(file, "utf8");
+        } catch {
+            return;
+        }
+        for (const line of text.split("\n")) {
+            if (!line.trim()) {
+                continue;
+            }
+            let entry: unknown;
+            try {
+                entry = JSON.parse(line);
+            } catch {
+                continue;
+            }
+            if (typeof entry !== "object" || entry === null) {
+                continue;
+            }
+            const msg = (entry as { message?: { content?: unknown } }).message;
+            const content = msg?.content;
+            if (!Array.isArray(content)) {
+                continue;
+            }
+            for (const block of content) {
+                if (typeof block !== "object" || block === null) {
+                    continue;
+                }
+                const b = block as { type?: string; name?: string; input?: unknown };
+                if (b.type !== "tool_use" || !b.name) {
+                    continue;
+                }
+                const rawName = b.name;
+                const name = normalizeToolName(rawName);
+                const dedupeKey = `${name}::${JSON.stringify(b.input ?? null)}`;
+                if (seen.has(dedupeKey)) {
+                    continue;
+                }
+                seen.add(dedupeKey);
+                records.push({ name, rawName, args: b.input });
+            }
+        }
+    };
+    try {
+        if (fs.existsSync(projectsDir)) {
+            // `recursive` collects every entry under `projectsDir` in a single call.
+            const entries = fs.readdirSync(projectsDir, { recursive: true, withFileTypes: true });
+            for (const e of entries) {
+                if (e.isFile() && e.name.endsWith(".jsonl")) {
+                    collectFrom(path.join(e.parentPath, e.name));
+                }
+            }
+        }
+    } catch {
+        // best-effort: return whatever was collected before the read failed
+    }
+    return records;
+}
+
+export interface ParseClaudeTurnOptions {
+    /** Hermetic `CLAUDE_CONFIG_DIR`; exact tool calls are read from the session JSONL. */
+    claudeHomeDir?: string;
+    /** Persistent per-session dedupe set so earlier turns' calls are not re-attributed. */
+    seenCallKeys?: Set<string>;
+}
+
+export function parseClaudeTurn({ claudeHomeDir, seenCallKeys }: ParseClaudeTurnOptions): ClaudeTranscriptParseResult {
+    // The session JSONL is the authoritative source: the TUI scrollback only renders the server
+    // name (`Called <server>`), never the tool name, so the transcript cannot yield tool-level calls.
+    const sessionCalls = claudeHomeDir ? collectSessionJsonlToolCalls(claudeHomeDir, seenCallKeys) : [];
+    return {
+        toolCalls: sessionCalls,
+    };
+}
