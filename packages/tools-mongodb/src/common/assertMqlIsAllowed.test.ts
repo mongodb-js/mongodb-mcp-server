@@ -2,9 +2,9 @@ import { describe, it, expect, vi } from "vitest";
 import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { FindTool } from "../tools/read/find.js";
 import type { IMongoDBSession, IMongoDBConfig } from "../mongodbTool.js";
-import type { ITelemetry, IElicitation } from "@mongodb-js/mcp-types";
+import type { ITelemetry } from "@mongodb-js/mcp-types";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
-import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 
 // assertMqlIsAllowed only reads config, so a minimally-constructed MongoDB tool is enough to exercise it.
 function makeTool(config: Partial<IMongoDBConfig>): (...values: unknown[]) => void {
@@ -32,7 +32,7 @@ function makeTool(config: Partial<IMongoDBConfig>): (...values: unknown[]) => vo
             } as unknown as IMongoDBSession["config"],
         } as unknown as IMongoDBSession,
         telemetry: { isTelemetryEnabled: () => false, emitEvents: vi.fn() } as unknown as ITelemetry,
-        elicitation: { requestConfirmation: vi.fn() } as unknown as IElicitation,
+        elicitation: createMockElicitation(),
         metrics: new MockMetrics(),
 
         uiRegistry: { get: vi.fn().mockResolvedValue(null) },

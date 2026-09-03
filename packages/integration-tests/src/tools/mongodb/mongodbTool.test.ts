@@ -156,7 +156,6 @@ describe("MongoDBTool implementations", () => {
         });
         const elicitation = new Elicitation({
             server: internalMcpServer.server,
-            timeoutMs: userConfig.elicitationTimeoutMs,
         });
 
         mcpServer = new CliServer({

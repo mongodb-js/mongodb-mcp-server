@@ -153,6 +153,17 @@ export function setupIntegrationTest(
             }
         );
 
+        // Multi-round-trip elicitation (protocol revision 2026-07-28): the
+        // client fulfils `input_required` results through its registered
+        // `elicitation/create` handler (via auto-fulfilment on the modern era,
+        // or the server-side legacy shim's server→client dispatch on 2025-era
+        // connections). Tests that mock elicitation drive this handler.
+        if (elicitInput) {
+            // The mock's handler is structurally typed; the SDK's typed
+            // `elicitation/create` handler slot is compatible at runtime.
+            mcpClient.setRequestHandler("elicitation/create", elicitInput.handler as never);
+        }
+
         const exportsManager = ExportsManager.init({ options: userConfig, logger: logger });
 
         deviceId = DeviceId.create(logger);
@@ -204,14 +215,8 @@ export function setupIntegrationTest(
             version: "5.2.3",
         });
 
-        // Mock elicitation if provided
-        if (elicitInput) {
-            Object.assign(mcpServerInstance.server, { elicitInput: elicitInput.mock });
-        }
-
         const elicitation = new Elicitation({
             server: mcpServerInstance.server,
-            timeoutMs: userConfig.elicitationTimeoutMs,
         });
 
         let uiRegistry = serverOptions?.uiRegistry;

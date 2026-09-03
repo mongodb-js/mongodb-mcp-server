@@ -3,7 +3,7 @@ import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { ConnectClusterTool } from "./connectCluster.js";
 import type { IAtlasSession, IAtlasConfig } from "../../atlasTool.js";
-import type { ITelemetry, IElicitation, ICompositeLogger } from "@mongodb-js/mcp-types";
+import type { ITelemetry, ICompositeLogger } from "@mongodb-js/mcp-types";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
@@ -15,7 +15,7 @@ import {
 } from "@mongodb-js/mcp-tools-mongodb";
 import type { ConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
 import { Keychain } from "@mongodb-js/mcp-core";
-import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
 
@@ -99,9 +99,7 @@ describe("ConnectClusterTool", () => {
             emitEvents: vi.fn(),
         } as unknown as ITelemetry;
 
-        const mockElicitation = {
-            requestConfirmation: vi.fn(),
-        } as unknown as IElicitation;
+        const mockElicitation = createMockElicitation();
 
         const params: ToolConstructorParams<IAtlasSession> = {
             name: ConnectClusterTool.toolName,

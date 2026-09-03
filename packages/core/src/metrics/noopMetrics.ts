@@ -17,11 +17,12 @@ const noopMetric: ICounter & IObservable & IGauge = {
  *
  * @example
  * ```typescript
- * const runner = new StdioRunner({
- *   logger: compositeLogger,
- *   metrics: new NoopMetrics(),
- *   server: myServer,
- * });
+ * class MyStdioRunner extends StdioRunner {
+ *   protected override async createServer(): Promise<McpServer> {
+ *     return myServer;
+ *   }
+ * }
+ * const runner = new MyStdioRunner({ logger: compositeLogger });
  * await runner.start();
  * ```
  */

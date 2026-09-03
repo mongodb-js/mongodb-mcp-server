@@ -1,5 +1,6 @@
 export {
     createMockElicitInput,
+    createMockElicitation,
     createMockGetClientCapabilities,
     type MockClientCapabilities,
     type MockElicitResult,

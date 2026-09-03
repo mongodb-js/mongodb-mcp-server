@@ -24,6 +24,7 @@ import type {
 } from "@mongodb-js/mcp-types";
 import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 import type { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
+import type { McpServer } from "@modelcontextprotocol/server";
 
 class MockMetrics
     extends PrometheusMetrics<DefaultPrometheusMetricDefinitions>
@@ -110,7 +111,8 @@ function makeFakeServer(): SessionServer {
                 getClientCapabilities: vi.fn(),
                 getClientVersion: vi.fn(),
             },
-        },
+        } as unknown as McpServer,
+        register: vi.fn().mockResolvedValue(undefined),
         connect: vi.fn().mockResolvedValue(undefined),
         close: vi.fn().mockResolvedValue(undefined),
     };

@@ -142,7 +142,7 @@ describeWithStreams("atlas-streams-build", (integration) => {
                         connectionName: srConnName,
                         connectionType: "SchemaRegistry",
                         connectionConfig: {
-                            schemaRegistryUrls: ["https://dummy-registry.example.com"],
+                            schemaRegistryUrls: ["https://cloud-dev.mongodb.com/"],
                             provider: "CONFLUENT",
                             schemaRegistryAuthentication: {
                                 type: "USER_INFO",

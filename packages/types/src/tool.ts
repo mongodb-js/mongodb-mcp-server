@@ -2,6 +2,7 @@ import type { CallToolResult, RequestMeta } from "@modelcontextprotocol/server";
 
 export type { CallToolResult };
 import type { IToolConfig } from "./config.js";
+import type { ElicitationInputResponses } from "./elicitation.js";
 import type { IRedactor } from "./keychain.js";
 import type { ICompositeLogger } from "./logging.js";
 
@@ -63,6 +64,15 @@ export type ToolExecutionContext = {
     requestId?: string | number;
     /** Send an MCP server notification. */
     sendNotification?: (notification: unknown) => Promise<void>;
+    /**
+     * Responses to a previous `input_required` round (protocol revision
+     * 2026-07-28 multi-round-trip requests). Present only when this request
+     * is a client retry carrying the answers to elicitation/sampling/roots
+     * requests the handler returned as `inputRequired(...)`. Keyed by the
+     * server-assigned identifiers of the embedded requests. Values are
+     * untrusted client input.
+     */
+    inputResponses?: ElicitationInputResponses;
     /**
      * Total time spent waiting for the user to answer elicitation requests
      * raised while handling this call. Accumulated by

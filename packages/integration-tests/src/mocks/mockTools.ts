@@ -139,15 +139,15 @@ export class ConfirmingTool extends ToolBase {
     public description = "Requests confirmation while executing";
     public argsShape = {};
 
-    protected async execute(
-        _args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
-    ): Promise<CallToolResult> {
-        if (!(await this.requestConfirmation("Proceed?", context))) {
-            return { content: [{ type: "text" as const, text: "The operation was not performed." }], isError: true };
+    protected execute(_args: ToolArgs<typeof this.argsShape>, context: ToolExecutionContext): Promise<CallToolResult> {
+        if (!this.requestConfirmation("Proceed?", context)) {
+            return Promise.resolve({
+                content: [{ type: "text" as const, text: "The operation was not performed." }],
+                isError: true,
+            });
         }
 
-        return { content: [{ type: "text" as const, text: "executed" }] };
+        return Promise.resolve({ content: [{ type: "text" as const, text: "executed" }] });
     }
 
     protected resolveTelemetryMetadata(): TelemetryToolMetadata {
