@@ -89,13 +89,14 @@ export const Clock: React.FunctionComponent<ClockProps> = ({
             } ms). The rest is the time taken by preceding stages.`}
         >
             <svg width={CLOCK_SIZE} height={CLOCK_SIZE} style={{ position: "absolute", top: 0, left: 0 }}>
-                {/* clock face + border */}
+                {/* clock face + border (Compass: face fill is the background
+                    color — white in light mode; border/ticks use the face color) */}
                 <circle
                     cx={center}
                     cy={center}
                     r={center - 0.5}
-                    fill={theme.clockFaceColor}
-                    stroke={theme.clockTextColor}
+                    fill={theme.clockBackgroundColor}
+                    stroke={theme.clockFaceColor}
                     strokeWidth={1}
                 />
                 {/* clock position ticks */}
@@ -108,7 +109,7 @@ export const Clock: React.FunctionComponent<ClockProps> = ({
                             y1={center - (center - tickLength) * Math.cos(rad)}
                             x2={center + center * Math.sin(rad)}
                             y2={center - center * Math.cos(rad)}
-                            stroke={theme.clockTextColor}
+                            stroke={theme.clockFaceColor}
                             strokeWidth={1}
                         />
                     );
