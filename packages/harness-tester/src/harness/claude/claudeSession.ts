@@ -29,11 +29,18 @@ export class ClaudeTuiSession extends TuiSessionBase {
     }
 
     protected isWorking(text: string): boolean {
-        return text.includes(WORKING_FOOTER_MARKER);
+        // The `esc to interrupt` footer is only a working signal at the bottom of the
+        // viewport; matching it anywhere could match a stale or incidental occurrence.
+        const lines = text.split("\n").filter((l) => l.trim().length > 0);
+        const footer = lines[lines.length - 1] ?? "";
+        return footer.includes(WORKING_FOOTER_MARKER);
     }
 
     protected isComposerIdle(text: string): boolean {
-        return text.includes(COMPOSER_IDLE_MARKER);
+        // A bare `❯` line is the empty composer. `❯ <prompt>` (an echoed prompt) also
+        // contains `❯`, so a substring match would report idle too early — that prompt
+        // echo is exactly the case that must NOT count as composition idle.
+        return text.split("\n").some((l) => l.trim() === COMPOSER_IDLE_MARKER);
     }
 
     protected extractToolCalls(): ToolCallRecord[] {
