@@ -1,25 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiClient, AuthProviderFactory, type AuthProvider } from "@mongodb-js/mcp-atlas-api-client";
+import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import type { TelemetryCommonProperties, TelemetryEvent } from "@mongodb-js/mcp-types";
 import { NoopLogger } from "@mongodb-js/mcp-core";
+import { createMockAuthProvider } from "./test-helpers/createMockAuthProvider.js";
 
 const TEST_USER_AGENT = "test-user-agent";
 const testHttpClient = {
     fetch: globalThis.fetch.bind(globalThis),
     Request: globalThis.Request,
 };
-
-function credentialedProvider(baseUrl = "https://api.test.com", httpClient = testHttpClient): AuthProvider | undefined {
-    return AuthProviderFactory.create(
-        {
-            apiBaseUrl: baseUrl,
-            userAgent: TEST_USER_AGENT,
-            credentials: { clientId: "test-client-id", clientSecret: "test-client-secret" },
-            httpClient,
-        },
-        new NoopLogger()
-    );
-}
 
 describe("ApiClient", () => {
     let apiClient: ApiClient;
@@ -47,12 +36,12 @@ describe("ApiClient", () => {
     beforeEach(() => {
         apiClient = new ApiClient({
             options: {
-                baseUrl: "https://api.test.com",
+                baseUrl: "https://example.com",
                 userAgent: TEST_USER_AGENT,
                 httpClient: testHttpClient,
             },
             logger: new NoopLogger(),
-            authProvider: credentialedProvider(),
+            authProvider: createMockAuthProvider(),
         });
 
         apiClient.authProvider!.validate = vi.fn().mockResolvedValue(true);
@@ -80,7 +69,7 @@ describe("ApiClient", () => {
         it("makes getIpInfo reject without a network call when disabled", async () => {
             const client = new ApiClient({
                 options: {
-                    baseUrl: "https://api.test.com",
+                    baseUrl: "https://example.com",
                     userAgent: TEST_USER_AGENT,
                     supportsCurrentIpLookup: false,
                     httpClient: testHttpClient,
@@ -118,7 +107,7 @@ describe("ApiClient", () => {
             };
             const client = new ApiClient({
                 options: {
-                    baseUrl: "https://api.test.com",
+                    baseUrl: "https://example.com",
                     userAgent: TEST_USER_AGENT,
                     httpClient,
                 },
@@ -141,12 +130,12 @@ describe("ApiClient", () => {
             };
             const client = new ApiClient({
                 options: {
-                    baseUrl: "https://api.test.com",
+                    baseUrl: "https://example.com",
                     userAgent: TEST_USER_AGENT,
                     httpClient,
                 },
                 logger: new NoopLogger(),
-                authProvider: credentialedProvider("https://api.test.com", httpClient),
+                authProvider: createMockAuthProvider("https://example.com", httpClient),
             });
 
             // @ts-expect-error accessing private property for testing
@@ -165,7 +154,7 @@ describe("ApiClient", () => {
             const call = mockFetch.mock.calls[0];
             expect(call).toBeDefined();
             const [url, init] = call!;
-            expect(url instanceof URL ? url.href : url).toBe("https://api.test.com/api/private/v1.0/telemetry/events");
+            expect(url instanceof URL ? url.href : url).toBe("https://example.com/api/private/v1.0/telemetry/events");
             const headers = init?.headers as Record<string, string>;
             expect(headers).toBeDefined();
             expect(headers["User-Agent"]).toBe(TEST_USER_AGENT);
@@ -175,7 +164,7 @@ describe("ApiClient", () => {
         it("should use the provided userAgent in unauth requests", async () => {
             const clientWithoutCredentials = new ApiClient({
                 options: {
-                    baseUrl: "https://api.test.com",
+                    baseUrl: "https://example.com",
                     userAgent: "AtlasMCP/test-version",
                     httpClient: testHttpClient,
                 },
@@ -191,9 +180,7 @@ describe("ApiClient", () => {
             const call = mockFetch.mock.calls[0];
             expect(call).toBeDefined();
             const [url, init] = call!;
-            expect(url instanceof URL ? url.href : url).toBe(
-                "https://api.test.com/api/private/unauth/telemetry/events"
-            );
+            expect(url instanceof URL ? url.href : url).toBe("https://example.com/api/private/unauth/telemetry/events");
             const headers = init?.headers as Record<string, string>;
             expect(headers).toBeDefined();
             expect(headers["User-Agent"]).toBe("AtlasMCP/test-version");
@@ -361,7 +348,7 @@ describe("ApiClient", () => {
 
             await apiClient.sendEvents(mockEvents);
 
-            const url = new URL("api/private/v1.0/telemetry/events", "https://api.test.com");
+            const url = new URL("api/private/v1.0/telemetry/events", "https://example.com");
             expect(mockFetch).toHaveBeenCalledWith(
                 url,
                 expect.objectContaining({
@@ -385,7 +372,7 @@ describe("ApiClient", () => {
 
             await apiClient.sendEvents(mockEvents);
 
-            const url = new URL("api/private/unauth/telemetry/events", "https://api.test.com");
+            const url = new URL("api/private/unauth/telemetry/events", "https://example.com");
             expect(mockFetch).toHaveBeenCalledWith(
                 url,
                 expect.objectContaining({
@@ -408,7 +395,7 @@ describe("ApiClient", () => {
 
             await apiClient.sendEvents(mockEvents);
 
-            const url = new URL("api/private/unauth/telemetry/events", "https://api.test.com");
+            const url = new URL("api/private/unauth/telemetry/events", "https://example.com");
             expect(mockFetch).toHaveBeenCalledWith(
                 url,
                 expect.objectContaining({
@@ -431,7 +418,7 @@ describe("ApiClient", () => {
 
             await apiClient.sendEvents(mockEvents);
 
-            const url = new URL("api/private/unauth/telemetry/events", "https://api.test.com");
+            const url = new URL("api/private/unauth/telemetry/events", "https://example.com");
             expect(mockFetch).toHaveBeenCalledTimes(2);
             expect(mockFetch).toHaveBeenLastCalledWith(
                 url,

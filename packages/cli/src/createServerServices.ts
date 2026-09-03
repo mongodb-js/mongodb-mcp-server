@@ -54,6 +54,13 @@ export type SharedServerServices = {
     telemetry: AtlasTelemetry;
     atlasLocalClient: AtlasLocalClient | undefined;
     monitoringServer: ReturnType<typeof createMonitoringServerFromConfig>;
+    /**
+     * True because {@link createSharedServicesFromConfig} runs
+     * {@link validateAppConfig} once at startup. The app-fixed config (connection
+     * string + Atlas credentials) cannot be overridden per request, so the
+     * per-request servers built from these services skip re-validating it.
+     */
+    configValidated: boolean;
 };
 
 /**
@@ -123,7 +130,9 @@ export async function validateAppConfig({
 }
 
 /** Builds every app-level service once: metrics, monitoring, keychain, device id, connection store, API client, exports, telemetry, Atlas Local client. */
-export async function createSharedServicesFromConfig(options: CreateServerServicesOptions): Promise<SharedServerServices> {
+export async function createSharedServicesFromConfig(
+    options: CreateServerServicesOptions
+): Promise<SharedServerServices> {
     const { config, serverMetadata, logger } = options;
     const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
     const monitoringServer = createMonitoringServerFromConfig({ config, logger, metrics });
@@ -169,6 +178,9 @@ export async function createSharedServicesFromConfig(options: CreateServerServic
         telemetry,
         atlasLocalClient,
         monitoringServer,
+        // `validateAppConfig` ran above, so per-request servers built from these
+        // services skip re-validating the app-fixed config.
+        configValidated: true,
     };
 }
 
@@ -284,9 +296,10 @@ export function createServerFromConfig({
         tools,
         resources,
         serverMetadata,
-        // Validated once at startup by `validateAppConfig`; the per-request
-        // server must not re-run the (network) credential validation.
-        configValidated: true,
+        // Validated once at startup by `validateAppConfig` (see
+        // `sharedServices.configValidated`); the per-request server must not
+        // re-run the (network) credential validation.
+        configValidated: sharedServices.configValidated,
     });
 }
 
