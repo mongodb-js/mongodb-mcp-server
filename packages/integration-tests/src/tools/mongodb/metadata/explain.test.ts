@@ -345,8 +345,9 @@ describeWithMongoDB("explain tool with write stages", (integration) => {
             ]);
     });
 
-    // executionStats (and allPlansExecution) actually run the pipeline, so explaining an
-    // aggregation with a $out/$merge stage could otherwise perform a write even in readOnly mode.
+    // Explaining a pipeline never executes its $out/$merge stage, so this is not a data-safety
+    // guard. It keeps explain consistent with aggregate: a pipeline that cannot be run in the
+    // current mode cannot be explained either.
     for (const writeStage of ["$out", "$merge"] as const) {
         it(`rejects explaining aggregations with a ${writeStage} stage in readOnly mode`, async () => {
             integration.mcpServer().userConfig.readOnly = true;

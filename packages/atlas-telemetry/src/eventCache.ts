@@ -2,15 +2,14 @@ import { LRUCache } from "lru-cache";
 import type { TelemetryBaseEvent } from "./types.js";
 
 /**
- * Singleton class for in-memory telemetry event caching
- * Provides a central storage for telemetry events that couldn't be sent
+ * In-memory telemetry event cache. Each telemetry pipeline owns its own
+ * instance so events are only ever sent through the pipeline that emitted them.
  * Uses LRU cache to automatically drop oldest events when limit is exceeded
  */
-export class EventCache {
-    private static instance: EventCache;
+export class EventCache<T extends TelemetryBaseEvent = TelemetryBaseEvent> {
     private static readonly MAX_EVENTS = 1000;
 
-    private cache: LRUCache<number, TelemetryBaseEvent>;
+    private cache: LRUCache<number, T>;
     private nextId = 0;
     /** Current exclusive operation, if any. The next caller awaits this before starting. */
     private currentOperation: { promise: Promise<void>; resolve: () => void } | undefined;
@@ -25,17 +24,6 @@ export class EventCache {
     }
 
     /**
-     * Gets the singleton instance of EventCache
-     * @returns The EventCache instance
-     */
-    public static getInstance(): EventCache {
-        if (!EventCache.instance) {
-            EventCache.instance = new EventCache();
-        }
-        return EventCache.instance;
-    }
-
-    /**
      * Gets the number of currently cached events
      */
     public get size(): number {
@@ -44,9 +32,9 @@ export class EventCache {
 
     /**
      * Runs a callback with exclusive access to the cache so operations
-     * are serialized across all callers (e.g. multiple Telemetry instances / sessions).
+     * are serialized across all callers (e.g. the send timer racing a close() flush).
      */
-    private async runExclusive<T>(fn: () => Promise<T>): Promise<T> {
+    private async runExclusive<R>(fn: () => Promise<R>): Promise<R> {
         const prevOperation = this.currentOperation;
 
         let resolve: (() => void) | undefined;
@@ -72,10 +60,10 @@ export class EventCache {
      * are removed from the cache; otherwise they remain untouched.
      * Returns the `result` from the processor, or `undefined` if the cache was empty.
      */
-    public async processOldestBatch<T>(
+    public async processOldestBatch<R>(
         batchSize: number,
-        processor: (events: TelemetryBaseEvent[]) => Promise<{ removeProcessed: boolean; result: T }>
-    ): Promise<T | undefined> {
+        processor: (events: T[]) => Promise<{ removeProcessed: boolean; result: R }>
+    ): Promise<R | undefined> {
         return this.runExclusive(async () => {
             const allEvents = this.getEvents();
             const batch = allEvents.slice(0, batchSize);
@@ -98,7 +86,7 @@ export class EventCache {
      * Gets a copy of the currently cached events along with their ids
      * @returns Array of cached BaseEvent objects
      */
-    public getEvents(): { id: number; event: TelemetryBaseEvent }[] {
+    public getEvents(): { id: number; event: T }[] {
         return Array.from(this.cache.entries()).map(([id, event]) => ({ id, event }));
     }
 
@@ -106,7 +94,7 @@ export class EventCache {
      * Appends new events to the cache.
      * LRU cache automatically handles dropping oldest events when limit is exceeded.
      */
-    public appendEvents(events: TelemetryBaseEvent[]): void {
+    public appendEvents(events: T[]): void {
         for (const event of events) {
             this.cache.set(this.nextId++, event);
         }

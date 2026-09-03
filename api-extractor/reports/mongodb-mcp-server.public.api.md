@@ -567,18 +567,17 @@ export const ErrorCodes: {
 };
 
 // @public
-export class EventCache {
+export class EventCache<T extends TelemetryBaseEvent = TelemetryBaseEvent> {
     constructor();
-    appendEvents(events: TelemetryBaseEvent[]): void;
+    appendEvents(events: T[]): void;
     getEvents(): {
         id: number;
-        event: TelemetryBaseEvent;
+        event: T;
     }[];
-    static getInstance(): EventCache;
-    processOldestBatch<T>(batchSize: number, processor: (events: TelemetryBaseEvent[]) => Promise<{
+    processOldestBatch<R>(batchSize: number, processor: (events: T[]) => Promise<{
         removeProcessed: boolean;
-        result: T;
-    }>): Promise<T | undefined>;
+        result: R;
+    }>): Promise<R | undefined>;
     removeEvents(ids: number[]): void;
     get size(): number;
 }
@@ -1022,7 +1021,7 @@ export type TelemetryConfig = {
     keychain: IKeychain;
     enabled: boolean;
     serverMetadata: ServerMetadata;
-    eventCache?: EventCache;
+    eventCache?: EventCache<TelemetryEvent<TelemetryCommonProperties>>;
 };
 
 // @public (undocumented)
