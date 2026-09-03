@@ -6,6 +6,10 @@ import type { AgentHarnessOptions, AgentSession, AgentTurn, ToolCallRecord } fro
 /** Delay between typing a prompt and pressing Enter (agents drop a same-tick Enter). */
 const TYPE_TO_ENTER_DELAY_MS = 800;
 
+/** How long an idle+not-working composer may persist before we accept a turn as complete
+ * even without observing the turn start (guard against pathological no-activity hangs). */
+const IDLE_BAIL_GRACE_MS = 30_000;
+
 /** Per-poll state shared by both agent TUI sessions. */
 export interface TuiState {
     /** True while the session's status/footer shows an in-progress turn. */
@@ -65,6 +69,14 @@ export abstract class TuiSessionBase implements AgentSession {
         const deadline = Date.now() + timeoutMs;
         const startedAt = Date.now();
         let lastError = "";
+        // A turn is only "real" once we have observed it begin: the working marker,
+        // the composer leaving its idle placeholder, or the transcript growing past
+        // the prompt echo. Without this the first poll after Enter (before the agent
+        // has rendered anything) satisfies `!working && composerIdle` and returns a
+        // bogus empty turn.
+        let sawTurnActivity = false;
+        let prevDeltaLength: number | undefined;
+        let idleSinceMs: number | undefined;
 
         while (Date.now() < deadline) {
             const full = await this.transcriptText();
@@ -79,11 +91,34 @@ export abstract class TuiSessionBase implements AgentSession {
             };
             this.onState(state);
 
+            if (
+                state.working ||
+                !state.composerIdle ||
+                (prevDeltaLength !== undefined && delta.length > prevDeltaLength)
+            ) {
+                sawTurnActivity = true;
+            }
+            prevDeltaLength = delta.length;
+
             // Turn done when the in-progress marker is gone and the composer is idle.
             if (!state.working && state.composerIdle) {
-                this.log.debug(`<<turn complete after ${state.elapsedMs}ms>>`);
-                this.onState({ ...state, viewport: `turn complete after ${state.elapsedMs}ms\n` + delta.slice(-1200) });
-                return await this.buildTurn(startText);
+                // Require evidence the turn actually started so we don't return an empty
+                // turn on the first poll before the agent renders anything. Bail out if
+                // the composer stays idle+not-working with no activity for too long.
+                if (
+                    sawTurnActivity ||
+                    (idleSinceMs !== undefined && state.elapsedMs - idleSinceMs >= IDLE_BAIL_GRACE_MS)
+                ) {
+                    this.log.debug(`<<turn complete after ${state.elapsedMs}ms>>`);
+                    this.onState({
+                        ...state,
+                        viewport: `turn complete after ${state.elapsedMs}ms\n` + delta.slice(-1200),
+                    });
+                    return await this.buildTurn(startText);
+                }
+                idleSinceMs ??= state.elapsedMs;
+            } else {
+                idleSinceMs = undefined;
             }
 
             // Debug: stream the transcript as it grows.
