@@ -40,7 +40,7 @@ export class ListConnectionsTool extends MongoDBToolBase {
     }
 
     private noConnectionsText(): string {
-        const connectToolNames = connectCapableTools(this.registrationServer?.tools ?? [])
+        const connectToolNames = connectCapableTools(this.server.tools)
             .map((tool) => `"${tool.name}"`)
             .join(", ");
         return connectToolNames

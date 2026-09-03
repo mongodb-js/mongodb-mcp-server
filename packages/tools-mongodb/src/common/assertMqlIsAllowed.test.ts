@@ -33,7 +33,7 @@ function makeTool(config: Partial<IMongoDBConfig>): (...values: unknown[]) => vo
         elicitation: createMockElicitation(),
         metrics: new MockMetrics(),
         uiRegistry: { get: vi.fn().mockResolvedValue(null) },
-    };
+    } as unknown as MongoDBToolServer;
 
     const tool = new FindTool({ server }) as unknown as {
         assertMqlIsAllowed: (config: IMongoDBConfig, ...values: unknown[]) => void;

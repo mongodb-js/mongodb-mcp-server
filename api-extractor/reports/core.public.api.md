@@ -412,9 +412,7 @@ export abstract class ToolBase<TServer extends ToolServer = ToolServer, TMetrics
     readonly operationType: OperationType;
     outputSchema?: ZodRawShape;
     // (undocumented)
-    register(server: {
-        mcpServer: McpServer;
-    }): boolean;
+    register(): boolean;
     protected requestConfirmation(message: string, context: ToolExecutionContext): boolean | undefined;
     requiresConfirmation(): boolean;
     protected abstract resolveTelemetryMetadata(args: ToolArgs<typeof ToolBase.argsShape>, input: {

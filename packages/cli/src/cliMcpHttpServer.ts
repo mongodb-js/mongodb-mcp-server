@@ -18,7 +18,13 @@ export type CliMcpHttpServerOptions = {
 export class CliMcpHttpServer extends MCPHttpServer<CliServer> {
     private readonly sharedServices: SharedServerServices;
 
-    constructor({ sharedServices, options }: { sharedServices: SharedServerServices; options: CliMcpHttpServerOptions }) {
+    constructor({
+        sharedServices,
+        options,
+    }: {
+        sharedServices: SharedServerServices;
+        options: CliMcpHttpServerOptions;
+    }) {
         super({
             options,
             logger: sharedServices.logger,

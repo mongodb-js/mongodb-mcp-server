@@ -2,7 +2,6 @@ import { z, type ZodRawShape } from "zod";
 import {
     isInputRequiredResult,
     type RegisteredTool,
-    type McpServer,
     type CallToolResult,
     type InputRequiredResult,
     type ToolAnnotations,
@@ -756,7 +755,7 @@ export abstract class ToolBase<
         return entry.schema;
     }
 
-    public register(server: { mcpServer: McpServer }): boolean {
+    public register(): boolean {
         if (!this.verifyAllowed()) {
             return false;
         }
@@ -768,7 +767,7 @@ export abstract class ToolBase<
             // structurally-typed wrapper and route through `invoke`.
             /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion -- the generic registers are not directly assignable to this callback shape */
             (
-                server.mcpServer.registerTool as unknown as (
+                this.server.mcpServer.registerTool as unknown as (
                     name: string,
                     config: {
                         description?: string;
@@ -796,7 +795,7 @@ export abstract class ToolBase<
                 // `this.server` rather than the request. Per-request identity travels
                 // on the execution context via `toToolExecutionContext`.
                 (args, ctx) =>
-                    this.invoke(args, toToolExecutionContext(ctx, server.mcpServer?.server?.getClientVersion()))
+                    this.invoke(args, toToolExecutionContext(ctx, this.server.mcpServer?.server?.getClientVersion()))
             );
 
         return true;

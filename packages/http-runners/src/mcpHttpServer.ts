@@ -179,14 +179,16 @@ export abstract class MCPHttpServer<
         // SDK's stateless fallback answers them with `405`; here we mirror that
         // rather than letting Express fall through to its own bare 404.
         const methodNotAllowed = (req: express.Request, res: express.Response): void => {
-            res.status(405).set("Allow", "POST").json({
-                jsonrpc: "2.0",
-                error: {
-                    code: JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
-                    message: "Method not allowed.",
-                },
-                id: null,
-            });
+            res.status(405)
+                .set("Allow", "POST")
+                .json({
+                    jsonrpc: "2.0",
+                    error: {
+                        code: JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
+                        message: "Method not allowed.",
+                    },
+                    id: null,
+                });
         };
         this.app.get("/mcp", methodNotAllowed);
         this.app.delete("/mcp", methodNotAllowed);

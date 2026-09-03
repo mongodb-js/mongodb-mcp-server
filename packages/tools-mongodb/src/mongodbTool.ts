@@ -1,8 +1,7 @@
 import { z } from "zod";
-import type { ToolArgs, AnyToolBase, InputRequiredResult } from "@mongodb-js/mcp-core";
+import type { ToolArgs, InputRequiredResult } from "@mongodb-js/mcp-core";
 import { ToolBase } from "@mongodb-js/mcp-core";
 import type {
-    McpServer,
     ToolCategory,
     OperationType,
     ToolExecutionContext,
@@ -10,6 +9,7 @@ import type {
     CallToolResult,
     ToolServices,
     ToolServer,
+    ToolServerTool,
     IToolConfig,
 } from "@mongodb-js/mcp-types";
 import type { ConnectionMetadata } from "@mongodb-js/mcp-atlas-telemetry";
@@ -52,20 +52,9 @@ export type MongoDBToolServices = ToolServices<IMongoDBConfig> & {
     connectionRegistry: ConnectionRegistry;
     connectionErrorHandler(
         error: MongoDBError,
-        context: { availableTools: readonly unknown[]; connectionState: unknown }
+        context: { availableTools: readonly ToolServerTool[]; connectionState: unknown }
     ): Promise<{ errorHandled: boolean; result: CallToolResult }>;
     exportsManager: { createJSONExport: (params: CreateJSONExportParams) => Promise<AvailableExport> };
-};
-
-/**
- * MCP registration payload for MongoDB tools. Matches `{ mcpServer }` from
- * {@link ToolBase.register} plus optional host context used when rendering
- * connection errors.
- */
-export type MongoDBToolRegistrationServer = {
-    mcpServer: McpServer;
-    readonly tools?: readonly AnyToolBase[];
-    isToolCategoryAvailable(name: ToolCategory): boolean;
 };
 
 function connectionIdDescription({ hasPreconfiguredConnection }: { hasPreconfiguredConnection: boolean }): string {
@@ -88,12 +77,10 @@ const connectionIdArgWithoutPreconfigured = z
 export type MongoDBToolServer = ToolServer<MongoDBToolServices>;
 
 export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
-    /** Registration-time host context (the SDK server + registered tools). */
-    protected registrationServer?: MongoDBToolRegistrationServer;
     static category: ToolCategory = "mongodb";
 
     protected get isExportToolAvailable(): boolean {
-        const registeredTools = this.registrationServer?.tools ?? [];
+        const registeredTools = this.server.tools;
         const exportTool = registeredTools.find((tool) => tool.name === EXPORT_TOOL_NAME);
         return exportTool?.isEnabled() ?? false;
     }
@@ -244,8 +231,7 @@ export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
         return "";
     }
 
-    public register(server: MongoDBToolRegistrationServer): boolean {
-        this.registrationServer = server;
+    public register(): boolean {
         // The default connectionId description advertises the "preconfigured"
         // handle; drop that mention when no connection string is configured.
         if ("connectionId" in this.argsShape && !this.server.config.connectionString) {
@@ -254,7 +240,7 @@ export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
                 connectionId: connectionIdArgWithoutPreconfigured,
             };
         }
-        return super.register(server);
+        return super.register();
     }
 
     protected async handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
@@ -276,7 +262,7 @@ export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
                         this.server.keychain.redact(rawConnectionError.message)
                     );
                     const outcome = await this.server.connectionErrorHandler(connectionError, {
-                        availableTools: this.registrationServer?.tools ?? [],
+                        availableTools: this.server.tools,
                         connectionState: (await this.peekConnection(args.connectionId as string | undefined))?.state,
                     });
                     if (outcome.errorHandled) {
@@ -297,7 +283,7 @@ export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
                         isError: true,
                     };
                 case ErrorCodes.AtlasSearchNotSupported: {
-                    const CTA = this.registrationServer?.isToolCategoryAvailable("atlas-local")
+                    const CTA = this.server.isToolCategoryAvailable("atlas-local")
                         ? "`atlas-local` tools"
                         : "Atlas CLI";
                     return {

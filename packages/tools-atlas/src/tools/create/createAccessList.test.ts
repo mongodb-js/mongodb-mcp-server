@@ -53,6 +53,9 @@ describe("CreateAccessListTool", () => {
             elicitation: createMockElicitation(),
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
+            mcpServer: { registerTool: () => ({ enabled: true, disable: vi.fn(), enable: vi.fn() }) } as never,
+            tools: [],
+            isToolCategoryAvailable: () => true,
         };
 
         return new CreateAccessListTool({ server });
@@ -150,15 +153,14 @@ describe("CreateAccessListTool", () => {
 
         function registeredInputSchema(t: CreateAccessListTool): CapturedSchema {
             let inputSchema: unknown;
-            const mockServer = {
-                mcpServer: {
-                    registerTool: (_name: string, config: { inputSchema: unknown }): RegisteredTool => {
-                        inputSchema = config.inputSchema;
-                        return { enabled: true, disable: vi.fn(), enable: vi.fn() } as unknown as RegisteredTool;
-                    },
-                },
+            (t as unknown as { server: { mcpServer: { registerTool: unknown } } }).server.mcpServer.registerTool = (
+                _name: string,
+                config: { inputSchema: unknown }
+            ): RegisteredTool => {
+                inputSchema = config.inputSchema;
+                return { enabled: true, disable: vi.fn(), enable: vi.fn() } as unknown as RegisteredTool;
             };
-            t.register(mockServer as never);
+            t.register();
             return inputSchema as CapturedSchema;
         }
 

@@ -376,7 +376,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
     public registerTools(): void {
         for (const toolConstructor of this.toolConstructors) {
             const tool = new toolConstructor({ server: this, transportRequest: this.transportRequest });
-            if (tool.register(this)) {
+            if (tool.register()) {
                 this.tools.push(tool);
             }
         }

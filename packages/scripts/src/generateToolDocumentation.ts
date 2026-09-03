@@ -64,6 +64,9 @@ function extractToolInformation(): ToolInfo[] {
             },
             uiRegistry: new UIRegistry(),
             metrics,
+            mcpServer: { registerTool: () => ({}) } as never,
+            tools: [],
+            isToolCategoryAvailable: () => true,
         };
 
         try {

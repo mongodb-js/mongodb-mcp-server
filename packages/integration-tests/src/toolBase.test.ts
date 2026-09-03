@@ -12,7 +12,7 @@ import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/serv
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type MockToolCallback = (args: any, ctx: never) => Promise<CallToolResult>;
-import type { CliServer, UserConfig } from "@mongodb-js/mcp-cli";
+import type { UserConfig } from "@mongodb-js/mcp-cli";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { ToolBase } from "@mongodb-js/mcp-core";
 import type { Elicitation } from "@mongodb-js/mcp-core";
@@ -82,6 +82,9 @@ describe("ToolBase", () => {
             elicitation: mockElicitation,
             metrics: mockMetrics,
             uiRegistry: new UIRegistry(),
+            mcpServer: { registerTool: () => ({ enabled: true, disable: vi.fn(), enable: vi.fn() }) } as never,
+            tools: [],
+            isToolCategoryAvailable: (): boolean => true,
         };
 
         testTool = new TestTool({ server: mockServer });
@@ -294,22 +297,16 @@ describe("ToolBase", () => {
     describe("resolveAtlasTelemetryMetadata", () => {
         let mockCallback: MockToolCallback;
         beforeEach(() => {
-            const registrationMock = {
-                mcpServer: {
-                    registerTool: (
-                        name: string,
-                        {
-                            description,
-                        }: { description: string; inputSchema: ZodRawShape; annotations: ToolAnnotations },
-                        cb: MockToolCallback
-                    ): void => {
-                        expect(name).toBe(testTool.name);
-                        expect(description).toBe(testTool["description"]);
-                        mockCallback = cb;
-                    },
-                },
+            (mockServer.mcpServer as unknown as { registerTool: unknown }).registerTool = (
+                name: string,
+                { description }: { description: string; inputSchema: ZodRawShape; annotations: ToolAnnotations },
+                cb: MockToolCallback
+            ): void => {
+                expect(name).toBe(testTool.name);
+                expect(description).toBe(testTool["description"]);
+                mockCallback = cb;
             };
-            testTool.register(registrationMock as unknown as CliServer);
+            testTool.register();
         });
 
         it("should return empty metadata by default", async () => {
@@ -482,24 +479,20 @@ describe("ToolBase", () => {
         }
 
         function registerTool(tool: TestToolWithOutputSchema): void {
-            const registrationMock = {
-                mcpServer: {
-                    registerTool: (
-                        _name: string,
-                        _config: {
-                            description: string;
-                            inputSchema: ZodRawShape;
-                            outputSchema?: ZodRawShape;
-                            annotations: ToolAnnotations;
-                        },
-                        cb: MockToolCallback
-                    ): { enabled: boolean; disable: () => void; enable: () => void } => {
-                        mockCallback = cb;
-                        return { enabled: true, disable: vi.fn(), enable: vi.fn() };
-                    },
+            (mockServer.mcpServer as unknown as { registerTool: unknown }).registerTool = (
+                _name: string,
+                _config: {
+                    description: string;
+                    inputSchema: ZodRawShape;
+                    outputSchema?: ZodRawShape;
+                    annotations: ToolAnnotations;
                 },
+                cb: MockToolCallback
+            ): { enabled: boolean; disable: () => void; enable: () => void } => {
+                mockCallback = cb;
+                return { enabled: true, disable: vi.fn(), enable: vi.fn() };
             };
-            tool.register(registrationMock as unknown as CliServer);
+            tool.register();
         }
 
         it("should not append UIResource when mcpUI feature is disabled", async () => {
@@ -537,19 +530,15 @@ describe("ToolBase", () => {
             (mockUIRegistry.get as Mock).mockReturnValue("<html>test UI</html>");
 
             let noStructuredCallback: MockToolCallback | undefined;
-            const registrationMock = {
-                mcpServer: {
-                    registerTool: (
-                        _name: string,
-                        _config: unknown,
-                        cb: MockToolCallback
-                    ): { enabled: boolean; disable: () => void; enable: () => void } => {
-                        noStructuredCallback = cb;
-                        return { enabled: true, disable: vi.fn(), enable: vi.fn() };
-                    },
-                },
+            (mockServer.mcpServer as unknown as { registerTool: unknown }).registerTool = (
+                _name: string,
+                _config: unknown,
+                cb: MockToolCallback
+            ): { enabled: boolean; disable: () => void; enable: () => void } => {
+                noStructuredCallback = cb;
+                return { enabled: true, disable: vi.fn(), enable: vi.fn() };
             };
-            toolWithoutStructured.register(registrationMock as unknown as CliServer);
+            toolWithoutStructured.register();
 
             expectDefined(noStructuredCallback);
             const result = await noStructuredCallback({ input: "test" }, {} as never);
@@ -611,26 +600,26 @@ describe("ToolBase", () => {
         let successCallback: MockToolCallback;
         let errorCallback: MockToolCallback;
 
-        function makeMockServer(capture: (cb: MockToolCallback) => void): CliServer {
-            return {
-                mcpServer: {
-                    registerTool: (
-                        _name: string,
-                        _config: unknown,
-                        cb: MockToolCallback
-                    ): { enabled: boolean; disable: () => void; enable: () => void } => {
-                        capture(cb);
-                        return { enabled: true, disable: vi.fn(), enable: vi.fn() };
-                    },
-                },
-            } as unknown as CliServer;
-        }
-
         beforeEach(() => {
-            testTool.register(makeMockServer((cb) => (successCallback = cb)));
+            // `register()` reads the tool's own `this.server.mcpServer`, so the
+            // shared mockServer dispatches each tool's callback by name.
+            (mockServer.mcpServer.registerTool as unknown) = (
+                name: string,
+                _config: unknown,
+                cb: MockToolCallback
+            ): { enabled: boolean; disable: () => void; enable: () => void } => {
+                if (name === "test-tool") {
+                    successCallback = cb;
+                } else if (name === "error-tool") {
+                    errorCallback = cb;
+                }
+                return { enabled: true, disable: vi.fn(), enable: vi.fn() };
+            };
+
+            testTool.register();
 
             const failingTool = new ErrorTool({ server: mockServer });
-            failingTool.register(makeMockServer((cb) => (errorCallback = cb)));
+            failingTool.register();
         });
 
         it("records toolExecutionDuration with status and operation_type on a successful execution", async () => {
@@ -727,18 +716,14 @@ describe("ToolBase", () => {
     describe("strict argument validation", () => {
         function registeredInputSchema(tool: ToolBase): { safeParse: (value: unknown) => { success: boolean } } {
             let inputSchema: unknown;
-            const registrationMock = {
-                mcpServer: {
-                    registerTool: (
-                        _name: string,
-                        config: { inputSchema: unknown }
-                    ): { enabled: boolean; disable: () => void; enable: () => void } => {
-                        inputSchema = config.inputSchema;
-                        return { enabled: true, disable: vi.fn(), enable: vi.fn() };
-                    },
-                },
+            (mockServer.mcpServer as unknown as { registerTool: unknown }).registerTool = (
+                _name: string,
+                config: { inputSchema: unknown }
+            ): { enabled: boolean; disable: () => void; enable: () => void } => {
+                inputSchema = config.inputSchema;
+                return { enabled: true, disable: vi.fn(), enable: vi.fn() };
             };
-            tool.register(registrationMock as unknown as CliServer);
+            tool.register();
             return inputSchema as { safeParse: (value: unknown) => { success: boolean } };
         }
 
@@ -768,18 +753,14 @@ describe("ToolBase", () => {
 
         function register<T extends ToolBase>(tool: T): { inputSchema: CapturedSchema; outputSchema: unknown } {
             let captured: { inputSchema?: unknown; outputSchema?: unknown } = {};
-            const registrationMock = {
-                mcpServer: {
-                    registerTool: (
-                        _name: string,
-                        config: { inputSchema: unknown; outputSchema?: unknown }
-                    ): { enabled: boolean; disable: () => void; enable: () => void } => {
-                        captured = config;
-                        return { enabled: true, disable: vi.fn(), enable: vi.fn() };
-                    },
-                },
+            (mockServer.mcpServer as unknown as { registerTool: unknown }).registerTool = (
+                _name: string,
+                config: { inputSchema: unknown; outputSchema?: unknown }
+            ): { enabled: boolean; disable: () => void; enable: () => void } => {
+                captured = config;
+                return { enabled: true, disable: vi.fn(), enable: vi.fn() };
             };
-            tool.register(registrationMock as unknown as CliServer);
+            tool.register();
             return { inputSchema: captured.inputSchema as CapturedSchema, outputSchema: captured.outputSchema };
         }
 

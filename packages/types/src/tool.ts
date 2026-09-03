@@ -1,4 +1,4 @@
-import type { CallToolResult, RequestMeta, ServerContext } from "@modelcontextprotocol/server";
+import type { CallToolResult, RequestMeta, ServerContext, McpServer } from "@modelcontextprotocol/server";
 
 export type { CallToolResult };
 import type { IToolConfig } from "./config.js";
@@ -38,6 +38,18 @@ export type ToolServices<TConfig extends IToolConfig = IToolConfig> = {
  * is structurally assignable to the `ToolServer` of each tool category it
  * hosts.
  */
+/**
+ * The minimal surface of a registered tool that a host reads off `server.tools`.
+ * Kept structural (rather than referencing {@link AnyToolBase} from mcp-core) to
+ * avoid a circular dependency: `@mongodb-js/mcp-types` is a base package.
+ */
+export type ToolServerTool = {
+    readonly name: string;
+    readonly category: ToolCategory;
+    readonly operationType: OperationType;
+    isEnabled(): boolean;
+};
+
 export type ToolServer<
     TServices extends ToolServices = ToolServices,
     TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions,
@@ -50,6 +62,12 @@ export type ToolServer<
     readonly metrics: IMetrics<TMetricsDefinitions>;
     /** UI registry for tools that embed interactive widget content. */
     readonly uiRegistry?: IUIRegistry;
+    /** The SDK McpServer this tool is registered against. */
+    readonly mcpServer: McpServer;
+    /** The tools registered on this server (used to detect the export tool / list available tools). */
+    readonly tools: readonly ToolServerTool[];
+    /** Reports whether a tool category is enabled on this server. */
+    isToolCategoryAvailable(name: ToolCategory): boolean;
 };
 
 /**

@@ -16,7 +16,7 @@ import { Histogram } from 'prom-client';
 import { InputRequiredResult } from '@modelcontextprotocol/server';
 import type { InputResponses } from '@modelcontextprotocol/server';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/server';
-import { McpServer } from '@modelcontextprotocol/server';
+import type { McpServer } from '@modelcontextprotocol/server';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import type { RequestMeta } from '@modelcontextprotocol/server';
 import { Secret } from 'mongodb-redact';
@@ -287,7 +287,7 @@ export type ConnectionErrorHandler = (error: MongoDBError<typeof ErrorCodes.NotC
 
 // @public (undocumented)
 export type ConnectionErrorHandlerContext = {
-    availableTools: AnyToolBase[];
+    availableTools: ToolServerTool[];
     connectionState?: AnyConnectionState;
 };
 
@@ -776,9 +776,7 @@ export abstract class ToolBase<TServer extends ToolServer = ToolServer, TMetrics
     readonly operationType: OperationType;
     outputSchema?: ZodRawShape;
     // (undocumented)
-    register(server: {
-        mcpServer: McpServer;
-    }): boolean;
+    register(): boolean;
     protected requestConfirmation(message: string, context: ToolExecutionContext): boolean | undefined;
     requiresConfirmation(): boolean;
     protected abstract resolveTelemetryMetadata(args: ToolArgs<typeof ToolBase.argsShape>, input: {

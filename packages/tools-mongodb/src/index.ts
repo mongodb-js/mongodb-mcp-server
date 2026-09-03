@@ -3,7 +3,6 @@ export {
     type IMongoDBConfig,
     type MongoDBToolServices,
     type MongoDBToolServer,
-    type MongoDBToolRegistrationServer,
     ConnectionIdArgs,
     DBOperationArgs,
     CollOperationArgs,

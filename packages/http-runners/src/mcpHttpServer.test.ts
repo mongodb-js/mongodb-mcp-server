@@ -96,6 +96,7 @@ class TestMCPHttpServer extends MCPHttpServer<BaseServer> {
         });
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     protected override createServerForRequest(_request: TransportRequestContext): Promise<BaseServer> {
         return Promise.resolve(makeFakeServer());
     }
