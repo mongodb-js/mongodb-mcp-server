@@ -80,7 +80,7 @@ describe("LoadSampleDatasetTool", () => {
             metrics: new MockMetrics(),
         };
 
-        return new LoadSampleDatasetTool(server);
+        return new LoadSampleDatasetTool({ server });
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type

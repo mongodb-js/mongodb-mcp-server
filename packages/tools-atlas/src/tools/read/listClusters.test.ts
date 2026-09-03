@@ -80,7 +80,7 @@ describe("ListClustersTool", () => {
             uiRegistry: new UIRegistry(),
         };
 
-        tool = new ListClustersTool(server);
+        tool = new ListClustersTool({ server });
     });
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type

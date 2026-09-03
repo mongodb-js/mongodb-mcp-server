@@ -102,7 +102,7 @@ describe("StreamsToolBase", () => {
             uiRegistry: new UIRegistry(),
         };
 
-        tool = new TestStreamsTool(server);
+        tool = new TestStreamsTool({ server });
     });
 
     // Cast partial args since ToolArgs requires all keys even for optional Zod fields

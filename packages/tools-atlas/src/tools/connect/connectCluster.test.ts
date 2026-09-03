@@ -108,7 +108,7 @@ describe("ConnectClusterTool", () => {
             uiRegistry: new UIRegistry(),
         } as unknown as AtlasToolServer;
 
-        tool = new ConnectClusterTool(server);
+        tool = new ConnectClusterTool({ server });
     });
 
     describe("execute", () => {

@@ -1,9 +1,10 @@
 import { ReactiveResource, formatUntrustedData } from "@mongodb-js/mcp-core";
 import { connectCapableTools, summarizeConnection } from "@mongodb-js/mcp-tools-mongodb";
 import type { CliServer } from "@mongodb-js/mcp-cli";
+import type { TransportRequestContext } from "@mongodb-js/mcp-types";
 
 export class DebugResource extends ReactiveResource<undefined, CliServer> {
-    constructor({ server }: { server: CliServer }) {
+    constructor({ server, transportRequest }: { server: CliServer; transportRequest?: TransportRequestContext }) {
         super({
             resourceConfiguration: {
                 name: "debug-mongodb",
@@ -17,6 +18,7 @@ export class DebugResource extends ReactiveResource<undefined, CliServer> {
                 initial: undefined,
             },
             server,
+            transportRequest,
         });
     }
 

@@ -69,7 +69,7 @@ describe("StreamsManageTool", () => {
             uiRegistry: new UIRegistry(),
         };
 
-        tool = new StreamsManageTool(server);
+        tool = new StreamsManageTool({ server });
     });
 
     const baseArgs = { projectId: "proj1", workspaceName: "ws1" };

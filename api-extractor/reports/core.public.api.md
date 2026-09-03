@@ -46,6 +46,7 @@ import type { ToolExecutionContext } from '@mongodb-js/mcp-types';
 import type { ToolServer } from '@mongodb-js/mcp-types';
 import type { ToolServices } from '@mongodb-js/mcp-types';
 import type { Transport } from '@modelcontextprotocol/server';
+import type { TransportRequestContext } from '@mongodb-js/mcp-types';
 import type { TransportType } from '@mongodb-js/mcp-types';
 import { z } from 'zod';
 import { ZodRawShape } from 'zod';
@@ -56,7 +57,7 @@ export type AnyToolBase = ToolBase<any>;
 
 // @public (undocumented)
 export type AnyToolClass = Omit<ToolClass<any, any>, "new"> & {
-    new (server: ToolServer<any>): AnyToolBase;
+    new (arg: ToolServerParam<ToolServer<any>>): AnyToolBase;
 };
 
 // @public (undocumented)
@@ -318,6 +319,7 @@ Value, TServer extends IResourceServer = IResourceServer> {
         resourceConfiguration: ResourceConfiguration;
         options: ReactiveResourceOptions<Value>;
         server: TServer;
+        transportRequest?: TransportRequestContext;
         current?: Value;
     });
     // (undocumented)
@@ -331,6 +333,7 @@ Value, TServer extends IResourceServer = IResourceServer> {
     protected server: TServer;
     // (undocumented)
     abstract toOutput(): string | Promise<string>;
+    protected transportRequest?: TransportRequestContext;
     // (undocumented)
     protected readonly uri: string;
 }
@@ -385,7 +388,7 @@ export class ToolArgumentValidationError extends UserFacingError {
 
 // @public
 export abstract class ToolBase<TServer extends ToolServer = ToolServer, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
-    constructor(server: TServer);
+    constructor(input: ToolServerParam<TServer>);
     // (undocumented)
     get annotations(): ToolAnnotations;
     abstract argsShape: ZodRawShape;
@@ -421,13 +424,14 @@ export abstract class ToolBase<TServer extends ToolServer = ToolServer, TMetrics
     protected schemaVariantKey(): string;
     protected readonly server: TServer;
     protected get toolMeta(): Record<string, unknown>;
+    protected readonly transportRequest?: TransportRequestContext;
     // (undocumented)
     protected verifyAllowed(): boolean;
 }
 
 // @public
 export type ToolClass<TServer extends ToolServer = ToolServer, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
-    new (server: TServer): ToolBase<TServer, TMetricsDefinitions>;
+    new (arg: ToolServerParam<TServer>): ToolBase<TServer, TMetricsDefinitions>;
     toolName: string;
     category: ToolCategory;
     operationType: OperationType;
@@ -445,7 +449,10 @@ export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined>
 };
 
 // @public
-export type ToolServerParam<TServer extends ToolServer = ToolServer> = TServer;
+export type ToolServerParam<TServer extends ToolServer = ToolServer> = {
+    server: TServer;
+    transportRequest?: TransportRequestContext;
+};
 
 // @public
 export function toToolExecutionContext<TConfig extends IToolConfig = IToolConfig>(ctx: ServerContext, server: ToolServer<ToolServices<TConfig>>, clientInfoProvider?: () => Implementation | undefined): ToolExecutionContext<TConfig>;

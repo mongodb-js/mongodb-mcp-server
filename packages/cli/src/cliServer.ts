@@ -7,7 +7,12 @@ import type { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import type { ConnectionRegistry, ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { type ConnectionErrorHandler } from "@mongodb-js/mcp-tools-mongodb";
 import type { Elicitation } from "@mongodb-js/mcp-core";
-import type { AnyResourceClass, IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
+import type {
+    AnyResourceClass,
+    IMetrics,
+    DefaultMetricDefinitions,
+    TransportRequestContext,
+} from "@mongodb-js/mcp-types";
 import type { AtlasTelemetry, TelemetryServerCommand, TelemetryServerEvent } from "@mongodb-js/mcp-atlas-telemetry";
 import type { AnyToolBase, AnyToolClass } from "@mongodb-js/mcp-core";
 import type { ToolCategory } from "@mongodb-js/mcp-types";
@@ -37,6 +42,13 @@ export interface CliServerOptions<TMetrics extends DefaultMetricDefinitions = De
     elicitation: Elicitation;
     uiRegistry?: IUIRegistry;
     metrics: IMetrics<TMetrics>;
+    /**
+     * The transport request that drove creation of this server (headers, query,
+     * auth). Present for HTTP (a fresh server per request); `undefined` for
+     * stdio / dry-run. Carried through to tool and resource constructors as
+     * `transportRequest`.
+     */
+    transportRequest?: TransportRequestContext;
     /**
      * An optional list of tools constructors to be registered to the MongoDB
      * MCP Server.
@@ -104,6 +116,8 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
     public readonly uiRegistry?: IUIRegistry;
     public readonly metrics: IMetrics<TMetrics>;
     public readonly serverMetadata: ServerMetadata;
+    /** The transport request that drove server creation (undefined for stdio / dry-run). */
+    public readonly transportRequest?: TransportRequestContext;
 
     private _mcpLogLevel: LogLevel;
     /** Lowest log level allowed to be sent to the MCP client. */
@@ -142,6 +156,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
         uiRegistry,
         metrics,
         serverMetadata,
+        transportRequest,
     }: CliServerOptions<TMetrics>) {
         this.startTime = Date.now();
         this.config = config;
@@ -158,6 +173,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
         this.toolConstructors = tools ?? [];
         this.resourceConstructors = resources ?? [];
         this.uiRegistry = uiRegistry;
+        this.transportRequest = transportRequest;
         this.metrics = metrics;
         this.serverMetadata = serverMetadata;
 
@@ -359,7 +375,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
 
     public registerTools(): void {
         for (const toolConstructor of this.toolConstructors) {
-            const tool = new toolConstructor(this);
+            const tool = new toolConstructor({ server: this, transportRequest: this.transportRequest });
             if (tool.register(this)) {
                 this.tools.push(tool);
             }
@@ -368,7 +384,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
 
     public registerResources(): void {
         for (const resourceConstructor of this.resourceConstructors) {
-            const resource = new resourceConstructor({ server: this });
+            const resource = new resourceConstructor({ server: this, transportRequest: this.transportRequest });
             resource.register(this);
         }
     }

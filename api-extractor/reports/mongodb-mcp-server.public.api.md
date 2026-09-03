@@ -52,7 +52,7 @@ export type AnyToolBase = ToolBase<any>;
 
 // @public (undocumented)
 export type AnyToolClass = Omit<ToolClass<any, any>, "new"> & {
-    new (server: ToolServer<any>): AnyToolBase;
+    new (arg: ToolServerParam<ToolServer<any>>): AnyToolBase;
 };
 
 // @public (undocumented)
@@ -314,6 +314,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
     readonly telemetry: AtlasTelemetry;
     // (undocumented)
     readonly tools: AnyToolBase[];
+    readonly transportRequest?: TransportRequestContext;
     // (undocumented)
     readonly uiRegistry?: IUIRegistry;
 }
@@ -347,6 +348,7 @@ export interface CliServerOptions<TMetrics extends DefaultMetricDefinitions = De
     // (undocumented)
     telemetry: AtlasTelemetry;
     tools?: ToolRegistry;
+    transportRequest?: TransportRequestContext;
     // (undocumented)
     uiRegistry?: IUIRegistry;
 }
@@ -526,30 +528,7 @@ export function createDefaultMetrics(): {
 export type DefaultEventMap = Record<string, never[]>;
 
 // @public (undocumented)
-export const defaultParserOptions: {
-    config: string;
-    envPrefix: string;
-    configuration: {
-        "populate--": true;
-        "boolean-negation"?: boolean | undefined;
-        "camel-case-expansion"?: boolean | undefined;
-        "combine-arrays"?: boolean | undefined;
-        "dot-notation"?: boolean | undefined;
-        "duplicate-arguments-array"?: boolean | undefined;
-        "flatten-duplicate-arrays"?: boolean | undefined;
-        "greedy-arrays"?: boolean | undefined;
-        "nargs-eats-options"?: boolean | undefined;
-        "halt-at-non-option"?: boolean | undefined;
-        "negation-prefix"?: string | undefined;
-        "parse-numbers"?: boolean | undefined;
-        "parse-positional-numbers"?: boolean | undefined;
-        "set-placeholder-key"?: boolean | undefined;
-        "short-option-groups"?: boolean | undefined;
-        "strip-aliased"?: boolean | undefined;
-        "strip-dashed"?: boolean | undefined;
-        "unknown-options-as-args"?: boolean | undefined;
-    };
-};
+export const defaultParserOptions: ParserOptions;
 
 // @public (undocumented)
 export type DefaultPrometheusMetricDefinitions = ReturnType<typeof createDefaultMetrics>;
@@ -627,6 +606,7 @@ export type EventMap<T> = Record<keyof T, any[]>;
 export class ExportedData {
     constructor(input: {
         server: CliServer;
+        transportRequest?: TransportRequestContext;
     });
     // (undocumented)
     register(server: CliServer): void;
@@ -977,7 +957,7 @@ export class ToolArgumentValidationError extends UserFacingError {
 
 // @public
 export abstract class ToolBase<TServer extends ToolServer = ToolServer, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
-    constructor(server: TServer);
+    constructor(input: ToolServerParam<TServer>);
     // (undocumented)
     get annotations(): ToolAnnotations;
     abstract argsShape: ZodRawShape;
@@ -1013,6 +993,7 @@ export abstract class ToolBase<TServer extends ToolServer = ToolServer, TMetrics
     protected schemaVariantKey(): string;
     protected readonly server: TServer;
     protected get toolMeta(): Record<string, unknown>;
+    protected readonly transportRequest?: TransportRequestContext;
     // (undocumented)
     protected verifyAllowed(): boolean;
 }
@@ -1022,7 +1003,7 @@ export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant" | "
 
 // @public
 export type ToolClass<TServer extends ToolServer = ToolServer, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
-    new (server: TServer): ToolBase<TServer, TMetricsDefinitions>;
+    new (arg: ToolServerParam<TServer>): ToolBase<TServer, TMetricsDefinitions>;
     toolName: string;
     category: ToolCategory;
     operationType: OperationType;

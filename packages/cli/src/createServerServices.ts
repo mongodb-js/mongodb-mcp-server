@@ -286,6 +286,7 @@ export function createServerFromConfig({
         tools,
         resources,
         serverMetadata,
+        transportRequest: request,
     });
 }
 

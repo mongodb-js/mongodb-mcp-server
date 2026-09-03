@@ -64,7 +64,7 @@ describe("StreamsTeardownTool", () => {
             uiRegistry: new UIRegistry(),
         };
 
-        tool = new StreamsTeardownTool(server);
+        tool = new StreamsTeardownTool({ server });
     });
 
     const baseArgs = { projectId: "proj1" };

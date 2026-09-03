@@ -54,7 +54,7 @@ describe("CreateFreeClusterTool", () => {
             uiRegistry: new UIRegistry(),
         };
 
-        tool = new CreateFreeClusterTool(server);
+        tool = new CreateFreeClusterTool({ server });
     });
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type

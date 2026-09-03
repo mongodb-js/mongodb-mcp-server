@@ -60,7 +60,7 @@ describe("StreamsDiscoverTool", () => {
             uiRegistry: new UIRegistry(),
         };
 
-        tool = new StreamsDiscoverTool(server);
+        tool = new StreamsDiscoverTool({ server });
     });
 
     const baseArgs = { projectId: "proj1" };

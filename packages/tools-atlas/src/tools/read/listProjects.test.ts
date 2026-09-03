@@ -62,7 +62,7 @@ describe("ListProjectsTool", () => {
             uiRegistry: new UIRegistry(),
         };
 
-        tool = new ListProjectsTool(server);
+        tool = new ListProjectsTool({ server });
     });
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type

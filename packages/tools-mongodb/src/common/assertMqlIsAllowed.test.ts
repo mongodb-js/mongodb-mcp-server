@@ -35,7 +35,7 @@ function makeTool(config: Partial<IMongoDBConfig>): (...values: unknown[]) => vo
         uiRegistry: { get: vi.fn().mockResolvedValue(null) },
     };
 
-    const tool = new FindTool(server) as unknown as {
+    const tool = new FindTool({ server }) as unknown as {
         assertMqlIsAllowed: (config: IMongoDBConfig, ...values: unknown[]) => void;
     };
     const toolConfig = server.config;

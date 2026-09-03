@@ -1,4 +1,9 @@
-import type { ReactiveResourceOptions, ResourceConfiguration, IResourceServer } from "@mongodb-js/mcp-types";
+import type {
+    ReactiveResourceOptions,
+    ResourceConfiguration,
+    IResourceServer,
+    TransportRequestContext,
+} from "@mongodb-js/mcp-types";
 import type { ReadResourceCallback, ResourceMetadata } from "@modelcontextprotocol/server";
 
 /**
@@ -41,6 +46,9 @@ export abstract class ReactiveResource<
     /** The host server this resource registers against and reads services from. */
     protected server: TServer;
 
+    /** The transport request that drove creation of the host server (undefined for non-HTTP). */
+    protected transportRequest?: TransportRequestContext;
+
     protected current: Value;
     protected readonly name: string;
     protected readonly uri: string;
@@ -50,14 +58,17 @@ export abstract class ReactiveResource<
         resourceConfiguration,
         options,
         server,
+        transportRequest,
         current,
     }: {
         resourceConfiguration: ResourceConfiguration;
         options: ReactiveResourceOptions<Value>;
         server: TServer;
+        transportRequest?: TransportRequestContext;
         current?: Value;
     }) {
         this.server = server;
+        this.transportRequest = transportRequest;
 
         this.name = resourceConfiguration.name;
         this.uri = resourceConfiguration.uri;

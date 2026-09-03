@@ -86,7 +86,7 @@ describe("PauseResumeClusterTool", () => {
             uiRegistry: new UIRegistry(),
         } as unknown as AtlasToolServer;
 
-        return new PauseResumeClusterTool(server);
+        return new PauseResumeClusterTool({ server });
     }
 
     // tools under test never return input_required; narrow the invoke() result.

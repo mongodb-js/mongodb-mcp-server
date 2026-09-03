@@ -51,7 +51,7 @@ describe("GetRegionsTool", () => {
             uiRegistry: new UIRegistry(),
         } as unknown as AtlasToolServer;
 
-        return new GetRegionsTool(server);
+        return new GetRegionsTool({ server });
     }
 
     // The invoke() result is narrowed to CallToolResult: the tool under test

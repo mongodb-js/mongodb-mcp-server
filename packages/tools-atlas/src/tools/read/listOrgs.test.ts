@@ -45,7 +45,7 @@ describe("ListOrganizationsTool", () => {
             uiRegistry: new UIRegistry(),
         };
 
-        tool = new ListOrganizationsTool(server);
+        tool = new ListOrganizationsTool({ server });
     });
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type

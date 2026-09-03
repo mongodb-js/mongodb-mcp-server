@@ -2,6 +2,7 @@ import { ResourceTemplate } from "@modelcontextprotocol/server";
 import type { CompleteResourceTemplateCallback, ListResourcesCallback, ReadResourceTemplateCallback } from "@modelcontextprotocol/server";
 import { LogId } from "@mongodb-js/mcp-core";
 import type { CliServer } from "@mongodb-js/mcp-cli";
+import type { TransportRequestContext } from "@mongodb-js/mcp-types";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
 
 export class ExportedData {
@@ -10,7 +11,7 @@ export class ExportedData {
     private readonly uri = "exported-data://{exportName}";
     private server: CliServer;
 
-    constructor({ server }: { server: CliServer }) {
+    constructor({ server }: { server: CliServer; transportRequest?: TransportRequestContext }) {
         this.server = server;
     }
 

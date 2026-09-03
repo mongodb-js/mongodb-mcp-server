@@ -55,7 +55,7 @@ describe("GetPerformanceAdvisorTool", () => {
             uiRegistry: new UIRegistry(),
         };
 
-        tool = new GetPerformanceAdvisorTool(server);
+        tool = new GetPerformanceAdvisorTool({ server });
     });
 
     const baseArgs = {

@@ -44,7 +44,7 @@ describe("InspectAccessListTool", () => {
             uiRegistry: new UIRegistry(),
         };
 
-        tool = new InspectAccessListTool(server);
+        tool = new InspectAccessListTool({ server });
     });
 
     const baseArgs = { projectId: "507f1f77bcf86cd799439011" };

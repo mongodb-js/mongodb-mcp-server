@@ -55,7 +55,7 @@ describe("CreateAccessListTool", () => {
             uiRegistry: new UIRegistry(),
         };
 
-        return new CreateAccessListTool(server);
+        return new CreateAccessListTool({ server });
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type

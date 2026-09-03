@@ -84,7 +84,7 @@ describe("ToolBase", () => {
             uiRegistry: new UIRegistry(),
         };
 
-        testTool = new TestTool(mockServer);
+        testTool = new TestTool({ server: mockServer });
     });
 
     describe("confirmation required by configuration", () => {
@@ -227,7 +227,7 @@ describe("ToolBase", () => {
 
     describe("confirmation requested during execution", () => {
         function createConfirmingTool(): ConfirmingTool {
-            return new ConfirmingTool(mockServer);
+            return new ConfirmingTool({ server: mockServer });
         }
 
         it("runs the operation when the user confirms", async () => {
@@ -480,10 +480,7 @@ describe("ToolBase", () => {
 
         function createToolWithUI(previewFeatures: PreviewFeature[] = []): TestToolWithOutputSchema {
             mockConfig.previewFeatures = previewFeatures;
-            return new TestToolWithOutputSchema({
-                ...mockServer,
-                uiRegistry: mockUIRegistry,
-            });
+            return new TestToolWithOutputSchema({ server: { ...mockServer, uiRegistry: mockUIRegistry } });
         }
 
         function registerTool(tool: TestToolWithOutputSchema): void {
@@ -634,7 +631,7 @@ describe("ToolBase", () => {
         beforeEach(() => {
             testTool.register(makeMockServer((cb) => (successCallback = cb)));
 
-            const failingTool = new ErrorTool(mockServer);
+            const failingTool = new ErrorTool({ server: mockServer });
             failingTool.register(makeMockServer((cb) => (errorCallback = cb)));
         });
 
@@ -706,7 +703,7 @@ describe("ToolBase", () => {
         });
 
         it("includes x-request-id in error log when execute() throws", async () => {
-            const errorTool = new ErrorTool(mockServer);
+            const errorTool = new ErrorTool({ server: mockServer });
 
             await errorTool["invoke"]({}, contextWithRequestId);
 
@@ -758,7 +755,7 @@ describe("ToolBase", () => {
         });
 
         it("rejects unknown arguments for tools with no declared parameters", () => {
-            const noArgTool = new ErrorTool(mockServer);
+            const noArgTool = new ErrorTool({ server: mockServer });
             const schema = registeredInputSchema(noArgTool);
 
             expect(typeof schema.safeParse).toBe("function");
@@ -790,11 +787,11 @@ describe("ToolBase", () => {
         }
 
         function newTestTool(): TestTool {
-            return new TestTool(mockServer);
+            return new TestTool({ server: mockServer });
         }
 
         function newToolWithOutput(): TestToolWithOutputSchema {
-            return new TestToolWithOutputSchema(mockServer);
+            return new TestToolWithOutputSchema({ server: mockServer });
         }
 
         it("reuses one input schema instance across registrations of the same tool", () => {
@@ -849,8 +846,5 @@ function createToolWithoutStructuredContent(
     mockUIRegistry: UIRegistry
 ): TestToolWithoutStructuredContent {
     mockConfig.previewFeatures = previewFeatures;
-    return new TestToolWithoutStructuredContent({
-        ...mockServer,
-        uiRegistry: mockUIRegistry,
-    });
+    return new TestToolWithoutStructuredContent({ server: { ...mockServer, uiRegistry: mockUIRegistry } });
 }

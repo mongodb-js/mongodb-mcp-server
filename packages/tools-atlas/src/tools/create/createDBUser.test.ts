@@ -68,7 +68,7 @@ describe("CreateDBUserTool", () => {
             metrics: new MockMetrics(),
         };
 
-        tool = new CreateDBUserTool(server);
+        tool = new CreateDBUserTool({ server });
     });
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type

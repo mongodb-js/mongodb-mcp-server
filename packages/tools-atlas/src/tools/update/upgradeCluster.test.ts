@@ -188,7 +188,7 @@ describe("UpgradeClusterTool", () => {
             uiRegistry: new UIRegistry(),
         } as unknown as AtlasToolServer;
 
-        return new UpgradeClusterTool(server);
+        return new UpgradeClusterTool({ server });
     }
 
     // tools under test never return input_required; narrow the invoke() result.

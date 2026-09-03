@@ -1,5 +1,6 @@
 import { ReactiveResource } from "@mongodb-js/mcp-core";
 import type { UserConfig, CliServer } from "@mongodb-js/mcp-cli";
+import type { TransportRequestContext } from "@mongodb-js/mcp-types";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
 import { connectCapableTools } from "@mongodb-js/mcp-tools-mongodb";
 
@@ -17,7 +18,7 @@ function redactDriverOptions(driverOptions: Record<string, unknown>): Record<str
 }
 
 export class ConfigResource extends ReactiveResource<UserConfig, CliServer> {
-    constructor({ server }: { server: CliServer }) {
+    constructor({ server, transportRequest }: { server: CliServer; transportRequest?: TransportRequestContext }) {
         super({
             resourceConfiguration: {
                 name: "config",
@@ -31,6 +32,7 @@ export class ConfigResource extends ReactiveResource<UserConfig, CliServer> {
                 initial: { ...server.config },
             },
             server,
+            transportRequest,
         });
     }
 

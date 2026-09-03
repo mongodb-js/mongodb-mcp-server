@@ -44,7 +44,7 @@ describe("ListDBUsersTool", () => {
             uiRegistry: new UIRegistry(),
         };
 
-        tool = new ListDBUsersTool(server);
+        tool = new ListDBUsersTool({ server });
     });
 
     const baseArgs = { projectId: "507f1f77bcf86cd799439011" };

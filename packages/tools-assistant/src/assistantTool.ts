@@ -19,8 +19,8 @@ export abstract class AssistantToolBase extends ToolBase<AssistantToolServer> {
     protected baseUrl: URL;
     protected requiredHeaders: Headers;
 
-    constructor(server: AssistantToolServer) {
-        super(server);
+    constructor({ server }: { server: AssistantToolServer }) {
+        super({ server });
         this.baseUrl = new URL(server.config.assistantBaseUrl ?? DEFAULT_ASSISTANT_BASE_URL);
         this.requiredHeaders = new Headers({
             "x-request-origin": "mongodb-mcp-server",

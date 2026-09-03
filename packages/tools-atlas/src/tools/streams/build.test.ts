@@ -78,7 +78,7 @@ describe("StreamsBuildTool", () => {
             uiRegistry: new UIRegistry(),
         };
 
-        tool = new StreamsBuildTool(server);
+        tool = new StreamsBuildTool({ server });
     });
 
     const baseArgs = { projectId: "proj1", workspaceName: "ws1" };

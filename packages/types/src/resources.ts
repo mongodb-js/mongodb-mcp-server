@@ -3,6 +3,7 @@ import type { ITelemetry } from "./telemetry.js";
 import type { IToolConfig } from "./config.js";
 import type { ICompositeLogger } from "./logging.js";
 import type { IKeychain } from "./keychain.js";
+import type { TransportRequestContext } from "./transport.js";
 
 /**
  * The minimal services resources read off the host server at construction,
@@ -52,9 +53,15 @@ export interface IResourceServer {
     sendResourceUpdated(uri: string): void;
 }
 
-/** The construction argument every resource class receives: the host server. */
+/**
+ * The construction argument every resource class receives: the host server plus
+ * the transport request that drove server creation (undefined for non-HTTP
+ * constructions such as stdio / dry-run).
+ */
 export type ResourceServerArg<TServer extends IResourceServer = IResourceServer> = {
     server: TServer;
+    /** The transport request that drove server creation (undefined for stdio / dry-run). */
+    transportRequest?: TransportRequestContext;
 };
 
 /**

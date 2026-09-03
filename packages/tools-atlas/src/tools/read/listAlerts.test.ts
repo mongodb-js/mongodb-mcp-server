@@ -54,7 +54,7 @@ describe("ListAlertsTool", () => {
             uiRegistry: new UIRegistry(),
         };
 
-        tool = new ListAlertsTool(server);
+        tool = new ListAlertsTool({ server });
     });
 
     const baseArgs = { projectId: "proj1", status: "OPEN" as const, limit: 10, pageNum: 1, includeCount: false };

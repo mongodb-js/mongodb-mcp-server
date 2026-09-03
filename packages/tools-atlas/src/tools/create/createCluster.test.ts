@@ -71,7 +71,7 @@ describe("CreateClusterTool", () => {
             uiRegistry: new UIRegistry(),
         } as unknown as AtlasToolServer;
 
-        return new CreateClusterTool(server);
+        return new CreateClusterTool({ server });
     }
 
     // The invoke() result is narrowed to CallToolResult in these tests: the

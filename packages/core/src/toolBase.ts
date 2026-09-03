@@ -24,6 +24,7 @@ import type {
     ToolExecutionContext,
     IToolConfig,
     SupportedConnectionState,
+    TransportRequestContext,
 } from "@mongodb-js/mcp-types";
 import { createUIResource, type UIResource } from "@mcp-ui/server";
 import { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
@@ -120,7 +121,21 @@ type StructuredToolResult<OutputSchema extends ZodRawShape> = {
  * Per-tool identity (`name`, `category`, `operationType`) is NOT passed in:
  * it is read from the tool class's static properties at construction time.
  */
-export type ToolServerParam<TServer extends ToolServer = ToolServer> = TServer;
+/**
+ * The object every {@link ToolBase} subclass receives at construction: the
+ * request-scoped server (carrying the services a tool reads) plus the transport
+ * request that drove server creation.
+ *
+ * The server carries the effective (possibly request-overridden) config and the
+ * app services (logger, telemetry, elicitation, metrics, ...). `transportRequest`
+ * is the transport context (headers, query, auth) that produced this server and is
+ * `undefined` for non-HTTP constructions (stdio / dry-run).
+ */
+export type ToolServerParam<TServer extends ToolServer = ToolServer> = {
+    server: TServer;
+    /** The transport request that drove server creation (— undefined for stdio / dry-run). */
+    transportRequest?: TransportRequestContext;
+};
 
 /**
  * The type that all tool classes must conform to when implementing custom tools
@@ -173,8 +188,8 @@ export type ToolClass<
     TServer extends ToolServer = ToolServer,
     TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > = {
-    /** Constructor signature: the server itself is the single argument. */
-    new (server: TServer): ToolBase<TServer, TMetricsDefinitions>;
+    /** Constructor signature: `{ server, transportRequest }`. */
+    new (arg: ToolServerParam<TServer>): ToolBase<TServer, TMetricsDefinitions>;
 
     /**
      * The unique name of this tool.
@@ -193,7 +208,7 @@ export type ToolClass<
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyToolClass = Omit<ToolClass<any, any>, "new"> & {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    new (server: ToolServer<any>): AnyToolBase;
+    new (arg: ToolServerParam<ToolServer<any>>): AnyToolBase;
 };
 
 /**
@@ -287,6 +302,12 @@ export abstract class ToolBase<
      * "session" (or services) object; the server is the composition.
      */
     protected readonly server: TServer;
+
+    /**
+     * The transport request that drove creation of this server (`undefined` for
+     * non-HTTP constructions such as stdio / dry-run).
+     */
+    protected readonly transportRequest?: TransportRequestContext;
 
     /**
      * The unique name of this tool (read from the class static).
@@ -652,8 +673,9 @@ export abstract class ToolBase<
         return confirmed;
     }
 
-    constructor(server: TServer) {
+    constructor({ server, transportRequest }: ToolServerParam<TServer>) {
         this.server = server;
+        this.transportRequest = transportRequest;
         const { toolName, category, operationType } = this.constructor as ToolClass<TServer, TMetricsDefinitions>;
         this.name = toolName;
         this.category = category;

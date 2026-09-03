@@ -85,7 +85,7 @@ describe("InspectClusterTool", () => {
             uiRegistry: new UIRegistry(),
         };
 
-        tool = new InspectClusterTool(server);
+        tool = new InspectClusterTool({ server });
     });
 
     const baseArgs = { projectId: "507f1f77bcf86cd799439011", clusterName: "my-cluster" };

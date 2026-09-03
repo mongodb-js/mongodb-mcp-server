@@ -751,7 +751,7 @@ export type ToolArgs<T extends ZodRawShape> = {
 
 // @public
 export abstract class ToolBase<TServer extends ToolServer = ToolServer, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
-    constructor(server: TServer);
+    constructor(input: ToolServerParam<TServer>);
     // (undocumented)
     get annotations(): ToolAnnotations;
     abstract argsShape: ZodRawShape;
@@ -787,6 +787,7 @@ export abstract class ToolBase<TServer extends ToolServer = ToolServer, TMetrics
     protected schemaVariantKey(): string;
     protected readonly server: TServer;
     protected get toolMeta(): Record<string, unknown>;
+    protected readonly transportRequest?: TransportRequestContext;
     // (undocumented)
     protected verifyAllowed(): boolean;
 }
@@ -796,7 +797,7 @@ export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant" | "
 
 // @public
 export type ToolClass<TServer extends ToolServer = ToolServer, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
-    new (server: TServer): ToolBase<TServer, TMetricsDefinitions>;
+    new (arg: ToolServerParam<TServer>): ToolBase<TServer, TMetricsDefinitions>;
     toolName: string;
     category: ToolCategory;
     operationType: OperationType;
@@ -826,7 +827,10 @@ export type ToolRequest<TConfig extends IToolConfig = IToolConfig> = {
 };
 
 // @public
-export type ToolServerParam<TServer extends ToolServer = ToolServer> = TServer;
+export type ToolServerParam<TServer extends ToolServer = ToolServer> = {
+    server: TServer;
+    transportRequest?: TransportRequestContext;
+};
 
 // @public (undocumented)
 export type TransportRequestContext = {
