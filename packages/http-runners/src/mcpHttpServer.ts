@@ -42,8 +42,11 @@ export type MCPHttpServerOptions<TMetrics extends DefaultMetricDefinitions = Def
  * served by a fresh request-scoped server instance produced by
  * {@link createServerForRequest}; all heavy dependencies (connections,
  * exports, API client, telemetry) live once per process and are referenced,
- * not owned, by each request's instance. 2025-era sessionful traffic is not
- * served (`legacy: "reject"`).
+ * not owned, by each request's instance. 2025-era (legacy) requests are served
+ * statelessly through the SDK's stateless fallback (`legacy: "stateless"`),
+ * each answered by a fresh instance over a stateless transport; the 2025
+ * session operations (`GET` SSE stream, `DELETE` session close) have no
+ * session to operate on and are answered with `405`.
  *
  * @example
  * ```typescript
@@ -168,6 +171,23 @@ export abstract class MCPHttpServer<
                 );
             })
         );
+
+        // 2025-era session operations (SSE stream via GET, session close via
+        // DELETE) have no session to operate on in this stateless server. The
+        // SDK's stateless fallback answers them with `405`; here we mirror that
+        // rather than letting Express fall through to its own bare 404.
+        const methodNotAllowed = (req: express.Request, res: express.Response): void => {
+            res.status(405).set("Allow", "POST").json({
+                jsonrpc: "2.0",
+                error: {
+                    code: JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
+                    message: "Method not allowed.",
+                },
+                id: null,
+            });
+        };
+        this.app.get("/mcp", methodNotAllowed);
+        this.app.delete("/mcp", methodNotAllowed);
     }
 
     private withErrorHandling(

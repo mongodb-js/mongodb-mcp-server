@@ -271,4 +271,50 @@ describe("MCPHttpServer stateless serving", () => {
             );
         });
     });
+
+    describe("legacy (2025-era) stateless serving", () => {
+        // A 2025-era initialize: no `_meta` envelope claim, negotiated via the
+        // legacy handshake. The stateless server serves it through the SDK's
+        // `legacy: 'stateless'` fallback.
+        const LEGACY_INIT_BODY = JSON.stringify({
+            jsonrpc: "2.0",
+            method: "initialize",
+            id: 1,
+            params: {
+                protocolVersion: "2025-11-25",
+                capabilities: {},
+                clientInfo: { name: "legacy-test", version: "1.0" },
+            },
+        });
+
+        it("serves a legacy initialize POST through the stateless fallback", async () => {
+            await startServer();
+            const res = await fetch(`${server.serverAddress}/mcp`, {
+                method: "POST",
+                headers: {
+                    "content-type": "application/json",
+                    accept: "application/json, text/event-stream",
+                    "mcp-protocol-version": "2025-11-25",
+                },
+                body: LEGACY_INIT_BODY,
+            });
+            expect(res.status).toBe(200);
+            const text = await res.text();
+            // The stateless legacy transport answers over an SSE stream.
+            expect(text).toContain("data:");
+            expect(text).toContain("protocolVersion");
+            expect(text).toMatch(/"id":1/);
+        });
+
+        it("answers 2025 session operations (GET/DELETE) with 405", async () => {
+            await startServer();
+            const getRes = await fetch(`${server.serverAddress}/mcp`, { method: "GET" });
+            expect(getRes.status).toBe(405);
+            expect(getRes.headers.get("allow")).toBe("POST");
+
+            const delRes = await fetch(`${server.serverAddress}/mcp`, { method: "DELETE" });
+            expect(delRes.status).toBe(405);
+            expect(delRes.headers.get("allow")).toBe("POST");
+        });
+    });
 });
