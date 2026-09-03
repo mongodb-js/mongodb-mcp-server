@@ -14,7 +14,7 @@ export interface TuiState {
     composerIdle: boolean;
     /** Full live viewport text (or the transcript when the viewport is gone). */
     viewport: string;
-    /** Unix ms since the poll loop started (first poll after Enter). */
+    /** ms since the poll loop started (first poll after Enter). */
     elapsedMs: number;
 }
 
