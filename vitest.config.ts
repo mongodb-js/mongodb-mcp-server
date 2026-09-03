@@ -13,15 +13,39 @@ const vitestDefaultExcludes = [
     "**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build,eslint,prettier}.config.*",
 ];
 
-const longRunningTests = ["packages/integration-tests/src/tools/atlas/performanceAdvisor.test.ts"];
+const NON_UNIT_PACKAGES = [
+    "packages/accuracy-tests/**",
+    "packages/browser-tests/**",
+    "packages/e2e-tests/**",
+    "packages/eval-tests/**",
+    "packages/integration-tests/**",
+    "packages/scripts/**",
+    "packages/ui/**",
+];
 
-if (process.env.SKIP_ATLAS_INTEGRATION_TESTS === "true") {
-    vitestDefaultExcludes.push("**/integration-tests/**/atlas/**");
-}
+const UNIT_INCLUDES = ["packages/*/src/**/*.test.ts"];
 
-if (process.env.SKIP_ATLAS_LOCAL_TESTS === "true") {
-    vitestDefaultExcludes.push("**/integration-tests/**/atlas-local/**");
-}
+const INTEGRATION_ATLAS_INCLUDES = ["packages/integration-tests/src/tools/atlas/**/*.test.ts"];
+
+const ATLAS_STREAMS_TESTS = ["packages/integration-tests/src/tools/atlas/streams/**/*.test.ts"];
+
+const ATLAS_CLUSTER_TESTS = [
+    "packages/integration-tests/src/tools/atlas/clusters.test.ts",
+    "packages/integration-tests/src/tools/atlas/sampleDataset.test.ts",
+];
+
+const INTEGRATION_ATLAS_LOCAL_INCLUDES = ["packages/integration-tests/src/tools/atlas-local/**/*.test.ts"];
+
+const INTEGRATION_INCLUDES = ["packages/integration-tests/src/**/*.test.ts"];
+
+const INTEGRATION_ATLAS_EXCLUDES = [
+    ...INTEGRATION_ATLAS_INCLUDES,
+    ...INTEGRATION_ATLAS_LOCAL_INCLUDES,
+    ...ATLAS_STREAMS_TESTS,
+    ...ATLAS_CLUSTER_TESTS,
+];
+
+const LONG_RUNNING_TESTS = ["packages/integration-tests/src/tools/atlas/performanceAdvisor.test.ts"];
 
 export default defineConfig({
     test: {
@@ -48,15 +72,79 @@ export default defineConfig({
             {
                 extends: true,
                 test: {
-                    name: "unit-and-integration",
-                    include: ["packages/**/*.test.ts"],
+                    name: "unit",
+                    include: UNIT_INCLUDES,
+                    exclude: [...vitestDefaultExcludes, ...NON_UNIT_PACKAGES],
+                },
+            },
+            {
+                extends: true,
+                test: {
+                    name: "integration",
+                    include: INTEGRATION_INCLUDES,
+                    exclude: [...vitestDefaultExcludes, ...INTEGRATION_ATLAS_EXCLUDES, ...LONG_RUNNING_TESTS],
+                },
+            },
+            {
+                extends: true,
+                test: {
+                    name: "integration-atlas",
+                    include: INTEGRATION_ATLAS_INCLUDES,
                     exclude: [
                         ...vitestDefaultExcludes,
-                        "packages/scripts/**",
-                        "packages/accuracy-tests/**",
-                        "packages/browser-tests/**",
-                        ...longRunningTests,
+                        ...ATLAS_STREAMS_TESTS,
+                        ...ATLAS_CLUSTER_TESTS,
+                        ...LONG_RUNNING_TESTS,
                     ],
+                },
+            },
+            {
+                extends: true,
+                test: {
+                    name: "e2e-tests",
+                    include: ["packages/e2e-tests/src/**/*.test.ts"],
+                    // Harness runs are slow; concurrency multiplies LLM cost and mongod instances.
+                    testTimeout: 20 * 60 * 1000,
+                    hookTimeout: 20 * 60 * 1000,
+                    fileParallelism: false,
+                    maxWorkers: 1,
+                },
+            },
+            {
+                extends: true,
+                test: {
+                    name: "clusters-tests",
+                    include: [...ATLAS_CLUSTER_TESTS],
+                    testTimeout: 7200000, // 2 hours for long-running tests
+                    hookTimeout: 7200000,
+                },
+            },
+            {
+                extends: true,
+                test: {
+                    name: "streams-tests",
+                    include: ATLAS_STREAMS_TESTS,
+                    testTimeout: 7200000, // 2 hours for long-running tests
+                    hookTimeout: 7200000,
+                    globalSetup: ["./packages/integration-tests/src/tools/atlas/streamsGlobalSetup.ts"],
+                    fileParallelism: false,
+                },
+            },
+            {
+                extends: true,
+                test: {
+                    name: "integration-atlas-local",
+                    include: INTEGRATION_ATLAS_LOCAL_INCLUDES,
+                    exclude: [...vitestDefaultExcludes],
+                },
+            },
+            {
+                extends: true,
+                test: {
+                    name: "long-running-tests",
+                    include: [...LONG_RUNNING_TESTS],
+                    testTimeout: 7200000, // 2 hours for long-running tests
+                    hookTimeout: 7200000,
                 },
             },
             {
@@ -78,15 +166,6 @@ export default defineConfig({
                 test: {
                     name: "atlas-cleanup",
                     include: ["packages/scripts/src/cleanupAtlasTestLeftovers.test.ts"],
-                },
-            },
-            {
-                extends: true,
-                test: {
-                    name: "long-running-tests",
-                    include: [...longRunningTests],
-                    testTimeout: 7200000, // 2 hours for long-running tests
-                    hookTimeout: 7200000,
                 },
             },
             {

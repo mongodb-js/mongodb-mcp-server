@@ -89,15 +89,9 @@ describeWithAtlas("db users", (integration) => {
                 expect(elements[0]?.text).toContain(userName);
                 expect(elements[0]?.text).not.toContain("testpassword");
 
-                expect(integration.mcpServer().session.keychain.allSecrets).toContainEqual({
-                    value: userName,
-                    kind: "user",
-                });
-
-                expect(integration.mcpServer().session.keychain.allSecrets).toContainEqual({
-                    value: "testpassword",
-                    kind: "password",
-                });
+                const keychain = integration.mcpServer().session.keychain;
+                expect(keychain.redact(userName)).toBe("<user>");
+                expect(keychain.redact("testpassword")).toBe("<password>");
             });
 
             it("should create a database user with generated password", async () => {
@@ -118,15 +112,9 @@ describeWithAtlas("db users", (integration) => {
                     .replace(/`/g, "")
                     .trim();
 
-                expect(integration.mcpServer().session.keychain.allSecrets).toContainEqual({
-                    value: userName,
-                    kind: "user",
-                });
-
-                expect(integration.mcpServer().session.keychain.allSecrets).toContainEqual({
-                    value: password,
-                    kind: "password",
-                });
+                const keychain = integration.mcpServer().session.keychain;
+                expect(keychain.redact(userName)).toBe("<user>");
+                expect(keychain.redact(password)).toBe("<password>");
             });
 
             it("should add current IP to access list when creating a database user", async () => {

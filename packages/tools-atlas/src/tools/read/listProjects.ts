@@ -81,13 +81,17 @@ export class ListProjectsTool extends AtlasToolBase {
             orgId: project.orgId,
             created: project.created ? new Date(project.created).toLocaleString() : "N/A",
         }));
-        const totalCount = data?.totalCount ?? projects.length;
+        // The API omits totalCount when includeCount=false, but some environments return an
+        // explicit 0 even when results are present; only trust a positive count and fall back
+        // to the returned page length otherwise.
+        const apiTotalCount = data?.totalCount ?? 0;
+        const hasAccurateCount = apiTotalCount > 0;
+        const totalCount = hasAccurateCount ? apiTotalCount : projects.length;
         // Without includeCount the API omits totalCount, so a full page is the signal
         // that more results may exist on later pages.
-        const moreResultsAvailable =
-            data?.totalCount !== undefined
-                ? (pageNum - 1) * limit + projects.length < data.totalCount
-                : projects.length === limit;
+        const moreResultsAvailable = hasAccurateCount
+            ? (pageNum - 1) * limit + projects.length < apiTotalCount
+            : projects.length === limit;
 
         if (!projects.length) {
             return {

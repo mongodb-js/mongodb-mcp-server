@@ -210,7 +210,6 @@ describe("CliServer integration test", () => {
         const mcpServerInstance = new McpServer({ name: "test", version: "1.0" });
         const elicitation = new Elicitation({
             server: mcpServerInstance.server,
-            timeoutMs: config.elicitationTimeoutMs,
         });
 
         const server = new CliServer({
@@ -258,6 +257,25 @@ describe("CliServer integration test", () => {
                 },
             ]));
             await expect(server.connect(transport)).rejects.toThrow(/Tool test-tool-one is already registered/);
+        });
+
+        it("coalesces concurrent register() calls into a single registration", async () => {
+            ({ server, transport } = await initServerWithTools([TestToolOne, TestToolTwo]));
+            await Promise.all([server.register(), server.register(), server.register()]);
+            expect(server.tools).toHaveLength(2);
+        });
+
+        it("is a no-op when register() is called again after completing", async () => {
+            ({ server, transport } = await initServerWithTools([TestToolOne]));
+            await server.register();
+            await server.register();
+            expect(server.tools).toHaveLength(1);
+        });
+
+        it("throws when register() is called on a closed server", async () => {
+            ({ server, transport } = await initServerWithTools([TestToolOne]));
+            await server.close();
+            await expect(server.register()).rejects.toThrow(/Cannot register a closed server/);
         });
     });
 

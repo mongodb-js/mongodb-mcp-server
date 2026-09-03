@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { AggregationCursor } from "mongodb";
+import type { InputRequiredResult } from "@mongodb-js/mcp-core";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
@@ -154,7 +155,7 @@ export class AggregateTool extends MongoDBToolBase {
     protected async execute(
         { connectionId, database, collection, pipeline, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<ToolResult<typeof this.outputSchema> | InputRequiredResult> {
         const { signal } = context;
         let aggregationCursor: AggregationCursor | undefined = undefined;
         try {
@@ -231,7 +232,11 @@ export class AggregateTool extends MongoDBToolBase {
 
             const writeStageTargets = getWriteStageTargets(pipeline, database);
             if (writeStageTargets.length > 0) {
-                await this.confirmWriteStages(writeStageTargets, context);
+                const inputRequiredResult = this.getInputRequiredResult(writeStageTargets, context);
+                if (inputRequiredResult) {
+                    // If input is required, return the input-required result instead of running the pipeline
+                    return inputRequiredResult;
+                }
 
                 // This is a write pipeline, so special-case it and don't attempt to apply limits or caps
                 aggregationCursor = provider.aggregate(database, collection, pipeline, {

@@ -1,5 +1,5 @@
 import type { LoggerType, LogLevel, LogPayload } from "@mongodb-js/mcp-types";
-import { CompositeLogger, LoggerBase } from "@mongodb-js/mcp-core";
+import { CompositeLogger, RedactingLoggerBase } from "@mongodb-js/mcp-core";
 import { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 import { UserConfigSchema, packageInfo } from "mongodb-mcp-server";
 import { CliServer, type CliServerOptions } from "mongodb-mcp-server";
@@ -15,7 +15,7 @@ import { Keychain } from "@mongodb-js/mcp-core";
 import { Elicitation } from "mongodb-mcp-server";
 import type { MockClientCapabilities, createMockElicitInput } from "@mongodb-js/mcp-test-utils";
 import { createAtlasLocalClient } from "mongodb-mcp-server";
-import type { AnyToolClass } from "@mongodb-js/mcp-core";
+import type { AnyToolClass, LoggerBase } from "@mongodb-js/mcp-core";
 import type { AnyResourceClass, OperationType, ServerMetadata } from "@mongodb-js/mcp-types";
 import { ApiClient, type HttpClient, userAgentFromServerMetadata } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics, sleep } from "@mongodb-js/mcp-test-utils";
@@ -153,6 +153,17 @@ export function setupIntegrationTest(
             }
         );
 
+        // Multi-round-trip elicitation (protocol revision 2026-07-28): the
+        // client fulfils `input_required` results through its registered
+        // `elicitation/create` handler (via auto-fulfilment on the modern era,
+        // or the server-side legacy shim's server→client dispatch on 2025-era
+        // connections). Tests that mock elicitation drive this handler.
+        if (elicitInput) {
+            // The mock's handler is structurally typed; the SDK's typed
+            // `elicitation/create` handler slot is compatible at runtime.
+            mcpClient.setRequestHandler("elicitation/create", elicitInput.handler as never);
+        }
+
         const exportsManager = ExportsManager.init({ options: userConfig, logger: logger });
 
         deviceId = DeviceId.create(logger);
@@ -204,14 +215,8 @@ export function setupIntegrationTest(
             version: "5.2.3",
         });
 
-        // Mock elicitation if provided
-        if (elicitInput) {
-            Object.assign(mcpServerInstance.server, { elicitInput: elicitInput.mock });
-        }
-
         const elicitation = new Elicitation({
             server: mcpServerInstance.server,
-            timeoutMs: userConfig.elicitationTimeoutMs,
         });
 
         let uiRegistry = serverOptions?.uiRegistry;
@@ -575,7 +580,7 @@ export function getDataFromUntrustedContent(content: string): string {
     return match.groups.data.trim();
 }
 
-export class InMemoryLogger extends LoggerBase {
+export class InMemoryLogger extends RedactingLoggerBase {
     protected type?: LoggerType = "console";
     public messages: { level: LogLevel; payload: LogPayload }[] = [];
     protected logCore(level: LogLevel, payload: LogPayload): void {

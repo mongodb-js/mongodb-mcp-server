@@ -9,3 +9,14 @@ export class UserFacingError extends Error {
         this.name = "UserFacingError";
     }
 }
+
+/**
+ * Thrown by a tool's `execute()` when the supplied arguments fail validation
+ * that the caller can fix by retrying with corrected input.
+ */
+export class ToolArgumentValidationError extends UserFacingError {
+    constructor(message: string) {
+        super(message);
+        this.name = "ToolArgumentValidationError";
+    }
+}

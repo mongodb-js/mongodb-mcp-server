@@ -2,12 +2,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import type { IAtlasConfig, IAtlasSession } from "@mongodb-js/mcp-tools-atlas";
 import { StreamsTeardownTool } from "@mongodb-js/mcp-tools-atlas";
+import { ErrorCodes, MongoDBError } from "@mongodb-js/mcp-tools-mongodb";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
-import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 
 describe("StreamsTeardownTool", () => {
@@ -54,9 +55,7 @@ describe("StreamsTeardownTool", () => {
             emitEvents: vi.fn(),
         } as unknown as AtlasTelemetry;
 
-        const mockElicitation = {
-            requestConfirmation: vi.fn().mockResolvedValue(true),
-        } as unknown as Elicitation;
+        const mockElicitation = createMockElicitation() as unknown as Elicitation;
 
         const params: ToolConstructorParams<IAtlasSession, DefaultPrometheusMetricDefinitions> = {
             name: StreamsTeardownTool.toolName,
@@ -77,6 +76,35 @@ describe("StreamsTeardownTool", () => {
     const exec = (args: Record<string, unknown>) =>
         tool["execute"](args as never, { signal: new AbortController().signal });
     const confirmMsg = (args: Record<string, unknown>): string => tool["getConfirmationMessage"](args as never);
+
+    describe("error classification boundary", () => {
+        it("passes the raw invalid argument error to a wrapped handleError through invoke", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const wrappedHandleError = vi.fn((_: unknown, _args: Record<string, unknown>) => ({
+                content: [{ type: "text" as const, text: "classified error" }],
+                isError: true,
+            }));
+            Object.assign(tool, { handleError: wrappedHandleError });
+
+            const result = await tool.invoke(
+                {
+                    ...baseArgs,
+                    resource: "processor",
+                    resourceName: "proc1",
+                },
+                { signal: new AbortController().signal }
+            );
+
+            expect(wrappedHandleError).toHaveBeenCalledOnce();
+            const error = wrappedHandleError.mock.calls[0]?.[0];
+            expect(error).toBeInstanceOf(MongoDBError);
+            expect(error).toMatchObject({
+                code: ErrorCodes.InvalidArgument,
+                message: expect.stringContaining("workspaceName is required") as string,
+            });
+            expect(result.isError).toBe(true);
+        });
+    });
 
     describe("deleteProcessor", () => {
         it("should stop then delete a STARTED processor", async () => {
@@ -155,24 +183,32 @@ describe("StreamsTeardownTool", () => {
             expect(result.structuredContent).toEqual({ resource: "processor" });
         });
 
-        it("should throw when workspaceName is missing", async () => {
-            await expect(
-                exec({
-                    ...baseArgs,
-                    resource: "processor",
-                    resourceName: "proc1",
-                })
-            ).rejects.toThrow("workspaceName is required");
+        it("should throw a caller-addressable error when workspaceName is missing", async () => {
+            const error = await exec({
+                ...baseArgs,
+                resource: "processor",
+                resourceName: "proc1",
+            }).catch((error: unknown) => error);
+
+            expect(error).toBeInstanceOf(MongoDBError);
+            expect(error).toMatchObject({
+                code: ErrorCodes.InvalidArgument,
+                message: expect.stringContaining("workspaceName is required") as string,
+            });
         });
 
-        it("should throw when resourceName is missing", async () => {
-            await expect(
-                exec({
-                    ...baseArgs,
-                    resource: "processor",
-                    workspaceName: "ws1",
-                })
-            ).rejects.toThrow("resourceName is required");
+        it("should throw a caller-addressable error when resourceName is missing", async () => {
+            const error = await exec({
+                ...baseArgs,
+                resource: "processor",
+                workspaceName: "ws1",
+            }).catch((error: unknown) => error);
+
+            expect(error).toBeInstanceOf(MongoDBError);
+            expect(error).toMatchObject({
+                code: ErrorCodes.InvalidArgument,
+                message: expect.stringContaining("resourceName is required") as string,
+            });
         });
     });
 

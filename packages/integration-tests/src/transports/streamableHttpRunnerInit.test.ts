@@ -11,6 +11,7 @@ import type { Request, Response } from "express";
 import { NoopLogger, CompositeLogger, type LoggerBase } from "@mongodb-js/mcp-core";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 import type { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
+import type { McpServer } from "@modelcontextprotocol/server";
 import type { UserConfig } from "@mongodb-js/mcp-cli";
 import type { DefaultMetricDefinitions, ICompositeLogger, SessionServer } from "@mongodb-js/mcp-types";
 
@@ -20,6 +21,7 @@ import type { DefaultMetricDefinitions, ICompositeLogger, SessionServer } from "
 class TestMCPHttpServer extends MCPHttpServer<SessionServer> {
     protected override async createServerForRequest(): Promise<SessionServer> {
         return Promise.resolve({
+            register: vi.fn().mockResolvedValue(undefined),
             connect: vi.fn(),
             close: vi.fn().mockResolvedValue(undefined),
             session: {
@@ -32,7 +34,7 @@ class TestMCPHttpServer extends MCPHttpServer<SessionServer> {
                     getClientCapabilities: vi.fn(),
                     getClientVersion: vi.fn(),
                 },
-            },
+            } as unknown as McpServer,
         });
     }
 }

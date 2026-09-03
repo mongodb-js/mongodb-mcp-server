@@ -15,7 +15,7 @@
     "filter:openapi": "tsx src/filter.ts",
     "apply:openapi": "tsx src/apply.ts",
     "create-dependency-sbom-lists": "tsx src/sbomReport/index.ts",
-    "check": "tsc --build tsconfig.build.json --noEmit"
+    "check": "tsc --noEmit --project tsconfig.json"
   },
   "devDependencies": {
     "@mongodb-js/mcp-ui": "workspace:*",
@@ -27,7 +27,7 @@
     "@mongodb-js/mcp-tools-atlas": "workspace:*",
     "mongodb-mcp-server": "workspace:*",
     "@types/node": "^25.6.0",
-    "tsx": "^4.20.5",
+    "tsx": "^4.23.12",
     "typescript": "^5.9.2",
     "vite": "^8.0.8",
     "openapi-types": "^12.1.3",

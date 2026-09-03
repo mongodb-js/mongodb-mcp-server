@@ -8,7 +8,7 @@ import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
-import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 
 describe("ListOrganizationsTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
@@ -36,9 +36,7 @@ describe("ListOrganizationsTool", () => {
             emitEvents: vi.fn(),
         } as unknown as ITelemetry;
 
-        const mockElicitation = {
-            requestConfirmation: vi.fn(),
-        } as unknown as Elicitation;
+        const mockElicitation = createMockElicitation() as unknown as Elicitation;
 
         const params: ToolConstructorParams<IAtlasSession> = {
             name: ListOrganizationsTool.toolName,
@@ -262,6 +260,26 @@ describe("ListOrganizationsTool", () => {
                 organizations: [],
                 totalCount: 0,
             });
+        });
+
+        it("treats an explicit totalCount of 0 with results as unknown and falls back to the page length", async () => {
+            // Some environments (e.g. cloud-dev) return totalCount: 0 with includeCount=false
+            // even when results are present; the tool should not report 0 in that case.
+            mockApiClient.listOrgs!.mockResolvedValue({
+                results: [{ name: "Org A", id: "org-a" }],
+                totalCount: 0,
+            });
+
+            const result = await exec();
+
+            expect(result.structuredContent).toEqual({
+                organizations: [{ name: "Org A", id: "org-a" }],
+                totalCount: 1,
+            });
+
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).toContain("Found 1 organizations in your MongoDB Atlas account.");
+            expect(text).not.toContain("pagination");
         });
 
         it("omits structuredContent on error paths", async () => {

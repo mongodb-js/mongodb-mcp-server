@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { StreamsToolBase } from "../../streams/streamsToolBase.js";
-import type { CallToolResult, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
-import type { ElicitRequestFormParams } from "@modelcontextprotocol/server";
-import type { ToolArgs } from "@mongodb-js/mcp-core";
+import type { CallToolResult, OperationType, ToolExecutionContext, ElicitRequestSchema } from "@mongodb-js/mcp-types";
+import type { ToolArgs, InputRequiredResult } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
 import { ConnectionConfig, PrivateLinkConfig, StreamsArgs } from "../../streams/streamsArgs.js";
+import { StreamsInvalidArgumentError } from "../../streams/errors.js";
 
 const BuildResource = z.enum(["workspace", "connection", "processor", "privatelink"]);
 
@@ -33,7 +33,12 @@ const KAFKA_FIELDS = {
     },
     mechanism: {
         title: "Authentication Mechanism",
-        description: "SASL mechanism: 'PLAIN', 'SCRAM-256', or 'SCRAM-512'",
+        description: "SASL mechanism: 'PLAIN', 'SCRAM-256', 'SCRAM-512', 'OAUTHBEARER', or 'AWS_MSK_IAM'",
+    },
+    roleArn: {
+        title: "AWS IAM Role ARN",
+        description:
+            "IAM role ARN registered in this Atlas project via Cloud Provider Access. Required for AWS_MSK_IAM authentication.",
     },
     username: {
         title: "Username",
@@ -150,7 +155,7 @@ export class StreamsBuildTool extends StreamsToolBase {
             .describe("Connection name. Required when resource='connection'."),
         connectionType: ConnectionType.optional().describe(
             "Connection type. Required when resource='connection'. " +
-                "Kafka: needs bootstrapServers, authentication, security config. " +
+                "Kafka: needs bootstrapServers, authentication, and security config. Use authentication.mechanism='AWS_MSK_IAM' with authentication.aws.roleArn for MSK IAM authentication. " +
                 "Cluster: needs clusterName and dbRoleToExecute. " +
                 "S3: needs aws.roleArn (must be registered via Atlas Cloud Provider Access). " +
                 "Https: needs url. " +
@@ -217,7 +222,7 @@ export class StreamsBuildTool extends StreamsToolBase {
     protected async execute(
         args: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
-    ): Promise<CallToolResult> {
+    ): Promise<CallToolResult | InputRequiredResult> {
         switch (args.resource) {
             case "workspace":
                 return this.createWorkspace(args, context);
@@ -237,7 +242,7 @@ export class StreamsBuildTool extends StreamsToolBase {
 
     private requireWorkspaceName(args: ToolArgs<typeof this.argsShape>): string {
         if (!args.workspaceName) {
-            throw new Error("workspaceName is required for this resource type.");
+            throw new StreamsInvalidArgumentError("workspaceName is required for this resource type.");
         }
         return args.workspaceName;
     }
@@ -248,10 +253,12 @@ export class StreamsBuildTool extends StreamsToolBase {
     ): Promise<CallToolResult> {
         const workspaceName = this.requireWorkspaceName(args);
         if (!args.cloudProvider) {
-            throw new Error("cloudProvider is required when creating a workspace. Choose from: AWS, AZURE, GCP.");
+            throw new StreamsInvalidArgumentError(
+                "cloudProvider is required when creating a workspace. Choose from: AWS, AZURE, GCP."
+            );
         }
         if (!args.region) {
-            throw new Error(
+            throw new StreamsInvalidArgumentError(
                 "region is required when creating a workspace (e.g. 'VIRGINIA_USA', 'eastus2', 'US_CENTRAL1')."
             );
         }
@@ -305,20 +312,20 @@ export class StreamsBuildTool extends StreamsToolBase {
     private async createConnection(
         args: ToolArgs<typeof this.argsShape>,
         context: ToolExecutionContext
-    ): Promise<CallToolResult> {
+    ): Promise<CallToolResult | InputRequiredResult> {
         const workspaceName = this.requireWorkspaceName(args);
         if (!args.connectionName) {
-            throw new Error("connectionName is required when adding a connection.");
+            throw new StreamsInvalidArgumentError("connectionName is required when adding a connection.");
         }
         if (!args.connectionType) {
-            throw new Error(
+            throw new StreamsInvalidArgumentError(
                 "connectionType is required. Choose from: Kafka, Cluster, S3, Https, AWSKinesisDataStreams, AWSLambda, SchemaRegistry, Sample."
             );
         }
 
         const config = { ...ConnectionConfig.parse(args.connectionConfig ?? {}) };
 
-        const missingInfo = await this.normalizeAndValidateConnectionConfig(config, args.connectionType, context);
+        const missingInfo = this.normalizeAndValidateConnectionConfig(config, args.connectionType, context);
         if (missingInfo) {
             return missingInfo;
         }
@@ -364,11 +371,11 @@ export class StreamsBuildTool extends StreamsToolBase {
      * @returns null if config is valid and ready to send, or a CallToolResult
      *          describing what information is still needed.
      */
-    private async normalizeAndValidateConnectionConfig(
+    private normalizeAndValidateConnectionConfig(
         config: Record<string, unknown>,
         connectionType: string,
         context: ToolExecutionContext
-    ): Promise<CallToolResult | null> {
+    ): CallToolResult | InputRequiredResult | null {
         switch (connectionType) {
             case "Kafka":
                 return this.validateKafkaConfig(config, context);
@@ -387,18 +394,44 @@ export class StreamsBuildTool extends StreamsToolBase {
         }
     }
 
-    private async validateKafkaConfig(
+    private validateKafkaConfig(
         config: Record<string, unknown>,
         context: ToolExecutionContext
-    ): Promise<CallToolResult | null> {
+    ): CallToolResult | InputRequiredResult | null {
         const auth = config.authentication as Record<string, unknown> | undefined;
         const security = config.security as Record<string, unknown> | undefined;
 
+        // The required authentication fields depend on the mechanism. Ask for the
+        // mechanism first, then validate again to collect either IAM role details
+        // or SASL credentials rather than presenting incompatible fields together.
+        if (!auth?.mechanism) {
+            const mechanismFields = StreamsBuildTool.collectMissingFields([
+                { key: "bootstrapServers", present: !!config.bootstrapServers, schema: KAFKA_FIELDS.bootstrapServers },
+                { key: "mechanism", present: false, schema: KAFKA_FIELDS.mechanism },
+                { key: "protocol", present: !!security?.protocol, schema: KAFKA_FIELDS.protocol },
+            ]);
+            const result = this.elicitOrReportMissing("Kafka", config, mechanismFields, context, (fields, cfg) => {
+                if (fields.bootstrapServers) cfg.bootstrapServers = fields.bootstrapServers;
+                if (!cfg.authentication) cfg.authentication = {};
+                if (fields.mechanism) (cfg.authentication as Record<string, unknown>).mechanism = fields.mechanism;
+                if (!cfg.security) cfg.security = {};
+                if (fields.protocol) (cfg.security as Record<string, unknown>).protocol = fields.protocol;
+            });
+            return result ?? this.validateKafkaConfig(config, context);
+        }
+
+        const isMskIam = auth.mechanism === "AWS_MSK_IAM";
+        if (isMskIam) {
+            // SASL credentials do not apply to MSK IAM and must not be sent to Atlas.
+            delete auth.username;
+            delete auth.password;
+        }
+        const awsAuth = auth.aws as Record<string, unknown> | undefined;
         const missingFields = StreamsBuildTool.collectMissingFields([
             { key: "bootstrapServers", present: !!config.bootstrapServers, schema: KAFKA_FIELDS.bootstrapServers },
-            { key: "mechanism", present: !!auth?.mechanism, schema: KAFKA_FIELDS.mechanism },
-            { key: "username", present: !!auth?.username, schema: KAFKA_FIELDS.username },
-            { key: "password", present: !!auth?.password, schema: KAFKA_FIELDS.password },
+            { key: "roleArn", present: !isMskIam || !!awsAuth?.roleArn, schema: KAFKA_FIELDS.roleArn },
+            { key: "username", present: isMskIam || !!auth?.username, schema: KAFKA_FIELDS.username },
+            { key: "password", present: isMskIam || !!auth?.password, schema: KAFKA_FIELDS.password },
             { key: "protocol", present: !!security?.protocol, schema: KAFKA_FIELDS.protocol },
         ]);
 
@@ -413,16 +446,20 @@ export class StreamsBuildTool extends StreamsToolBase {
             if (fields.mechanism) authObj.mechanism = fields.mechanism;
             if (fields.username) authObj.username = fields.username;
             if (fields.password) authObj.password = fields.password;
+            if (fields.roleArn) {
+                if (!authObj.aws) authObj.aws = {};
+                (authObj.aws as Record<string, unknown>).roleArn = fields.roleArn;
+            }
             if (!cfg.security) cfg.security = {};
             const secObj = cfg.security as Record<string, unknown>;
             if (fields.protocol) secObj.protocol = fields.protocol;
         });
     }
 
-    private async validateClusterConfig(
+    private validateClusterConfig(
         config: Record<string, unknown>,
         context: ToolExecutionContext
-    ): Promise<CallToolResult | null> {
+    ): CallToolResult | InputRequiredResult | null {
         const missingFields = StreamsBuildTool.collectMissingFields([
             { key: "clusterName", present: !!config.clusterName, schema: CLUSTER_FIELDS.clusterName },
         ]);
@@ -441,11 +478,11 @@ export class StreamsBuildTool extends StreamsToolBase {
         });
     }
 
-    private async validateAwsConfig(
+    private validateAwsConfig(
         config: Record<string, unknown>,
         connectionType: string,
         context: ToolExecutionContext
-    ): Promise<CallToolResult | null> {
+    ): CallToolResult | InputRequiredResult | null {
         const aws = config.aws as Record<string, unknown> | undefined;
 
         const missingFields = StreamsBuildTool.collectMissingFields([
@@ -473,10 +510,10 @@ export class StreamsBuildTool extends StreamsToolBase {
         );
     }
 
-    private async validateSchemaRegistryConfig(
+    private validateSchemaRegistryConfig(
         config: Record<string, unknown>,
         context: ToolExecutionContext
-    ): Promise<CallToolResult | null> {
+    ): CallToolResult | InputRequiredResult | null {
         // Normalize common alternative key names for schemaRegistryUrls
         if (!config.schemaRegistryUrls) {
             const alt = config.url || config.urls || config.endpoint || config.schemaRegistryUrl;
@@ -549,10 +586,10 @@ export class StreamsBuildTool extends StreamsToolBase {
         });
     }
 
-    private async validateHttpsConfig(
+    private validateHttpsConfig(
         config: Record<string, unknown>,
         context: ToolExecutionContext
-    ): Promise<CallToolResult | null> {
+    ): CallToolResult | InputRequiredResult | null {
         const missingFields = StreamsBuildTool.collectMissingFields([
             { key: "url", present: !!config.url, schema: HTTPS_FIELDS.url },
         ]);
@@ -573,39 +610,54 @@ export class StreamsBuildTool extends StreamsToolBase {
      * client supports it, shows a single form with every missing field. If not
      * (or the user declines), returns a structured response listing what's needed.
      */
-    private async elicitOrReportMissing(
+    /**
+     * Identifier under which a `createConnection` elicitation's answers
+     * arrive in `inputResponses` (multi-round-trip, protocol revision
+     * 2026-07-28). One validator runs per connection type, so a single key
+     * suffices.
+     */
+    private static readonly ELICIT_INPUT_KEY = "connection-fields";
+
+    private elicitOrReportMissing(
         connectionType: string,
         config: Record<string, unknown>,
         missingFields: MissingField[],
         context: ToolExecutionContext,
         applyFields: (fields: Record<string, string>, config: Record<string, unknown>) => void,
         additionalNote?: string
-    ): Promise<CallToolResult | null> {
-        const schema = StreamsBuildTool.buildElicitationSchema(connectionType, missingFields);
-
-        const elicited = await this.elicitation.requestInput(
-            `The following information is required to create the ${connectionType} connection.`,
-            schema,
-            {
-                relatedRequestId: this.elicitationRelatedRequestId(context),
-                progressToken: context._meta?.progressToken,
-                sendNotification: context.sendNotification,
-                signal: context.signal,
-            }
-        );
-
-        if (elicited.accepted) {
-            applyFields(elicited.fields, config);
-
-            // Re-check: did the user leave any fields empty in the form?
-            const stillMissing = missingFields.filter((f) => !elicited.fields[f.key]);
-            if (stillMissing.length > 0) {
-                return StreamsBuildTool.missingFieldsResponse(connectionType, stillMissing, additionalNote);
-            }
-            return null;
+    ): CallToolResult | InputRequiredResult | null {
+        // Clients that do not declare elicitation support cannot answer
+        // embedded requests: report the missing fields instead of eliciting.
+        if (!this.elicitation.supportsElicitation()) {
+            return StreamsBuildTool.missingFieldsResponse(connectionType, missingFields, additionalNote);
         }
 
-        return StreamsBuildTool.missingFieldsResponse(connectionType, missingFields, additionalNote);
+        const schema = StreamsBuildTool.buildElicitationSchema(connectionType, missingFields);
+
+        // Re-entry: apply the answers from the previous `input_required` round
+        // (if any) instead of eliciting again.
+        const elicited = this.elicitation.readInput(context.inputResponses, StreamsBuildTool.ELICIT_INPUT_KEY);
+        if (elicited !== undefined) {
+            if (elicited.accepted) {
+                applyFields(elicited.fields, config);
+
+                // Re-check: did the user leave any fields empty in the form?
+                const stillMissing = missingFields.filter((f) => !elicited.fields[f.key]);
+                if (stillMissing.length > 0) {
+                    return StreamsBuildTool.missingFieldsResponse(connectionType, stillMissing, additionalNote);
+                }
+                return null;
+            }
+
+            return StreamsBuildTool.missingFieldsResponse(connectionType, missingFields, additionalNote);
+        }
+
+        // First entry: ask for the missing fields.
+        return this.elicitation.inputRequired({
+            key: StreamsBuildTool.ELICIT_INPUT_KEY,
+            message: `The following information is required to create the ${connectionType} connection.`,
+            schema,
+        });
     }
 
     private static collectMissingFields(
@@ -614,10 +666,7 @@ export class StreamsBuildTool extends StreamsToolBase {
         return checks.filter((c) => !c.present).map((c) => ({ key: c.key, ...c.schema }));
     }
 
-    private static buildElicitationSchema(
-        _connectionType: string,
-        missingFields: MissingField[]
-    ): ElicitRequestFormParams["requestedSchema"] {
+    private static buildElicitationSchema(_connectionType: string, missingFields: MissingField[]): ElicitRequestSchema {
         const properties: Record<string, { type: "string"; title: string; description: string }> = {};
         for (const field of missingFields) {
             properties[field.key] = {
@@ -766,10 +815,10 @@ export class StreamsBuildTool extends StreamsToolBase {
     ): Promise<CallToolResult> {
         const workspaceName = this.requireWorkspaceName(args);
         if (!args.processorName) {
-            throw new Error("processorName is required when deploying a processor.");
+            throw new StreamsInvalidArgumentError("processorName is required when deploying a processor.");
         }
         if (!args.pipeline || args.pipeline.length === 0) {
-            throw new Error(
+            throw new StreamsInvalidArgumentError(
                 "pipeline is required. Provide an array of aggregation stages starting with $source and ending with a terminal stage ($merge, $emit, $https, or $externalFunction)."
             );
         }
@@ -847,10 +896,10 @@ export class StreamsBuildTool extends StreamsToolBase {
         context: ToolExecutionContext
     ): Promise<CallToolResult> {
         if (!args.privateLinkConfig) {
-            throw new Error(
+            throw new StreamsInvalidArgumentError(
                 "privateLinkConfig is required. Provide provider and vendor-specific fields:\n" +
                     "  AWS CONFLUENT: {provider, vendor:'CONFLUENT', region, serviceEndpointId, dnsDomain, dnsSubDomain: string[] of full FQDNs ([] for serverless)}\n" +
-                    "  AWS MSK: {provider, vendor:'MSK', arn}\n" +
+                    "  AWS MSK: {provider, vendor:'MSK', arn, authenticationScheme:'TLS'|'SASL_SCRAM'|'IAM'}\n" +
                     "  AWS S3: {provider, vendor:'S3', region, serviceEndpointId:'com.amazonaws.<region>.s3'}\n" +
                     "  AWS KINESIS: {provider, vendor:'KINESIS', region, serviceEndpointId}\n" +
                     "  AZURE EVENTHUB: {provider, vendor:'EVENTHUB', region, dnsDomain, serviceEndpointId (full Azure Resource ID)}\n" +
@@ -859,7 +908,9 @@ export class StreamsBuildTool extends StreamsToolBase {
             );
         }
         if (!args.privateLinkConfig.provider) {
-            throw new Error("privateLinkConfig.provider is required. Choose from: AWS, AZURE, GCP.");
+            throw new StreamsInvalidArgumentError(
+                "privateLinkConfig.provider is required. Choose from: AWS, AZURE, GCP."
+            );
         }
 
         const body: Record<string, unknown> = {

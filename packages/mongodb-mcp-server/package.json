@@ -71,18 +71,19 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@anthropic-ai/mcpb": "2.1.2",
-    "@microsoft/api-extractor": "^7.58.7",
+    "@microsoft/api-extractor": "^7.59.0",
     "@modelcontextprotocol/inspector": "^0.21.2",
     "@types/node": "^25.6.0",
     "concurrently": "^9.2.1",
     "openapi-typescript-helpers": "^0.1.0",
     "ts-levenshtein": "^1.0.7",
-    "tsx": "^4.20.5",
+    "tsx": "^4.23.12",
     "type-fest": "^5.6.0",
     "typescript": "^5.9.2",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.11"
   },
   "dependencies": {
+    "@modelcontextprotocol/node": "^2.0.0",
     "@mongodb-js/mcp-atlas-api-client": "workspace:*",
     "@mongodb-js/mcp-atlas-telemetry": "workspace:*",
     "@mongodb-js/mcp-cli": "workspace:*",
@@ -97,9 +98,7 @@
     "@mongodb-js/mcp-tools-mongodb": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
     "@mongodb-js/mcp-ui": "workspace:*",
-    "@mongosh/service-provider-node-driver": "^5.0.2",
-    "@modelcontextprotocol/node": "^2.0.0",
-    "mongodb-redact": "^1.4.6"
+    "@mongosh/service-provider-node-driver": "^5.0.2"
   },
   "engines": {
     "node": "^20.19.0 || ^22.13.0 || >= 24.0.0"

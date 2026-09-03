@@ -7,7 +7,7 @@ import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
-import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 
 describe("ListAlertsTool", () => {
@@ -44,9 +44,7 @@ describe("ListAlertsTool", () => {
             emitEvents: vi.fn(),
         } as unknown as AtlasTelemetry;
 
-        const mockElicitation = {
-            requestConfirmation: vi.fn(),
-        } as unknown as Elicitation;
+        const mockElicitation = createMockElicitation() as unknown as Elicitation;
 
         const params: ToolConstructorParams<IAtlasSession, DefaultPrometheusMetricDefinitions> = {
             name: ListAlertsTool.toolName,
@@ -346,6 +344,41 @@ describe("ListAlertsTool", () => {
                 alerts: [],
                 totalCount: 0,
             });
+        });
+
+        it("omits totalCount when it is an explicit 0 with results present", async () => {
+            // Some environments return totalCount: 0 with includeCount=false even when
+            // results are present; the tool should not report a misleading 0.
+            mockApiClient.listAlerts!.mockResolvedValue({
+                results: [
+                    {
+                        id: "alert1",
+                        status: "OPEN",
+                        created: "2025-01-01T00:00:00Z",
+                        updated: "2025-01-02T00:00:00Z",
+                        eventTypeName: "HOST_DOWN",
+                        acknowledgementComment: null,
+                    },
+                ],
+                totalCount: 0,
+            });
+
+            const result = await exec({ ...baseArgs });
+
+            expect(result.structuredContent).toMatchObject({
+                projectId: "proj1",
+                status: "OPEN",
+                alerts: [
+                    {
+                        id: "alert1",
+                        status: "OPEN",
+                    },
+                ],
+            });
+            expect(result.structuredContent).not.toHaveProperty("totalCount");
+
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).not.toContain("(total:");
         });
 
         it("omits structuredContent on error paths", async () => {

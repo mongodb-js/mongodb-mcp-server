@@ -27,12 +27,12 @@
     "check:api": "api-extractor run --config api-extractor.json",
     "update:api": "api-extractor run --local --config api-extractor.json",
     "test": "vitest --run",
-    "check": "tsc --build tsconfig.build.json --noEmit"
+    "check": "tsc --noEmit --project tsconfig.check.json"
   },
   "devDependencies": {
     "@lg-mcp/embeddable-uis": "^0.1.0",
     "@lg-mcp/hooks": "^0.2.0",
-    "@microsoft/api-extractor": "^7.58.7",
+    "@microsoft/api-extractor": "^7.59.0",
     "@mongodb-js/mcp-tools-mongodb": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
     "@testing-library/jest-dom": "^6.9.1",
@@ -44,12 +44,12 @@
     "happy-dom": "^20.9.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "tsx": "^4.20.5",
+    "tsx": "^4.23.12",
     "typescript": "^5.9.2",
     "vite": "^8.0.8",
     "vite-plugin-node-polyfills": "^0.26.0",
     "vite-plugin-singlefile": "^2.3.2",
-    "vitest": "^4.1.4"
+    "vitest": "^4.1.11"
   },
   "publishConfig": {
     "access": "public"

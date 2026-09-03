@@ -1,0 +1,24 @@
+{
+  "name": "@mongodb-js/harness-tester",
+  "version": "3.0.0-prerelease.2",
+  "private": true,
+  "type": "module",
+  "description": "Tooling to drive real LLM coding-agent CLIs (codex, claude) interactively through their TUIs for end-to-end tests",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "check": "tsc --noEmit --project tsconfig.json"
+  },
+  "dependencies": {
+    "@microsoft/tui-test": "0.1.0-beta.2",
+    "vitest": "^4.1.5"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "typescript": "^5.9.2"
+  }
+}

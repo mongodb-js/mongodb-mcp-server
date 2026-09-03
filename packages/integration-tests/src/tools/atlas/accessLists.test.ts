@@ -1,5 +1,10 @@
 import { assertApiClientIsAvailable, describeWithAtlas, withProject } from "./atlasHelpers.js";
-import { expectDefined, getDataFromUntrustedContent, getResponseElements } from "../../integrationHelpers.js";
+import {
+    expectDefined,
+    getDataFromUntrustedContent,
+    getResponseContent,
+    getResponseElements,
+} from "../../integrationHelpers.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ensureCurrentIpInAccessList } from "@mongodb-js/mcp-tools-atlas";
 
@@ -80,6 +85,24 @@ describeWithAtlas("ip access lists", (integration) => {
                 expect(response.structuredContent).toEqual({
                     projectId,
                 });
+            });
+
+            it("rejects a comment longer than 80 characters", async () => {
+                const projectId = getProjectId();
+
+                const response = await integration.mcpClient().callTool({
+                    name: "atlas-create-access-list",
+                    arguments: {
+                        projectId,
+                        ipAddresses: [generateRandomIp()],
+                        comment: "a".repeat(81),
+                    },
+                });
+
+                expect(response.isError).toBe(true);
+                const message = getResponseContent(response.content);
+                expect(message).toContain("Input validation error:");
+                expect(message).toContain("comment: Too big: expected string to have <=80 characters");
             });
         });
 

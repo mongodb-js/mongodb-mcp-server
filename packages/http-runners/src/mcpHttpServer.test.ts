@@ -4,7 +4,7 @@ import {
     SessionRejectedError,
     SessionLimitExceededError,
     JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED,
-    LoggerBase,
+    RedactingLoggerBase,
     Keychain,
 } from "@mongodb-js/mcp-core";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
@@ -24,6 +24,7 @@ import type {
 } from "@mongodb-js/mcp-types";
 import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 import type { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
+import type { McpServer } from "@modelcontextprotocol/server";
 
 class MockMetrics
     extends PrometheusMetrics<DefaultPrometheusMetricDefinitions>
@@ -34,7 +35,7 @@ class MockMetrics
     }
 }
 
-class InMemoryLogger extends LoggerBase implements ICompositeLogger {
+class InMemoryLogger extends RedactingLoggerBase implements ICompositeLogger {
     protected type: LoggerType = "console";
     public messages: { level: LogLevel; payload: LogPayload }[] = [];
     public attributes: Record<string, string> = {};
@@ -110,7 +111,8 @@ function makeFakeServer(): SessionServer {
                 getClientCapabilities: vi.fn(),
                 getClientVersion: vi.fn(),
             },
-        },
+        } as unknown as McpServer,
+        register: vi.fn().mockResolvedValue(undefined),
         connect: vi.fn().mockResolvedValue(undefined),
         close: vi.fn().mockResolvedValue(undefined),
     };

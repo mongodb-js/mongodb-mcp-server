@@ -5,7 +5,7 @@
 ```ts
 
 import type { AggregationCursor } from 'mongodb';
-import type { CallToolResult } from '@modelcontextprotocol/server';
+import { CallToolResult } from '@modelcontextprotocol/server';
 import type { Client } from '@mongodb-js/atlas-local';
 import type { ClientCapabilities } from '@modelcontextprotocol/server';
 import { CliOptions } from '@mongosh/arg-parser';
@@ -21,20 +21,19 @@ import { Gauge } from 'prom-client';
 import { Histogram } from 'prom-client';
 import type http from 'http';
 import type { Implementation } from '@modelcontextprotocol/server';
+import { InputRequiredResult } from '@modelcontextprotocol/server';
+import type { InputResponses } from '@modelcontextprotocol/server';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/server';
+import type { McpHttpHandler } from '@modelcontextprotocol/server';
 import { McpServer } from '@modelcontextprotocol/server';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
-import type { ProgressToken } from '@modelcontextprotocol/server';
 import type { ReadResourceCallback } from '@modelcontextprotocol/server';
 import { Registry } from 'prom-client';
-import type { RequestId } from '@modelcontextprotocol/server';
 import type { RequestMeta } from '@modelcontextprotocol/server';
 import type { ResourceMetadata } from '@modelcontextprotocol/server';
 import { Secret } from 'mongodb-redact';
-import type { ServerNotification } from '@modelcontextprotocol/server';
-import { StdioServerTransport } from '@modelcontextprotocol/server/stdio';
 import { NodeStreamableHTTPServerTransport as StreamableHTTPServerTransport } from '@modelcontextprotocol/node';
-import type { ToolAnnotations } from '@modelcontextprotocol/server';
+import { ToolAnnotations } from '@modelcontextprotocol/server';
 import type { Transport } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import { ZodRawShape } from 'zod';
@@ -274,7 +273,6 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
     constructor(input: CliServerOptions<TMetrics> & {
         session: McpSession;
     });
-    // (undocumented)
     close(): Promise<void>;
     // (undocumented)
     connect(transport: Transport): Promise<void>;
@@ -290,6 +288,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
     readonly mcpServer: McpServer;
     // (undocumented)
     readonly metrics: IMetrics<TMetrics>;
+    register(): Promise<void>;
     // (undocumented)
     registerResources(): void;
     // (undocumented)
@@ -338,7 +337,6 @@ export type CloseableTransport = {
 // @public (undocumented)
 export class CompositeLogger extends LoggerBase {
     constructor(input?: {
-        keychain?: IKeychain;
         loggers: LoggerBase[];
     });
     // (undocumented)
@@ -348,11 +346,7 @@ export class CompositeLogger extends LoggerBase {
     // (undocumented)
     log(level: LogLevel, payload: LogPayload): void;
     // (undocumented)
-    protected logCore(): void;
-    // (undocumented)
     setAttribute(key: string, value: string): void;
-    // (undocumented)
-    protected readonly type?: LoggerType;
 }
 
 // @public (undocumented)
@@ -493,7 +487,7 @@ export interface ConnectionStateErrored extends ConnectionState {
 export type ConnectionTag = "connected" | "connecting" | "disconnected" | "errored";
 
 // @public (undocumented)
-export class ConsoleLogger extends LoggerBase {
+export class ConsoleLogger extends RedactingLoggerBase {
     constructor(options: LoggerConfig);
     // (undocumented)
     protected logCore(level: LogLevel, payload: LogPayload): void;
@@ -518,30 +512,7 @@ export function createDefaultMetrics(): {
 export type DefaultEventMap = Record<string, never[]>;
 
 // @public (undocumented)
-export const defaultParserOptions: {
-    config: string;
-    envPrefix: string;
-    configuration: {
-        "populate--": true;
-        "boolean-negation"?: boolean | undefined;
-        "camel-case-expansion"?: boolean | undefined;
-        "combine-arrays"?: boolean | undefined;
-        "dot-notation"?: boolean | undefined;
-        "duplicate-arguments-array"?: boolean | undefined;
-        "flatten-duplicate-arrays"?: boolean | undefined;
-        "greedy-arrays"?: boolean | undefined;
-        "nargs-eats-options"?: boolean | undefined;
-        "halt-at-non-option"?: boolean | undefined;
-        "negation-prefix"?: string | undefined;
-        "parse-numbers"?: boolean | undefined;
-        "parse-positional-numbers"?: boolean | undefined;
-        "set-placeholder-key"?: boolean | undefined;
-        "short-option-groups"?: boolean | undefined;
-        "strip-aliased"?: boolean | undefined;
-        "strip-dashed"?: boolean | undefined;
-        "unknown-options-as-args"?: boolean | undefined;
-    };
-};
+export const defaultParserOptions: ParserOptions;
 
 // @public (undocumented)
 export type DefaultPrometheusMetricDefinitions = ReturnType<typeof createDefaultMetrics>;
@@ -554,11 +525,10 @@ export class DeviceId implements IDeviceId {
     get(): Promise<string>;
 }
 
-// @public (undocumented)
-export class Elicitation {
+// @public
+export class Elicitation implements IElicitation {
     constructor(input: {
         server: McpServer["server"];
-        timeoutMs: number;
     });
     static CONFIRMATION_SCHEMA: {
         type: "object";
@@ -573,8 +543,10 @@ export class Elicitation {
         };
         required: string[];
     };
-    requestConfirmation(message: string, options?: ElicitationOptions_2): Promise<boolean>;
-    requestInput(message: string, schema: ElicitRequestFormParams["requestedSchema"], options?: ElicitationOptions_2): Promise<ElicitedInputResult_2>;
+    confirmationRequired(message: string): InputRequiredResult;
+    inputRequired(input: ElicitInputRequiredParams): InputRequiredResult;
+    readConfirmation(inputResponses: ElicitationInputResponses): boolean | undefined;
+    readInput(inputResponses: ElicitationInputResponses, key: string): ElicitedInputResult | undefined;
     supportsElicitation(): boolean;
 }
 
@@ -591,6 +563,7 @@ export const ErrorCodes: {
     readonly ForbiddenServerSideJS: 1000009;
     readonly UnknownConnectionId: 1000010;
     readonly ConfirmationDeclined: 1000011;
+    readonly InvalidArgument: 1000012;
 };
 
 // @public
@@ -706,18 +679,16 @@ export const JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND = -32003;
 export class Keychain implements IKeychain {
     constructor();
     // (undocumented)
-    get allSecrets(): Secret[];
-    // (undocumented)
     clearAllSecrets(): void;
+    redact<T>(value: T): T;
     // (undocumented)
     register(value: Secret["value"], kind: Secret["kind"]): void;
     // (undocumented)
     static get root(): Keychain;
 }
 
-// @public (undocumented)
+// @public
 export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extends EventEmitter<T> implements ILogger {
-    constructor(options: LoggerConfig);
     // (undocumented)
     alert(payload: LogPayload): void;
     // (undocumented)
@@ -733,13 +704,9 @@ export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extend
     // (undocumented)
     info(payload: LogPayload): void;
     // (undocumented)
-    log(level: LogLevel, payload: LogPayload): void;
-    // (undocumented)
-    protected abstract logCore(level: LogLevel, payload: LogPayload): void;
+    abstract log(level: LogLevel, payload: LogPayload): void;
     // (undocumented)
     notice(payload: LogPayload): void;
-    // (undocumented)
-    protected abstract readonly type?: LoggerType;
     // (undocumented)
     warning(payload: LogPayload): void;
 }
@@ -770,6 +737,7 @@ export class MCPConnectionManager extends ConnectionManager {
 // @public
 export abstract class MCPHttpServer<TServer extends SessionServer = SessionServer, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> extends ExpressBasedHttpServer {
     constructor(input: MCPHttpServerOptions<TMetrics>);
+    protected createModernHandler(): McpHttpHandler;
     protected abstract createServerForRequest(request: TransportRequestContext): Promise<TServer>;
     // (undocumented)
     protected readonly metrics: IMetrics<TMetrics>;
@@ -795,7 +763,7 @@ export type MCPHttpServerOptions<TMetrics extends DefaultMetricDefinitions = Def
 };
 
 // @public (undocumented)
-export class McpLogger extends LoggerBase {
+export class McpLogger extends RedactingLoggerBase {
     constructor(input: {
         server: McpServer;
         options: {
@@ -872,13 +840,10 @@ export type MonitoringServerOptions<TMetrics extends DefaultMetricDefinitions = 
 // @public
 export function nameToConfigKey(mode: "header" | "query", name: string): string | undefined;
 
-// @public (undocumented)
+// @public
 export class NoopLogger extends LoggerBase {
-    constructor();
     // (undocumented)
-    protected logCore(): void;
-    // (undocumented)
-    protected readonly type?: LoggerType;
+    log(_level: LogLevel, _payload: LogPayload): void;
 }
 
 // @public (undocumented)
@@ -998,22 +963,14 @@ export type SessionStoreConstructorArgs<TMetrics extends DefaultMetricDefinition
 };
 
 // @public
-export class StdioRunner<TServer extends {
-    connect(transport: StdioServerTransport): Promise<void>;
-    close(): Promise<void>;
-} = {
-    connect(transport: StdioServerTransport): Promise<void>;
-    close(): Promise<void>;
-}> implements ITransportRunner {
+export abstract class StdioRunner implements ITransportRunner {
     constructor(input: {
         logger: CompositeLogger;
-        server: TServer;
     });
     close(): Promise<void>;
+    protected abstract createServer(): Promise<McpServer> | McpServer;
     // (undocumented)
     protected readonly logger: CompositeLogger;
-    // (undocumented)
-    protected readonly server: TServer;
     // (undocumented)
     start(): Promise<void>;
 }
@@ -1093,6 +1050,11 @@ export type ToolArgs<T extends ZodRawShape> = {
 };
 
 // @public
+export class ToolArgumentValidationError extends UserFacingError {
+    constructor(message: string);
+}
+
+// @public
 export abstract class ToolBase<TSession extends IToolSession = IToolSession, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
     constructor(input: ToolConstructorParams<TSession, TMetricsDefinitions>);
     // (undocumented)
@@ -1104,15 +1066,14 @@ export abstract class ToolBase<TSession extends IToolSession = IToolSession, TMe
     // (undocumented)
     disable(): void;
     protected readonly elicitation: IElicitation;
-    protected elicitationRelatedRequestId(context: ToolExecutionContext): RequestId | undefined;
     // (undocumented)
     enable(): void;
-    protected abstract execute(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    protected abstract execute(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
     protected getConfirmationMessage(args: ToolArgs<typeof ToolBase.argsShape>): string;
     // (undocumented)
     protected getConnectionInfoMetadata(connectionState?: SupportedConnectionState): ConnectionMetadata;
     protected handleError(error: unknown, args: z.infer<z.ZodObject<typeof ToolBase.argsShape>>): Promise<CallToolResult> | CallToolResult;
-    invoke(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    invoke(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
     // (undocumented)
     isEnabled(): boolean;
     // (undocumented)
@@ -1126,7 +1087,7 @@ export abstract class ToolBase<TSession extends IToolSession = IToolSession, TMe
     register(server: {
         mcpServer: McpServer;
     }): boolean;
-    protected requestConfirmation(message: string, context: ToolExecutionContext): Promise<boolean>;
+    protected requestConfirmation(message: string, context: ToolExecutionContext): boolean | undefined;
     requiresConfirmation(): boolean;
     protected abstract resolveTelemetryMetadata(args: ToolArgs<typeof ToolBase.argsShape>, input: {
         result: CallToolResult;
@@ -1159,6 +1120,7 @@ export type ToolExecutionContext = {
     _meta?: RequestMeta;
     requestId?: string | number;
     sendNotification?: (notification: unknown) => Promise<void>;
+    inputResponses?: ElicitationInputResponses;
     elicitationDurationMs?: number;
 };
 
@@ -1341,6 +1303,11 @@ export const UserConfigSchema: z.ZodObject<{
     }>]>>;
     browser: z.ZodOptional<z.ZodUnion<readonly [z.ZodLiteral<false>, z.ZodString]>>;
 }, z.core.$strip>;
+
+// @public
+export class UserFacingError extends Error {
+    constructor(message: string);
+}
 
 // (No @packageDocumentation comment for this package)
 
