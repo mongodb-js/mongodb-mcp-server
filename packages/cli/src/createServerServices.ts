@@ -54,13 +54,6 @@ export type SharedServerServices = {
     telemetry: AtlasTelemetry;
     atlasLocalClient: AtlasLocalClient | undefined;
     monitoringServer: ReturnType<typeof createMonitoringServerFromConfig>;
-    /**
-     * True because {@link createSharedServicesFromConfig} runs
-     * {@link validateAppConfig} once at startup. The app-fixed config (connection
-     * string + Atlas credentials) cannot be overridden per request, so the
-     * per-request servers built from these services skip re-validating it.
-     */
-    configValidated: boolean;
 };
 
 /**
@@ -178,9 +171,6 @@ export async function createSharedServicesFromConfig(
         telemetry,
         atlasLocalClient,
         monitoringServer,
-        // `validateAppConfig` ran above, so per-request servers built from these
-        // services skip re-validating the app-fixed config.
-        configValidated: true,
     };
 }
 
@@ -296,10 +286,6 @@ export function createServerFromConfig({
         tools,
         resources,
         serverMetadata,
-        // Validated once at startup by `validateAppConfig` (see
-        // `sharedServices.configValidated`); the per-request server must not
-        // re-run the (network) credential validation.
-        configValidated: sharedServices.configValidated,
     });
 }
 

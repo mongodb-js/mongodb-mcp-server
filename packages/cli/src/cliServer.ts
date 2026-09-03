@@ -12,7 +12,6 @@ import type { AtlasTelemetry, TelemetryServerCommand, TelemetryServerEvent } fro
 import type { AnyToolBase, AnyToolClass } from "@mongodb-js/mcp-core";
 import type { ToolCategory } from "@mongodb-js/mcp-types";
 import type { Client as AtlasLocalClient } from "@mongodb-js/atlas-local";
-import { validateConnectionString } from "@mongodb-js/mcp-tools-mongodb";
 import type { ServerMetadata } from "@mongodb-js/mcp-types";
 import type { UserConfig } from "./config/userConfig.js";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
@@ -26,15 +25,6 @@ export type ResourceRegistry = readonly AnyResourceClass[];
 export interface CliServerOptions<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
     /** The individually-injected services for this request-scoped server. There is no server-scoped "session" (or services) object: every service is constructed once per process (see `createSharedServicesFromConfig`) and handed to the request-scoped server instance directly. MongoDB connection state lives in the app-level `connectionRegistry` and is addressed per request by `connectionId`; per-client identity travels on the tool request (`ToolExecutionContext.request.clientInfo`). */
     config: UserConfig;
-    /**
-     * Set when the app-fixed config has already been validated once at startup
-     * (see `validateAppConfig` in createServerServices). When true, `register()`
-     * skips re-validating the connection string / Atlas credentials — these
-     * fields cannot be overridden per request, so the result is identical and
-     * the (network) revalidation per request would be pure waste. Direct
-     * constructions default to `false` so validation still runs.
-     */
-    readonly configValidated?: boolean;
     logger: CompositeLogger;
     keychain: Keychain;
     connectionRegistry: ConnectionRegistry;
@@ -126,16 +116,12 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
     private readonly startTime: number;
     private readonly subscriptions = new Set<string>();
 
-    /** Whether the app-fixed config was already validated at startup. */
-    private readonly configValidated: boolean;
-
     /** Whether {@link register} has run (guards against repeated registration). */
     private registered = false;
 
     /**
      * In-flight {@link register} run. Concurrent callers share this promise so
-     * that registration only ever happens once per instance, even while the
-     * first call is still awaiting config validation etc.
+     * that registration only ever happens once per instance.
      */
     private registerPromise: Promise<void> | undefined;
 
@@ -156,10 +142,8 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
         uiRegistry,
         metrics,
         serverMetadata,
-        configValidated = false,
     }: CliServerOptions<TMetrics>) {
         this.startTime = Date.now();
-        this.configValidated = configValidated;
         this.config = config;
         this.logger = logger;
         this.keychain = keychain;
@@ -208,21 +192,13 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
         if (this.registered) {
             return;
         }
-        this.registerPromise = this.doRegister().finally(() => {
+        this.registerPromise = Promise.resolve(this.doRegister()).finally(() => {
             this.registerPromise = undefined;
         });
         return this.registerPromise;
     }
 
-    private async doRegister(): Promise<void> {
-        // App-fixed config (connection string, Atlas credentials) is validated
-        // once at startup by `validateAppConfig` (createServerServices); these
-        // fields cannot be overridden per request, so per-request instances built
-        // from app services skip the (network) revalidation. Directly-constructed
-        // servers still validate here.
-        if (!this.configValidated) {
-            await this.validateConfig();
-        }
+    private doRegister(): void {
         this.registerResources();
         this.mcpServer.server.registerCapabilities({
             logging: {},
@@ -400,57 +376,5 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
     /** Client identity negotiated (or envelope-declared) for this server instance's request. */
     public get clientInfo(): Implementation | undefined {
         return this.mcpServer.server.getClientVersion();
-    }
-
-    private async validateConfig(): Promise<void> {
-        // Validate connection string
-        if (this.config.connectionString) {
-            try {
-                validateConnectionString(this.config.connectionString, false);
-            } catch (error) {
-                throw new Error(
-                    "Connection string validation failed with error: " +
-                        (error instanceof Error ? error.message : String(error)),
-                    { cause: error }
-                );
-            }
-        }
-
-        // Validate API client credentials
-        if (this.config.apiClientId && this.config.apiClientSecret) {
-            try {
-                try {
-                    const apiBaseUrl = new URL(this.config.apiBaseUrl);
-                    if (apiBaseUrl.protocol !== "https:") {
-                        // Log a warning, but don't error out. This is to allow for testing against local or non-HTTPS endpoints.
-                        const message = `apiBaseUrl is configured to use ${apiBaseUrl.protocol}, which is not secure. It is strongly recommended to use HTTPS for secure communication.`;
-                        this.logger.warning({
-                            id: LogId.atlasApiBaseUrlInsecure,
-                            context: "server",
-                            message,
-                        });
-                    }
-                } catch (error) {
-                    throw new Error(`Invalid apiBaseUrl: ${error instanceof Error ? error.message : String(error)}`, {
-                        cause: error,
-                    });
-                }
-
-                await this.apiClient.validateAuthConfig();
-            } catch (error) {
-                if (this.config.connectionString === undefined) {
-                    throw new Error(
-                        `Failed to connect to MongoDB Atlas instance using the credentials from the config: ${error instanceof Error ? error.message : String(error)}`,
-                        { cause: error }
-                    );
-                }
-
-                this.logger.warning({
-                    id: LogId.atlasCheckCredentials,
-                    context: "server",
-                    message: `Failed to validate MongoDB Atlas API client credentials from the config: ${error instanceof Error ? error.message : String(error)}. Continuing since a connection string is also provided.`,
-                });
-            }
-        }
     }
 }
