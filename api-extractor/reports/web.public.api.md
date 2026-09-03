@@ -219,19 +219,12 @@ export interface ApiClientOptions {
 // @public
 export interface AtlasClusterConnectionInfo {
     // (undocumented)
+    clusterId: string;
+    // (undocumented)
     clusterName: string;
-    // (undocumented)
-    expiryDate: Date;
-    // (undocumented)
-    instanceType: "FREE" | "FLEX" | "DEDICATED";
-    // (undocumented)
+    instanceType?: "FREE" | "FLEX" | "DEDICATED";
     projectId: string;
-    // (undocumented)
-    provider?: string;
-    // (undocumented)
-    region?: string;
-    // (undocumented)
-    username: string;
+    username?: string;
 }
 
 // @public
@@ -422,6 +415,8 @@ export type ConnectionMetadata = AtlasMetadata & AtlasLocalToolMetadata & {
     connection_id?: string;
     connection_auth_type?: string;
     connection_host_type?: string;
+    cluster_name?: string;
+    cluster_id?: string;
     shared_tier_alerts_detected?: TelemetryBoolSet;
     shared_tier_tier?: SharedTierTier;
     shared_tier_alerts?: SharedTierMetricName[];
@@ -652,18 +647,17 @@ export enum ErrorCodes {
 }
 
 // @public
-export class EventCache {
+export class EventCache<T extends BaseEvent = BaseEvent> {
     constructor();
-    appendEvents(events: BaseEvent[]): void;
+    appendEvents(events: T[]): void;
     getEvents(): {
         id: number;
-        event: BaseEvent;
+        event: T;
     }[];
-    static getInstance(): EventCache;
-    processOldestBatch<T>(batchSize: number, processor: (events: BaseEvent[]) => Promise<{
+    processOldestBatch<R>(batchSize: number, processor: (events: T[]) => Promise<{
         removeProcessed: boolean;
-        result: T;
-    }>): Promise<T | undefined>;
+        result: R;
+    }>): Promise<R | undefined>;
     removeEvents(ids: number[]): void;
     get size(): number;
 }
@@ -986,7 +980,7 @@ export class Telemetry {
     // @deprecated (undocumented)
     static create(session: Session, userConfig: UserConfig, deviceId: DeviceId, options?: {
         commonProperties?: Partial<CommonProperties>;
-        eventCache?: EventCache;
+        eventCache?: EventCache<TelemetryEvent<CommonProperties>>;
     }): Telemetry;
     // (undocumented)
     static create(config: TelemetryConfig): Telemetry;
@@ -1006,7 +1000,7 @@ export interface TelemetryConfig {
     apiClient: ApiClient;
     deviceId: DeviceId;
     enabled: boolean;
-    eventCache?: EventCache;
+    eventCache?: EventCache<TelemetryEvent<CommonProperties>>;
     getCommonProperties?: () => Partial<CommonProperties>;
     keychain?: Keychain;
     logger: LoggerBase;

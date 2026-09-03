@@ -1271,6 +1271,7 @@ export class ListClustersTool extends AtlasToolBase {
             projectName: z.ZodOptional<z.ZodString>;
         }, z.core.$strip>, z.ZodObject<{
             name: z.ZodOptional<z.ZodString>;
+            clusterId: z.ZodOptional<z.ZodString>;
             instanceType: z.ZodEnum<{
                 DEDICATED: "DEDICATED";
                 FLEX: "FLEX";

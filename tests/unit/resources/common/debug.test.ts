@@ -126,9 +126,9 @@ describe("debug resource", () => {
                 atlas: {
                     clusterName: "My Test Cluster",
                     projectId: "COFFEEFABADA",
+                    clusterId: "DEADBEEF",
                     username: "",
                     instanceType: "FREE",
-                    expiryDate: new Date(),
                 },
             },
         });
