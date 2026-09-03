@@ -9,27 +9,6 @@ export interface ClaudeTranscriptParseResult {
     toolCalls: ToolCallRecord[];
 }
 
-/** Server-level tool calls seen in the TUI transcript (`Called <server> N times`). */
-function collectServerCalls(transcript: string): ToolCallRecord[] {
-    const toolCalls: ToolCallRecord[] = [];
-    const seen = new Set<string>();
-    for (const line of transcript.split("\n")) {
-        const match = line.match(/\s*Called\s+([^\s(]+)/);
-        if (!match) {
-            continue;
-        }
-        const rawName = match[1] ?? "";
-        const name = normalizeToolName(rawName);
-        const dedupeKey = name;
-        if (seen.has(dedupeKey)) {
-            continue;
-        }
-        seen.add(dedupeKey);
-        toolCalls.push({ name, rawName });
-    }
-    return toolCalls;
-}
-
 /**
  * Exact tool calls from the session JSONL claude writes per session under
  * `$CLAUDE_CONFIG_DIR/projects/<dir>/<session>.jsonl`.
@@ -104,32 +83,23 @@ export function collectSessionJsonlToolCalls(claudeHomeDir: string, seenCallKeys
             walk(projectsDir);
         }
     } catch {
-        // best-effort; the transcript-level server calls still apply
+        // best-effort: return whatever was collected before the read failed
     }
     return records;
 }
 
 export interface ParseClaudeTurnOptions {
-    transcript: string;
-    /** Hermetic `CLAUDE_CONFIG_DIR`; when set, exact tool calls are merged from the session JSONL. */
+    /** Hermetic `CLAUDE_CONFIG_DIR`; exact tool calls are read from the session JSONL. */
     claudeHomeDir?: string;
     /** Persistent per-session dedupe set so earlier turns' calls are not re-attributed. */
     seenCallKeys?: Set<string>;
 }
 
-export function parseClaudeTurn({
-    transcript,
-    claudeHomeDir,
-    seenCallKeys,
-}: ParseClaudeTurnOptions): ClaudeTranscriptParseResult {
-    const serverCalls = collectServerCalls(transcript);
+export function parseClaudeTurn({ claudeHomeDir, seenCallKeys }: ParseClaudeTurnOptions): ClaudeTranscriptParseResult {
+    // The session JSONL is the authoritative source: the TUI scrollback only renders the server
+    // name (`Called <server>`), never the tool name, so the transcript cannot yield tool-level calls.
     const sessionCalls = claudeHomeDir ? collectSessionJsonlToolCalls(claudeHomeDir, seenCallKeys) : [];
-    // Prefer JSONL tool calls; fall back to transcript markers when the JSONL isn't readable.
     return {
-        toolCalls: sessionCalls.length > 0 ? sessionCalls : serverCalls,
+        toolCalls: sessionCalls,
     };
-}
-
-export function parseClaudeTranscript(transcript: string): ClaudeTranscriptParseResult {
-    return parseClaudeTurn({ transcript });
 }

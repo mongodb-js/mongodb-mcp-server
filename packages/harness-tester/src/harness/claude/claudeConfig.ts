@@ -46,11 +46,6 @@ export class ClaudeHarnessConfig implements AgentHarnessConfig {
             : { type: "http", url: options.serverUrl ?? "" };
         return JSON.stringify({ mcpServers: { [mcpServerName]: server } }, null, 2);
     }
-
-    /** No secrets in the config (key is passed via env), so redaction is the identity. */
-    redactSecrets(config: string): string {
-        return config;
-    }
 }
 
 /**

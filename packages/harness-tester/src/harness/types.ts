@@ -74,7 +74,4 @@ export interface AgentHarnessConfig {
      *        (configs can reference files placed next to it).
      */
     buildConfig(options: AgentHarnessOptions, sessionHomeDir: string): string;
-
-    /** Redact secrets so the config is safe to print in test logs (identity when none). */
-    redactSecrets(config: string): string;
 }

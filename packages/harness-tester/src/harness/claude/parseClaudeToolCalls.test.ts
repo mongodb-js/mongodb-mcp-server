@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { normalizeToolName, parseClaudeTranscript, parseClaudeTurn } from "./parseClaudeTranscript.js";
+import { normalizeToolName, parseClaudeTurn } from "./parseClaudeToolCalls.js";
 
 describe("normalizeToolName", () => {
     it("passes through the server-name form the claude TUI emits", () => {
@@ -11,32 +11,6 @@ describe("normalizeToolName", () => {
     it("still normalizes dotted/underscored MCP names", () => {
         expect(normalizeToolName("mongo.list-databases")).toBe("list-databases");
         expect(normalizeToolName("mcp__mongo__list-databases")).toBe("list-databases");
-    });
-});
-
-describe("parseClaudeTranscript", () => {
-    it("parses a happy-path turn: Called marker + reply", () => {
-        const transcript = [
-            '❯ Use the "list-databases" tool, then reply with the database names.',
-            "",
-            "  Called mongo",
-            "",
-            "⏺ The available databases are:",
-            "",
-            "  1. admin (8 KB)",
-            "  2. config (12 KB)",
-            "  3. local (16 KB)",
-            "",
-            "❯",
-        ].join("\n");
-        const result = parseClaudeTranscript(transcript);
-        expect(result.toolCalls).toHaveLength(1);
-        expect(result.toolCalls[0]?.name).toBe("mongo");
-    });
-
-    it("returns no tool calls when none happened", () => {
-        const result = parseClaudeTranscript("❯ Use the tool, then reply.");
-        expect(result.toolCalls).toHaveLength(0);
     });
 });
 
@@ -77,7 +51,7 @@ describe("parseClaudeTurn with session JSONL", () => {
                 }),
             ].join("\n")
         );
-        const result = parseClaudeTurn({ transcript: "", claudeHomeDir: home });
+        const result = parseClaudeTurn({ claudeHomeDir: home });
         expect(result.toolCalls).toHaveLength(1); // deduped
         expect(result.toolCalls[0]?.name).toBe("list-databases");
         expect(result.toolCalls[0]?.rawName).toBe("mcp__mongo__list-databases");
@@ -99,19 +73,12 @@ describe("parseClaudeTurn with session JSONL", () => {
         // Turn 1: list-databases is called and attributed once.
         appendToolUse({ id: "t1", name: "mcp__mongo__list-databases", input: { connectionId: "preconfigured" } });
         const seenCallKeys = new Set<string>();
-        const turn1 = parseClaudeTurn({ transcript: "", claudeHomeDir: home, seenCallKeys });
+        const turn1 = parseClaudeTurn({ claudeHomeDir: home, seenCallKeys });
         expect(turn1.toolCalls.map((tc) => tc.name)).toEqual(["list-databases"]);
 
         // Turn 2 (same session): earlier call skipped; only the new `find` call is returned.
         appendToolUse({ id: "t2", name: "mcp__mongo__find", input: { collection: "c" } });
-        const turn2 = parseClaudeTurn({ transcript: "", claudeHomeDir: home, seenCallKeys });
+        const turn2 = parseClaudeTurn({ claudeHomeDir: home, seenCallKeys });
         expect(turn2.toolCalls.map((tc) => tc.name)).toEqual(["find"]);
-    });
-
-    it("falls back to the transcript's server-level Called marker when no JSONL exists", () => {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), "claude-parse-jsonl-"));
-        const result = parseClaudeTurn({ transcript: "  Called mongo 2 times\n❯", claudeHomeDir: home });
-        expect(result.toolCalls).toHaveLength(1);
-        expect(result.toolCalls[0]?.name).toBe("mongo");
     });
 });

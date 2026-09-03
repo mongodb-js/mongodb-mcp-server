@@ -24,9 +24,9 @@ export function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** Debug switch: suite-wide `AGENT_E2E_DEBUG` or the per-harness env var. */
-export function isHarnessDebug(perHarnessEnvVar: string): boolean {
-    return !!process.env.AGENT_E2E_DEBUG || !!process.env[perHarnessEnvVar];
+/** Debug switch: single `AGENT_E2E_DEBUG` env var for the whole harness. */
+export function isHarnessDebug(): boolean {
+    return !!process.env.AGENT_E2E_DEBUG;
 }
 
 /** Default timeout for a single `prompt()` turn. */

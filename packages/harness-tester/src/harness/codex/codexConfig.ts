@@ -30,11 +30,6 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
         return path.join(this.getHostHomeDir(), this.configFileName);
     }
 
-    /** Redact bearer tokens so the config can be printed safely. */
-    redactSecrets(toml: string): string {
-        return toml.replace(/(experimental_bearer_token\s*=\s*")[^"]*(")/g, "$1<redacted>$2");
-    }
-
     /** A top-level scalar from the user's real config (e.g. `model`), or undefined when absent. */
     getHostTopLevelValue(key: string): string | undefined {
         try {
@@ -53,7 +48,7 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
     resolveHostModelCatalogPath(): string | undefined {
         const raw = this.getHostTopLevelValue("model_catalog_json");
         if (raw) {
-            const expanded = raw.startsWith("~") ? path.join(os.homedir(), raw.slice(1)) : raw;
+            const expanded = raw.startsWith("~/") ? path.join(os.homedir(), raw.slice(1)) : raw;
             return path.resolve(expanded);
         }
         const cached = path.join(this.getHostHomeDir(), "models_cache.json");

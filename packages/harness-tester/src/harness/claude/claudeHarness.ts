@@ -4,6 +4,7 @@ import path from "node:path";
 import { TuiTest, type Backend } from "@microsoft/tui-test";
 import { ClaudeHarnessConfig, buildClaudeEnv, seedClaudeHome } from "./claudeConfig.js";
 import { resolveBackend } from "../shared.js";
+import { HarnessLogger } from "../logger.js";
 import { ClaudeTuiSession, type ClaudeState } from "./claudeSession.js";
 import type { AgentHarness, AgentHarnessOptions, AgentSession } from "../types.js";
 
@@ -27,6 +28,7 @@ export class ClaudeTuiHarness implements AgentHarness {
     private readonly cols: number;
     private readonly rows: number;
     private readonly onState: ((state: ClaudeState) => void) | undefined;
+    private readonly log = new HarnessLogger(this.name);
 
     constructor(options: ClaudeTuiHarnessOptions = {}) {
         this.binaryPath = options.binaryPath;
@@ -50,13 +52,13 @@ export class ClaudeTuiHarness implements AgentHarness {
         try {
             execFileSync(binary, ["--version"], { timeout: 30_000, stdio: "ignore" });
         } catch {
-            console.log(`[claude-tui] binary '${binary}' not available; skipping claude agent e2e tests`);
+            this.log.info(`binary '${binary}' not available; skipping claude agent e2e tests`);
             return false;
         }
         if (process.env.GROVE_API_KEY) {
             return true;
         }
-        console.log("[claude-tui] no GROVE_API_KEY set; skipping claude agent e2e tests");
+        this.log.info("no GROVE_API_KEY set; skipping claude agent e2e tests");
         return false;
     }
 
@@ -72,10 +74,6 @@ export class ClaudeTuiHarness implements AgentHarness {
         const mcpConfig = config.buildConfig(options);
         const mcpConfigPath = path.join(claudeHome, config.configFileName);
         await fs.writeFile(mcpConfigPath, mcpConfig);
-
-        if (options.debug) {
-            console.log(`[claude-tui] ${config.configFileName}:\n${config.redactSecrets(mcpConfig)}`);
-        }
 
         const terminal = new TuiTest(`claude-${process.pid}-${Math.random().toString(36).slice(2, 8)}`, {
             backend: this.backend,

@@ -4,6 +4,7 @@ import path from "node:path";
 import { TuiTest, type Backend } from "@microsoft/tui-test";
 import { CodexHarnessConfig } from "./codexConfig.js";
 import { resolveBackend } from "../shared.js";
+import { HarnessLogger } from "../logger.js";
 import { CodexTuiSession, type CodexState } from "./codexSession.js";
 import type { AgentHarness, AgentHarnessOptions, AgentSession } from "../types.js";
 
@@ -27,6 +28,7 @@ export class CodexTuiHarness implements AgentHarness {
     private readonly cols: number;
     private readonly rows: number;
     private readonly onState: ((state: CodexState) => void) | undefined;
+    private readonly log = new HarnessLogger(this.name);
 
     constructor(options: CodexTuiHarnessOptions = {}) {
         this.binaryPath = options.binaryPath;
@@ -50,13 +52,13 @@ export class CodexTuiHarness implements AgentHarness {
         try {
             execFileSync(binary, ["--version"], { timeout: 30_000, stdio: "ignore" });
         } catch {
-            console.log(`[codex-tui] binary '${binary}' not available; skipping agent e2e tests`);
+            this.log.info(`binary '${binary}' not available; skipping agent e2e tests`);
             return false;
         }
         if (process.env.GROVE_API_KEY) {
             return true;
         }
-        console.log("[codex-tui] no GROVE_API_KEY set; skipping agent e2e tests");
+        this.log.info("no GROVE_API_KEY set; skipping agent e2e tests");
         return false;
     }
 
@@ -67,11 +69,6 @@ export class CodexTuiHarness implements AgentHarness {
         await fs.mkdir(codexHome, { recursive: true });
         const configToml = config.buildConfig(options, codexHome);
         await fs.writeFile(path.join(codexHome, config.configFileName), configToml);
-
-        if (options.debug) {
-            // Redact bearer tokens so debug dumps never leak provider keys.
-            console.log(`[codex-tui] ${config.configFileName}:\n${config.redactSecrets(configToml)}`);
-        }
 
         const terminal = new TuiTest(`codex-${process.pid}-${Math.random().toString(36).slice(2, 8)}`, {
             backend: this.backend,
