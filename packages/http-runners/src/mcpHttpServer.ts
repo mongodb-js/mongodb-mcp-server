@@ -44,9 +44,11 @@ export type MCPHttpServerOptions<TMetrics extends DefaultMetricDefinitions = Def
  * exports, API client, telemetry) live once per process and are referenced,
  * not owned, by each request's instance. 2025-era (legacy) requests are served
  * statelessly through the SDK's stateless fallback (`legacy: "stateless"`),
- * each answered by a fresh instance over a stateless transport; the 2025
- * session operations (`GET` SSE stream, `DELETE` session close) have no
- * session to operate on and are answered with `405`.
+ * each answered by a fresh instance over a stateless transport. Because there
+ * is no session to stream or close, the 2025 session operations are not
+ * supported: the SSE transport (`GET /mcp`, used for streaming responses and
+ * server-initiated notifications) and session termination (`DELETE /mcp`) are
+ * answered with `405 Method Not Allowed`.
  *
  * @example
  * ```typescript
