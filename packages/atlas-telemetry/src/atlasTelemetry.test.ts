@@ -342,6 +342,31 @@ describe("AtlasTelemetry", () => {
             expect(_cachedEvents).toHaveLength(0);
         });
 
+        it("should not schedule sends when setup completes after close", async () => {
+            vi.clearAllTimers();
+            let resolveDeviceId: (value: string) => void = () => {};
+            const devId = {
+                get: vi.fn().mockReturnValue(
+                    new Promise<string>((resolve) => {
+                        resolveDeviceId = resolve;
+                    })
+                ),
+                close: vi.fn(),
+            } as unknown as IDeviceId;
+            telemetry = createAtlasTelemetry({ deviceId: devId });
+
+            const closePromise = telemetry.close();
+            resolveDeviceId("late-device-id");
+            await closePromise;
+            vi.clearAllMocks();
+
+            _cachedEvents.push(createTestEvent());
+            await vi.advanceTimersByTimeAsync(SEND_INTERVAL_MS * 2);
+
+            expect(mockApiClient.sendEvents).not.toHaveBeenCalled();
+            expect(_cachedEvents).toHaveLength(1);
+        });
+
         it("should send events successfully and remove them from cache", async () => {
             const testEvent = createTestEvent();
             await telemetry.setupPromise;

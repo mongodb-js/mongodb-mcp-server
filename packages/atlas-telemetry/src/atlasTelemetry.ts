@@ -107,6 +107,7 @@ export class AtlasTelemetry implements ITelemetry {
     private readonly deviceId: IDeviceId;
     private backoffMs: number = INITIAL_BACKOFF_MS;
     private readonly timer = new Timer();
+    private closed = false;
 
     protected constructor(config: TelemetryConfig) {
         this.logger = config.logger;
@@ -155,6 +156,8 @@ export class AtlasTelemetry implements ITelemetry {
     }
 
     public async close(): Promise<void> {
+        // Set before cancelling so that a setup() still in flight cannot schedule a new send afterwards.
+        this.closed = true;
         this.timer.cancel();
 
         // The whole close is best-effort and bounded by CLOSE_TIMEOUT_MS: waiting for
@@ -264,8 +267,12 @@ export class AtlasTelemetry implements ITelemetry {
 
     /**
      * Schedules the next send attempt. Replaces any previously scheduled send.
+     * No-op once close() has been called.
      */
     private scheduleSend(delayMs: number = SEND_INTERVAL_MS): void {
+        if (this.closed) {
+            return;
+        }
         this.timer.schedule(() => {
             void this.sendBatchAndReschedule();
         }, delayMs);
