@@ -79,7 +79,8 @@ describe("StreamsTeardownTool", () => {
 
     describe("error classification boundary", () => {
         it("passes the raw invalid argument error to a wrapped handleError through invoke", async () => {
-            const wrappedHandleError = vi.fn(() => ({
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const wrappedHandleError = vi.fn((_: unknown, _args: Record<string, unknown>) => ({
                 content: [{ type: "text" as const, text: "classified error" }],
                 isError: true,
             }));

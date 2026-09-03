@@ -2,6 +2,7 @@ import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
 import type { IAtlasConfig, IAtlasSession } from "@mongodb-js/mcp-tools-atlas";
 import { StreamsBuildTool } from "@mongodb-js/mcp-tools-atlas";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
@@ -85,9 +86,8 @@ describe("StreamsBuildTool", () => {
     });
 
     const baseArgs = { projectId: "proj1", workspaceName: "ws1" };
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    const exec = (args: Record<string, unknown>) =>
-        tool["execute"](args as never, { signal: new AbortController().signal });
+    const exec = (args: Record<string, unknown>): Promise<CallToolResult> =>
+        tool["execute"](args as never, { signal: new AbortController().signal }) as Promise<CallToolResult>;
 
     describe("createWorkspace", () => {
         it("should create workspace with correct provider/region/tier", async () => {
@@ -455,7 +455,7 @@ describe("StreamsBuildTool", () => {
             });
 
             expect(result.resultType).toBe("input_required");
-            const roleElicitationParams = mockElicitation.inputRequired.mock.calls[0][0] as {
+            const roleElicitationParams = mockElicitation.inputRequired.mock.calls[0]?.[0] as {
                 schema: { required: string[]; properties: Record<string, unknown> };
             };
             expect(roleElicitationParams.schema.properties).toEqual({ roleArn: expect.any(Object) });

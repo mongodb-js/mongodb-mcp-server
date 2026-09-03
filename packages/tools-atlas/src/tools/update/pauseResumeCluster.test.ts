@@ -3,7 +3,7 @@ import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { PauseResumeClusterTool, PauseResumeClusterArgsShape } from "./pauseResumeCluster.js";
 import { z } from "zod";
 import type { IAtlasSession, IAtlasConfig } from "../../atlasTool.js";
-import type { ITelemetry, ICompositeLogger } from "@mongodb-js/mcp-types";
+import type { CallToolResult, ITelemetry, ICompositeLogger } from "@mongodb-js/mcp-types";
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
@@ -92,9 +92,8 @@ describe("PauseResumeClusterTool", () => {
         return new PauseResumeClusterTool(params);
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    const exec = (args: Record<string, unknown>) =>
-        tool["invoke"](z.object(PauseResumeClusterArgsShape).parse(args), {} as never);
+    const exec = async (args: Record<string, unknown>): Promise<CallToolResult> =>
+        (await tool["invoke"](z.object(PauseResumeClusterArgsShape).parse(args), {} as never)) as CallToolResult;
 
     beforeEach(() => {
         tool = buildTool();

@@ -4,7 +4,7 @@ import { Keychain } from "@mongodb-js/mcp-core";
 import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import type { IAtlasSession, IAtlasConfig } from "../../atlasTool.js";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
-import type { ITelemetry, ICompositeLogger } from "@mongodb-js/mcp-types";
+import type { CallToolResult, ITelemetry, ICompositeLogger } from "@mongodb-js/mcp-types";
 import { ATLAS_REGIONS, GetRegionsArgsShape, GetRegionsTool } from "./getRegions.js";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
@@ -57,9 +57,11 @@ describe("GetRegionsTool", () => {
         return new GetRegionsTool(params);
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    const exec = (args: Record<string, unknown>) =>
-        tool["invoke"](z.object(GetRegionsArgsShape).strict().parse(tool.normalizeRawArgs(args)), {} as never);
+    const exec = async (args: Record<string, unknown>): Promise<CallToolResult> =>
+        (await tool["invoke"](
+            z.object(GetRegionsArgsShape).strict().parse(tool.normalizeRawArgs(args)),
+            {} as never
+        )) as CallToolResult;
 
     beforeEach(() => {
         tool = buildTool();

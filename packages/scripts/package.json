@@ -15,7 +15,7 @@
     "filter:openapi": "tsx src/filter.ts",
     "apply:openapi": "tsx src/apply.ts",
     "create-dependency-sbom-lists": "tsx src/sbomReport/index.ts",
-    "check": "tsc --build tsconfig.build.json --noEmit"
+    "check": "tsc --noEmit --project tsconfig.json"
   },
   "devDependencies": {
     "@mongodb-js/mcp-ui": "workspace:*",
