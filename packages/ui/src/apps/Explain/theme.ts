@@ -1,38 +1,42 @@
 /**
- * Light/dark theme tokens for the Explain app.
+ * Light/dark theme for the Explain app, sourced from Via design tokens
+ * (@via-ds/tokens) instead of hand-copied hex values.
  *
- * Hex values mirror @leafygreen-ui/palette as used by the Compass explain plan
- * UI, verified against the palette version in mongodb/compass @ adad060c5e
- * (note: gray.light1 is #C1C7C6 and gray.light2 is #E8EDEB in the current
- * palette; dark2 is #3D4F58).
+ * The mapping from generic tokens to widget roles (tree links, clock arcs,
+ * badges…) is curated here — Via has no explain-specific semantics. Tokens are
+ * Style Dictionary records; values are read at build time and bundled into the
+ * widget HTML (no runtime token loading).
  */
+import tokens from "@via-ds/tokens";
 
-export const palette = {
-    white: "#FFFFFF",
-    black: "#001E2B",
-    gray: {
-        light1: "#C1C7C6",
-        light2: "#E8EDEB",
-        base: "#889397",
-        dark2: "#3D4F58",
-        dark3: "#1C2D38",
-        dark4: "#112733",
-    },
-    blue: {
-        base: "#016BF8",
-        light1: "#0498EC",
-        light2: "#C3E7FE",
-    },
-} as const;
+type ViaToken = { $value?: unknown };
 
-/** Mirrors the @leafygreen-ui/tokens spacing scale members used by Compass. */
+/** CSS value of a Via design token ("" when missing/non-string). */
+const css = (token: ViaToken): string => {
+    const value = token.$value;
+    return typeof value === "string" ? value : "";
+};
+
+/** Numeric px value of a Via dimension token ("4px" -> 4). */
+const px = (token: ViaToken): number => {
+    const value = token.$value;
+    return typeof value === "string" ? Number.parseInt(value, 10) : 0;
+};
+
+const { color, space } = tokens;
+
+/**
+ * Layout spacing scale (numeric px) used by the tree layout math, from Via
+ * space tokens. Note: these values must stay in sync with the stage card
+ * styles (see ExplainTreeStage.tsx).
+ */
 export const spacing = {
-    100: 4,
-    200: 8,
-    400: 16,
-    600: 24,
-    800: 32,
-    1600: 64,
+    100: px(space["100"]),
+    200: px(space["200"]),
+    400: px(space["400"]),
+    600: px(space["600"]),
+    800: px(space["800"]),
+    1600: px(space["1600"]),
 } as const;
 
 export interface ExplainTheme {
@@ -58,48 +62,47 @@ export interface ExplainTheme {
 }
 
 export const lightTheme: ExplainTheme = {
-    backgroundColor: palette.white,
-    textColor: palette.gray.dark3,
-    secondaryTextColor: palette.gray.base,
-    cardBackgroundColor: palette.white,
-    cardBorderColor: palette.gray.light2,
-    linkColor: palette.gray.light2,
-    arrowColor: palette.gray.light1,
-    statsBadgeBackgroundColor: palette.blue.base,
-    statsBadgeTextColor: palette.white,
-    shardBorderColor: palette.gray.base,
-    shardTextColor: palette.gray.base,
-    detailsBackgroundColor: palette.white,
-    detailsBorderColor: palette.gray.light2,
-    clockBackgroundColor: palette.white,
-    clockFaceColor: palette.gray.light1,
-    clockTextColor: palette.gray.base,
-    clockMsColor: palette.blue.base,
-    clockPreviousArcColor: palette.gray.light2,
-    clockCurrentArcColor: palette.blue.base,
+    backgroundColor: css(color.light.background.primary),
+    textColor: css(color.light.text.primary),
+    secondaryTextColor: css(color.light.text.secondary),
+    cardBackgroundColor: css(color.light.background.primary),
+    cardBorderColor: css(color.light.border.secondary),
+    linkColor: css(color.neutral["200"]),
+    arrowColor: css(color.neutral["300"]),
+    statsBadgeBackgroundColor: css(color.blue["400"]),
+    statsBadgeTextColor: css(color.neutral["000"]),
+    shardBorderColor: css(color.neutral["400"]),
+    shardTextColor: css(color.neutral["400"]),
+    detailsBackgroundColor: css(color.light.background.primary),
+    detailsBorderColor: css(color.light.border.secondary),
+    clockBackgroundColor: css(color.light.background.primary),
+    clockFaceColor: css(color.neutral["300"]),
+    clockTextColor: css(color.neutral["400"]),
+    clockMsColor: css(color.blue["400"]),
+    clockPreviousArcColor: css(color.neutral["200"]),
+    clockCurrentArcColor: css(color.blue["400"]),
 };
 
 export const darkTheme: ExplainTheme = {
-    backgroundColor: palette.black,
-    textColor: palette.gray.light2,
-    secondaryTextColor: palette.gray.base,
-    cardBackgroundColor: palette.gray.dark4,
-    // Compass applies a gray.light2 border to cards in dark mode
-    cardBorderColor: palette.gray.light2,
-    linkColor: palette.gray.dark2,
-    arrowColor: palette.gray.base,
-    statsBadgeBackgroundColor: palette.blue.light2,
-    statsBadgeTextColor: palette.black,
-    shardBorderColor: palette.gray.base,
-    shardTextColor: palette.gray.base,
-    detailsBackgroundColor: palette.gray.dark3,
-    detailsBorderColor: palette.gray.dark2,
-    clockBackgroundColor: palette.black,
-    clockFaceColor: palette.gray.light1,
-    clockTextColor: palette.gray.base,
-    clockMsColor: palette.blue.light2,
-    clockPreviousArcColor: palette.gray.dark2,
-    clockCurrentArcColor: palette.blue.light2,
+    backgroundColor: css(color.dark.background.primary),
+    textColor: css(color.dark.text.primary),
+    secondaryTextColor: css(color.dark.text.secondary),
+    cardBackgroundColor: css(color.dark.background.secondary),
+    cardBorderColor: css(color.dark.border.secondary),
+    linkColor: css(color.neutral["600"]),
+    arrowColor: css(color.neutral["400"]),
+    statsBadgeBackgroundColor: css(color.blue["200"]),
+    statsBadgeTextColor: css(color.neutral["900"]),
+    shardBorderColor: css(color.neutral["400"]),
+    shardTextColor: css(color.neutral["400"]),
+    detailsBackgroundColor: css(color.dark.background.elevated),
+    detailsBorderColor: css(color.dark.border.secondary),
+    clockBackgroundColor: css(color.dark.background.primary),
+    clockFaceColor: css(color.neutral["300"]),
+    clockTextColor: css(color.neutral["400"]),
+    clockMsColor: css(color.blue["200"]),
+    clockPreviousArcColor: css(color.neutral["600"]),
+    clockCurrentArcColor: css(color.blue["200"]),
 };
 
 export const getTheme = (darkMode: boolean): ExplainTheme => (darkMode ? darkTheme : lightTheme);

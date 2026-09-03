@@ -144,7 +144,8 @@ describe("Explain", () => {
         render(<Explain />);
 
         await waitFor(() => {
-            expect(screen.getByTestId("explain-app")).toHaveStyle({ backgroundColor: "#001E2B" });
+            // Via tokens express colors as rgb() strings
+            expect(screen.getByTestId("explain-app")).toHaveStyle({ backgroundColor: "rgb(0, 30, 43)" });
         });
     });
 
@@ -152,7 +153,7 @@ describe("Explain", () => {
         render(<Explain />);
 
         await waitFor(() => {
-            expect(screen.getByTestId("explain-app")).toHaveStyle({ backgroundColor: "#FFFFFF" });
+            expect(screen.getByTestId("explain-app")).toHaveStyle({ backgroundColor: "rgb(255, 255, 255)" });
         });
 
         act(() => {
@@ -160,7 +161,7 @@ describe("Explain", () => {
         });
 
         await waitFor(() => {
-            expect(screen.getByTestId("explain-app")).toHaveStyle({ backgroundColor: "#001E2B" });
+            expect(screen.getByTestId("explain-app")).toHaveStyle({ backgroundColor: "rgb(0, 30, 43)" });
         });
     });
 });

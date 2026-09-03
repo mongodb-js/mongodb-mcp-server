@@ -27,3 +27,4 @@ minimumReleaseAgeExclude:
   - "@rushstack/node-core-library@5.23.2"
   - "@rushstack/terminal@0.24.1"
   - "@rushstack/ts-command-line@5.3.11"
+  - "@via-ds/tokens@0.3.2"
