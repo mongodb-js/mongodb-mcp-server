@@ -6,18 +6,22 @@ import { createRoot } from "react-dom/client";
 // Type for component modules loaded via glob import
 type ComponentModule = Record<string, React.ComponentType>;
 
-// Auto-import all components using Vite's glob import
-// Each component folder must have an index.ts that exports the component as a named export matching the folder name
-const componentModules: Record<string, ComponentModule> = import.meta.glob("../components/*/index.ts", {
-    eager: true,
-});
+// Auto-import all UI modules using Vite's glob import.
+// Each folder must have an index.ts that exports the component as a named export matching the folder name.
+// src/components holds mcp-ui dialect widgets; src/apps holds MCP Apps (ext-apps) widgets.
+const componentModules: Record<string, ComponentModule> = import.meta.glob(
+    ["../components/*/index.ts", "../apps/*/index.ts"],
+    {
+        eager: true,
+    }
+);
 
 // Build component registry from glob imports
 // Extracts component name from path: "../components/ListDatabases/index.ts" -> "ListDatabases"
 const components: Record<string, React.ComponentType> = {};
 
 for (const [path, module] of Object.entries(componentModules)) {
-    const match = path.match(/\.\.\/components\/([^/]+)\/index\.ts$/);
+    const match = path.match(/\.\.\/(?:components|apps)\/([^/]+)\/index\.ts$/);
     if (match) {
         const componentName = match[1];
         if (!componentName) continue;

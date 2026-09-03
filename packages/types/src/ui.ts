@@ -30,3 +30,31 @@ export interface UIRegistryOptions {
 export interface IUIRegistry {
     get(toolName: string): Promise<string | null>;
 }
+
+/** MIME type required by the MCP Apps (ext-apps) extension for UI resources. */
+export const MCP_APPS_RESOURCE_MIME_TYPE = "text/html;profile=mcp-app";
+
+export interface AppResourceInfo {
+    /** The MCP tool this app resource renders results for. */
+    toolName: string;
+    /** The ui:// URI the app HTML is served under, e.g. "ui://explain". */
+    resourceUri: string;
+}
+
+/**
+ * Registry for MCP Apps (ext-apps) widget HTML.
+ *
+ * Kept deliberately separate from {@link IUIRegistry} (the mcp-ui dialect):
+ * app resources are served via `resources/read` and referenced from tool
+ * `_meta.ui.resourceUri`, never embedded into tool results.
+ */
+export interface IAppRegistry {
+    /** Sync check — called at tool registration time when building tool `_meta`. */
+    has(toolName: string): boolean;
+    /** Explicit tool → resource URI mapping (may be N:1 if tools share an app). */
+    resourceUriFor(toolName: string): string | undefined;
+    /** All app resources to register on the server. */
+    list(): AppResourceInfo[];
+    /** Lazy HTML lookup with caching. */
+    getHtml(toolName: string): Promise<string | null>;
+}

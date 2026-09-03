@@ -55,7 +55,7 @@ export {
 } from "@mongodb-js/mcp-tools-mongodb";
 export { ApiClient, type ApiClientOptions } from "@mongodb-js/mcp-atlas-api-client";
 export type { AtlasLocalClientFactoryFn, LibraryLoader } from "@mongodb-js/mcp-tools-atlas-local";
-export { UIRegistry } from "@mongodb-js/mcp-ui/registry";
+export { UIRegistry, AppRegistry } from "@mongodb-js/mcp-ui/registry";
 export { ToolBase, type AnyToolBase, type ToolClass, type ToolServerParam, type ToolArgs } from "@mongodb-js/mcp-core";
 export { type OperationType } from "@mongodb-js/mcp-types";
 export { type ToolExecutionContext, type ToolRequest } from "@mongodb-js/mcp-types";

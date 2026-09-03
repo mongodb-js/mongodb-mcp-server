@@ -6,7 +6,7 @@ import type { ElicitationInputResponses, IElicitation } from "./elicitation.js";
 import type { ICompositeLogger } from "./logging.js";
 import type { IKeychain } from "./keychain.js";
 import type { DefaultMetricDefinitions, IMetrics } from "./metrics.js";
-import type { IUIRegistry } from "./ui.js";
+import type { IAppRegistry, IUIRegistry } from "./ui.js";
 import type { ITelemetry } from "./telemetry.js";
 
 /**
@@ -62,6 +62,12 @@ export type ToolServer<
     readonly metrics: IMetrics<TMetricsDefinitions>;
     /** UI registry for tools that embed interactive widget content. */
     readonly uiRegistry?: IUIRegistry;
+    /**
+     * Registry of MCP Apps (ext-apps) widgets, used to advertise a tool's
+     * `ui://` resource via `_meta.ui.resourceUri` when the `mcpApps` preview
+     * feature is enabled.
+     */
+    readonly appRegistry?: IAppRegistry;
     /** The SDK McpServer this tool is registered against. */
     readonly mcpServer: McpServer;
     /** The tools registered on this server (used to detect the export tool / list available tools). */

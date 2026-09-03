@@ -3,15 +3,22 @@ import react from "@vitejs/plugin-react";
 import { viteSingleFile } from "vite-plugin-singlefile";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync, rmSync } from "fs";
-import { join, resolve } from "path";
+import { join, resolve, dirname } from "path";
+import { fileURLToPath } from "url";
 
-const componentsDir = resolve(__dirname, "src/components");
+// import.meta-based so this module can also be imported by plain node/tsx
+// (the generate:ui script reuses discoverUiEntries); vite's config loader
+// would otherwise be the only place `__dirname` is defined.
+const configDir = dirname(fileURLToPath(import.meta.url));
+
+const componentsDir = resolve(configDir, "src/components");
+const appsDir = resolve(configDir, "src/apps");
 // Use node_modules/.cache for generated HTML entries - these are build artifacts, not source files
-const entriesDir = resolve(__dirname, "node_modules/.cache/mcp-ui/ui-entries");
-const templatePath = resolve(__dirname, "src/build/template.html");
-const mountPath = resolve(__dirname, "src/build/mount.tsx");
-const generatedDir = resolve(__dirname, "src/lib");
-const uiDistPath = resolve(__dirname, "dist/ui");
+const entriesDir = resolve(configDir, "node_modules/.cache/mcp-ui/ui-entries");
+const templatePath = resolve(configDir, "src/build/template.html");
+const mountPath = resolve(configDir, "src/build/mount.tsx");
+const generatedDir = resolve(configDir, "src/lib");
+const uiDistPath = resolve(configDir, "dist/ui");
 
 function toKebabCase(pascalCase: string): string {
     return pascalCase
@@ -20,28 +27,93 @@ function toKebabCase(pascalCase: string): string {
         .toLowerCase();
 }
 
-// Discovers component directories and builds tool name mappings
-function discoverComponents(): { components: string[]; toolToComponentMap: Record<string, string> } {
-    const components: string[] = [];
-    const toolToComponentMap: Record<string, string> = {};
+interface DiscoveredModules {
+    /** Folder names, e.g. ["ListDatabases"] */
+    names: string[];
+    /** tool name (kebab-case folder name) -> folder name */
+    toolToModuleMap: Record<string, string>;
+}
 
-    for (const entry of readdirSync(componentsDir)) {
-        const entryPath = join(componentsDir, entry);
+// Discovers UI module directories (each with an index.ts) and builds tool name mappings
+function discoverModules(dir: string): DiscoveredModules {
+    const names: string[] = [];
+    const toolToModuleMap: Record<string, string> = {};
+
+    if (!existsSync(dir)) {
+        return { names, toolToModuleMap };
+    }
+
+    for (const entry of readdirSync(dir)) {
+        const entryPath = join(dir, entry);
         const indexPath = join(entryPath, "index.ts");
 
         if (statSync(entryPath).isDirectory() && existsSync(indexPath)) {
-            components.push(entry);
-            toolToComponentMap[toKebabCase(entry)] = entry;
+            names.push(entry);
+            toolToModuleMap[toKebabCase(entry)] = entry;
         }
     }
 
-    return { components, toolToComponentMap };
+    return { names, toolToModuleMap };
 }
 
-const { components, toolToComponentMap } = discoverComponents();
+interface UiSet {
+    /** Directory under src/ that holds the module folders */
+    srcDir: string;
+    discovered: DiscoveredModules;
+    /** Built HTML entry file name for a module folder */
+    entryFileName: (moduleName: string) => string;
+    /** Generated TS module export name for a module folder, e.g. ListDatabasesHtml / ExplainAppHtml */
+    exportName: (moduleName: string) => string;
+    /** Subdirectory of src/lib/ that receives the generated per-tool modules */
+    generatedSubdir: string;
+    /** File in src/lib/ that receives the generated lazy loader map */
+    loadersFile: string;
+    /** Exported name of the generated loader map */
+    loadersConst: string;
+}
+
+// components/ are mcp-ui dialect widgets (embedded into tool results);
+// apps/ are MCP Apps (ext-apps) widgets (served as ui:// resources).
+// App HTML entries are prefixed so a folder name can never collide with a
+// component folder of the same name in rollup inputs or dist output.
+const uiSets: UiSet[] = [
+    {
+        srcDir: "components",
+        discovered: discoverModules(componentsDir),
+        entryFileName: (name) => `${name}.html`,
+        exportName: (name) => `${name}Html`,
+        generatedSubdir: "tools",
+        loadersFile: "loaders.ts",
+        loadersConst: "uiLoaders",
+    },
+    {
+        srcDir: "apps",
+        discovered: discoverModules(appsDir),
+        entryFileName: (name) => `app-${name}.html`,
+        exportName: (name) => `${name}AppHtml`,
+        generatedSubdir: "apps",
+        loadersFile: "appLoaders.ts",
+        loadersConst: "appLoaders",
+    },
+];
 
 /**
- * Vite plugin that generates HTML entry files for each discovered component
+ * All discovered UI entries across every set. The generate:ui script builds
+ * one single-file bundle per module (vite-plugin-singlefile / rolldown does
+ * not support multiple inputs with code splitting disabled); it discovers
+ * entries itself, keeping the same `<Name>` / `app-<Name>` key convention.
+ */
+function discoverUiEntries(): { entryKey: string; entryFileName: string }[] {
+    return uiSets.flatMap((set) =>
+        set.discovered.names.map((name) => {
+            const fileName = set.entryFileName(name);
+            return { entryKey: fileName.replace(/\.html$/, ""), entryFileName: fileName };
+        })
+    );
+}
+
+/**
+ * Vite plugin that generates HTML entry files for each discovered UI module
  * based on the template.html file.
  */
 function generateHtmlEntries(): Plugin {
@@ -54,15 +126,17 @@ function generateHtmlEntries(): Plugin {
                 mkdirSync(entriesDir, { recursive: true });
             }
 
-            for (const componentName of components) {
-                const html = template
-                    .replace("{{COMPONENT_NAME}}", componentName)
-                    .replace("{{TITLE}}", componentName.replace(/([A-Z])/g, " $1").trim()) // "ListDatabases" -> "List Databases"
-                    .replace("{{MOUNT_PATH}}", mountPath);
+            for (const set of uiSets) {
+                for (const moduleName of set.discovered.names) {
+                    const html = template
+                        .replace("{{COMPONENT_NAME}}", moduleName)
+                        .replace("{{TITLE}}", moduleName.replace(/([A-Z])/g, " $1").trim()) // "ListDatabases" -> "List Databases"
+                        .replace("{{MOUNT_PATH}}", mountPath);
 
-                const outputPath = join(entriesDir, `${componentName}.html`);
-                writeFileSync(outputPath, html);
-                console.log(`[generate-html-entries] Generated ${componentName}.html`);
+                    const outputPath = join(entriesDir, set.entryFileName(moduleName));
+                    writeFileSync(outputPath, html);
+                    console.log(`[generate-html-entries] Generated ${set.entryFileName(moduleName)}`);
+                }
             }
         },
     };
@@ -75,88 +149,122 @@ function generateUIModule(): Plugin {
     return {
         name: "generate-ui-module",
         closeBundle(): void {
+            // With per-entry builds (MCP_UI_ENTRY), only the final invocation
+            // regenerates the TS modules from the accumulated HTML output.
+            if (process.env.MCP_UI_FINALIZE !== "1") {
+                return;
+            }
             if (!existsSync(uiDistPath)) {
                 console.warn("[generate-ui-module] dist/ui not found, skipping module generation");
                 return;
             }
 
-            const toolsDir = join(generatedDir, "tools");
-            mkdirSync(toolsDir, { recursive: true });
-            const existingToolFiles = readdirSync(toolsDir).filter((file) => file.endsWith(".ts"));
+            for (const set of uiSets) {
+                const modulesDir = join(generatedDir, set.generatedSubdir);
+                mkdirSync(modulesDir, { recursive: true });
+                const existingModuleFiles = readdirSync(modulesDir).filter((file) => file.endsWith(".ts"));
 
-            const generatedTools: string[] = [];
+                const generatedTools: string[] = [];
 
-            for (const [toolName, componentName] of Object.entries(toolToComponentMap)) {
-                const htmlFile = join(uiDistPath, `${componentName}.html`);
-                if (!existsSync(htmlFile)) {
-                    console.warn(
-                        `[generate-ui-module] HTML file not found for component "${componentName}" (tool: "${toolName}")`
-                    );
-                    continue;
-                }
-                const html = readFileSync(htmlFile, "utf-8");
+                for (const [toolName, moduleName] of Object.entries(set.discovered.toolToModuleMap)) {
+                    const htmlFile = join(uiDistPath, set.entryFileName(moduleName));
+                    if (!existsSync(htmlFile)) {
+                        console.warn(
+                            `[generate-ui-module] HTML file not found for module "${moduleName}" (tool: "${toolName}")`
+                        );
+                        continue;
+                    }
+                    const html = readFileSync(htmlFile, "utf-8");
+                    const exportName = set.exportName(moduleName);
 
-                const toolModuleContent = `/**
+                    const toolModuleContent = `/**
  * AUTO-GENERATED FILE - DO NOT EDIT MANUALLY
  * Generated by: vite build --config vite.ui.config.ts
  * Tool: ${toolName}
- * Component: ${componentName}
+ * Component: ${moduleName}
  */
-export const ${componentName}Html = ${JSON.stringify(html)};
+export const ${exportName} = ${JSON.stringify(html)};
 `;
-                writeFileSync(join(toolsDir, `${toolName}.ts`), toolModuleContent);
-                generatedTools.push(toolName);
-            }
+                    writeFileSync(join(modulesDir, `${toolName}.ts`), toolModuleContent);
+                    generatedTools.push(toolName);
+                }
 
-            // Generate the loaders.ts file with lazy import functions for each tool
-            // Uses .js extension for ESM compatibility (tsc compiles .ts -> .js)
-            const loaderEntries = generatedTools
-                .map((toolName) => {
-                    const componentName = toolToComponentMap[toolName];
-                    return `    "${toolName}": async () => {
-        const mod = await import("./tools/${toolName}.js");
-        return mod.${componentName}Html;
+                // Generate the loaders file with lazy import functions for each tool
+                // Uses .js extension for ESM compatibility (tsc compiles .ts -> .js)
+                const loaderEntries = generatedTools
+                    .map((toolName) => {
+                        const moduleName = set.discovered.toolToModuleMap[toolName];
+                        return `    "${toolName}": async () => {
+        const mod = await import("./${set.generatedSubdir}/${toolName}.js");
+        return mod.${set.exportName(moduleName)};
     }`;
-                })
-                .join(",\n");
+                    })
+                    .join(",\n");
 
-            const loadersContent = `/**
+                const loadersContent = `/**
  * AUTO-GENERATED FILE - DO NOT EDIT MANUALLY
  * Generated by: pnpm generate:ui
  *
  * Lazy loaders for UI modules. Each loader returns a Promise<string> with the HTML.
  */
-export const uiLoaders: Record<string, () => Promise<string>> = {
+export const ${set.loadersConst}: Record<string, () => Promise<string>> = {
 ${loaderEntries}
 };
 `;
-            writeFileSync(join(generatedDir, "loaders.ts"), loadersContent);
+                writeFileSync(join(generatedDir, set.loadersFile), loadersContent);
 
-            console.log(
-                `[generate-ui-module] Generated ${generatedTools.length} lazy UI module(s): ${generatedTools.join(", ")}`
-            );
-            console.log(`[generate-ui-module] Generated loaders.ts with ${generatedTools.length} loader(s)`);
+                console.log(
+                    `[generate-ui-module] Generated ${generatedTools.length} lazy UI module(s) from ${set.srcDir}: ${generatedTools.join(", ")}`
+                );
+                console.log(
+                    `[generate-ui-module] Generated ${set.loadersFile} with ${generatedTools.length} loader(s)`
+                );
 
-            // Remove stale tool modules from previous builds (e.g., when a UI component was deleted)
-            const staleTools = existingToolFiles.filter((file) => {
-                const toolName = file.replace(/\.ts$/, "");
-                return !generatedTools.includes(toolName);
-            });
-            for (const staleTool of staleTools) {
-                rmSync(join(toolsDir, staleTool));
-                console.log(`[generate-ui-module] Removed stale tool module: ${staleTool}`);
-            }
-
-            // Clean up intermediate dist/ui directory - the HTML is now embedded in the .ts modules
-            if (existsSync(uiDistPath)) {
-                rmSync(uiDistPath, { recursive: true });
-                console.log("[generate-ui-module] Cleaned up intermediate dist/ui directory");
+                // Remove stale tool modules from previous builds (e.g., when a UI module was deleted)
+                const staleModules = existingModuleFiles.filter((file) => {
+                    const toolName = file.replace(/\.ts$/, "");
+                    return !generatedTools.includes(toolName);
+                });
+                for (const staleModule of staleModules) {
+                    rmSync(join(modulesDir, staleModule));
+                    console.log(`[generate-ui-module] Removed stale module: ${staleModule}`);
+                }
             }
         },
     };
 }
 
-export default defineConfig({
+// vite-plugin-singlefile forces `output.codeSplitting: false`, which rolldown
+// rejects for multiple inputs — so each UI module is built in its own vite
+// invocation, selected by MCP_UI_ENTRY (the entry key). The generate:ui script
+// iterates over discoverUiEntries(); a direct `vite build` only works when a
+// single UI module exists.
+// Computed lazily inside defineConfig so importing this module (e.g. from the
+// generate:ui script, for discoverUiEntries) never throws.
+function resolveBuildInput(): Record<string, string> {
+    const selectedEntry = process.env.MCP_UI_ENTRY;
+    const allEntries = discoverUiEntries();
+
+    if (selectedEntry) {
+        const entry = allEntries.find((e) => e.entryKey === selectedEntry);
+        if (!entry) {
+            throw new Error(
+                `Unknown MCP_UI_ENTRY "${selectedEntry}". Available entries: ${allEntries.map((e) => e.entryKey).join(", ")}`
+            );
+        }
+        return { [entry.entryKey]: resolve(entriesDir, entry.entryFileName) };
+    }
+
+    if (allEntries.length > 1) {
+        throw new Error(
+            `Multiple UI modules found (${allEntries.map((e) => e.entryKey).join(", ")}). ` +
+                `Run via \`pnpm generate:ui\` (builds each module separately) or set MCP_UI_ENTRY=<name>.`
+        );
+    }
+    return Object.fromEntries(allEntries.map((e) => [e.entryKey, resolve(entriesDir, e.entryFileName)]));
+}
+
+export default defineConfig(() => ({
     root: entriesDir,
     plugins: [
         generateHtmlEntries(),
@@ -173,10 +281,11 @@ export default defineConfig({
         generateUIModule(),
     ],
     build: {
-        outDir: resolve(__dirname, "dist/ui"),
-        emptyOutDir: true,
+        outDir: resolve(configDir, "dist/ui"),
+        // The generate:ui script owns cleaning; per-entry builds accumulate.
+        emptyOutDir: false,
         rollupOptions: {
-            input: Object.fromEntries(components.map((name) => [name, resolve(entriesDir, `${name}.html`)])),
+            input: resolveBuildInput(),
         },
         assetsInlineLimit: 100000000,
         sourcemap: false,
@@ -184,7 +293,7 @@ export default defineConfig({
     },
     resolve: {
         alias: {
-            "@ui": resolve(__dirname, "src"),
+            "@ui": resolve(configDir, "src"),
         },
     },
-});
+}));

@@ -42,6 +42,7 @@ import { DryRunHandler, HelpHandler, VersionHandler } from "@mongodb-js/mcp-cli"
 import { SetupCliHandler } from "@mongodb-js/mcp-setup";
 import { packageInfo } from "./common/packageInfo.js";
 import { Resources } from "@mongodb-js/mcp-cli";
+import { UIRegistry, AppRegistry } from "@mongodb-js/mcp-ui/registry";
 import { AllTools } from "./allTools.js";
 
 async function main(): Promise<void> {
@@ -55,6 +56,10 @@ async function main(): Promise<void> {
             onExit: (code: number) => process.exit(code),
             tools: AllTools,
             resources: Resources,
+            // Widget registries are cheap to construct (HTML loads lazily);
+            // both are gated on their respective preview features downstream.
+            uiRegistry: new UIRegistry(),
+            appRegistry: new AppRegistry(),
             handlers: [
                 new HelpHandler(),
                 new VersionHandler(),

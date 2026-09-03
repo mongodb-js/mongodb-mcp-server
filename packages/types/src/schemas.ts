@@ -1,1 +1,1 @@
-export type PreviewFeature = "mcpUI";
+export type PreviewFeature = "mcpUI" | "mcpApps";

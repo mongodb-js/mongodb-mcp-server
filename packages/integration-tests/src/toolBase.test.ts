@@ -13,6 +13,7 @@ import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/serv
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type MockToolCallback = (args: any, ctx: never) => Promise<CallToolResult>;
 import type { UserConfig } from "@mongodb-js/mcp-cli";
+import type { IAppRegistry } from "@mongodb-js/mcp-types";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { ToolBase } from "@mongodb-js/mcp-core";
 import type { Elicitation } from "@mongodb-js/mcp-core";
@@ -469,6 +470,57 @@ describe("ToolBase", () => {
 
             expect(meta["com.mongodb/transport"]).toBe("unknown-transport");
             expect(meta["com.mongodb/maxRequestPayloadBytes"]).toBe(TRANSPORT_PAYLOAD_LIMITS.stdio);
+        });
+    });
+
+    describe("toolMeta MCP Apps (ext-apps)", () => {
+        let mockAppRegistry: IAppRegistry;
+        let resourceUriFor: ReturnType<typeof vi.fn>;
+
+        beforeEach(() => {
+            resourceUriFor = vi.fn();
+            mockAppRegistry = {
+                has: vi.fn(),
+                resourceUriFor,
+                list: vi.fn(),
+                getHtml: vi.fn(),
+            } as unknown as IAppRegistry;
+        });
+
+        function createToolWithApps(previewFeatures: PreviewFeature[]): TestTool {
+            mockConfig.previewFeatures = previewFeatures;
+            return new TestTool({
+                name: TestTool.toolName,
+                category: TestTool.category,
+                operationType: TestTool.operationType,
+                session: mockSession,
+                telemetry: mockAtlasTelemetry,
+                elicitation: mockElicitation,
+                uiRegistry: new UIRegistry(),
+                appRegistry: mockAppRegistry,
+                metrics: mockMetrics,
+            });
+        }
+
+        it("should include ui.resourceUri when mcpApps is enabled and an app is registered for the tool", () => {
+            resourceUriFor.mockReturnValue("ui://test-tool");
+            const tool = createToolWithApps(["mcpApps"]);
+
+            expect(tool["toolMeta"].ui).toEqual({ resourceUri: "ui://test-tool" });
+        });
+
+        it("should omit ui metadata when mcpApps is disabled", () => {
+            resourceUriFor.mockReturnValue("ui://test-tool");
+            const tool = createToolWithApps([]);
+
+            expect(tool["toolMeta"].ui).toBeUndefined();
+        });
+
+        it("should omit ui metadata when no app is registered for the tool", () => {
+            resourceUriFor.mockReturnValue(undefined);
+            const tool = createToolWithApps(["mcpApps"]);
+
+            expect(tool["toolMeta"].ui).toBeUndefined();
         });
     });
 

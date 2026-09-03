@@ -1,7 +1,14 @@
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import { Elicitation, Keychain, McpServer, LogId } from "@mongodb-js/mcp-core";
-import type { IMetrics, IDeviceId, ServerMetadata, TransportRequestContext } from "@mongodb-js/mcp-types";
+import type {
+    IMetrics,
+    IDeviceId,
+    ServerMetadata,
+    TransportRequestContext,
+    IUIRegistry,
+    IAppRegistry,
+} from "@mongodb-js/mcp-types";
 import type { Client as AtlasLocalClient } from "@mongodb-js/atlas-local";
 import type { ResourceRegistry, ToolRegistry } from "./cliServer.js";
 import { CliServer } from "./cliServer.js";
@@ -28,6 +35,10 @@ export type CreateServerServicesOptions = {
     tools: ToolRegistry;
     resources: ResourceRegistry;
     logger: CompositeLogger;
+    /** mcp-ui dialect widget registry (embedded tool-result UIs). */
+    uiRegistry?: IUIRegistry;
+    /** MCP Apps (ext-apps) widget registry (`ui://` resources + tool `_meta`). */
+    appRegistry?: IAppRegistry;
 };
 
 /**
@@ -54,6 +65,8 @@ export type SharedServerServices = {
     telemetry: AtlasTelemetry;
     atlasLocalClient: AtlasLocalClient | undefined;
     monitoringServer: ReturnType<typeof createMonitoringServerFromConfig>;
+    uiRegistry?: IUIRegistry;
+    appRegistry?: IAppRegistry;
 };
 
 /**
@@ -171,6 +184,8 @@ export async function createSharedServicesFromConfig(
         telemetry,
         atlasLocalClient,
         monitoringServer,
+        uiRegistry: options.uiRegistry,
+        appRegistry: options.appRegistry,
     };
 }
 
@@ -248,6 +263,8 @@ export function createServerFromConfig({
         exportsManager,
         telemetry,
         atlasLocalClient,
+        uiRegistry,
+        appRegistry,
     } = sharedServices;
 
     // HTTP: every request gets an isolated view (identified → stable scope,
@@ -287,6 +304,8 @@ export function createServerFromConfig({
         resources,
         serverMetadata,
         transportRequest: request,
+        uiRegistry,
+        appRegistry,
     });
 }
 

@@ -480,11 +480,21 @@ export abstract class ToolBase<
             maxRequestPayloadBytes = this.server.config.httpBodyLimit;
         }
 
+        // MCP Apps (ext-apps): advertise the widget resource for this tool.
+        // The metadata is static at registration time, so it is gated on the
+        // preview flag only, not on the client's extension capabilities (those
+        // arrive at initialize, after tools are registered).
+        const appResourceUri = this.isFeatureEnabled("mcpApps")
+            ? this.server.appRegistry?.resourceUriFor(this.name)
+            : undefined;
+
         return {
             /** The transport protocol this server is using */
             "com.mongodb/transport": transport,
             /** Maximum request payload size in bytes for this transport */
             "com.mongodb/maxRequestPayloadBytes": maxRequestPayloadBytes,
+            /** MCP Apps (ext-apps) UI resource, rendered by supporting hosts */
+            ...(appResourceUri ? { ui: { resourceUri: appResourceUri } } : {}),
         };
     }
 

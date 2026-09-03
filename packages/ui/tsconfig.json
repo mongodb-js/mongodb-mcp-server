@@ -4,7 +4,14 @@
     "rootDir": "./src",
     "outDir": "./dist",
     "erasableSyntaxOnly": true,
-    "composite": true
+    "composite": true,
+    // This package's UI modules are bundled by Vite, and some of its UI
+    // dependencies (e.g. @modelcontextprotocol/ext-apps) ship declaration
+    // files with extensionless internal imports that nodenext cannot resolve.
+    // All source imports in this package keep explicit .js extensions so the
+    // emitted library stays nodenext-compatible for consumers.
+    "module": "esnext",
+    "moduleResolution": "bundler"
   },
   "include": [
     "src/**/*.ts",

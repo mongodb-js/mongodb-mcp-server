@@ -4,7 +4,9 @@ node_modules
 *.lock
 resources/
 packages/ui/src/lib/tools/*
+packages/ui/src/lib/apps/*
 packages/ui/src/lib/loaders.ts
+packages/ui/src/lib/appLoaders.ts
 **/reports/*.api.md
 **/reports/*.api.json
 THIRD_PARTY_NOTICES.md

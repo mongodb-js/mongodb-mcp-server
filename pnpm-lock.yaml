@@ -1144,6 +1144,12 @@ importers:
       '@microsoft/api-extractor':
         specifier: ^7.59.0
         version: 7.59.0(@types/node@25.6.0)
+      '@modelcontextprotocol/ext-apps':
+        specifier: ^1.7.5
+        version: 1.7.5(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@4.4.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.4.3)
+      '@modelcontextprotocol/sdk':
+        specifier: ^1.29.0
+        version: 1.29.0(@cfworker/json-schema@4.1.1)(zod@4.4.3)
       '@mongodb-js/mcp-tools-mongodb':
         specifier: workspace:*
         version: link:../tools-mongodb
@@ -1156,6 +1162,12 @@ importers:
       '@testing-library/react':
         specifier: ^16.3.2
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@types/d3-flextree':
+        specifier: ^2.1.2
+        version: 2.1.4
+      '@types/d3-hierarchy':
+        specifier: ^3.1.7
+        version: 3.1.7
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
@@ -1168,6 +1180,12 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^6.0.1
         version: 6.0.3(vite@8.1.4(@types/node@25.6.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+      d3-flextree:
+        specifier: ^2.1.2
+        version: 2.1.2
+      d3-hierarchy:
+        specifier: ^3.1.2
+        version: 3.1.2
       happy-dom:
         specifier: ^20.9.0
         version: 20.9.0
@@ -2426,6 +2444,20 @@ packages:
 
   '@modelcontextprotocol/ext-apps@1.7.4':
     resolution: {integrity: sha512-QQqysE549cf/Y0VabBmAACXhj92EhB3t8yVct2BHbkWiPTFA1S91EqTVjYXXcZEefXU0pmHcdObhsNMcomJIOQ==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      '@modelcontextprotocol/sdk': ^1.29.0
+      react: ^17.0.0 || ^18.0.0 || ^19.0.0
+      react-dom: ^17.0.0 || ^18.0.0 || ^19.0.0
+      zod: ^4.4.2
+    peerDependenciesMeta:
+      react:
+        optional: true
+      react-dom:
+        optional: true
+
+  '@modelcontextprotocol/ext-apps@1.7.5':
+    resolution: {integrity: sha512-TjPH2S2y5UEGKhmI6+XGFuqfqOV4ppe1x6DA3txnUaEWkgtA4G5vo14jGKFZmegdkZ1H4QMLyujLvoU1BEdnAg==}
     engines: {node: '>=20'}
     peerDependencies:
       '@modelcontextprotocol/sdk': ^1.29.0
@@ -4022,6 +4054,12 @@ packages:
   '@types/connect@3.4.38':
     resolution: {integrity: sha512-K6uROf1LD88uDQqJCktA4yzL1YYAK6NgfsI0v/mTgyPKWsX1CnJ0XPSDhViejru1GcRkLWb8RlzFYJRqGUbaug==}
 
+  '@types/d3-flextree@2.1.4':
+    resolution: {integrity: sha512-VcJAeoG51p0RBese55p/OHarbqe9QvQauzCkRAuORT3t9UOa+LzqCpTBMVYxBahyp4vAe1ML3sgeQKRU7Gv+KA==}
+
+  '@types/d3-hierarchy@3.1.7':
+    resolution: {integrity: sha512-tJFtNoYBtRtkNysX1Xq4sxtjK8YgoWUNpIiUee0/jHGRwqvzYxkq0hGVbbOGSz+JgFxxRu4K8nb3YpG3CMARtg==}
+
   '@types/deep-eql@4.0.2':
     resolution: {integrity: sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==}
 
@@ -4976,6 +5014,16 @@ packages:
 
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
+
+  d3-flextree@2.1.2:
+    resolution: {integrity: sha512-gJiHrx5uTTHq44bjyIb3xpbmmdZcWLYPKeO9EPVOq8EylMFOiH2+9sWqKAiQ4DcFuOZTAxPOQyv0Rnmji/g15A==}
+
+  d3-hierarchy@1.1.9:
+    resolution: {integrity: sha512-j8tPxlqh1srJHAtxfvOUwKNYJkQuBFdM1+JAUfq6xqH5eAqf93L7oG1NVqDa4CpFZNvnNKtCYEUC8KY9yEn9lQ==}
+
+  d3-hierarchy@3.1.2:
+    resolution: {integrity: sha512-FX/9frcub54beBdugHjDCdikxThEqjnR93Qt7PvQTOHxyiNCAlvMrHhclk3cD5VeAaq9fxmfRp+CnWw9rEMBuA==}
+    engines: {node: '>=12'}
 
   data-uri-to-buffer@4.0.1:
     resolution: {integrity: sha512-0R9ikRb668HB7QDxT1vkpuUBtqc53YyAwMwGeUFKRojY/NWKvdZ+9UYtRfGmhqNbRkTSVpMbmyhXipFFv2cb/A==}
@@ -9690,6 +9738,15 @@ snapshots:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
+  '@modelcontextprotocol/ext-apps@1.7.5(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@4.4.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.4.3)':
+    dependencies:
+      '@modelcontextprotocol/sdk': 1.29.0(@cfworker/json-schema@4.1.1)(zod@4.4.3)
+      '@standard-schema/spec': 1.1.0
+      zod: 4.4.3
+    optionalDependencies:
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
   '@modelcontextprotocol/inspector-cli@0.21.2(@cfworker/json-schema@4.1.1)(zod@4.4.3)':
     dependencies:
       '@modelcontextprotocol/sdk': 1.29.0(@cfworker/json-schema@4.1.1)(zod@4.4.3)
@@ -11380,6 +11437,12 @@ snapshots:
     dependencies:
       '@types/node': 25.6.0
 
+  '@types/d3-flextree@2.1.4':
+    dependencies:
+      '@types/d3-hierarchy': 3.1.7
+
+  '@types/d3-hierarchy@3.1.7': {}
+
   '@types/deep-eql@4.0.2': {}
 
   '@types/docker-modem@3.0.6':
@@ -12546,6 +12609,14 @@ snapshots:
   css.escape@1.5.1: {}
 
   csstype@3.2.3: {}
+
+  d3-flextree@2.1.2:
+    dependencies:
+      d3-hierarchy: 1.1.9
+
+  d3-hierarchy@1.1.9: {}
+
+  d3-hierarchy@3.1.2: {}
 
   data-uri-to-buffer@4.0.1: {}
 

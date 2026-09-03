@@ -102,6 +102,22 @@ export default defineConfig([
             "@typescript-eslint/no-non-null-assertion": "off",
         },
     },
+    {
+        // Ported from mongodb/compass (see provenance headers in the files):
+        // explain-plan documents are schemaless, so this code intentionally
+        // operates on loosely-typed records. Relax the unsafe-any family of
+        // rules for the ported logic rather than rewriting the port; new
+        // code (views, apps wiring) must satisfy the standard rule set.
+        files: ["packages/ui/src/apps/*/logic/**"],
+        rules: {
+            "@typescript-eslint/no-explicit-any": "off",
+            "@typescript-eslint/no-unsafe-assignment": "off",
+            "@typescript-eslint/no-unsafe-member-access": "off",
+            "@typescript-eslint/no-unsafe-argument": "off",
+            "@typescript-eslint/no-unsafe-call": "off",
+            "@typescript-eslint/no-unsafe-return": "off",
+        },
+    },
     globalIgnores([
         "node_modules",
         "**/dist/**",

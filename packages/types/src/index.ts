@@ -10,6 +10,7 @@ export type * from "./transport.js";
 export type * from "./apiClient.js";
 export type { IObservable, ICounter, IGauge, DefaultMetricDefinitions, IMetrics } from "./metrics.js";
 export type * from "./ui.js";
+export { MCP_APPS_RESOURCE_MIME_TYPE } from "./ui.js";
 export type * from "./resources.js";
 export type * from "./telemetry.js";
 export { SHARED_TIER_METRIC_NAMES } from "./telemetry.js";

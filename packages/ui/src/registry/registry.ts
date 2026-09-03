@@ -6,6 +6,11 @@ type UILoaders = Record<string, (() => Promise<string>) | undefined>;
 import { uiLoaders as _uiLoaders } from "../lib/loaders.js";
 const uiLoaders = _uiLoaders as UILoaders;
 
+// Re-exported here so servers can pull both registries from the lean
+// `@mongodb-js/mcp-ui/registry` subpath without loading React components
+// (the package root imports widget components, which are browser-only).
+export { AppRegistry } from "./appRegistry.js";
+
 /**
  * UI Registry that manages bundled UI HTML strings for tools.
  */

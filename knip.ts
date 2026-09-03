@@ -101,6 +101,7 @@ const config: KnipConfig = {
             ignore: [
                 "src/build/mount.tsx", // Build-only UI mount script, not part of the published package graph
                 "src/components/**", // React components built via vite.ui.config.ts, excluded from tsc build
+                "src/apps/**", // MCP Apps widgets built via vite.ui.config.ts (imported via import.meta.glob), excluded from tsc build
                 "vite.ui.config.ts", // Vite config for bundling UI assets; imports are not traced when ignored
             ],
             ignoreDependencies: [

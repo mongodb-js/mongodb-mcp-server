@@ -4,7 +4,7 @@ import { createLoggerFromConfig } from "./createLoggerFromConfig.js";
 import { createRunnerFromConfig } from "./createRunnerFromConfig.js";
 import { startRunner } from "./startRunner.js";
 import type { CliHandler } from "./cliHandler.js";
-import type { ServerMetadata } from "@mongodb-js/mcp-types";
+import type { ServerMetadata, IUIRegistry, IAppRegistry } from "@mongodb-js/mcp-types";
 import type { ResourceRegistry, ToolRegistry } from "./cliServer.js";
 import type { OnExit, Console } from "./types.js";
 
@@ -16,6 +16,10 @@ export type RunMcpCliOptions = {
     tools: ToolRegistry;
     resources: ResourceRegistry;
     handlers?: CliHandler[];
+    /** mcp-ui dialect widget registry (embedded tool-result UIs, gated by the `mcpUI` preview feature). */
+    uiRegistry?: IUIRegistry;
+    /** MCP Apps (ext-apps) widget registry (gated by the `mcpApps` preview feature). */
+    appRegistry?: IAppRegistry;
 };
 
 /**
@@ -51,6 +55,8 @@ export async function runMcpCli({
     tools,
     resources,
     handlers,
+    uiRegistry,
+    appRegistry,
 }: RunMcpCliOptions): Promise<void> {
     // Parse CLI arguments
     const { error, warnings, parsed: config } = parseUserConfig({ args });
@@ -93,6 +99,8 @@ export async function runMcpCli({
             tools,
             resources,
             logger,
+            uiRegistry,
+            appRegistry,
         });
 
         // Start the transport runner

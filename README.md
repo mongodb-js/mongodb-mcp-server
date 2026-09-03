@@ -591,6 +591,7 @@ The MongoDB MCP Server may offer functionality that is still in development and 
 List of available preview features:
 
 - `mcpUI` - Enables an optional web-based UI for interacting with the MCP server.
+- `mcpApps` - Enables MCP Apps (ext-apps) interactive UI resources: tools with a registered app advertise `_meta.ui.resourceUri` and the app HTML is served as a `ui://` resource (e.g. a visual explain plan tree for the `explain` tool). Rendered by MCP hosts that support the MCP Apps extension.
 
 #### Monitoring Server (Health Check & Metrics)
 
