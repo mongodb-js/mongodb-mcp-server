@@ -164,6 +164,7 @@ describe("PauseResumeClusterTool", () => {
         const connectedCluster: AtlasClusterConnectionInfo = {
             projectId: PROJECT_ID,
             clusterName: CLUSTER_NAME,
+            clusterId: "test-cluster-id",
             instanceType: "DEDICATED",
             username: "test-user",
         };

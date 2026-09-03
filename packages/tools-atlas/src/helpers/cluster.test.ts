@@ -6,7 +6,9 @@ import type {
     FlexClusterDescription20241113,
 } from "@mongodb-js/mcp-atlas-api-client";
 
-const dedicatedClusterDescription: ClusterDescription20240805 = {
+// The generated API types mark nearly every field required; cast so fixtures
+// only carry what the formatters read.
+const dedicatedClusterDescription = {
     id: "dedicated-cluster-id",
     name: "dedicated-cluster",
     stateName: "IDLE",
@@ -17,16 +19,16 @@ const dedicatedClusterDescription: ClusterDescription20240805 = {
             regionConfigs: [{ providerName: "AWS", regionName: "US_EAST_1", electableSpecs: { instanceSize: "M10" } }],
         },
     ],
-};
+} as ClusterDescription20240805;
 
-const flexClusterDescription: FlexClusterDescription20241113 = {
+const flexClusterDescription = {
     id: "flex-cluster-id",
     name: "flex-cluster",
     stateName: "IDLE",
     mongoDBVersion: "8.0",
     connectionStrings: { standard: "mongodb://flex-host:27017" },
     providerSettings: { backingProviderName: "AWS", regionName: "US_EAST_1" },
-};
+} as FlexClusterDescription20241113;
 
 describe("formatCluster", () => {
     it("maps the Atlas cluster id to clusterId", () => {
