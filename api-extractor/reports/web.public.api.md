@@ -652,18 +652,17 @@ export enum ErrorCodes {
 }
 
 // @public
-export class EventCache {
+export class EventCache<T extends BaseEvent = BaseEvent> {
     constructor();
-    appendEvents(events: BaseEvent[]): void;
+    appendEvents(events: T[]): void;
     getEvents(): {
         id: number;
-        event: BaseEvent;
+        event: T;
     }[];
-    static getInstance(): EventCache;
-    processOldestBatch<T>(batchSize: number, processor: (events: BaseEvent[]) => Promise<{
+    processOldestBatch<R>(batchSize: number, processor: (events: T[]) => Promise<{
         removeProcessed: boolean;
-        result: T;
-    }>): Promise<T | undefined>;
+        result: R;
+    }>): Promise<R | undefined>;
     removeEvents(ids: number[]): void;
     get size(): number;
 }
@@ -986,7 +985,7 @@ export class Telemetry {
     // @deprecated (undocumented)
     static create(session: Session, userConfig: UserConfig, deviceId: DeviceId, options?: {
         commonProperties?: Partial<CommonProperties>;
-        eventCache?: EventCache;
+        eventCache?: EventCache<TelemetryEvent<CommonProperties>>;
     }): Telemetry;
     // (undocumented)
     static create(config: TelemetryConfig): Telemetry;
@@ -1006,7 +1005,7 @@ export interface TelemetryConfig {
     apiClient: ApiClient;
     deviceId: DeviceId;
     enabled: boolean;
-    eventCache?: EventCache;
+    eventCache?: EventCache<TelemetryEvent<CommonProperties>>;
     getCommonProperties?: () => Partial<CommonProperties>;
     keychain?: Keychain;
     logger: LoggerBase;

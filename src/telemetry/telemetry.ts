@@ -1,4 +1,4 @@
-import type { BaseEvent, CommonProperties } from "./types.js";
+import type { BaseEvent, CommonProperties, TelemetryEvent } from "./types.js";
 import type { LoggerBase } from "../common/logging/index.js";
 import { LogId } from "../common/logging/index.js";
 import type { ApiClient } from "../common/atlas/apiClient.js";
@@ -53,10 +53,11 @@ export interface TelemetryConfig {
 
     /**
      * Returns the host-supplied common properties merged onto every event
-     * (e.g. hosting mode, MCP client identity, transport). Invoked on every
-     * send so values resolved after construction — like the client name/
-     * version exchanged during handshake — are captured. Static properties
-     * can simply be returned as constants from this callback.
+     * (e.g. hosting mode, MCP client identity, transport). Invoked when
+     * events are emitted, so each event carries the properties of the
+     * pipeline that produced it; values like the MCP client name/version
+     * must be available before the events that should carry them are
+     * emitted. Static properties can simply be returned as constants.
      *
      * Machine metadata, device id, and container environment are provided by
      * the pipeline itself and don't need to be returned here.
@@ -64,11 +65,12 @@ export interface TelemetryConfig {
     getCommonProperties?: () => Partial<CommonProperties>;
 
     /**
-     * Optional override for the underlying event cache. Defaults to the
-     * process-wide singleton returned by {@link EventCache.getInstance}.
-     * Mostly useful for tests or callers that need to isolate caching.
+     * Optional override for the underlying event cache. Defaults to a new
+     * cache owned exclusively by this pipeline, so events are only ever sent
+     * through the pipeline (and API client) that emitted them. Holds events
+     * that already include this pipeline's common properties.
      */
-    eventCache?: EventCache;
+    eventCache?: EventCache<TelemetryEvent<CommonProperties>>;
 }
 
 /** The timeout for individual send requests in milliseconds. */
@@ -112,10 +114,11 @@ export class Telemetry {
      * top of this at send time.
      */
     private readonly pipelineCommonProperties: CommonProperties;
-    private readonly eventCache: EventCache;
+    private readonly eventCache: EventCache<TelemetryEvent<CommonProperties>>;
     private readonly deviceId: DeviceId;
     private backoffMs: number = INITIAL_BACKOFF_MS;
     private readonly timer = new Timer();
+    private closed = false;
 
     private constructor(config: TelemetryConfig) {
         this.logger = config.logger;
@@ -123,7 +126,7 @@ export class Telemetry {
         this.keychain = config.keychain;
         this.enabled = config.enabled;
         this.getHostCommonProperties = config.getCommonProperties ?? ((): Partial<CommonProperties> => ({}));
-        this.eventCache = config.eventCache ?? EventCache.getInstance();
+        this.eventCache = config.eventCache ?? new EventCache<TelemetryEvent<CommonProperties>>();
         this.deviceId = config.deviceId;
         this.pipelineCommonProperties = {
             ...MACHINE_METADATA,
@@ -141,7 +144,7 @@ export class Telemetry {
         deviceId: DeviceId,
         options?: {
             commonProperties?: Partial<CommonProperties>;
-            eventCache?: EventCache;
+            eventCache?: EventCache<TelemetryEvent<CommonProperties>>;
         }
     ): Telemetry;
     static create(config: TelemetryConfig): Telemetry;
@@ -151,10 +154,10 @@ export class Telemetry {
         deviceId?: DeviceId,
         {
             commonProperties = {},
-            eventCache = EventCache.getInstance(),
+            eventCache,
         }: {
             commonProperties?: Partial<CommonProperties>;
-            eventCache?: EventCache;
+            eventCache?: EventCache<TelemetryEvent<CommonProperties>>;
         } = {}
     ): Telemetry {
         const config: TelemetryConfig =
@@ -191,7 +194,18 @@ export class Telemetry {
     }
 
     public async close(): Promise<void> {
+        // Set before cancelling so that a setup() still in flight cannot schedule a new send afterwards.
+        this.closed = true;
         this.timer.cancel();
+
+        // The whole close is best-effort and bounded by CLOSE_TIMEOUT_MS: waiting for
+        // setup (so events emitted before it finished make it into the cache) and the
+        // final flush share the same budget, so a hung setup cannot block shutdown.
+        const signal = AbortSignal.timeout(CLOSE_TIMEOUT_MS);
+        await Promise.race([
+            this.whenReady(),
+            new Promise<void>((resolve) => signal.addEventListener("abort", () => resolve(), { once: true })),
+        ]);
 
         this.logger.debug({
             id: LogId.telemetryClose,
@@ -199,23 +213,62 @@ export class Telemetry {
             context: "telemetry",
         });
 
-        // Best-effort: send one final batch before closing, bounded by CLOSE_TIMEOUT_MS
-        await this.sendBatch({ signal: AbortSignal.timeout(CLOSE_TIMEOUT_MS) });
+        await this.sendBatch({ signal });
     }
 
     /**
-     * Caches events for sending via the background timer.
+     * Merges the common properties into the events and caches them for
+     * sending via the background timer.
+     *
+     * The merge is deferred until setup has resolved `device_id` and
+     * `is_container_env`. Callbacks chained on an already-settled promise run
+     * in registration order, so events are cached in the order they were emitted.
      */
     public emitEvents(events: BaseEvent[]): void {
         if (!this.isTelemetryEnabled()) {
             this.events.emit("events-skipped");
             return;
         }
-        this.eventCache.appendEvents(events);
+        this.whenReady()
+            .then(() => {
+                const commonProperties = this.getCommonProperties();
+                this.eventCache.appendEvents(
+                    events.map((event) => ({
+                        ...event,
+                        properties: { ...commonProperties, ...event.properties },
+                    }))
+                );
+            })
+            .catch((error: unknown) => {
+                // Telemetry must never take the process down via an unhandled rejection,
+                // e.g. when a getCommonProperties override throws.
+                this.logger.debug({
+                    id: LogId.telemetryEmitFailure,
+                    context: "telemetry",
+                    message: `Error caching telemetry events: ${error instanceof Error ? error.message : String(error)}`,
+                    noRedaction: true,
+                });
+            });
     }
 
     /**
-     * Gets the common properties for events
+     * Resolves once setup has completed (or immediately if setup never ran).
+     * Never rejects — a failed setup must not turn emitEvents into an unhandled rejection.
+     */
+    private whenReady(): Promise<void> {
+        return (this.setupPromise ?? Promise.resolve()).then(
+            () => undefined,
+            () => undefined
+        );
+    }
+
+    /**
+     * Returns common properties merged onto every event at emit time, so each
+     * event carries the identity of the pipeline that produced it. Defaults to
+     * machine metadata plus pipeline-resolved `device_id` and
+     * `is_container_env`, with the host-supplied properties from
+     * {@link TelemetryConfig.getCommonProperties} merged on top; those must be
+     * available before the events that should carry them are emitted.
      */
     public getCommonProperties(): CommonProperties {
         return {
@@ -247,8 +300,12 @@ export class Telemetry {
 
     /**
      * Schedules the next send attempt. Replaces any previously scheduled send.
+     * No-op once close() has been called.
      */
     private scheduleSend(delayMs: number = SEND_INTERVAL_MS): void {
+        if (this.closed) {
+            return;
+        }
         this.timer.schedule(() => {
             void this.sendBatchAndReschedule();
         }, delayMs);
@@ -336,18 +393,16 @@ export class Telemetry {
     /**
      * Sends events through the API client after redacting sensitive data.
      */
-    private async sendEvents(client: ApiClient, events: BaseEvent[], signal?: AbortSignal): Promise<SendResult> {
+    private async sendEvents(
+        client: ApiClient,
+        events: TelemetryEvent<CommonProperties>[],
+        signal?: AbortSignal
+    ): Promise<SendResult> {
         try {
             const effectiveSignal = signal ?? AbortSignal.timeout(SEND_TIMEOUT_MS);
             const secrets = this.keychain?.allSecrets ?? [];
             await client.sendEvents(
-                events.map((event) => ({
-                    ...event,
-                    properties: {
-                        ...redact(this.getCommonProperties(), secrets),
-                        ...redact(event.properties, secrets),
-                    },
-                })),
+                events.map((event) => ({ ...event, properties: redact(event.properties, secrets) })),
                 { signal: effectiveSignal }
             );
             return { status: "success" };
@@ -377,7 +432,7 @@ function legacyConfigFromSession(
         eventCache,
     }: {
         commonProperties: Partial<CommonProperties>;
-        eventCache: EventCache;
+        eventCache?: EventCache<TelemetryEvent<CommonProperties>>;
     }
 ): TelemetryConfig {
     return {
