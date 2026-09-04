@@ -1,7 +1,7 @@
 import type { TuiTest } from "@microsoft/tui-test";
 import { DEFAULT_PROMPT_TIMEOUT_MS, diffTranscript, sleep } from "./shared.js";
 import { HarnessLogger } from "./logger.js";
-import type { AgentHarnessOptions, AgentSession, AgentTurn, PromptOptions, ToolCallRecord } from "./types.js";
+import type { AgentHarnessOptions, AgentSession, AgentTurn, AgentTurnState, ToolCallRecord } from "./types.js";
 
 /** Delay between typing a prompt and pressing Enter (agents drop a same-tick Enter). */
 const TYPE_TO_ENTER_DELAY_MS = 800;
@@ -37,6 +37,13 @@ export abstract class TuiSessionBase implements AgentSession {
     private _log: HarnessLogger | undefined;
     /** Length of the turn delta already streamed to stdout (debug streaming). */
     private lastShownDeltaLength: number | undefined;
+    /** Transcript snapshot the current turn started from (so chooseOption can continue it). */
+    private currentTurnStartText = "";
+    private currentState: AgentTurnState = "completed";
+
+    get state(): AgentTurnState {
+        return this.currentState;
+    }
 
     protected constructor(terminal: TuiTest, options: AgentHarnessOptions, onState?: (state: TuiState) => void) {
         this.terminal = terminal;
@@ -62,27 +69,14 @@ export abstract class TuiSessionBase implements AgentSession {
     }
 
     /**
-     * Select "confirm" or "decline" in a confirmation prompt. Agents render the
-     * options differently (codex: numbered list; claude: clickable Accept/Decline).
+     * Answer a pending elicitation and run the turn to completion, returning the
+     * completed {@link AgentTurn}. `option` is the option label to send, e.g.
+     * "No, I do not confirm" or "Accept".
      */
-    async chooseOption(choice: "confirm" | "decline"): Promise<void> {
-        const lines = (await this.terminal.text({ full: true })).split("\n");
-        const re = choice === "decline" ? /No, I do not confirm|Decline/i : /Yes, I confirm|Accept/i;
-        const line = lines.find((l) => re.test(l));
-        const numbered = line?.match(/^\s*[›❯]?\s*(\d+)\.\s+(.+)$/);
-        if (numbered) {
-            // Cursor starts on option 1, so move (target - 1) rows down, then submit.
-            for (let i = 1; i < Number(numbered[1]); i++) {
-                await this.terminal.keyboard.press("ArrowDown");
-            }
-            await this.terminal.keyboard.press("Enter");
-            return;
-        }
-        const label = line?.match(re)?.[0];
-        if (label) {
-            await this.terminal.mouse.click(null, null, { onText: label });
-            await this.terminal.keyboard.press("Enter");
-        }
+    async chooseOption(option: string): Promise<AgentTurn> {
+        await this.terminal.type(option);
+        await this.terminal.keyboard.press("Enter");
+        return this.pollTurn(false);
     }
 
     /** Codex interposes its own tool-approval prompt before the server's elicitation. */
@@ -94,13 +88,21 @@ export abstract class TuiSessionBase implements AgentSession {
         await this.terminal.keyboard.press("Enter");
     }
 
-    async prompt(prompt: string, options?: PromptOptions): Promise<AgentTurn> {
-        const startText = await this.transcriptText();
+    async prompt(prompt: string): Promise<AgentTurn> {
         // Enter after a short settle: agents drop a same-tick Enter, leaving the prompt in the composer.
+        this.currentTurnStartText = await this.transcriptText();
         await this.terminal.type(prompt);
         await sleep(TYPE_TO_ENTER_DELAY_MS);
         await this.terminal.keyboard.press("Enter");
+        return this.pollTurn(true);
+    }
 
+    /**
+     * Poll until the turn completes or, when `stopOnElicitation`, the agent is
+     * awaiting a confirmation (auto-approving codex's tool-permission prompt).
+     */
+    private async pollTurn(stopOnElicitation: boolean): Promise<AgentTurn> {
+        const startText = this.currentTurnStartText;
         const timeoutMs = this.options.promptTimeoutMs ?? DEFAULT_PROMPT_TIMEOUT_MS;
         const deadline = Date.now() + timeoutMs;
         const startedAt = Date.now();
@@ -112,7 +114,6 @@ export abstract class TuiSessionBase implements AgentSession {
         // bogus empty turn.
         let sawTurnActivity = false;
         let confirmationPendingSinceMs: number | undefined;
-        let handledConfirmationAtLength = 0;
         let prevDeltaLength: number | undefined;
         let idleSinceMs: number | undefined;
 
@@ -140,14 +141,7 @@ export abstract class TuiSessionBase implements AgentSession {
 
             // Agent is awaiting input when not working and not idle; require that
             // state to persist a couple of polls so we do not fire mid-transition.
-            const onConfirmation = options?.onConfirmation;
-            if (
-                onConfirmation &&
-                sawTurnActivity &&
-                !state.working &&
-                !state.composerIdle &&
-                delta.length > handledConfirmationAtLength
-            ) {
+            if (sawTurnActivity && !state.working && !state.composerIdle) {
                 confirmationPendingSinceMs ??= state.elapsedMs;
                 if (state.elapsedMs - confirmationPendingSinceMs >= CONFIRMATION_PENDING_GRACE_MS) {
                     if (this.isToolApproval(viewport)) {
@@ -155,11 +149,11 @@ export abstract class TuiSessionBase implements AgentSession {
                         confirmationPendingSinceMs = undefined;
                         continue;
                     }
-                    const choice = await onConfirmation({ text: viewport });
-                    await this.chooseOption(choice);
-                    handledConfirmationAtLength = delta.length;
-                    confirmationPendingSinceMs = undefined;
-                    continue;
+                    if (stopOnElicitation) {
+                        this.currentState = "elicitation";
+                        this.lastShownDeltaLength = delta.length;
+                        return { text: delta, toolCalls: [], state: "elicitation", confirmation: viewport };
+                    }
                 }
             } else {
                 confirmationPendingSinceMs = undefined;
@@ -167,9 +161,6 @@ export abstract class TuiSessionBase implements AgentSession {
 
             // Turn done when the in-progress marker is gone and the composer is idle.
             if (!state.working && state.composerIdle) {
-                // Require evidence the turn actually started so we don't return an empty
-                // turn on the first poll before the agent renders anything. Bail out if
-                // the composer stays idle+not-working with no activity for too long.
                 if (
                     sawTurnActivity ||
                     (idleSinceMs !== undefined && state.elapsedMs - idleSinceMs >= IDLE_BAIL_GRACE_MS)
@@ -207,10 +198,12 @@ export abstract class TuiSessionBase implements AgentSession {
         const delta = diffTranscript(text, startText);
         const message = lastError || `${this.label} TUI turn timed out after ${timeoutMs}ms`;
         this.log.debug(`<<aborting: ${message}>>\n${delta}`);
+        this.currentState = "completed";
         // Fail loudly with the raw transcript attached for diagnosis.
         return {
             text: `ERROR: ${message}${text ? "\n\n--- terminal content ---\n" + text : ""}`,
             toolCalls: [],
+            state: "completed",
         };
     }
 
@@ -244,9 +237,11 @@ export abstract class TuiSessionBase implements AgentSession {
         if (viewport && !delta.includes(viewport.replace(/\s+$/, ""))) {
             delta = delta + "\n" + viewport;
         }
+        this.currentState = "completed";
         return {
             text: delta,
             toolCalls: this.extractToolCalls(delta),
+            state: "completed",
         };
     }
 

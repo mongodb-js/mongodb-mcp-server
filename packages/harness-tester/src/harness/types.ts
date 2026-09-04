@@ -12,21 +12,14 @@ export interface AgentTurn {
     text: string;
     /** Tool calls observed during the turn, deduplicated. */
     toolCalls: ToolCallRecord[];
+    /** "elicitation" when the turn paused for a confirmation; otherwise "completed". */
+    state: AgentTurnState;
+    /** Raw confirmation screen when `state` is "elicitation". */
+    confirmation?: string;
 }
 
-/** A mid-turn confirmation the agent surfaced (e.g. an MCP elicitation prompt). */
-export interface AgentConfirmation {
-    text: string;
-}
-
-export type ConfirmationResponder = (
-    confirmation: AgentConfirmation
-) => Promise<"confirm" | "decline"> | "confirm" | "decline";
-
-export interface PromptOptions {
-    /** Answer a mid-turn confirmation the agent surfaces (e.g. an MCP elicitation). */
-    onConfirmation?: ConfirmationResponder;
-}
+/** How a turn ended: completed normally, or paused for an elicitation confirmation. */
+export type AgentTurnState = "completed" | "elicitation";
 
 export interface AgentHarnessOptions {
     /**
@@ -62,10 +55,19 @@ export interface AgentHarness {
 }
 
 export interface AgentSession {
-    /** Run one turn: submit the prompt, wait for the composer to return to idle, parse the transcript. */
-    prompt(prompt: string, options?: PromptOptions): Promise<AgentTurn>;
-    /** Select "confirm" or "decline" in a mid-turn confirmation prompt. */
-    chooseOption(choice: "confirm" | "decline"): Promise<void>;
+    /**
+     * Run one turn: submit the prompt and wait. Resolves with
+     * `state: "elicitation"` when the agent is awaiting a confirmation
+     * (call {@link AgentSession.chooseOption}), else `state: "completed"`.
+     */
+    prompt(prompt: string): Promise<AgentTurn>;
+    /**
+     * Answer a pending elicitation (`confirm`/`decline`) and run the turn to
+     * completion, returning the completed `AgentTurn`.
+     */
+    chooseOption(choice: "confirm" | "decline"): Promise<AgentTurn>;
+    /** Current state of the last turn: "completed" or "elicitation". */
+    readonly state: AgentTurnState;
     /** Release any resources. */
     dispose(): Promise<void>;
 }
