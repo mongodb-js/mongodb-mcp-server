@@ -14,6 +14,31 @@ export interface AgentTurn {
     toolCalls: ToolCallRecord[];
 }
 
+/**
+ * An interactive confirmation the agent surfaced mid-turn (e.g. an MCP
+ * elicitation prompt for a confirmation-required tool). `text` is the raw
+ * terminal content so tests can inspect the message/options.
+ */
+export interface AgentConfirmation {
+    /** Raw terminal content at the confirmation prompt. */
+    text: string;
+}
+
+/**
+ * Chooses an option when the agent pauses mid-turn for a confirmation.
+ * Receives the confirmation and returns the option to select.
+ */
+export type ConfirmationResponder = (confirmation: AgentConfirmation) => Promise<string> | string;
+
+export interface PromptOptions {
+    /**
+     * Responds to an interactive confirmation the agent surfaces mid-turn (e.g.
+     * an MCP elicitation). The returned string is the option to select. When
+     * omitted, the harness waits for the turn to finish without answering.
+     */
+    onConfirmation?: ConfirmationResponder;
+}
+
 export interface AgentHarnessOptions {
     /**
      * URL of the MongoDB MCP server (streamable HTTP), e.g.
@@ -49,7 +74,12 @@ export interface AgentHarness {
 
 export interface AgentSession {
     /** Run one turn: submit the prompt, wait for the composer to return to idle, parse the transcript. */
-    prompt(prompt: string): Promise<AgentTurn>;
+    prompt(prompt: string, options?: PromptOptions): Promise<AgentTurn>;
+    /**
+     * Select an option in a confirmation prompt (e.g. an MCP elicitation).
+     * `option` is rendered into the composer and submitted.
+     */
+    chooseOption(option: string): Promise<void>;
     /** Release any resources. */
     dispose(): Promise<void>;
 }

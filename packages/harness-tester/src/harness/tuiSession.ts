@@ -1,7 +1,7 @@
 import type { TuiTest } from "@microsoft/tui-test";
 import { DEFAULT_PROMPT_TIMEOUT_MS, diffTranscript, sleep } from "./shared.js";
 import { HarnessLogger } from "./logger.js";
-import type { AgentHarnessOptions, AgentSession, AgentTurn, ToolCallRecord } from "./types.js";
+import type { AgentHarnessOptions, AgentSession, AgentTurn, PromptOptions, ToolCallRecord } from "./types.js";
 
 /** Delay between typing a prompt and pressing Enter (agents drop a same-tick Enter). */
 const TYPE_TO_ENTER_DELAY_MS = 800;
@@ -9,6 +9,9 @@ const TYPE_TO_ENTER_DELAY_MS = 800;
 /** How long an idle+not-working composer may persist before we accept a turn as complete
  * even without observing the turn start (guard against pathological no-activity hangs). */
 const IDLE_BAIL_GRACE_MS = 30_000;
+
+/** How long the not-working+not-idle state must persist before we treat it as an awaited confirmation. */
+const CONFIRMATION_PENDING_GRACE_MS = 6_000;
 
 /** Per-poll state shared by both agent TUI sessions. */
 export interface TuiState {
@@ -58,7 +61,18 @@ export abstract class TuiSessionBase implements AgentSession {
         await this.waitIdleComposer(30_000);
     }
 
-    async prompt(prompt: string): Promise<AgentTurn> {
+    /**
+     * Select an option in a confirmation prompt (e.g. an MCP elicitation) by
+     * typing it into the composer and submitting. Subclasses may override for
+     * agent-specific menus.
+     */
+    async chooseOption(option: string): Promise<void> {
+        await this.terminal.type(option);
+        await sleep(TYPE_TO_ENTER_DELAY_MS);
+        await this.terminal.keyboard.press("Enter");
+    }
+
+    async prompt(prompt: string, options?: PromptOptions): Promise<AgentTurn> {
         const startText = await this.transcriptText();
         // Enter after a short settle: agents drop a same-tick Enter, leaving the prompt in the composer.
         await this.terminal.type(prompt);
@@ -75,6 +89,8 @@ export abstract class TuiSessionBase implements AgentSession {
         // has rendered anything) satisfies `!working && composerIdle` and returns a
         // bogus empty turn.
         let sawTurnActivity = false;
+        let answeredConfirmation = false;
+        let confirmationPendingSinceMs: number | undefined;
         let prevDeltaLength: number | undefined;
         let idleSinceMs: number | undefined;
 
@@ -99,6 +115,25 @@ export abstract class TuiSessionBase implements AgentSession {
                 sawTurnActivity = true;
             }
             prevDeltaLength = delta.length;
+
+            // Answer a mid-turn confirmation (e.g. an MCP elicitation prompt). The
+            // agent is waiting at a choice when it is no longer working but the
+            // composer is not idle; require that state to persist a couple of polls
+            // so we do not fire during the working→idle transition. `onConfirmation`
+            // returns the option to select.
+            const onConfirmation = options?.onConfirmation;
+            if (onConfirmation && !answeredConfirmation && sawTurnActivity && !state.working && !state.composerIdle) {
+                confirmationPendingSinceMs ??= state.elapsedMs;
+                if (state.elapsedMs - confirmationPendingSinceMs >= CONFIRMATION_PENDING_GRACE_MS) {
+                    this.log.debug(`${this.label} awaiting confirmation; selecting the chosen option`);
+                    const option = await onConfirmation({ text: viewport });
+                    await this.chooseOption(option);
+                    answeredConfirmation = true;
+                    continue;
+                }
+            } else {
+                confirmationPendingSinceMs = undefined;
+            }
 
             // Turn done when the in-progress marker is gone and the composer is idle.
             if (!state.working && state.composerIdle) {
