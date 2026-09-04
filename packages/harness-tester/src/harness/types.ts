@@ -76,8 +76,8 @@ export interface AgentSession {
     /** Run one turn: submit the prompt, wait for the composer to return to idle, parse the transcript. */
     prompt(prompt: string, options?: PromptOptions): Promise<AgentTurn>;
     /**
-     * Select an option in a confirmation prompt (e.g. an MCP elicitation).
-     * `option` is rendered into the composer and submitted.
+     * Select an option in a confirmation prompt (e.g. an MCP elicitation). The
+     * prompt is a multiple-choice list; `option` is the label to select.
      */
     chooseOption(option: string): Promise<void>;
     /** Release any resources. */

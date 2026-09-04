@@ -62,14 +62,12 @@ export abstract class TuiSessionBase implements AgentSession {
     }
 
     /**
-     * Select an option in a confirmation prompt (e.g. an MCP elicitation) by
-     * typing it into the composer and submitting. Subclasses may override for
-     * agent-specific menus.
+     * Select an option in a confirmation prompt (e.g. an MCP elicitation): the
+     * prompt is a multiple-choice list, so we click the option by its text.
+     * Subclasses may override for agent-specific menus.
      */
     async chooseOption(option: string): Promise<void> {
-        await this.terminal.type(option);
-        await sleep(TYPE_TO_ENTER_DELAY_MS);
-        await this.terminal.keyboard.press("Enter");
+        await this.terminal.mouse.click(null, null, { onText: option });
     }
 
     async prompt(prompt: string, options?: PromptOptions): Promise<AgentTurn> {
