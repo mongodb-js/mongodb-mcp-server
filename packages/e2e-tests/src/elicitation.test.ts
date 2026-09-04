@@ -1,4 +1,4 @@
-import { beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import type { AgentTurn } from "@mongodb-js/harness-tester";
 import { useMcpAgent } from "./utils/useMcpAgent.js";
 import { describeHarness } from "./utils/describeHarness.js";

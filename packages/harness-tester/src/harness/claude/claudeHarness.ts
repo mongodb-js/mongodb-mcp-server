@@ -81,18 +81,22 @@ export class ClaudeTuiHarness implements AgentHarness {
         });
         // `--model` (plus `ANTHROPIC_MODEL` in the env) pins haiku: both outrank the
         // org default (Opus) and override-user-selection per Claude Code docs.
-        await terminal.run(this.getBinaryPath(), ["--model", resolveClaudeModel(options), "--mcp-config", mcpConfigPath, "--strict-mcp-config"], {
-            cwd: options.workDir,
-            cols: this.cols,
-            rows: this.rows,
-            env: {
-                ...process.env,
-                ...buildClaudeEnv(options),
-                [config.homeDirEnvVar]: claudeHome,
-                TERM: "xterm-256color",
-            },
-            waitReady: false,
-        });
+        await terminal.run(
+            this.getBinaryPath(),
+            ["--model", resolveClaudeModel(options), "--mcp-config", mcpConfigPath, "--strict-mcp-config"],
+            {
+                cwd: options.workDir,
+                cols: this.cols,
+                rows: this.rows,
+                env: {
+                    ...process.env,
+                    ...buildClaudeEnv(options),
+                    [config.homeDirEnvVar]: claudeHome,
+                    TERM: "xterm-256color",
+                },
+                waitReady: false,
+            }
+        );
 
         const session = new ClaudeTuiSession(terminal, options, claudeHome, this.onState);
         await session.initialise();

@@ -49,12 +49,12 @@ export class ClaudeTuiSession extends TuiSessionBase {
      * (Accept/Decline); expand it so the options are selectable.
      */
     protected override async sendChoice(choice: "confirm" | "decline"): Promise<void> {
-      // Claude presents a multi-field dropdown where you first expand using Right arrow to select the option.
-      await this.terminal.keyboard.press("Right");
-      if (choice == "decline") await this.terminal.keyboard.press("Down");
-      await this.terminal.keyboard.press("Enter");
-      await sleep(200);
-      await this.terminal.keyboard.press("Enter");
+        // Claude presents a multi-field dropdown where you first expand using Right arrow to select the option.
+        await this.terminal.keyboard.press("Right");
+        if (choice === "decline") await this.terminal.keyboard.press("Down");
+        await this.terminal.keyboard.press("Enter");
+        await sleep(200);
+        await this.terminal.keyboard.press("Enter");
     }
 
     protected extractToolCalls(): ToolCallRecord[] {
