@@ -126,15 +126,32 @@ describe("http startup failure disk logging", () => {
 describe("stdio startup failure disk logging", () => {
     let logPath: string;
     let signalListenersBefore: Map<(typeof SHUTDOWN_SIGNALS)[number], NodeJS.SignalsListener[]>;
+    let envOverridesBefore: Map<string, string | undefined>;
 
     beforeEach(async () => {
         logPath = await fs.mkdtemp(path.join(os.tmpdir(), "mcp-486-stdio-"));
         signalListenersBefore = new Map(
             SHUTDOWN_SIGNALS.map((signal) => [signal, process.listeners(signal) as NodeJS.SignalsListener[]])
         );
+        // parseUserConfig reads MDB_MCP_* env overrides by default; snapshot and
+        // strip them so this in-process run is driven purely by the args below.
+        envOverridesBefore = new Map();
+        for (const key of Object.keys(process.env)) {
+            if (key.startsWith("MDB_MCP_")) {
+                envOverridesBefore.set(key, process.env[key]);
+                delete process.env[key];
+            }
+        }
     });
 
     afterEach(async () => {
+        for (const [key, value] of envOverridesBefore) {
+            if (value === undefined) {
+                delete process.env[key];
+            } else {
+                process.env[key] = value;
+            }
+        }
         // startRunner registers process-level shutdown handlers; drop only the
         // ones this test added so they don't leak or fire across tests.
         for (const signal of SHUTDOWN_SIGNALS) {
