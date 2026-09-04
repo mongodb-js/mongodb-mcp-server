@@ -201,7 +201,7 @@ function clientScopeFromRequest(request?: TransportRequestContext): string | und
         return request.authInfo.state.clientId;
     }
     const header = request?.headers?.[CLIENT_SCOPE_HEADER];
-    const name = typeof header === "string" && header.length > 0 ? header.trim() : undefined;
+    const name = (typeof header === "string" && header.trim()) || undefined;
     return name;
 }
 

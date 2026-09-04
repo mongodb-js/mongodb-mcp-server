@@ -9,7 +9,6 @@ import {
     setupIntegrationTest,
     defaultTestConfig,
     getDataFromUntrustedContent,
-    syncMongoToolsConfigFromUserConfig,
 } from "./integrationHelpers.js";
 import type { UserConfig } from "mongodb-mcp-server";
 import type { CliServerOptions } from "mongodb-mcp-server";
@@ -233,8 +232,6 @@ export function setupMongoDBIntegrationTest(
         },
     };
 }
-
-export { syncMongoToolsConfigFromUserConfig };
 
 export function validateAutoConnectBehavior(
     integration: IntegrationTest & MongoDBIntegrationTest,

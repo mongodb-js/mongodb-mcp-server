@@ -105,20 +105,6 @@ export const DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS = 1_200_000;
 /** Max time to wait for a resource-updated notification in tests. */
 const RESOURCE_CHANGED_NOTIFICATION_TIMEOUT_MS = 30_000;
 
-/**
- * No-op kept for call-site compatibility.
- *
- * The request-centric design delivers config to tools through the
- * request-scoped server (`mcpServer().config`, read by tools off `this.server`), which
- * is constructed from the server's effective config for every call. Tests
- * that mutate `mcpServer().config` (e.g. readOnly / disabledTools) see those
- * mutations on the next tool call automatically, so no per-tool config
- * syncing is needed.
- */
-export function syncMongoToolsConfigFromUserConfig(_mcpServer: CliServer): void {
-    void _mcpServer;
-}
-
 export function setupIntegrationTest(
     getUserConfig: () => UserConfig,
     {
