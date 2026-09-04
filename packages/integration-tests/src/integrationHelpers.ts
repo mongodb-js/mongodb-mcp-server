@@ -95,7 +95,6 @@ export interface IntegrationTest {
     mcpClient: () => Client;
     mcpServer: () => CliServer & {
         userConfig: UserConfig;
-        getApiClient: () => ApiClient;
     };
     /** The app-level store backing the session's connection registry view. */
     connectionStore: () => MCPConnectionStore;
@@ -303,7 +302,6 @@ export function setupIntegrationTest(
 
     const getMcpServer = (): CliServer & {
         userConfig: UserConfig;
-        getApiClient: () => ApiClient;
     } => {
         if (!mcpServer) {
             throw new Error("beforeEach() hook not ran yet");
@@ -311,12 +309,6 @@ export function setupIntegrationTest(
 
         return Object.assign(mcpServer, {
             userConfig: mcpServer.config,
-            getApiClient: (): ApiClient => {
-                if (!mcpServer?.apiClient) {
-                    throw new Error("apiClient not available");
-                }
-                return mcpServer.apiClient;
-            },
         });
     };
 

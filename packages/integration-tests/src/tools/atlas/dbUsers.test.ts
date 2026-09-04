@@ -36,9 +36,9 @@ describeWithAtlas("db users", (integration) => {
             }
 
             try {
-                const session = integration.mcpServer();
-                assertApiClientIsAvailable(session);
-                const apiClient = session.getApiClient();
+                const server = integration.mcpServer();
+                assertApiClientIsAvailable(server);
+                const apiClient = server.apiClient;
                 await apiClient.deleteDatabaseUser({
                     params: {
                         path: {
@@ -119,11 +119,11 @@ describeWithAtlas("db users", (integration) => {
 
             it("should add current IP to access list when creating a database user", async () => {
                 const projectId = getProjectId();
-                const session = integration.mcpServer();
-                assertApiClientIsAvailable(session);
-                const ipInfo = await session.apiClient.getIpInfo();
+                const server = integration.mcpServer();
+                assertApiClientIsAvailable(server);
+                const ipInfo = await server.apiClient.getIpInfo();
                 await createUserWithMCP();
-                const accessList = await session.apiClient.listAccessListEntries({
+                const accessList = await server.apiClient.listAccessListEntries({
                     params: { path: { groupId: projectId } },
                 });
                 const found = accessList.results?.some((entry) => entry.ipAddress === ipInfo.currentIpv4Address);

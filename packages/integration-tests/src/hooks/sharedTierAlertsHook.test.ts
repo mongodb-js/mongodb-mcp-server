@@ -6,7 +6,7 @@ describeWithAtlas("shared-tier-alerts-hook integration", (integration) => {
     withProject(integration, ({ getProjectId }) => {
         it("calls listAlerts with groupId and OPEN status without throwing", async () => {
             const server = integration.mcpServer();
-            const apiClient = server.getApiClient();
+            const apiClient = server.apiClient;
             const listSpy = vi.spyOn(apiClient, "listAlerts").mockResolvedValue({ results: [] });
 
             await expect(
