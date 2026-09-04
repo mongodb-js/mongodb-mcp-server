@@ -12,7 +12,8 @@ export const GROVE_ANTHROPIC_BASE_URL = "https://grove-gateway-prod.azure-api.ne
 
 export function resolveClaudeModel(options: AgentHarnessOptions): string {
     // Model priority: explicit `options.model` (CI override) > env override > default.
-    return options.model ?? process.env.AGENT_E2E_CLAUDE_MODEL ?? DEFAULT_CLAUDE_MODEL;
+
+    return options.model || process.env.AGENT_E2E_CLAUDE_MODEL || DEFAULT_CLAUDE_MODEL;
 }
 
 /** Env for the spawned claude process; the grove key is read live from `GROVE_API_KEY`, never written to config files. */
