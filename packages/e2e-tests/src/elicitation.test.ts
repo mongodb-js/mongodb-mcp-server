@@ -29,10 +29,6 @@ describe("elicitation", () => {
                     },
                 });
 
-                if (process.env.AGENT_E2E_DEBUG) {
-                    console.log(`[elicitation] agent reply:\n${turn.text}`);
-                }
-
                 // The agent attempted the confirmation-required tool.
                 expect(turn.toolCalls.some((tc) => tc.name === "drop-database")).toBe(true);
 
