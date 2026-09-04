@@ -10,9 +10,12 @@ export class ExportedData {
     private readonly description = "Data files exported through the export tool.";
     private readonly uri = "exported-data://{exportName}";
     private server: CliServer;
+    /** Present only for transport-scoped servers (HTTP); absent for long-lived stdio / dry-run. */
+    private readonly transportRequest?: TransportRequestContext;
 
-    constructor({ server }: { server: CliServer; transportRequest?: TransportRequestContext }) {
+    constructor({ server, transportRequest }: { server: CliServer; transportRequest?: TransportRequestContext }) {
         this.server = server;
+        this.transportRequest = transportRequest;
     }
 
     public register(server: CliServer): void {
@@ -35,13 +38,20 @@ export class ExportedData {
             { description: this.description },
             this.readResourceCallback
         );
-        this.server.exportsManager.on("export-available", (uri: string): void => {
-            this.server.sendResourceListChanged();
-            this.server.sendResourceUpdated(uri);
-        });
-        this.server.exportsManager.on("export-expired", (): void => {
-            this.server.sendResourceListChanged();
-        });
+        // The exportsManager is a shared, app-level service (created once per process).
+        // In HTTP mode a fresh CliServer is created per request, so registering these
+        // listeners on every register() would accumulate them on the shared emitter
+        // (memory leak + duplicate notifications). Gate them to long-lived transports
+        // (stdio / dry-run), where transportRequest is absent.
+        if (!this.transportRequest) {
+            this.server.exportsManager.on("export-available", (uri: string): void => {
+                this.server.sendResourceListChanged();
+                this.server.sendResourceUpdated(uri);
+            });
+            this.server.exportsManager.on("export-expired", (): void => {
+                this.server.sendResourceListChanged();
+            });
+        }
     }
 
     private listResourcesCallback: ListResourcesCallback = () => {
