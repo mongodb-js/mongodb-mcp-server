@@ -255,16 +255,16 @@ describe("AtlasTelemetry", () => {
         });
 
         it("should add common properties when events are emitted, not when they are sent", async () => {
-            let sessionIdOverride = "session-at-emit";
+            let hostingModeOverride = "hosting-at-emit";
             vi.clearAllTimers();
             telemetry = createAtlasTelemetry({
-                commonPropertiesOverride: () => ({ session_id: sessionIdOverride }),
+                commonPropertiesOverride: () => ({ hosting_mode: hostingModeOverride }),
             });
             await telemetry.setupPromise;
 
             telemetry.emitEvents([createTestEvent()]);
             await vi.advanceTimersByTimeAsync(0);
-            sessionIdOverride = "session-at-send";
+            hostingModeOverride = "hosting-at-send";
 
             await emitEventsForTest([]);
 
@@ -272,7 +272,7 @@ describe("AtlasTelemetry", () => {
                 properties: Record<string, unknown>;
             };
             expectDefined(sentEvent);
-            expect(sentEvent.properties.session_id).toBe("session-at-emit");
+            expect(sentEvent.properties.hosting_mode).toBe("hosting-at-emit");
         });
 
         it("should not reject or throw when getCommonProperties throws", async () => {
@@ -774,7 +774,7 @@ describe("AtlasTelemetry with multiple instances in one process", () => {
         }
 
         public override getCommonProperties(): TelemetryCommonProperties {
-            return { ...super.getCommonProperties(), session_id: this.tenantId };
+            return { ...super.getCommonProperties(), hosting_mode: this.tenantId };
         }
 
         static createForTenant(config: TelemetryConfig, tenantId: string): TenantTelemetry {
@@ -835,14 +835,14 @@ describe("AtlasTelemetry with multiple instances in one process", () => {
         await vi.advanceTimersByTimeAsync(SEND_INTERVAL_MS);
         await bothSent;
 
-        type Sent = { properties: { command: string; session_id: string; device_id: string } };
+        type Sent = { properties: { command: string; hosting_mode: string; device_id: string } };
         const sentByA = tenantA.sendEvents.mock.calls.flatMap((call) => call[0] as Sent[]);
         const sentByB = tenantB.sendEvents.mock.calls.flatMap((call) => call[0] as Sent[]);
 
         expect(sentByA.map((e) => e.properties.command)).toEqual(["from-a"]);
         expect(sentByB.map((e) => e.properties.command)).toEqual(["from-b"]);
-        expect(sentByA[0]?.properties).toMatchObject({ session_id: "tenant-a", device_id: "device-tenant-a" });
-        expect(sentByB[0]?.properties).toMatchObject({ session_id: "tenant-b", device_id: "device-tenant-b" });
+        expect(sentByA[0]?.properties).toMatchObject({ hosting_mode: "tenant-a", device_id: "device-tenant-a" });
+        expect(sentByB[0]?.properties).toMatchObject({ hosting_mode: "tenant-b", device_id: "device-tenant-b" });
     });
 });
 

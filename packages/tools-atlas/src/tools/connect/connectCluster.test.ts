@@ -133,7 +133,7 @@ describe("ConnectClusterTool", () => {
         });
 
         it("records the cluster id alongside the project and cluster name on the connection", async () => {
-            const result = await tool["execute"](args, { signal: new AbortController().signal });
+            const result = await tool["execute"](args, { request: { signal: new AbortController().signal } });
 
             const connectionId = result.structuredContent?.connectionId;
             const entry = await connectionRegistry.peek(connectionId);
@@ -150,7 +150,7 @@ describe("ConnectClusterTool", () => {
             void _id;
             mockApiClient.getCluster?.mockResolvedValue(withoutId);
 
-            await expect(tool["execute"](args, { signal: new AbortController().signal })).rejects.toThrow(
+            await expect(tool["execute"](args, { request: { signal: new AbortController().signal } })).rejects.toThrow(
                 'Atlas did not return an id for cluster "cluster1" in project "proj1"'
             );
             expect(mockApiClient.createDatabaseUser).not.toHaveBeenCalled();
