@@ -199,11 +199,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
         if (this.registered) {
             return Promise.resolve();
         }
-        this.doRegister();
-        return Promise.resolve();
-    }
 
-    private doRegister(): void {
         this.registerResources();
         this.mcpServer.server.registerCapabilities({
             logging: {},
@@ -293,6 +289,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
         };
 
         this.registered = true;
+        return Promise.resolve();
     }
 
     /** Guard against double-close of the request-scoped McpServer. */
