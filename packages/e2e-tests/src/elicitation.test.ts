@@ -4,10 +4,10 @@ import { describeHarness } from "./utils/describeHarness.js";
 
 /**
  * Elicitation (multi-round-trip confirmation) end-to-end: the server is
- * configured to require confirmation before confirming-required tools run
+ * configured to require confirmation before confirmation-required tools run
  * (`confirmationRequiredTools`, default includes `drop-database`). We drive
- * the agent to call such a tool and answer the confirmation it surfaces by
- * choosing the "decline" option, then assert the destructive tool did not run.
+ * the agent to call such a tool and answer the surfaced confirmation (decline)
+ * through the harness, then assert the destructive tool did not run.
  */
 describe("elicitation", () => {
     describeHarness(({ harness }) => {
@@ -22,22 +22,12 @@ describe("elicitation", () => {
             const session = await harness.start(buildOptions());
             const confirmations: string[] = [];
             try {
-                const turn = await session.prompt(
-                    [
-                        `You have access to a MongoDB MCP server named "mongo" through MCP tools. `,
-                        `Use the "drop-database" tool to drop the database "${targetDb}". `,
-                        `Pass connectionId "preconfigured" since the server is already configured with a connection string. `,
-                        `This tool requires confirmation before it runs. When you are asked to confirm, `,
-                        `choose to decline / refuse the operation. `,
-                        `Afterwards, report what happened. Use only MCP tools - do not use shell commands.`,
-                    ].join(""),
-                    {
-                        onConfirmation: ({ text }) => {
-                            confirmations.push(text);
-                            return "No";
-                        },
-                    }
-                );
+                const turn = await session.prompt(`Use the "drop-database" tool to drop the database "${targetDb}".`, {
+                    onConfirmation: ({ text }) => {
+                        confirmations.push(text);
+                        return "No";
+                    },
+                });
 
                 if (process.env.AGENT_E2E_DEBUG) {
                     console.log(`[elicitation] agent reply:\n${turn.text}`);
