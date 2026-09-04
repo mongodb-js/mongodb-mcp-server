@@ -7,6 +7,9 @@ import type { AgentHarnessConfig, AgentHarnessOptions } from "../types.js";
 /** Default model: grove serves the undated id; `haiku` resolves to a dated id it lacks. */
 export const DEFAULT_CLAUDE_MODEL = "claude-haiku-4-5";
 
+/** Minimum reasoning effort for e2e runs (mirrors the codex harness's `"low"`). */
+export const DEFAULT_CLAUDE_EFFORT_LEVEL = "low";
+
 /** Grove gateway Anthropic endpoint (no trailing /v1; claude appends it). */
 export const GROVE_ANTHROPIC_BASE_URL = "https://grove-gateway-prod.azure-api.net/grove-foundry-prod/anthropic";
 
@@ -21,6 +24,13 @@ export function buildClaudeEnv(options: AgentHarnessOptions): Record<string, str
     const groveApiKey = process.env.GROVE_API_KEY ?? "";
     return {
         CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1",
+        // Keep e2e runs cheap and deterministic: no extended thinking plus minimum
+        // reasoning effort (mirrors the codex harness's `model_reasoning_effort = "low"`).
+        // On the Anthropic API MAX_THINKING_TOKENS=0 turns thinking off; against a
+        // gateway (grove) it omits the `thinking` parameter instead. `--effort low` is
+        // also passed on the command line for top precedence.
+        MAX_THINKING_TOKENS: "0",
+        CLAUDE_CODE_EFFORT_LEVEL: DEFAULT_CLAUDE_EFFORT_LEVEL,
         ANTHROPIC_BASE_URL: GROVE_ANTHROPIC_BASE_URL,
         ANTHROPIC_AUTH_TOKEN: groveApiKey,
         ANTHROPIC_CUSTOM_HEADERS: `api-key: ${groveApiKey}`,
