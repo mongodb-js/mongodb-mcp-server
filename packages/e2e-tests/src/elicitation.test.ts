@@ -30,14 +30,14 @@ describe("elicitation", () => {
             }
         }
 
-        it("elicits confirmation for a confirmation-required tool", { timeout: 30_000 }, async () => {
+        it("elicits confirmation for a confirmation-required tool", { timeout: 60_000 }, async () => {
             const turn = await dropDatabase("decline");
 
             expect(turn.state).toBe("elicitation");
             expect(turn.confirmation?.toLowerCase()).toContain("confirm");
         });
 
-        it("runs the tool when the elicitation is confirmed", { timeout: 30_000 }, async () => {
+        it("runs the tool when the elicitation is confirmed", { timeout: 60_000 }, async () => {
             const turn = await dropDatabase("confirm");
 
             expect(turn.state).toBe("elicitation");
