@@ -69,7 +69,7 @@ describeWithMongoDB(
         beforeEach(async () => {
             connectFnSpy = vi.spyOn(NodeDriverServiceProvider, "connect");
             // Dial the preconfigured connection seeded from the configured connection string.
-            await integration.mcpServer().session.connectionRegistry.resolve(PRECONFIGURED_CONNECTION_ID);
+            await integration.mcpServer().connectionRegistry.resolve(PRECONFIGURED_CONNECTION_ID);
         });
 
         it("should connect to the provided connection string while applying user config driver options", async () => {

@@ -7,8 +7,6 @@ import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 
 type MockTelemetrySession = {
     apiClient: ApiClient;
-    sessionId: string;
-    mcpClient: { name: string; version: string };
     logger: CompositeLogger;
     keychain: Keychain;
 };
@@ -38,8 +36,6 @@ describe("Telemetry in browser environment", () => {
     function createMockSession(apiClient: ApiClient): MockTelemetrySession {
         return {
             apiClient,
-            sessionId: "browser-session-id",
-            mcpClient: { name: "browser-test-client", version: "1.0.0" },
             logger: new CompositeLogger(),
             keychain: new Keychain(),
         };
@@ -57,8 +53,8 @@ describe("Telemetry in browser environment", () => {
     it("can construct an ApiClient with an injected browser httpClient", () => {
         expect(
             () =>
-                new ApiClient(
-                    {
+                new ApiClient({
+                    options: {
                         baseUrl: API_BASE,
                         userAgent: "browser-test-agent/1.0.0",
                         httpClient: {
@@ -66,14 +62,14 @@ describe("Telemetry in browser environment", () => {
                             Request: globalThis.Request,
                         },
                     },
-                    new CompositeLogger()
-                )
+                    logger: new CompositeLogger(),
+                })
         ).not.toThrow();
     });
 
     it("initializes Telemetry and sends events via the browser fetch without throwing", async () => {
-        const apiClient = new ApiClient(
-            {
+        const apiClient = new ApiClient({
+            options: {
                 baseUrl: API_BASE,
                 userAgent: "browser-test-agent/1.0.0",
                 httpClient: {
@@ -81,8 +77,8 @@ describe("Telemetry in browser environment", () => {
                     Request: globalThis.Request,
                 },
             },
-            new CompositeLogger()
-        );
+            logger: new CompositeLogger(),
+        });
         expect(apiClient.isAuthConfigured()).toBe(false);
 
         const session = createMockSession(apiClient);

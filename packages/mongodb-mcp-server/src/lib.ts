@@ -1,6 +1,5 @@
 /** This file is temporarily used for generating API reports against the v1 API for comparison purposes. */
-export { CliServer, type CliServerOptions, type McpSession } from "@mongodb-js/mcp-cli";
-export type { SessionEvents } from "@mongodb-js/mcp-types";
+export { CliServer, type CliServerOptions } from "@mongodb-js/mcp-cli";
 export { type UserConfig, UserConfigSchema, configRegistry } from "@mongodb-js/mcp-cli";
 export { parseUserConfig, defaultParserOptions, type ParserOptions } from "@mongodb-js/mcp-cli";
 
@@ -70,13 +69,6 @@ export type { Secret } from "@mongodb-js/mcp-types";
 export { Elicitation } from "@mongodb-js/mcp-core";
 export { applyConfigOverrides, ConfigOverrideError, getConfigMeta, nameToConfigKey } from "@mongodb-js/mcp-cli";
 export { onlyStricterLogLevelOverride } from "@mongodb-js/mcp-cli";
-export {
-    SessionStore,
-    SessionRejectedError,
-    type ISessionStore,
-    type SessionStoreConstructorArgs,
-} from "@mongodb-js/mcp-core";
-export type { CloseableTransport, SessionCloseReason } from "@mongodb-js/mcp-types";
 export { ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
 export { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 export type { MonitoringServerFeature } from "@mongodb-js/mcp-tools-mongodb";
@@ -85,7 +77,7 @@ export type { AuthProvider } from "@mongodb-js/mcp-atlas-api-client";
 export { ClientCredentialsAuthProvider } from "@mongodb-js/mcp-atlas-api-client";
 export { UIRegistry } from "@mongodb-js/mcp-ui/registry";
 export { ToolBase, type AnyToolClass, type AnyToolBase, type ToolClass, type ToolArgs } from "@mongodb-js/mcp-core";
-export { type ToolExecutionContext } from "@mongodb-js/mcp-types";
+export { type ToolExecutionContext, type ToolRequest } from "@mongodb-js/mcp-types";
 export { type OperationType } from "@mongodb-js/mcp-types";
 export { type ToolCategory } from "@mongodb-js/mcp-types";
 export { TRANSPORT_PAYLOAD_LIMITS, type TransportType } from "@mongodb-js/mcp-cli";
@@ -101,9 +93,5 @@ export {
 } from "@mongodb-js/mcp-metrics";
 export {
     JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
-    JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED,
-    JSON_RPC_ERROR_CODE_SESSION_ID_INVALID,
-    JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND,
     JSON_RPC_ERROR_CODE_INVALID_REQUEST,
-    JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION,
 } from "@mongodb-js/mcp-core";

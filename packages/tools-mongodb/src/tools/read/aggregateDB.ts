@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { AggregationCursor } from "mongodb";
 import type { InputRequiredResult } from "@mongodb-js/mcp-core";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { ConnectionIdArgs, DBOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import { ConnectionIdArgs, DBOperationArgs, MongoDBToolBase, type IMongoDBConfig } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
@@ -55,13 +55,13 @@ export class AggregateDBTool extends MongoDBToolBase {
 
     protected async execute(
         { connectionId, database, pipeline, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        context: ToolExecutionContext<IMongoDBConfig>
     ): Promise<ToolResult<typeof this.outputSchema> | InputRequiredResult> {
-        const { signal } = context;
+        const { request } = context;
         let aggregationCursor: AggregationCursor | undefined = undefined;
         try {
             const provider = await this.resolveConnection(connectionId);
-            this.assertOnlyUsesPermittedStages(pipeline);
+            this.assertOnlyUsesPermittedStages(this.server.config, pipeline);
 
             let successMessage: string;
             let documents: unknown[];
@@ -70,40 +70,39 @@ export class AggregateDBTool extends MongoDBToolBase {
 
             const writeStageTargets = getWriteStageTargets(pipeline, database);
             if (writeStageTargets.length > 0) {
-                const inputRequiredResult = this.getInputRequiredResult(writeStageTargets, context);
-                if (inputRequiredResult) {
-                    // If input is required, return the input-required result instead of running the pipeline
-                    return inputRequiredResult;
+                const writeConfirmation = this.confirmWriteStages(writeStageTargets, context);
+                if (writeConfirmation) {
+                    return writeConfirmation;
                 }
 
                 // This is a write pipeline, so special-case it and don't attempt to apply limits or caps
                 aggregationCursor = provider.aggregateDb(database, pipeline, {
-                    ...this.getOperationOptions(signal),
+                    ...this.getOperationOptions(request),
                 });
 
                 documents = await aggregationCursor.toArray();
                 successMessage = "The aggregation pipeline executed successfully.";
             } else {
                 const cappedResultsPipeline = [...pipeline];
-                if (this.config.maxDocumentsPerQuery > 0) {
-                    cappedResultsPipeline.push({ $limit: this.config.maxDocumentsPerQuery });
+                if (this.server.config.maxDocumentsPerQuery > 0) {
+                    cappedResultsPipeline.push({ $limit: this.server.config.maxDocumentsPerQuery });
                 }
                 aggregationCursor = provider.aggregateDb(database, cappedResultsPipeline, {
-                    ...this.getOperationOptions(signal),
+                    ...this.getOperationOptions(request),
                 });
 
                 const [totalDocuments, cursorResults] = await Promise.all([
-                    this.countAggregationResultDocuments({
+                    this.countAggregationResultDocuments(this.server.config, {
                         provider,
                         database,
                         pipeline,
-                        abortSignal: signal,
+                        abortSignal: request.signal,
                     }),
                     collectCursorUntilMaxBytesLimit({
                         cursor: aggregationCursor,
-                        configuredMaxBytesPerQuery: this.config.maxBytesPerQuery,
+                        configuredMaxBytesPerQuery: this.server.config.maxBytesPerQuery,
                         toolResponseBytesLimit: responseBytesLimit,
-                        abortSignal: signal,
+                        abortSignal: request.signal,
                     }),
                 ]);
 
@@ -112,9 +111,9 @@ export class AggregateDBTool extends MongoDBToolBase {
                 // maxDocumentsPerQuery then we know for sure that the results were
                 // capped.
                 const aggregationResultsCappedByMaxDocumentsLimit =
-                    this.config.maxDocumentsPerQuery > 0 &&
+                    this.server.config.maxDocumentsPerQuery > 0 &&
                     !!totalDocuments &&
-                    totalDocuments > this.config.maxDocumentsPerQuery;
+                    totalDocuments > this.server.config.maxDocumentsPerQuery;
 
                 documents = bsonToJson(cursorResults.documents);
                 aggResultsCount = totalDocuments;
@@ -151,7 +150,7 @@ export class AggregateDBTool extends MongoDBToolBase {
         try {
             await cursor.close();
         } catch (error) {
-            this.session.logger.warning({
+            this.server.logger.warning({
                 id: LogId.mongodbCursorCloseError,
                 context: "aggregate-db tool",
                 message: `Error when closing the cursor - ${error instanceof Error ? error.message : String(error)}`,
@@ -159,7 +158,7 @@ export class AggregateDBTool extends MongoDBToolBase {
         }
     }
 
-    private assertOnlyUsesPermittedStages(pipeline: Record<string, unknown>[]): void {
+    private assertOnlyUsesPermittedStages(config: IMongoDBConfig, pipeline: Record<string, unknown>[]): void {
         const firstStage = pipeline[0];
         if (!firstStage || !DB_AGGREGATE_STAGE_OPERATORS.some((op) => op in firstStage)) {
             throw new MongoDBError(
@@ -168,20 +167,23 @@ export class AggregateDBTool extends MongoDBToolBase {
             );
         }
 
-        this.assertMqlIsAllowed(pipeline);
+        this.assertMqlIsAllowed(config, pipeline);
     }
 
-    private async countAggregationResultDocuments({
-        provider,
-        database,
-        pipeline,
-        abortSignal,
-    }: {
-        provider: NodeDriverServiceProvider;
-        database: string;
-        pipeline: Document[];
-        abortSignal?: AbortSignal;
-    }): Promise<number | undefined> {
+    private async countAggregationResultDocuments(
+        config: IMongoDBConfig,
+        {
+            provider,
+            database,
+            pipeline,
+            abortSignal,
+        }: {
+            provider: NodeDriverServiceProvider;
+            database: string;
+            pipeline: Document[];
+            abortSignal?: AbortSignal;
+        }
+    ): Promise<number | undefined> {
         const resultsCountAggregation = [...pipeline, { $count: "totalDocuments" }];
         return await operationWithFallback(async (): Promise<number | undefined> => {
             const aggregationResults = await provider
@@ -189,9 +191,9 @@ export class AggregateDBTool extends MongoDBToolBase {
                     signal: abortSignal,
                 })
                 .maxTimeMS(
-                    this.config.maxTimeMS !== undefined
-                        ? Math.min(this.config.maxTimeMS, this.config.aggregationCountMaxTimeMsCap)
-                        : this.config.aggregationCountMaxTimeMsCap
+                    config.maxTimeMS !== undefined
+                        ? Math.min(config.maxTimeMS, config.aggregationCountMaxTimeMsCap)
+                        : config.aggregationCountMaxTimeMsCap
                 )
                 .toArray();
 

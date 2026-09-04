@@ -7,7 +7,6 @@ import { AllTools } from "mongodb-mcp-server";
 import { McpServer } from "@modelcontextprotocol/server";
 import type { Transport } from "@modelcontextprotocol/server";
 import { CliServer, connectionErrorHandler, Elicitation } from "mongodb-mcp-server";
-import { Session } from "@mongodb-js/mcp-cli";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
@@ -170,28 +169,20 @@ describe("mcpUI feature with custom UIs", () => {
         const connectionRegistry = new MCPConnectionStore({ options: userConfig, logger, deviceId }).view();
         const exportsManager = ExportsManager.init({ options: userConfig, logger });
 
-        const session = new Session({
+        const keychain = Keychain.root;
+        const apiClient = createTestApiClient({
+            baseUrl: userConfig.apiBaseUrl,
+            serverMetadata: { mcpServerName: "test", version: "1" },
             logger,
-            exportsManager,
-            connectionRegistry,
-            keychain: Keychain.root,
-            connectionErrorHandler,
-            atlasLocalClient: await createAtlasLocalClient({ logger }),
-            apiClient: createTestApiClient({
-                baseUrl: userConfig.apiBaseUrl,
-                serverMetadata: { mcpServerName: "test", version: "1" },
-                logger,
-                clientId: userConfig.apiClientId,
-                clientSecret: userConfig.apiClientSecret,
-            }),
-            config: userConfig,
+            clientId: userConfig.apiClientId,
+            clientSecret: userConfig.apiClientSecret,
         });
 
         const telemetry = AtlasTelemetry.create({
             logger,
             deviceId,
-            apiClient: session.apiClient,
-            keychain: session.keychain,
+            apiClient,
+            keychain,
             enabled: false,
             serverMetadata: {
                 mcpServerName: "test-server",
@@ -204,7 +195,13 @@ describe("mcpUI feature with custom UIs", () => {
         });
 
         const server = new CliServer({
-            session,
+            config: userConfig,
+            logger,
+            keychain,
+            connectionRegistry,
+            exportsManager,
+            apiClient,
+            atlasLocalClient: await createAtlasLocalClient({ logger }),
             telemetry,
             mcpServer: mcpServerInstance,
             elicitation,

@@ -1,19 +1,23 @@
 import type { ResourceMetadata, ReadResourceCallback } from "@modelcontextprotocol/server";
-import type { SessionEvents } from "./session.js";
 import type { ITelemetry } from "./telemetry.js";
 import type { IToolConfig } from "./config.js";
 import type { ICompositeLogger } from "./logging.js";
+import type { IKeychain } from "./keychain.js";
+import type { TransportRequestContext } from "./transport.js";
 
 /**
- * The minimal session surface resources may rely on. The CLI's session is
- * deliberately stateless (connection state lives in the app-level registry),
- * so resources are not constrained to the full {@link ISession} shape.
+ * The minimal services resources read off the host server at construction,
+ * injected individually (no server-scoped "session" object exists). The server
+ * is deliberately stateless (connection state lives in the app-level registry),
+ * so resources read only the specific services they need from the server;
+ * host-specific extras (e.g. the connection registry) are read directly off
+ * the concrete server type by the resource implementation.
  */
-export interface IResourceSession {
+export type ResourceServices = {
     readonly config: IToolConfig;
     readonly logger: ICompositeLogger;
-    on(event: keyof SessionEvents, listener: (...args: unknown[]) => void): void;
-}
+    readonly keychain: IKeychain;
+};
 
 export interface IResource {
     register(server: unknown): void;
@@ -28,13 +32,20 @@ export type ResourceConfiguration = {
     config: ResourceMetadata;
 };
 
-export type ReactiveResourceOptions<Value, RelevantEvents extends readonly (keyof SessionEvents)[]> = {
+export type ReactiveResourceOptions<Value> = {
     initial: Value;
-    events: RelevantEvents;
 };
 
-/** The host server surface resources register against. */
+/**
+ * The host server surface resources register against and read services from.
+ * Resources are constructed with the server itself (`{ server }`) and derive
+ * the minimal services (config/logger/keychain) plus telemetry from it.
+ */
 export interface IResourceServer {
+    readonly config: ResourceServices["config"];
+    readonly logger: ResourceServices["logger"];
+    readonly keychain: ResourceServices["keychain"];
+    readonly telemetry: ITelemetry;
     mcpServer: {
         registerResource: (name: string, uri: string, config: ResourceMetadata, callback: ReadResourceCallback) => void;
     };
@@ -43,18 +54,29 @@ export interface IResourceServer {
 }
 
 /**
+ * The construction argument every resource class receives: the host server plus
+ * the transport request that drove server creation (undefined for non-HTTP
+ * constructions such as stdio / dry-run).
+ */
+export type ResourceServerArg<TServer extends IResourceServer = IResourceServer> = {
+    server: TServer;
+    /** The transport request that drove server creation (undefined for stdio / dry-run). */
+    transportRequest?: TransportRequestContext;
+};
+
+/**
  * The type that all resource classes must conform to when implementing custom resources
  * for the MongoDB MCP Server.
  *
  * This type enforces that resource classes have a constructor accepting
- * `(session, telemetry)`, matching the construction pattern used by
+ * `({ server })`, matching the construction pattern used by
  * {@link CliServer} (see `registerResources`). The resolved user
- * configuration is read from `session.config`.
+ * configuration is read from `server.config`.
  */
-export type ResourceClass<TSession extends IResourceSession = IResourceSession> = {
-    new (session: TSession, telemetry: ITelemetry): { register(server: IResourceServer): void };
+export type ResourceClass<TServer extends IResourceServer = IResourceServer> = {
+    new (arg: ResourceServerArg<TServer>): { register(server: IResourceServer): void };
 };
 
-/** Resource constructor type for registries that may include session-specific resource implementations. */
+/** Resource constructor type for registries that may include resource-specific servers. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyResourceClass = ResourceClass<any>;

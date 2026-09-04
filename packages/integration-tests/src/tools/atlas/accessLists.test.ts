@@ -23,17 +23,17 @@ describeWithAtlas("ip access lists", (integration) => {
         const values = [...ips, ...cidrBlocks];
 
         beforeAll(async () => {
-            const session = integration.mcpServer().session;
-            assertApiClientIsAvailable(session);
-            const apiClient = session.apiClient;
+            const server = integration.mcpServer();
+            assertApiClientIsAvailable(server);
+            const apiClient = server.apiClient;
             const ipInfo = await apiClient.getIpInfo();
             values.push(ipInfo.currentIpv4Address);
         });
 
         afterAll(async () => {
-            const session = integration.mcpServer().session;
-            assertApiClientIsAvailable(session);
-            const apiClient = session.apiClient;
+            const server = integration.mcpServer();
+            assertApiClientIsAvailable(server);
+            const apiClient = server.apiClient;
 
             const projectId = getProjectId();
             if (projectId) {
@@ -149,9 +149,9 @@ describeWithAtlas("ip access lists", (integration) => {
 
         describe("ensureCurrentIpInAccessList helper", () => {
             it("should add the current IP to the access list and be idempotent", async () => {
-                const session = integration.mcpServer().session;
-                assertApiClientIsAvailable(session);
-                const apiClient = session.apiClient;
+                const server = integration.mcpServer();
+                assertApiClientIsAvailable(server);
+                const apiClient = server.apiClient;
                 const projectId = getProjectId();
                 const ipInfo = await apiClient.getIpInfo();
                 // First call should add the IP

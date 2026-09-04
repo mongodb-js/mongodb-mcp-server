@@ -1,4 +1,9 @@
-export { AssistantToolBase, type IAssistantSession } from "./assistantTool.js";
+export {
+    AssistantToolBase,
+    type AssistantToolServices,
+    type AssistantToolServer,
+    type IAssistantConfig,
+} from "./assistantTool.js";
 export {
     SearchKnowledgeTool,
     SearchKnowledgeToolName,
@@ -6,8 +11,8 @@ export {
     ListKnowledgeSourcesToolName,
 } from "./tools/tools.js";
 
-import type { IAssistantSession } from "./assistantTool.js";
+import type { AssistantToolServer } from "./assistantTool.js";
 import { SearchKnowledgeTool, ListKnowledgeSourcesTool } from "./tools/tools.js";
 import type { ToolClass } from "@mongodb-js/mcp-core";
 
-export const AssistantTools: ToolClass<IAssistantSession>[] = [SearchKnowledgeTool, ListKnowledgeSourcesTool];
+export const AssistantTools: ToolClass<AssistantToolServer>[] = [SearchKnowledgeTool, ListKnowledgeSourcesTool];

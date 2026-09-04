@@ -12,7 +12,6 @@ import {
     describeWithMongoDB,
     getDocsFromUntrustedContent,
     validateAutoConnectBehavior,
-    syncMongoToolsConfigFromUserConfig,
 } from "../../../mongodbHelpers.js";
 import type { Client } from "@modelcontextprotocol/client";
 import type { CursorLimitKey } from "@mongodb-js/mcp-tools-mongodb";
@@ -59,9 +58,8 @@ function expectAggregateDBStructuredContent(
 
 describeWithMongoDB("aggregate-db tool", (integration) => {
     afterEach(() => {
-        integration.mcpServer().session.config.readOnly = false;
-        integration.mcpServer().session.config.disabledTools = [];
-        syncMongoToolsConfigFromUserConfig(integration.mcpServer());
+        integration.mcpServer().config.readOnly = false;
+        integration.mcpServer().config.disabledTools = [];
     });
 
     validateToolMetadata(integration, "aggregate-db", "Run an aggregation against a MongoDB database", "read", [

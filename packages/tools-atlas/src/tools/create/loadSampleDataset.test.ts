@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { LoadSampleDatasetTool, LoadSampleDatasetArgs } from "./loadSampleDataset.js";
-import type { IAtlasSession, IAtlasConfig } from "../../atlasTool.js";
+import type { IAtlasConfig } from "../../atlasTool.js";
 import type { ITelemetry, ICompositeLogger } from "@mongodb-js/mcp-types";
 import type { ApiClient, SampleDatasetStatus } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics } from "../../mockMetrics.js";
 import { createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import { Keychain } from "@mongodb-js/mcp-core";
+import type { AtlasToolServer } from "../../atlasTool.js";
 
 const PROJECT_ID = "651b1d2a3a3f3a0001a1b2c3";
 const CLUSTER_NAME = "MyCluster";
@@ -57,22 +57,14 @@ describe("LoadSampleDatasetTool", () => {
         } as unknown as ICompositeLogger;
 
         const mockSession = {
-            sessionId: "test-session",
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
-            connectedAtlasCluster: undefined,
-            connectToMongoDB: vi.fn().mockResolvedValue(undefined),
             keychain: new Keychain(),
             config: {
                 apiClientId: "test-id",
                 apiClientSecret: "test-secret",
             } as unknown as IAtlasConfig,
-            disconnect: vi.fn().mockResolvedValue(undefined),
-            close: vi.fn().mockResolvedValue(undefined),
-            isConnectedToMongoDB: false,
-            on: vi.fn(),
-            setMcpClient: vi.fn(),
-        } as unknown as IAtlasSession;
+        } as unknown as AtlasToolServer;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
@@ -81,22 +73,23 @@ describe("LoadSampleDatasetTool", () => {
 
         const mockElicitation = createMockElicitation();
 
-        const params: ToolConstructorParams<IAtlasSession> = {
-            name: LoadSampleDatasetTool.toolName,
-            category: "atlas",
-            operationType: LoadSampleDatasetTool.operationType,
-            session: mockSession,
+        const server: AtlasToolServer = {
+            ...mockSession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
         };
 
-        return new LoadSampleDatasetTool(params);
+        return new LoadSampleDatasetTool({ server });
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["execute"](z.object(LoadSampleDatasetArgs).parse(args) as never, { signal: new AbortController().signal });
+        tool["execute"](z.object(LoadSampleDatasetArgs).parse(args) as never, {
+            request: {
+                signal: new AbortController().signal,
+            },
+        });
 
     function getStructuredContent(result: { structuredContent?: unknown }): Record<string, unknown> {
         expect(result.structuredContent).toBeDefined();

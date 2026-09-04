@@ -83,7 +83,7 @@ describe("accessListUtils", () => {
         expect(apiClient.createAccessListEntry).not.toHaveBeenCalled();
     });
 
-    const context = { requestInfo: { headers: { "x-request-id": "req-access-1" } } };
+    const context = { headers: { "x-request-id": "req-access-1" } };
 
     function makeSpyApiClient(createResult: "resolve" | "conflict" | "error"): ApiClient & {
         logger: { debug: ReturnType<typeof vi.fn>; warning: ReturnType<typeof vi.fn> };

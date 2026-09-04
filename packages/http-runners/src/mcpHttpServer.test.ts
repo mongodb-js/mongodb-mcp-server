@@ -1,30 +1,23 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
+import type express from "express";
 import { MCPHttpServer } from "./mcpHttpServer.js";
-import {
-    SessionRejectedError,
-    SessionLimitExceededError,
-    JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED,
-    RedactingLoggerBase,
-    Keychain,
-} from "@mongodb-js/mcp-core";
+import { RedactingLoggerBase, Keychain } from "@mongodb-js/mcp-core";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 import type {
     DefaultMetricDefinitions,
     IMetrics,
     ICompositeLogger,
-    ISessionStore,
-    SessionServer,
+    BaseServer,
     TransportRequestContext,
     HttpServerOptions,
-    SessionManagementOptions,
     LogLevel,
     LogPayload,
     LoggerType,
     ILogger,
 } from "@mongodb-js/mcp-types";
 import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
-import type { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
-import type { McpServer } from "@modelcontextprotocol/server";
+import { McpServer } from "@modelcontextprotocol/server";
+import { z } from "zod";
 
 class MockMetrics
     extends PrometheusMetrics<DefaultPrometheusMetricDefinitions>
@@ -58,89 +51,58 @@ class InMemoryLogger extends RedactingLoggerBase implements ICompositeLogger {
     }
 }
 
-const INIT_BODY = JSON.stringify({
-    jsonrpc: "2.0",
-    method: "initialize",
-    id: 1,
-    params: {
-        protocolVersion: "2024-11-05",
-        capabilities: {},
-        clientInfo: { name: "test", version: "1.0" },
-    },
-});
-
-const NON_INIT_BODY = JSON.stringify({ jsonrpc: "2.0", method: "tools/list", id: 1 });
-
 const httpOptions: HttpServerOptions = {
     host: "127.0.0.1",
     port: 0,
     responseType: "json",
+    authMode: "unauthenticated",
 };
 
-const sessionOptions: SessionManagementOptions = {
-    idleTimeoutMs: 30_000,
-    notificationTimeoutMs: 30_000,
-    externallyManagedSessions: false,
-};
-
-function makeSessionStore(
-    getSessionImpl: (
-        sessionId: string,
-        headers?: Record<string, unknown>
-    ) => Promise<NodeStreamableHTTPServerTransport | null>
-): ISessionStore<NodeStreamableHTTPServerTransport> {
-    return {
-        getSession: vi.fn().mockImplementation(getSessionImpl),
-        addSession: vi.fn().mockResolvedValue(undefined),
-        closeSession: vi.fn().mockResolvedValue(undefined),
-        closeAllSessions: vi.fn().mockResolvedValue(undefined),
-        saveNegotiatedClientState: vi.fn().mockResolvedValue(undefined),
-        loadNegotiatedClientState: vi.fn().mockResolvedValue(undefined),
-    };
-}
-
-function makeFakeServer(): SessionServer {
-    return {
-        session: {
-            logger: new InMemoryLogger(),
-            setMcpClient: vi.fn(),
+/** A 2026-07-28 request carrying the per-request `_meta` envelope claim. */
+const MODERN_BODY = JSON.stringify({
+    jsonrpc: "2.0",
+    method: "tools/list",
+    id: 1,
+    params: {
+        _meta: {
+            "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+            "io.modelcontextprotocol/clientCapabilities": {},
+            "io.modelcontextprotocol/clientInfo": { name: "test", version: "1.0" },
+            requestId: "req-1",
         },
-        mcpServer: {
-            server: {
-                oninitialized: undefined,
-                getClientCapabilities: vi.fn(),
-                getClientVersion: vi.fn(),
-            },
-        } as unknown as McpServer,
+    },
+});
+
+function makeFakeServer(): BaseServer {
+    const mcpServer = new McpServer({ name: "test-server", version: "1.0.0" });
+    mcpServer.registerTool(
+        "echo",
+        { inputSchema: z.object({ x: z.string() }) },
+
+        ({ x }: { x: string }) => ({ content: [{ type: "text", text: x }] })
+    );
+    return {
+        mcpServer,
         register: vi.fn().mockResolvedValue(undefined),
-        connect: vi.fn().mockResolvedValue(undefined),
-        close: vi.fn().mockResolvedValue(undefined),
     };
 }
 
-class TestMCPHttpServer extends MCPHttpServer {
-    constructor({
-        logger,
-        sessionStore,
-    }: {
-        logger: InMemoryLogger;
-        sessionStore: ISessionStore<NodeStreamableHTTPServerTransport>;
-    }) {
+class TestMCPHttpServer extends MCPHttpServer<BaseServer> {
+    constructor({ logger }: { logger: InMemoryLogger }) {
         super({
-            options: { http: httpOptions, session: sessionOptions },
+            options: { http: httpOptions },
             logger,
             metrics: new MockMetrics(),
-            sessionStore,
         });
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    protected override createServerForRequest(_: TransportRequestContext): Promise<SessionServer> {
+    protected override createServerForRequest(_request: TransportRequestContext): Promise<BaseServer> {
         return Promise.resolve(makeFakeServer());
     }
 }
 
-describe("MCPHttpServer x-request-id logging", () => {
+describe("MCPHttpServer stateless serving", () => {
     let server: TestMCPHttpServer;
     let logger: InMemoryLogger;
 
@@ -148,162 +110,212 @@ describe("MCPHttpServer x-request-id logging", () => {
         await server?.stop();
     });
 
-    async function startServer(
-        sessionStore: ISessionStore<NodeStreamableHTTPServerTransport>,
-        createServerForRequest?: () => Promise<SessionServer>
-    ): Promise<void> {
+    async function startServer(): Promise<void> {
         logger = new InMemoryLogger();
-
-        if (createServerForRequest) {
-            const createServer = createServerForRequest;
-            class CustomTestMCPHttpServer extends TestMCPHttpServer {
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                protected override createServerForRequest(_: TransportRequestContext): Promise<SessionServer> {
-                    return createServer();
-                }
-            }
-            server = new CustomTestMCPHttpServer({ logger, sessionStore });
-        } else {
-            server = new TestMCPHttpServer({ logger, sessionStore });
-        }
-
+        server = new TestMCPHttpServer({ logger });
         await server.start();
     }
 
-    async function post(path: string, body: string, headers: Record<string, string>): Promise<Response> {
+    async function post(path: string, body: string, headers: Record<string, string> = {}): Promise<Response> {
         return fetch(`${server.serverAddress}${path}`, {
             method: "POST",
-            headers: { "content-type": "application/json", ...headers },
+            headers: { "content-type": "application/json", "mcp-method": "tools/list", ...headers },
             body,
         });
     }
 
-    it("includes x-request-id in debug log when session is not found", async () => {
-        await startServer(makeSessionStore(() => Promise.resolve(null)));
+    it("serves 2026-07-28 requests through the modern handler", async () => {
+        await startServer();
+        const res = await post("/mcp", MODERN_BODY);
+        expect(res.status).toBe(200);
+        const payload = (await res.json()) as { result?: { tools?: unknown[] } };
+        expect(payload).toHaveProperty("result");
+    });
 
-        const res = await post("/mcp", NON_INIT_BODY, {
-            "mcp-session-id": "sess-abc",
-            "x-request-id": "req-not-found",
+    it("registers the request-scoped server for every request", async () => {
+        const register = vi.fn().mockResolvedValue(undefined);
+        class RegisterTrackingServer extends TestMCPHttpServer {
+            protected override createServerForRequest(): Promise<BaseServer> {
+                return Promise.resolve({ ...makeFakeServer(), register });
+            }
+        }
+        logger = new InMemoryLogger();
+        server = new RegisterTrackingServer({ logger });
+        await server.start();
+
+        await post("/mcp", MODERN_BODY);
+
+        expect(register).toHaveBeenCalledTimes(1);
+    });
+
+    it("returns a 500 when the server factory throws", async () => {
+        class ThrowingServer extends TestMCPHttpServer {
+            protected override createServerForRequest(): Promise<BaseServer> {
+                return Promise.reject(new Error("factory boom"));
+            }
+        }
+        logger = new InMemoryLogger();
+        server = new ThrowingServer({ logger });
+        await server.start();
+
+        const res = await post("/mcp", MODERN_BODY, { "x-request-id": "req-throw" });
+
+        // The SDK entry reports factory failures as internal server errors.
+        expect(res.status).toBe(500);
+        const body = (await res.json()) as { error?: { message?: string } };
+        expect(body.error?.message).toBe("Internal server error");
+    });
+
+    it("carries an explicit unauthenticated auth state when no identity is injected", async () => {
+        const seen = vi.fn();
+        class StateTrackingServer extends TestMCPHttpServer {
+            protected override createServerForRequest(request: TransportRequestContext): Promise<BaseServer> {
+                seen(request.authInfo);
+                return Promise.resolve(makeFakeServer());
+            }
+        }
+        logger = new InMemoryLogger();
+        server = new StateTrackingServer({ logger });
+        await server.start();
+
+        const res = await post("/mcp", MODERN_BODY);
+        expect(res.status).toBe(200);
+        // No identity injected → the request is explicitly unauthenticated.
+        expect(seen).toHaveBeenCalledWith({ mode: "unauthenticated" });
+    });
+
+    it("normalizes an injected req.auth identity into the authenticated auth state", async () => {
+        const seen = vi.fn();
+        class AuthedServer extends MCPHttpServer<BaseServer> {
+            constructor() {
+                super({
+                    options: { http: httpOptions },
+                    logger: new InMemoryLogger(),
+                    metrics: new MockMetrics(),
+                });
+            }
+            protected override createServerForRequest(request: TransportRequestContext): Promise<BaseServer> {
+                seen(request.authInfo);
+                return Promise.resolve(makeFakeServer());
+            }
+        }
+        server = new AuthedServer() as unknown as TestMCPHttpServer;
+        // Host middleware injects the verified identity as `req.auth`, which
+        // `toNodeHandler` forwards as the handler's authInfo.
+        const app = (server as unknown as { app: express.Express }).app;
+        app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
+            (req as express.Request & { auth?: unknown }).auth = {
+                token: "tok",
+                clientId: "verified-client-1",
+                scopes: [],
+            };
+            next();
+        });
+        await server.start();
+
+        const res = await post("/mcp", MODERN_BODY, { authorization: "Bearer good-token" });
+        expect(res.status).toBe(200);
+        expect(seen).toHaveBeenCalledWith({
+            mode: "authenticated",
+            state: { token: "tok", clientId: "verified-client-1", scopes: [] },
+        });
+    });
+
+    describe("authenticated mode (authMode: 'authenticated')", () => {
+        class AuthedModeServer extends MCPHttpServer<BaseServer> {
+            constructor({ onRequest }: { onRequest?: (request: TransportRequestContext) => void } = {}) {
+                super({
+                    options: { http: { ...httpOptions, authMode: "authenticated" } },
+                    logger: new InMemoryLogger(),
+                    metrics: new MockMetrics(),
+                });
+                this.onRequest = onRequest;
+            }
+            private readonly onRequest?: (request: TransportRequestContext) => void;
+            protected override createServerForRequest(request: TransportRequestContext): Promise<BaseServer> {
+                this.onRequest?.(request);
+                return Promise.resolve(makeFakeServer());
+            }
+        }
+
+        it("rejects requests without verified identity with 401", async () => {
+            server = new AuthedModeServer() as unknown as TestMCPHttpServer;
+            await server.start();
+
+            const res = await post("/mcp", MODERN_BODY);
+            expect(res.status).toBe(401);
         });
 
-        expect(res.status).toBe(404);
-        const log = logger.messages.find((m) => m.level === "debug" && m.payload.message.includes("not found"));
-        expect(log?.payload.attributes).toEqual(expect.objectContaining({ "x-request-id": "req-not-found" }));
+        it("serves verified requests with an always-authenticated authInfo", async () => {
+            const seen = vi.fn();
+            server = new AuthedModeServer({ onRequest: seen }) as unknown as TestMCPHttpServer;
+            const app = (server as unknown as { app: express.Express }).app;
+            app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
+                (req as express.Request & { auth?: unknown }).auth = {
+                    token: "tok",
+                    clientId: "verified-client-1",
+                    scopes: [],
+                };
+                next();
+            });
+            await server.start();
+
+            const res = await post("/mcp", MODERN_BODY, { authorization: "Bearer good-token" });
+            expect(res.status).toBe(200);
+            expect(seen).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    authInfo: {
+                        mode: "authenticated",
+                        state: { token: "tok", clientId: "verified-client-1", scopes: [] },
+                    },
+                })
+            );
+        });
     });
 
-    it("omits x-request-id from debug log when header is absent", async () => {
-        await startServer(makeSessionStore(() => Promise.resolve(null)));
-
-        await post("/mcp", NON_INIT_BODY, { "mcp-session-id": "sess-abc" });
-
-        const log = logger.messages.find((m) => m.level === "debug" && m.payload.message.includes("not found"));
-        expect(log?.payload.attributes?.["x-request-id"]).toBeUndefined();
-    });
-
-    it("includes x-request-id in debug log when externallyManagedSessions is disabled", async () => {
-        await startServer(makeSessionStore(() => Promise.resolve(null)));
-
-        const res = await post("/mcp", INIT_BODY, {
-            "mcp-session-id": "sess-xyz",
-            "x-request-id": "req-ext-sessions",
+    describe("legacy (2025-era) stateless serving", () => {
+        // A 2025-era initialize: no `_meta` envelope claim, negotiated via the
+        // legacy handshake. The stateless server serves it through the SDK's
+        // `legacy: 'stateless'` fallback.
+        const LEGACY_INIT_BODY = JSON.stringify({
+            jsonrpc: "2.0",
+            method: "initialize",
+            id: 1,
+            params: {
+                protocolVersion: "2025-11-25",
+                capabilities: {},
+                clientInfo: { name: "legacy-test", version: "1.0" },
+            },
         });
 
-        expect(res.status).toBe(400);
-        const log = logger.messages.find(
-            (m) => m.level === "debug" && m.payload.message.includes("externallyManagedSessions")
-        );
-        expect(log?.payload.attributes).toEqual(expect.objectContaining({ "x-request-id": "req-ext-sessions" }));
-    });
-
-    it("forwards the incoming request headers to sessionStore.addSession", async () => {
-        const addSession = vi.fn().mockResolvedValue(undefined);
-        const sessionStore: ISessionStore<NodeStreamableHTTPServerTransport> = {
-            ...makeSessionStore(() => Promise.resolve(null)),
-            addSession,
-        };
-        await startServer(sessionStore);
-
-        await post("/mcp", INIT_BODY, {
-            "x-request-id": "req-add-session",
+        it("serves a legacy initialize POST through the stateless fallback", async () => {
+            await startServer();
+            const res = await fetch(`${server.serverAddress}/mcp`, {
+                method: "POST",
+                headers: {
+                    "content-type": "application/json",
+                    accept: "application/json, text/event-stream",
+                    "mcp-protocol-version": "2025-11-25",
+                },
+                body: LEGACY_INIT_BODY,
+            });
+            expect(res.status).toBe(200);
+            const text = await res.text();
+            // The stateless legacy transport answers over an SSE stream.
+            expect(text).toContain("data:");
+            expect(text).toContain("protocolVersion");
+            expect(text).toMatch(/"id":1/);
         });
 
-        expect(addSession).toHaveBeenCalledTimes(1);
-        const call = addSession.mock.calls[0]?.[0] as { headers?: Record<string, unknown> };
-        expect(call.headers).toEqual(expect.objectContaining({ "x-request-id": "req-add-session" }));
-    });
+        it("answers 2025 session operations (GET/DELETE) with 405", async () => {
+            await startServer();
+            const getRes = await fetch(`${server.serverAddress}/mcp`, { method: "GET" });
+            expect(getRes.status).toBe(405);
+            expect(getRes.headers.get("allow")).toBe("POST");
 
-    it("passes the server session to sessionStore.addSession", async () => {
-        const addSession = vi.fn().mockResolvedValue(undefined);
-        const sessionStore: ISessionStore<NodeStreamableHTTPServerTransport> = {
-            ...makeSessionStore(() => Promise.resolve(null)),
-            addSession,
-        };
-        const fakeServer = makeFakeServer();
-        await startServer(sessionStore, () => Promise.resolve(fakeServer));
-
-        await post("/mcp", INIT_BODY, {});
-
-        expect(addSession).toHaveBeenCalledTimes(1);
-        const call = addSession.mock.calls[0]?.[0] as { session?: unknown };
-        expect(call.session).toBe(fakeServer.session);
-    });
-
-    it("responds as session-not-found when sessionStore.getSession throws SessionRejectedError", async () => {
-        await startServer(makeSessionStore(() => Promise.reject(new SessionRejectedError("identity mismatch"))));
-
-        const rejectedRes = await post("/mcp", NON_INIT_BODY, { "mcp-session-id": "sess-rejected" });
-        const rejectedBody = (await rejectedRes.json()) as unknown;
-
-        await server.stop();
-        await startServer(makeSessionStore(() => Promise.resolve(null)));
-
-        const notFoundRes = await post("/mcp", NON_INIT_BODY, { "mcp-session-id": "sess-missing" });
-        const notFoundBody = (await notFoundRes.json()) as unknown;
-
-        // The rejected response must be indistinguishable from session-not-found
-        // so that callers can't probe whether a session id is valid.
-        expect(rejectedRes.status).toBe(notFoundRes.status);
-        expect(rejectedBody).toEqual(notFoundBody);
-    });
-
-    it("logs the SessionRejectedError reason server-side", async () => {
-        await startServer(makeSessionStore(() => Promise.reject(new SessionRejectedError("identity mismatch"))));
-
-        await post("/mcp", NON_INIT_BODY, { "mcp-session-id": "sess-rejected" });
-
-        const log = logger.messages.find((m) => m.level === "error" && m.payload.message.includes("identity mismatch"));
-        expect(log).toBeDefined();
-    });
-
-    it("responds with 503 when sessionStore.addSession throws SessionLimitExceededError", async () => {
-        const addSession = vi
-            .fn()
-            .mockRejectedValue(new SessionLimitExceededError("Session limit of 1 concurrent sessions reached"));
-        const sessionStore: ISessionStore<NodeStreamableHTTPServerTransport> = {
-            ...makeSessionStore(() => Promise.resolve(null)),
-            addSession,
-        };
-        await startServer(sessionStore, () => Promise.resolve(makeFakeServer()));
-
-        const res = await post("/mcp", INIT_BODY, {});
-        const body = (await res.json()) as { error: { code: number } };
-
-        expect(res.status).toBe(503);
-        expect(body.error.code).toBe(JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED);
-    });
-
-    it("includes x-request-id in error log when handler throws", async () => {
-        await startServer(makeSessionStore(() => Promise.reject(new Error("storage failure"))));
-
-        const res = await post("/mcp", NON_INIT_BODY, {
-            "mcp-session-id": "sess-err",
-            "x-request-id": "req-throw",
+            const delRes = await fetch(`${server.serverAddress}/mcp`, { method: "DELETE" });
+            expect(delRes.status).toBe(405);
+            expect(delRes.headers.get("allow")).toBe("POST");
         });
-
-        expect(res.status).toBe(400);
-        const log = logger.messages.find(
-            (m) => m.level === "error" && m.payload.message.includes("Error handling request")
-        );
-        expect(log?.payload.attributes).toEqual(expect.objectContaining({ "x-request-id": "req-throw" }));
     });
 });

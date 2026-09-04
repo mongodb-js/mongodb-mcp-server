@@ -1,18 +1,21 @@
 import { ResourceTemplate } from "@modelcontextprotocol/server";
 import type { CompleteResourceTemplateCallback, ListResourcesCallback, ReadResourceTemplateCallback } from "@modelcontextprotocol/server";
 import { LogId } from "@mongodb-js/mcp-core";
-import type { CliServer, McpSession } from "@mongodb-js/mcp-cli";
+import type { CliServer } from "@mongodb-js/mcp-cli";
+import type { TransportRequestContext } from "@mongodb-js/mcp-types";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
 
 export class ExportedData {
     private readonly name = "exported-data";
-    private readonly description = "Data files exported in the current session.";
+    private readonly description = "Data files exported through the export tool.";
     private readonly uri = "exported-data://{exportName}";
-    private server?: CliServer;
-    private readonly session: McpSession;
+    private server: CliServer;
+    /** Present only for transport-scoped servers (HTTP); absent for long-lived stdio / dry-run. */
+    private readonly transportRequest?: TransportRequestContext;
 
-    constructor(session: McpSession) {
-        this.session = session;
+    constructor({ server, transportRequest }: { server: CliServer; transportRequest?: TransportRequestContext }) {
+        this.server = server;
+        this.transportRequest = transportRequest;
     }
 
     public register(server: CliServer): void {
@@ -35,19 +38,26 @@ export class ExportedData {
             { description: this.description },
             this.readResourceCallback
         );
-        this.session.exportsManager.on("export-available", (uri: string): void => {
-            server.sendResourceListChanged();
-            server.sendResourceUpdated(uri);
-        });
-        this.session.exportsManager.on("export-expired", (): void => {
-            server.sendResourceListChanged();
-        });
+        // The exportsManager is a shared, app-level service (created once per process).
+        // In HTTP mode a fresh CliServer is created per request, so registering these
+        // listeners on every register() would accumulate them on the shared emitter
+        // (memory leak + duplicate notifications). Gate them to long-lived transports
+        // (stdio / dry-run), where transportRequest is absent.
+        if (!this.transportRequest) {
+            this.server.exportsManager.on("export-available", (uri: string): void => {
+                this.server.sendResourceListChanged();
+                this.server.sendResourceUpdated(uri);
+            });
+            this.server.exportsManager.on("export-expired", (): void => {
+                this.server.sendResourceListChanged();
+            });
+        }
     }
 
     private listResourcesCallback: ListResourcesCallback = () => {
         try {
             return {
-                resources: this.session.exportsManager.availableExports.map(
+                resources: this.server.exportsManager.availableExports.map(
                     ({ exportName, exportTitle, exportURI }) => ({
                         name: exportName,
                         description: exportTitle,
@@ -57,7 +67,7 @@ export class ExportedData {
                 ),
             };
         } catch (error) {
-            this.session.logger.error({
+            this.server.logger.error({
                 id: LogId.exportedDataListError,
                 context: "Error when listing exported data resources",
                 message: error instanceof Error ? error.message : String(error),
@@ -70,7 +80,7 @@ export class ExportedData {
 
     private autoCompleteExportName: CompleteResourceTemplateCallback = (value) => {
         try {
-            return this.session.exportsManager.availableExports
+            return this.server.exportsManager.availableExports
                 .filter(({ exportName, exportTitle }) => {
                     const lcExportName = exportName.toLowerCase();
                     const lcExportTitle = exportTitle.toLowerCase();
@@ -79,7 +89,7 @@ export class ExportedData {
                 })
                 .map(({ exportName }) => exportName);
         } catch (error) {
-            this.session.logger.error({
+            this.server.logger.error({
                 id: LogId.exportedDataAutoCompleteError,
                 context: "Error when autocompleting exported data",
                 message: error instanceof Error ? error.message : String(error),
@@ -94,7 +104,7 @@ export class ExportedData {
                 throw new Error("Cannot retrieve exported data, exportName not provided.");
             }
 
-            const { content, docsTransformed } = await this.session.exportsManager.readExport(exportName);
+            const { content, docsTransformed } = await this.server.exportsManager.readExport(exportName);
 
             const text = formatUntrustedData(`The exported data contains ${docsTransformed} documents.`, content)
                 .map((t) => t.text)

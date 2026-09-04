@@ -68,14 +68,16 @@ export class SetupTelemetry {
         const deviceId = DeviceId.create(logger);
         // Shared, memoized proxy-aware fetch (see @mongodb-js/mcp-fetch).
         const httpClient: HttpClient = getDefaultHttpClient();
-        const apiClient = new ApiClient(
-            {
+        // Anonymous telemetry setup: no Atlas API credentials, so the client is
+        // unauthenticated (telemetry is sent over the unauth endpoint).
+        const apiClient = new ApiClient({
+            options: {
                 baseUrl: config.apiBaseUrl,
                 userAgent: userAgentFromServerMetadata(serverMetadata),
                 httpClient,
             },
-            logger
-        );
+            logger,
+        });
         const telemetry = AtlasTelemetry.create({
             logger,
             deviceId,

@@ -163,7 +163,7 @@ describeWithAtlasLocal(
             expect(createElements.length).toBeGreaterThanOrEqual(1);
             expect(createElements[0]?.text ?? "").toContain(deploymentName);
 
-            const client = integration.mcpServer().session.atlasLocalClient;
+            const client = integration.mcpServer().atlasLocalClient;
             expectDefined(client);
             const deployment = await client.getDeployment(deploymentName);
             expect((deployment as { voyageApiKey?: string }).voyageApiKey).toBe(configWithVoyageApiKey.voyageApiKey);
@@ -185,7 +185,7 @@ describeWithAtlasLocal(
                 expect(createElements[0]?.text ?? "").toContain(deploymentName);
 
                 // The MCP tool should propagate loadSampleData down to the underlying atlas-local client.
-                const client = integration.mcpServer().session.atlasLocalClient;
+                const client = integration.mcpServer().atlasLocalClient;
                 expectDefined(client);
                 const deployment = await client.getDeployment(deploymentName);
                 expect(deployment.mongodbLoadSampleData).toBe(true);

@@ -22,14 +22,14 @@ export class CreateProjectTool extends AtlasToolBase {
 
     protected async execute(
         { projectName, orgId }: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        { request }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
         const input = {
             name: projectName,
             orgId,
         } as Group;
 
-        const group = await this.apiClient.createGroup({ body: input }, context);
+        const group = await this.server.apiClient.createGroup({ body: input }, request);
 
         if (!group?.id) {
             throw new Error("Failed to create project");

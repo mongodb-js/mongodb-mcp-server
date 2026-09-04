@@ -12,8 +12,7 @@ import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/serv
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type MockToolCallback = (args: any, ctx: never) => Promise<CallToolResult>;
-import type { CliServer, UserConfig } from "@mongodb-js/mcp-cli";
-import type { ISession, IToolConfig } from "@mongodb-js/mcp-types";
+import type { UserConfig } from "@mongodb-js/mcp-cli";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { ToolBase } from "@mongodb-js/mcp-core";
 import type { Elicitation } from "@mongodb-js/mcp-core";
@@ -29,11 +28,12 @@ import {
     TestToolWithoutStructuredContent,
     ErrorTool,
     ConfirmingTool,
+    type TestServer,
 } from "./mocks/tools.js";
 import { Keychain } from "@mongodb-js/mcp-core";
 
 describe("ToolBase", () => {
-    let mockSession: ISession<IToolConfig>;
+    let mockServer: TestServer;
     let mockLogger: CompositeLogger;
     let mockLoggerWarning: ReturnType<typeof vi.fn>;
     let mockConfig: UserConfig;
@@ -59,12 +59,6 @@ describe("ToolBase", () => {
             disabledTools: [],
         } as unknown as UserConfig;
 
-        mockSession = {
-            logger: mockLogger,
-            keychain: new Keychain(),
-            config: mockConfig,
-        } as unknown as ISession<IToolConfig>;
-
         mockAtlasTelemetry = {
             isTelemetryEnabled: () => true,
             emitEvents: vi.fn(),
@@ -80,25 +74,30 @@ describe("ToolBase", () => {
 
         mockMetrics = new MockMetrics();
 
-        const constructorParams = {
-            name: TestTool.toolName,
-            category: TestTool.category,
-            operationType: TestTool.operationType,
-            session: mockSession,
+        mockServer = {
+            config: mockConfig,
+            logger: mockLogger,
+            keychain: new Keychain(),
             telemetry: mockAtlasTelemetry,
             elicitation: mockElicitation,
-            uiRegistry: new UIRegistry(),
             metrics: mockMetrics,
+            uiRegistry: new UIRegistry(),
+            mcpServer: { registerTool: () => ({ enabled: true, disable: vi.fn(), enable: vi.fn() }) } as never,
+            tools: [],
+            isToolCategoryAvailable: (): boolean => true,
         };
 
-        testTool = new TestTool(constructorParams);
+        testTool = new TestTool({ server: mockServer });
     });
 
     describe("confirmation required by configuration", () => {
         it("does not ask when the tool is not in the confirmationRequiredTools list", async () => {
             mockConfig.confirmationRequiredTools = ["other-tool", "another-tool"];
 
-            const result = await testTool["invoke"]({ param1: "test" }, { signal: new AbortController().signal });
+            const result = await testTool["invoke"](
+                { param1: "test" },
+                { request: { signal: new AbortController().signal } }
+            );
 
             expect(result.content).toEqual([{ type: "text", text: "Test tool executed successfully" }]);
             expect(mockReadConfirmation).not.toHaveBeenCalled();
@@ -107,7 +106,10 @@ describe("ToolBase", () => {
         it("does not ask when the confirmationRequiredTools list is empty", async () => {
             mockConfig.confirmationRequiredTools = [];
 
-            const result = await testTool["invoke"]({ param1: "test" }, { signal: new AbortController().signal });
+            const result = await testTool["invoke"](
+                { param1: "test" },
+                { request: { signal: new AbortController().signal } }
+            );
 
             expect(result.content).toEqual([{ type: "text", text: "Test tool executed successfully" }]);
             expect(mockReadConfirmation).not.toHaveBeenCalled();
@@ -121,7 +123,7 @@ describe("ToolBase", () => {
 
             const result = await testTool["invoke"](
                 { param1: "test", param2: 42 },
-                { signal: new AbortController().signal }
+                { request: { signal: new AbortController().signal } }
             );
 
             expect(result).toEqual(expected);
@@ -138,7 +140,12 @@ describe("ToolBase", () => {
 
             const result = await testTool["invoke"](
                 { param1: "test", param2: 42 },
-                { signal: new AbortController().signal, inputResponses: { confirmation: {} } }
+                {
+                    request: {
+                        signal: new AbortController().signal,
+                        inputResponses: { confirmation: {} },
+                    },
+                }
             );
 
             expect(result.content).toEqual([{ type: "text", text: "Test tool executed successfully" }]);
@@ -149,7 +156,10 @@ describe("ToolBase", () => {
             mockConfig.confirmationRequiredTools = ["test-tool"];
             mockReadConfirmation.mockReturnValue(false);
 
-            const result = await testTool["invoke"]({ param1: "test" }, { signal: new AbortController().signal });
+            const result = await testTool["invoke"](
+                { param1: "test" },
+                { request: { signal: new AbortController().signal } }
+            );
 
             expect(result.isError).toBe(true);
 
@@ -171,7 +181,10 @@ describe("ToolBase", () => {
             mockConfig.confirmationRequiredTools = ["test-tool"];
             mockReadConfirmation.mockReturnValue(false);
 
-            const result = await testTool["invoke"]({ param1: "test" }, { signal: new AbortController().signal });
+            const result = await testTool["invoke"](
+                { param1: "test" },
+                { request: { signal: new AbortController().signal } }
+            );
 
             expect(result.isError).toBe(true);
             expect(result.content).toEqual([
@@ -188,7 +201,9 @@ describe("ToolBase", () => {
         it("reads the confirmation answer from the execution context's inputResponses", () => {
             mockReadConfirmation.mockReturnValue(true);
 
-            const context: ToolExecutionContext = { signal: new AbortController().signal, requestId: 7 };
+            const context: ToolExecutionContext = {
+                request: { signal: new AbortController().signal, id: 7 },
+            };
             const result = testTool["requestConfirmation"]("Custom message", context);
 
             expect(result).toBe(true);
@@ -198,34 +213,31 @@ describe("ToolBase", () => {
         it("passes inputResponses to the read helper", () => {
             mockReadConfirmation.mockReturnValue(undefined);
             const context: ToolExecutionContext = {
-                signal: new AbortController().signal,
-                requestId: 42,
-                inputResponses: { confirmation: { action: "accept", content: { confirmation: "Yes" } } },
+                request: {
+                    signal: new AbortController().signal,
+                    id: 42,
+                    inputResponses: { confirmation: { action: "accept", content: { confirmation: "Yes" } } },
+                },
             };
             const result = testTool["requestConfirmation"]("confirm?", context);
 
             expect(result).toBeUndefined();
-            expect(mockReadConfirmation).toHaveBeenCalledWith(context.inputResponses);
+            expect(mockReadConfirmation).toHaveBeenCalledWith(context.request.inputResponses);
         });
     });
 
     describe("confirmation requested during execution", () => {
         function createConfirmingTool(): ConfirmingTool {
-            return new ConfirmingTool({
-                name: ConfirmingTool.toolName,
-                category: ConfirmingTool.category,
-                operationType: ConfirmingTool.operationType,
-                session: mockSession,
-                telemetry: mockAtlasTelemetry,
-                elicitation: mockElicitation,
-                metrics: mockMetrics,
-            });
+            return new ConfirmingTool({ server: mockServer });
         }
 
         it("runs the operation when the user confirms", async () => {
             mockReadConfirmation.mockReturnValue(true);
 
-            const result = await createConfirmingTool()["invoke"]({}, { signal: new AbortController().signal });
+            const result = await createConfirmingTool()["invoke"](
+                {},
+                { request: { signal: new AbortController().signal } }
+            );
 
             expect(result.isError).toBeUndefined();
             expect(result.content).toEqual([{ type: "text", text: "executed" }]);
@@ -234,7 +246,10 @@ describe("ToolBase", () => {
         it("aborts the operation when the user declines", async () => {
             mockReadConfirmation.mockReturnValue(false);
 
-            const result = await createConfirmingTool()["invoke"]({}, { signal: new AbortController().signal });
+            const result = await createConfirmingTool()["invoke"](
+                {},
+                { request: { signal: new AbortController().signal } }
+            );
 
             expect(result.isError).toBe(true);
             expect(result.content).toEqual([{ type: "text", text: "The operation was not performed." }]);
@@ -245,7 +260,10 @@ describe("ToolBase", () => {
             try {
                 mockReadConfirmation.mockReturnValue(true);
 
-                const result = await createConfirmingTool()["invoke"]({}, { signal: new AbortController().signal });
+                const result = await createConfirmingTool()["invoke"](
+                    {},
+                    { request: { signal: new AbortController().signal } }
+                );
                 expect(result.content).toEqual([{ type: "text", text: "executed" }]);
             } finally {
                 vi.useRealTimers();
@@ -279,22 +297,16 @@ describe("ToolBase", () => {
     describe("resolveAtlasTelemetryMetadata", () => {
         let mockCallback: MockToolCallback;
         beforeEach(() => {
-            const mockServer = {
-                mcpServer: {
-                    registerTool: (
-                        name: string,
-                        {
-                            description,
-                        }: { description: string; inputSchema: ZodRawShape; annotations: ToolAnnotations },
-                        cb: MockToolCallback
-                    ): void => {
-                        expect(name).toBe(testTool.name);
-                        expect(description).toBe(testTool["description"]);
-                        mockCallback = cb;
-                    },
-                },
+            (mockServer.mcpServer as unknown as { registerTool: unknown }).registerTool = (
+                name: string,
+                { description }: { description: string; inputSchema: ZodRawShape; annotations: ToolAnnotations },
+                cb: MockToolCallback
+            ): void => {
+                expect(name).toBe(testTool.name);
+                expect(description).toBe(testTool["description"]);
+                mockCallback = cb;
             };
-            testTool.register(mockServer as unknown as CliServer);
+            testTool.register();
         });
 
         it("should return empty metadata by default", async () => {
@@ -476,38 +488,24 @@ describe("ToolBase", () => {
 
         function createToolWithUI(previewFeatures: PreviewFeature[] = []): TestToolWithOutputSchema {
             mockConfig.previewFeatures = previewFeatures;
-            const constructorParams = {
-                name: TestToolWithOutputSchema.toolName,
-                category: TestToolWithOutputSchema.category,
-                operationType: TestToolWithOutputSchema.operationType,
-                session: mockSession,
-                telemetry: mockAtlasTelemetry,
-                elicitation: mockElicitation,
-                uiRegistry: mockUIRegistry,
-                metrics: mockMetrics,
-            };
-            return new TestToolWithOutputSchema(constructorParams);
+            return new TestToolWithOutputSchema({ server: { ...mockServer, uiRegistry: mockUIRegistry } });
         }
 
         function registerTool(tool: TestToolWithOutputSchema): void {
-            const mockServer = {
-                mcpServer: {
-                    registerTool: (
-                        _name: string,
-                        _config: {
-                            description: string;
-                            inputSchema: ZodRawShape;
-                            outputSchema?: ZodRawShape;
-                            annotations: ToolAnnotations;
-                        },
-                        cb: MockToolCallback
-                    ): { enabled: boolean; disable: () => void; enable: () => void } => {
-                        mockCallback = cb;
-                        return { enabled: true, disable: vi.fn(), enable: vi.fn() };
-                    },
+            (mockServer.mcpServer as unknown as { registerTool: unknown }).registerTool = (
+                _name: string,
+                _config: {
+                    description: string;
+                    inputSchema: ZodRawShape;
+                    outputSchema?: ZodRawShape;
+                    annotations: ToolAnnotations;
                 },
+                cb: MockToolCallback
+            ): { enabled: boolean; disable: () => void; enable: () => void } => {
+                mockCallback = cb;
+                return { enabled: true, disable: vi.fn(), enable: vi.fn() };
             };
-            tool.register(mockServer as unknown as CliServer);
+            tool.register();
         }
 
         it("should not append UIResource when mcpUI feature is disabled", async () => {
@@ -536,29 +534,24 @@ describe("ToolBase", () => {
         it("should not append UIResource when structuredContent is missing", async () => {
             const toolWithoutStructured = createToolWithoutStructuredContent(
                 ["mcpUI"],
-                mockSession,
+                mockServer,
                 mockConfig,
                 mockAtlasTelemetry,
                 mockElicitation,
-                mockUIRegistry,
-                mockMetrics
+                mockUIRegistry
             );
             (mockUIRegistry.get as Mock).mockReturnValue("<html>test UI</html>");
 
             let noStructuredCallback: MockToolCallback | undefined;
-            const mockServer = {
-                mcpServer: {
-                    registerTool: (
-                        _name: string,
-                        _config: unknown,
-                        cb: MockToolCallback
-                    ): { enabled: boolean; disable: () => void; enable: () => void } => {
-                        noStructuredCallback = cb;
-                        return { enabled: true, disable: vi.fn(), enable: vi.fn() };
-                    },
-                },
+            (mockServer.mcpServer as unknown as { registerTool: unknown }).registerTool = (
+                _name: string,
+                _config: unknown,
+                cb: MockToolCallback
+            ): { enabled: boolean; disable: () => void; enable: () => void } => {
+                noStructuredCallback = cb;
+                return { enabled: true, disable: vi.fn(), enable: vi.fn() };
             };
-            toolWithoutStructured.register(mockServer as unknown as CliServer);
+            toolWithoutStructured.register();
 
             expectDefined(noStructuredCallback);
             const result = await noStructuredCallback({ input: "test" }, {} as never);
@@ -620,34 +613,26 @@ describe("ToolBase", () => {
         let successCallback: MockToolCallback;
         let errorCallback: MockToolCallback;
 
-        function makeMockServer(capture: (cb: MockToolCallback) => void): CliServer {
-            return {
-                mcpServer: {
-                    registerTool: (
-                        _name: string,
-                        _config: unknown,
-                        cb: MockToolCallback
-                    ): { enabled: boolean; disable: () => void; enable: () => void } => {
-                        capture(cb);
-                        return { enabled: true, disable: vi.fn(), enable: vi.fn() };
-                    },
-                },
-            } as unknown as CliServer;
-        }
-
         beforeEach(() => {
-            testTool.register(makeMockServer((cb) => (successCallback = cb)));
+            // `register()` reads the tool's own `this.server.mcpServer`, so the
+            // shared mockServer dispatches each tool's callback by name.
+            (mockServer.mcpServer.registerTool as unknown) = (
+                name: string,
+                _config: unknown,
+                cb: MockToolCallback
+            ): { enabled: boolean; disable: () => void; enable: () => void } => {
+                if (name === "test-tool") {
+                    successCallback = cb;
+                } else if (name === "error-tool") {
+                    errorCallback = cb;
+                }
+                return { enabled: true, disable: vi.fn(), enable: vi.fn() };
+            };
 
-            const failingTool = new ErrorTool({
-                name: ErrorTool.toolName,
-                category: ErrorTool.category,
-                operationType: ErrorTool.operationType,
-                session: mockSession,
-                telemetry: mockAtlasTelemetry,
-                elicitation: mockElicitation,
-                metrics: mockMetrics,
-            });
-            failingTool.register(makeMockServer((cb) => (errorCallback = cb)));
+            testTool.register();
+
+            const failingTool = new ErrorTool({ server: mockServer });
+            failingTool.register();
         });
 
         it("records toolExecutionDuration with status and operation_type on a successful execution", async () => {
@@ -695,11 +680,13 @@ describe("ToolBase", () => {
 
     describe("invoke logging", () => {
         const contextWithRequestId: ToolExecutionContext = {
-            signal: new AbortController().signal,
-            requestInfo: { headers: { "x-request-id": "req-test-123" } },
+            request: {
+                signal: new AbortController().signal,
+                headers: { "x-request-id": "req-test-123" },
+            },
         };
         const contextWithoutRequestId: ToolExecutionContext = {
-            signal: new AbortController().signal,
+            request: { signal: new AbortController().signal },
         };
 
         it("includes x-request-id in debug logs when context carries it", async () => {
@@ -715,15 +702,7 @@ describe("ToolBase", () => {
         });
 
         it("includes x-request-id in error log when execute() throws", async () => {
-            const errorTool = new ErrorTool({
-                name: ErrorTool.toolName,
-                category: ErrorTool.category,
-                operationType: ErrorTool.operationType,
-                session: mockSession,
-                telemetry: mockAtlasTelemetry,
-                elicitation: mockElicitation,
-                metrics: mockMetrics,
-            });
+            const errorTool = new ErrorTool({ server: mockServer });
 
             await errorTool["invoke"]({}, contextWithRequestId);
 
@@ -736,7 +715,7 @@ describe("ToolBase", () => {
             );
         });
 
-        it("omits x-request-id from log attributes when context has no requestInfo", async () => {
+        it("omits x-request-id from log attributes when context carries no headers", async () => {
             await testTool["invoke"]({ param1: "test" }, contextWithoutRequestId);
 
             for (const [payload] of (mockLogger.debug as Mock).mock.calls) {
@@ -750,18 +729,14 @@ describe("ToolBase", () => {
     describe("strict argument validation", () => {
         function registeredInputSchema(tool: ToolBase): { safeParse: (value: unknown) => { success: boolean } } {
             let inputSchema: unknown;
-            const mockServer = {
-                mcpServer: {
-                    registerTool: (
-                        _name: string,
-                        config: { inputSchema: unknown }
-                    ): { enabled: boolean; disable: () => void; enable: () => void } => {
-                        inputSchema = config.inputSchema;
-                        return { enabled: true, disable: vi.fn(), enable: vi.fn() };
-                    },
-                },
+            (mockServer.mcpServer as unknown as { registerTool: unknown }).registerTool = (
+                _name: string,
+                config: { inputSchema: unknown }
+            ): { enabled: boolean; disable: () => void; enable: () => void } => {
+                inputSchema = config.inputSchema;
+                return { enabled: true, disable: vi.fn(), enable: vi.fn() };
             };
-            tool.register(mockServer as unknown as CliServer);
+            tool.register();
             return inputSchema as { safeParse: (value: unknown) => { success: boolean } };
         }
 
@@ -775,15 +750,7 @@ describe("ToolBase", () => {
         });
 
         it("rejects unknown arguments for tools with no declared parameters", () => {
-            const noArgTool = new ErrorTool({
-                name: ErrorTool.toolName,
-                category: ErrorTool.category,
-                operationType: ErrorTool.operationType,
-                session: mockSession,
-                telemetry: mockAtlasTelemetry,
-                elicitation: mockElicitation,
-                metrics: mockMetrics,
-            });
+            const noArgTool = new ErrorTool({ server: mockServer });
             const schema = registeredInputSchema(noArgTool);
 
             expect(typeof schema.safeParse).toBe("function");
@@ -799,45 +766,23 @@ describe("ToolBase", () => {
 
         function register<T extends ToolBase>(tool: T): { inputSchema: CapturedSchema; outputSchema: unknown } {
             let captured: { inputSchema?: unknown; outputSchema?: unknown } = {};
-            const mockServer = {
-                mcpServer: {
-                    registerTool: (
-                        _name: string,
-                        config: { inputSchema: unknown; outputSchema?: unknown }
-                    ): { enabled: boolean; disable: () => void; enable: () => void } => {
-                        captured = config;
-                        return { enabled: true, disable: vi.fn(), enable: vi.fn() };
-                    },
-                },
+            (mockServer.mcpServer as unknown as { registerTool: unknown }).registerTool = (
+                _name: string,
+                config: { inputSchema: unknown; outputSchema?: unknown }
+            ): { enabled: boolean; disable: () => void; enable: () => void } => {
+                captured = config;
+                return { enabled: true, disable: vi.fn(), enable: vi.fn() };
             };
-            tool.register(mockServer as unknown as CliServer);
+            tool.register();
             return { inputSchema: captured.inputSchema as CapturedSchema, outputSchema: captured.outputSchema };
         }
 
         function newTestTool(): TestTool {
-            return new TestTool({
-                name: TestTool.toolName,
-                category: TestTool.category,
-                operationType: TestTool.operationType,
-                session: mockSession,
-                telemetry: mockAtlasTelemetry,
-                elicitation: mockElicitation,
-                uiRegistry: new UIRegistry(),
-                metrics: mockMetrics,
-            });
+            return new TestTool({ server: mockServer });
         }
 
         function newToolWithOutput(): TestToolWithOutputSchema {
-            return new TestToolWithOutputSchema({
-                name: TestToolWithOutputSchema.toolName,
-                category: TestToolWithOutputSchema.category,
-                operationType: TestToolWithOutputSchema.operationType,
-                session: mockSession,
-                telemetry: mockAtlasTelemetry,
-                elicitation: mockElicitation,
-                uiRegistry: new UIRegistry(),
-                metrics: mockMetrics,
-            });
+            return new TestToolWithOutputSchema({ server: mockServer });
         }
 
         it("reuses one input schema instance across registrations of the same tool", () => {
@@ -885,23 +830,12 @@ describe("ToolBase", () => {
 
 function createToolWithoutStructuredContent(
     previewFeatures: PreviewFeature[],
-    mockSession: ISession<IToolConfig>,
+    mockServer: TestServer,
     mockConfig: UserConfig,
     mockAtlasTelemetry: AtlasTelemetry,
     mockElicitation: Elicitation,
-    mockUIRegistry: UIRegistry,
-    mockMetrics: MockMetrics
+    mockUIRegistry: UIRegistry
 ): TestToolWithoutStructuredContent {
     mockConfig.previewFeatures = previewFeatures;
-    const constructorParams = {
-        name: TestToolWithoutStructuredContent.toolName,
-        category: TestToolWithoutStructuredContent.category,
-        operationType: TestToolWithoutStructuredContent.operationType,
-        session: mockSession,
-        telemetry: mockAtlasTelemetry,
-        elicitation: mockElicitation,
-        uiRegistry: mockUIRegistry,
-        metrics: mockMetrics,
-    };
-    return new TestToolWithoutStructuredContent(constructorParams);
+    return new TestToolWithoutStructuredContent({ server: { ...mockServer, uiRegistry: mockUIRegistry } });
 }

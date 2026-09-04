@@ -8,11 +8,14 @@ import {
     getSlowQueries,
 } from "./performanceAdvisorUtils.js";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import type { ToolRequest } from "@mongodb-js/mcp-types";
+import type { IAtlasConfig } from "../atlasTool.js";
 
 const context = {
+    server: {} as never,
     signal: new AbortController().signal,
-    requestInfo: { headers: { "x-request-id": "req-pa-1" } },
-};
+    headers: { "x-request-id": "req-pa-1" },
+} as unknown as ToolRequest<IAtlasConfig>;
 
 function makeApiClient(overrides: Partial<Record<string, ReturnType<typeof vi.fn>>>): ApiClient & {
     logger: { debug: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn> };

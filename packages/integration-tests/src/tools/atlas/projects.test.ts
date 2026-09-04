@@ -42,14 +42,14 @@ describeWithAtlas("projects", (integration) => {
     const projectsToCleanup: string[] = [];
 
     afterAll(async () => {
-        const session = integration.mcpServer().session;
-        assertApiClientIsAvailable(session);
-        const apiClient = session.apiClient;
+        const server = integration.mcpServer();
+        assertApiClientIsAvailable(server);
+        const apiClient = server.apiClient;
         const projects =
             (await apiClient.listGroups()).results?.filter((project) => projectsToCleanup.includes(project.name)) || [];
 
         for (const project of projects) {
-            await session.apiClient.deleteGroup({
+            await server.apiClient.deleteGroup({
                 params: {
                     path: {
                         groupId: project.id || "",
@@ -77,9 +77,9 @@ describeWithAtlas("projects", (integration) => {
             // Prefer a pinned org from the environment; only hit the API when it is not provided.
             let orgId = process.env.DEV_ATLAS_MCP_ORG_ID;
             if (!orgId) {
-                const session = integration.mcpServer().session;
-                assertApiClientIsAvailable(session);
-                const orgs = await session.apiClient.listOrgs();
+                const server = integration.mcpServer();
+                assertApiClientIsAvailable(server);
+                const orgs = await server.apiClient.listOrgs();
                 orgId = orgs.results?.[0]?.id;
             }
             expectDefined(orgId);
@@ -107,9 +107,9 @@ describeWithAtlas("projects", (integration) => {
             projName = `testProj-${new ObjectId().toString()}`;
             projectsToCleanup.push(projName);
 
-            const session = integration.mcpServer().session;
-            assertApiClientIsAvailable(session);
-            const apiClient = session.apiClient;
+            const server = integration.mcpServer();
+            assertApiClientIsAvailable(server);
+            const apiClient = server.apiClient;
             const orgs = await apiClient.listOrgs();
             orgId = (orgs.results && orgs.results[0]?.id) ?? "";
 

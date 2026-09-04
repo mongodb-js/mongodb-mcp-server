@@ -12,7 +12,7 @@ describeWithAtlas("orgs", (integration) => {
             });
 
             it("returns org names", async () => {
-                const session = integration.mcpServer().session;
+                const session = integration.mcpServer();
                 assertApiClientIsAvailable(session);
                 const atlasOrgs = await session.apiClient.listOrgs();
                 const expectedOrg = atlasOrgs.results?.find((org) => org.name === "MongoDB MCP Test");

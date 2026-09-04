@@ -3,8 +3,7 @@ import type { IntegrationTest } from "../../integrationHelpers.js";
 import { setupIntegrationTest, defaultTestConfig } from "../../integrationHelpers.js";
 import type { SuiteCollector } from "vitest";
 import { afterAll, beforeAll, describe, inject } from "vitest";
-import type { McpSession } from "@mongodb-js/mcp-cli";
-import { AllTools } from "mongodb-mcp-server";
+import { AllTools, type CliServer } from "mongodb-mcp-server";
 import type { StreamsWorkspaceFixture } from "./streamsWorkspace.js";
 import {
     createGroup,
@@ -20,6 +19,9 @@ import {
 export { randomId } from "./atlasProvisioning.js";
 
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;
+
+/** A CliServer narrowed to have a usable Atlas `ApiClient`. */
+export type AtlasTestServer = CliServer & { apiClient: ApiClient };
 
 export function describeWithAtlas(name: string, fn: IntegrationTestFunction): void {
     const describeFn =
@@ -99,7 +101,7 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
         let ipAddress: string = "";
 
         beforeAll(async () => {
-            const session = integration.mcpServer().session;
+            const session = integration.mcpServer();
             assertApiClientIsAvailable(session);
             const apiClient = session.apiClient;
 
@@ -125,7 +127,7 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
             if (!projectId) {
                 return;
             }
-            const session = integration.mcpServer().session;
+            const session = integration.mcpServer();
             assertApiClientIsAvailable(session);
             const apiClient = session.apiClient;
 
@@ -152,7 +154,7 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
 }
 
 export async function assertClusterIsAvailable(
-    session: McpSession,
+    session: CliServer,
     projectId: string,
     clusterName: string
 ): Promise<boolean> {
@@ -173,15 +175,15 @@ export async function assertClusterIsAvailable(
 }
 
 export function assertApiClientIsAvailable(
-    session: McpSession
-): asserts session is McpSession & { apiClient: ApiClient } {
+    session: CliServer
+): asserts session is CliServer & { apiClient: ApiClient } {
     if (!session.apiClient) {
         throw new Error("apiClient not available");
     }
 }
 
 export async function deleteCluster(
-    session: McpSession,
+    session: CliServer,
     projectId: string,
     clusterName: string,
     shouldWaitTillClusterIsDeleted: boolean = true
@@ -204,7 +206,7 @@ export async function deleteCluster(
 }
 
 export async function waitCluster(
-    session: McpSession,
+    session: CliServer,
     projectId: string,
     clusterName: string,
     check: (cluster: ClusterDescription20240805) => boolean | Promise<boolean>,
@@ -244,7 +246,7 @@ export function withCluster(integration: IntegrationTest, fn: ClusterTestFunctio
                     ],
                     terminationProtectionEnabled: false,
                 } as unknown as ClusterDescription20240805;
-                const session = integration.mcpServer().session;
+                const session = integration.mcpServer();
                 assertApiClientIsAvailable(session);
                 await session.apiClient.createCluster({
                     params: {
@@ -259,7 +261,7 @@ export function withCluster(integration: IntegrationTest, fn: ClusterTestFunctio
                 // to exceed 10 minutes), so allow up to 20 minutes (10s x 120); a hook
                 // timeout here would silently skip every test in the suite.
                 await waitCluster(
-                    integration.mcpServer().session,
+                    integration.mcpServer(),
                     projectId,
                     clusterName,
                     (cluster) => {
@@ -271,7 +273,7 @@ export function withCluster(integration: IntegrationTest, fn: ClusterTestFunctio
             }, 1_500_000);
 
             afterAll(async () => {
-                const session = integration.mcpServer().session;
+                const session = integration.mcpServer();
                 assertApiClientIsAvailable(session);
 
                 try {

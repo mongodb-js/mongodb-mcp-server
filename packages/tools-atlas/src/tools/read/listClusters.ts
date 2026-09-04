@@ -56,14 +56,14 @@ export class ListClustersTool extends AtlasToolBase {
 
     protected async execute(
         { projectId }: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        { request }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
         if (!projectId) {
-            const data = await this.apiClient.listClusterDetails(undefined, context);
+            const data = await this.server.apiClient.listClusterDetails(undefined, request);
 
             return this.formatAllClustersTable(data);
         } else {
-            const project = await this.apiClient.getGroup(
+            const project = await this.server.apiClient.getGroup(
                 {
                     params: {
                         path: {
@@ -71,7 +71,7 @@ export class ListClustersTool extends AtlasToolBase {
                         },
                     },
                 },
-                context
+                request
             );
 
             if (!project?.id) {
@@ -79,7 +79,7 @@ export class ListClustersTool extends AtlasToolBase {
             }
 
             const [clustersResult, flexClustersResult] = await Promise.allSettled([
-                this.apiClient.listClusters(
+                this.server.apiClient.listClusters(
                     {
                         params: {
                             path: {
@@ -87,9 +87,9 @@ export class ListClustersTool extends AtlasToolBase {
                             },
                         },
                     },
-                    context
+                    request
                 ),
-                this.apiClient.listFlexClusters(
+                this.server.apiClient.listFlexClusters(
                     {
                         params: {
                             path: {
@@ -97,7 +97,7 @@ export class ListClustersTool extends AtlasToolBase {
                             },
                         },
                     },
-                    context
+                    request
                 ),
             ]);
 

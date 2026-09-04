@@ -1,10 +1,10 @@
 import { ReactiveResource, formatUntrustedData } from "@mongodb-js/mcp-core";
-import type { ITelemetry } from "@mongodb-js/mcp-types";
 import { connectCapableTools, summarizeConnection } from "@mongodb-js/mcp-tools-mongodb";
-import type { McpSession, CliServer } from "@mongodb-js/mcp-cli";
+import type { CliServer } from "@mongodb-js/mcp-cli";
+import type { TransportRequestContext } from "@mongodb-js/mcp-types";
 
-export class DebugResource extends ReactiveResource<undefined, readonly [], McpSession, CliServer> {
-    constructor(session: McpSession, telemetry: ITelemetry) {
+export class DebugResource extends ReactiveResource<undefined, CliServer> {
+    constructor({ server, transportRequest }: { server: CliServer; transportRequest?: TransportRequestContext }) {
         super({
             resourceConfiguration: {
                 name: "debug-mongodb",
@@ -16,17 +16,16 @@ export class DebugResource extends ReactiveResource<undefined, readonly [], McpS
             },
             options: {
                 initial: undefined,
-                events: [],
             },
-            session,
-            telemetry,
+            server,
+            transportRequest,
         });
     }
 
     async toOutput(): Promise<string> {
-        const entries = await this.session.connectionRegistry.find(() => true);
+        const entries = await this.server.connectionRegistry.find(() => true);
         if (entries.length === 0) {
-            const connectToolNames = connectCapableTools(this.server?.tools ?? [])
+            const connectToolNames = connectCapableTools(this.server.tools)
                 .map((tool) => `"${tool.name}"`)
                 .join(", ");
             if (!connectToolNames) {
@@ -40,7 +39,7 @@ export class DebugResource extends ReactiveResource<undefined, readonly [], McpS
             const summary = summarizeConnection(entry);
             let line = `- "${summary.connectionId}" (${summary.state}): ${summary.description}`;
             if (summary.state === "connected") {
-                const searchIndexesSupported = await entry.isSearchSupported(this.session.logger);
+                const searchIndexesSupported = await entry.isSearchSupported(this.server.logger);
                 line += searchIndexesSupported
                     ? " Search indexes are supported."
                     : " Search indexes are not supported.";

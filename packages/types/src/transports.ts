@@ -12,18 +12,19 @@ export type HttpServerOptions = {
     headers?: Record<string, string>;
     /** Response type: 'sse' for Server-Sent Events, 'json' for JSON responses */
     responseType?: "sse" | "json";
-};
-
-/**
- * Options for session management.
- */
-export type SessionManagementOptions = {
-    /** Idle timeout in milliseconds */
-    idleTimeoutMs: number;
-    /** Notification timeout in milliseconds */
-    notificationTimeoutMs: number;
-    /** Whether to allow externally managed sessions */
-    externallyManagedSessions: boolean;
+    /**
+     * The HTTP entry's auth mode (required — there is no implicit default so a
+     * deployment's posture is always explicit):
+     *
+     * - `"authenticated"`: every request must carry a verified identity (hosts
+     *   inject it via `req.auth`, which the node adapter forwards as the
+     *   handler's authInfo; the server never authenticates on its own).
+     *   Unauthenticated requests are rejected with 401 and the request
+     *   context's authInfo is always `{ mode: "authenticated", state }`.
+     * - `"unauthenticated"`: authInfo carries whatever the host provides,
+     *   defaulting to `{ mode: "unauthenticated" }`.
+     */
+    authMode: "authenticated" | "unauthenticated";
 };
 
 /**

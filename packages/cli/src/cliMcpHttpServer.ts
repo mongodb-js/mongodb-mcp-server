@@ -1,39 +1,34 @@
 import { MCPHttpServer, StreamableHttpRunner } from "@mongodb-js/mcp-http-runners";
-import { SessionStore } from "@mongodb-js/mcp-core";
-import type { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
-import type { HttpServerOptions, SessionManagementOptions } from "@mongodb-js/mcp-types";
+import type { HttpServerOptions } from "@mongodb-js/mcp-types";
 import type { TransportRequestContext } from "@mongodb-js/mcp-types";
 import type { CliServer } from "./cliServer.js";
-import { createServerFromConfig, type SharedServerServices } from "./createServerServices.js";
+import { createServerFromConfig, closeSharedServices, type SharedServerServices } from "./createServerServices.js";
 import { applyConfigOverrides } from "./config/configOverrides.js";
 
 export type CliMcpHttpServerOptions = {
     http: HttpServerOptions;
-    session: SessionManagementOptions;
 };
 
 /**
- * HTTP server that creates a fresh {@link CliServer} per session, applying
+ * HTTP server that creates a fresh {@link CliServer} per request, applying
  * request-level config overrides (`applyConfigOverrides`). App-level
- * infrastructure comes from {@link SharedServerServices}.
+ * infrastructure comes from {@link SharedServerServices} and never carries per-client
+ * state: no sessions, no per-request transports held in memory.
  */
 export class CliMcpHttpServer extends MCPHttpServer<CliServer> {
     private readonly sharedServices: SharedServerServices;
 
     constructor({
         sharedServices,
-        sessionStore,
         options,
     }: {
         sharedServices: SharedServerServices;
-        sessionStore: SessionStore<NodeStreamableHTTPServerTransport>;
         options: CliMcpHttpServerOptions;
     }) {
         super({
             options,
             logger: sharedServices.logger,
             metrics: sharedServices.metrics,
-            sessionStore,
         });
         this.sharedServices = sharedServices;
     }
@@ -41,38 +36,32 @@ export class CliMcpHttpServer extends MCPHttpServer<CliServer> {
     protected override async createServerForRequest(request: TransportRequestContext): Promise<CliServer> {
         const config = applyConfigOverrides({ baseConfig: this.sharedServices.config, request });
 
-        return Promise.resolve(createServerFromConfig({ config, sharedServices: this.sharedServices }));
+        return Promise.resolve(createServerFromConfig({ config, sharedServices: this.sharedServices, request }));
+    }
+
+    /** Stops the HTTP server and releases app-level services. */
+    public override async stop(): Promise<void> {
+        await super.stop();
+        await closeSharedServices(this.sharedServices);
     }
 }
 
-/** Creates the HTTP transport runner with a {@link CliMcpHttpServer} and shared infrastructure. */
+/** Creates the HTTP transport runner with a {@link CliMcpHttpServer} and app-level services. */
 export function createHttpTransportRunnerFromConfig(sharedServices: SharedServerServices): StreamableHttpRunner {
-    const { config, logger, metrics, monitoringServer } = sharedServices;
-
-    const sessionStore = new SessionStore<NodeStreamableHTTPServerTransport>({
-        options: {
-            idleTimeoutMS: config.idleTimeoutMs,
-            notificationTimeoutMS: config.notificationTimeoutMs,
-            maxSessions: config.maxSessions,
-        },
-        logger,
-        metrics,
-    });
+    const { config, logger, monitoringServer } = sharedServices;
 
     const mcpHttpServer = new CliMcpHttpServer({
         sharedServices,
-        sessionStore,
         options: {
             http: {
                 host: config.httpHost,
                 port: config.httpPort,
                 responseType: config.httpResponseType,
                 headers: config.httpHeaders,
-            },
-            session: {
-                externallyManagedSessions: config.externallyManagedSessions,
-                idleTimeoutMs: config.idleTimeoutMs,
-                notificationTimeoutMs: config.notificationTimeoutMs,
+                // The CLI runner is unauthenticated by default; embedders who
+                // want enforced authenticated mode construct the HTTP server
+                // with authMode: "authenticated" themselves.
+                authMode: "unauthenticated",
             },
         },
     });

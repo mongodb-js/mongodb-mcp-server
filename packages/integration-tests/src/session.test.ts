@@ -1,6 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { Session } from "@mongodb-js/mcp-cli";
-import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
+import { describe, expect, it } from "vitest";
+import { CliServer } from "@mongodb-js/mcp-cli";
+import { McpServer } from "@modelcontextprotocol/server";
+import { CompositeLogger, Keychain, NoopTelemetry } from "@mongodb-js/mcp-core";
+import { Elicitation } from "@mongodb-js/mcp-core";
 import {
     connectionErrorHandler,
     DeviceId,
@@ -11,18 +13,22 @@ import {
     type ConnectionManager,
 } from "@mongodb-js/mcp-tools-mongodb";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
-import { defaultTestConfig } from "./integrationHelpers.js";
+import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+import { createTestApiClient, defaultTestConfig } from "./integrationHelpers.js";
+import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 
-describe("Session", () => {
-    let session: Session;
-    let exportsManager: ExportsManager;
-    let connectionRegistry: ConnectionRegistry;
-    let apiClientCloseMock: ReturnType<typeof vi.fn<() => Promise<void>>>;
-
-    beforeEach(() => {
+describe("CliServer construction (individually-injected services)", () => {
+    const createCliServer = (): {
+        mcpServer: CliServer;
+        logger: CompositeLogger;
+        keychain: Keychain;
+        connectionRegistry: ConnectionRegistry;
+        exportsManager: ExportsManager;
+        apiClient: ApiClient;
+    } => {
         const logger = new CompositeLogger();
-
-        exportsManager = ExportsManager.init({
+        const keychain = new Keychain();
+        const exportsManager = ExportsManager.init({
             options: {
                 exportsPath: defaultTestConfig.exportsPath,
                 exportTimeoutMs: defaultTestConfig.exportTimeoutMs,
@@ -35,95 +41,83 @@ describe("Session", () => {
                 return new FakeConnectionManager();
             }
         }
-        connectionRegistry = new TestStore({
+        const connectionRegistry = new TestStore({
             options: defaultTestConfig,
             logger,
             deviceId: DeviceId.create(logger),
         }).view();
-        apiClientCloseMock = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
-
-        session = new Session({
+        const apiClient = createTestApiClient({
+            baseUrl: defaultTestConfig.apiBaseUrl,
+            serverMetadata: { mcpServerName: "test", version: "1" },
             logger,
-            exportsManager,
-            connectionRegistry,
-            keychain: new Keychain(),
-            connectionErrorHandler,
-            apiClient: { close: apiClientCloseMock } as unknown as ApiClient,
-            config: defaultTestConfig,
+            clientId: "test",
+            clientSecret: "test",
         });
-    });
+
+        const mcpServer = new CliServer({
+            config: defaultTestConfig,
+            logger,
+            keychain,
+            connectionRegistry,
+            exportsManager,
+            apiClient,
+            connectionErrorHandler,
+            mcpServer: new McpServer({ name: "test", version: "1.0" }),
+            telemetry: new NoopTelemetry() as unknown as AtlasTelemetry,
+            elicitation: new Elicitation({ server: {} as never }),
+            metrics: new MockMetrics(),
+            serverMetadata: {
+                mcpServerName: "test-server",
+                version: "1.0",
+                engines: {
+                    node: "20.0.0",
+                },
+            },
+        });
+
+        return { mcpServer, logger, keychain, connectionRegistry, exportsManager, apiClient };
+    };
 
     describe("construction", () => {
-        it("generates a unique sessionId", () => {
-            const other = new Session({
-                logger: session.logger,
-                exportsManager,
-                connectionRegistry,
-                keychain: new Keychain(),
-                connectionErrorHandler,
-                apiClient: { close: vi.fn() } as unknown as ApiClient,
+        it("exposes the injected service references as discrete fields", () => {
+            const { mcpServer, logger, keychain, connectionRegistry, exportsManager, apiClient } = createCliServer();
+
+            expect(mcpServer.config).toBe(defaultTestConfig);
+            expect(mcpServer.logger).toBe(logger);
+            expect(mcpServer.keychain).toBe(keychain);
+            expect(mcpServer.connectionRegistry).toBe(connectionRegistry);
+            expect(mcpServer.exportsManager).toBe(exportsManager);
+            expect(mcpServer.apiClient).toBe(apiClient);
+            expect(mcpServer.connectionErrorHandler).toBe(connectionErrorHandler);
+        });
+
+        it("shares the injected connection registry identity across server instances", () => {
+            const { mcpServer, connectionRegistry, logger, keychain, exportsManager, apiClient } = createCliServer();
+
+            const other = new CliServer({
                 config: defaultTestConfig,
+                logger,
+                keychain,
+                connectionRegistry,
+                exportsManager,
+                apiClient,
+                connectionErrorHandler,
+                mcpServer: new McpServer({ name: "test", version: "1.0" }),
+                telemetry: new NoopTelemetry() as unknown as AtlasTelemetry,
+                elicitation: new Elicitation({ server: {} as never }),
+                metrics: new MockMetrics(),
+                serverMetadata: {
+                    mcpServerName: "test-server",
+                    version: "1.0",
+                    engines: {
+                        node: "20.0.0",
+                    },
+                },
             });
 
-            expect(session.sessionId).toMatch(/^[0-9a-f]{24}$/);
-            expect(other.sessionId).not.toBe(session.sessionId);
-        });
-
-        it("exposes the shared connection registry", () => {
-            expect(session.connectionRegistry).toBe(connectionRegistry);
-        });
-    });
-
-    describe("setMcpClient", () => {
-        it("stores the client information", () => {
-            session.setMcpClient({ name: "test-client", version: "1.2.3", title: "Test Client" });
-
-            expect(session.mcpClient).toEqual({ name: "test-client", version: "1.2.3", title: "Test Client" });
-        });
-
-        it("defaults missing fields to 'unknown'", () => {
-            session.setMcpClient({ name: "test-client", version: "" });
-
-            expect(session.mcpClient).toEqual({ name: "test-client", version: "unknown", title: "unknown" });
-        });
-
-        it("defaults everything to 'unknown' when no client info is provided", () => {
-            session.setMcpClient(undefined);
-
-            expect(session.mcpClient).toEqual({ name: "unknown", version: "unknown", title: "unknown" });
-        });
-    });
-
-    describe("close", () => {
-        it("closes the api client and the exports manager and emits the close event", async () => {
-            const exportsManagerCloseSpy = vi.spyOn(exportsManager, "close");
-            const closeListener = vi.fn();
-            session.on("close", closeListener);
-
-            await session.close();
-
-            expect(apiClientCloseMock).toHaveBeenCalledOnce();
-            expect(exportsManagerCloseSpy).toHaveBeenCalledOnce();
-            expect(closeListener).toHaveBeenCalledOnce();
-        });
-
-        it("closes the connection registry before the api client", async () => {
-            const callOrder: string[] = [];
-            const registryCloseSpy = vi.spyOn(connectionRegistry, "close").mockImplementation(() => {
-                callOrder.push("registry");
-                return Promise.resolve();
-            });
-            apiClientCloseMock.mockImplementation(() => {
-                callOrder.push("apiClient");
-                return Promise.resolve();
-            });
-
-            await session.close();
-
-            expect(registryCloseSpy).toHaveBeenCalledOnce();
-            // Revoking Atlas entries deletes their temp users through the API
-            // client, so connections must close while the client still works.
-            expect(callOrder).toEqual(["registry", "apiClient"]);
+            expect(mcpServer.connectionRegistry).toBe(connectionRegistry);
+            expect(other.connectionRegistry).toBe(connectionRegistry);
+            expect(other.connectionRegistry).toBe(mcpServer.connectionRegistry);
         });
     });
 });

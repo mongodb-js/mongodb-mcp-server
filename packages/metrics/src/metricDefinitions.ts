@@ -1,4 +1,4 @@
-import { Counter, Gauge, Histogram } from "prom-client";
+import { Histogram } from "prom-client";
 import type { DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 import type { PrometheusMetricDefinitions } from "./types.js";
 
@@ -17,22 +17,6 @@ export function createDefaultMetrics() {
             help: "Duration of tool executions in seconds",
             labelNames: ["tool_name", "category", "status", "operation_type", "error_type"] as const,
             buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 2.5, 5, 10],
-            registers: [],
-        }),
-        sessionCreated: new Counter({
-            name: "mcp_session_created",
-            help: "Number of created sessions in a pod's lifetime",
-            registers: [],
-        }),
-        sessionClosed: new Counter({
-            name: "mcp_session_closed",
-            help: "Number of closed sessions in a pod's lifetime",
-            labelNames: ["reason"] as const,
-            registers: [],
-        }),
-        sessionsActive: new Gauge({
-            name: "mcp_active_sessions",
-            help: "Sessions currently held in the pod's session store.",
             registers: [],
         }),
     } as const satisfies DefaultMetricDefinitions & PrometheusMetricDefinitions;

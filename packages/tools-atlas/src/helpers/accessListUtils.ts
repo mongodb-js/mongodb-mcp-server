@@ -86,7 +86,7 @@ export async function ensureCurrentIpInAccessList(
             id: LogId.atlasIpAccessListAddFailure,
             context: "accessListUtils",
             message: `Skipping IP access list setup for project ${projectId}: this deployment does not support current IP detection.`,
-            attributes: { ...requestIdAttr(context?.requestInfo?.headers) },
+            attributes: { ...requestIdAttr(context?.headers) },
         });
 
         return "skipped";
@@ -106,7 +106,7 @@ export async function ensureCurrentIpInAccessList(
             id: LogId.atlasIpAccessListAdded,
             context: "accessListUtils",
             message: `IP access list created: ${JSON.stringify(entry)}`,
-            attributes: { ...requestIdAttr(context?.requestInfo?.headers) },
+            attributes: { ...requestIdAttr(context?.headers) },
         });
         return "added";
     } catch (err) {
@@ -116,7 +116,7 @@ export async function ensureCurrentIpInAccessList(
                 id: LogId.atlasIpAccessListAdded,
                 context: "accessListUtils",
                 message: `IP address ${entry.ipAddress} is already present in the access list for project ${projectId}.`,
-                attributes: { ...requestIdAttr(context?.requestInfo?.headers) },
+                attributes: { ...requestIdAttr(context?.headers) },
             });
 
             return "already-present";
@@ -126,7 +126,7 @@ export async function ensureCurrentIpInAccessList(
             id: LogId.atlasIpAccessListAddFailure,
             context: "accessListUtils",
             message: `Error adding IP access list: ${err instanceof Error ? err.message : String(err)}`,
-            attributes: { ...requestIdAttr(context?.requestInfo?.headers) },
+            attributes: { ...requestIdAttr(context?.headers) },
         });
     }
 
