@@ -44,6 +44,7 @@ export interface Cluster {
     provider?: string;
     region?: string;
     paused: boolean;
+    clusterId?: string;
     state?: "IDLE" | "CREATING" | "UPDATING" | "DELETING" | "REPAIRING";
     mongoDBVersion?: string;
     connectionStrings?: ClusterConnectionStrings;
@@ -53,6 +54,7 @@ export interface Cluster {
 export function formatFlexCluster(cluster: FlexClusterDescription20241113): Cluster {
     return {
         name: cluster.name,
+        clusterId: cluster.id,
         instanceType: "FLEX",
         instanceSize: undefined,
         provider: cluster.providerSettings?.backingProviderName,
@@ -105,6 +107,7 @@ export function formatCluster(cluster: ClusterDescription20240805): Cluster {
 
     return {
         name: cluster.name,
+        clusterId: cluster.id,
         instanceType: clusterInstanceType,
         instanceSize: clusterInstanceType === "DEDICATED" ? instanceSize : undefined,
         provider,

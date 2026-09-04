@@ -11,6 +11,7 @@ import type { AtlasToolServer } from "../../atlasTool.js";
 const projectId = "507f1f77bcf86cd799439011";
 
 const freeClusterApiResponse = {
+    id: "free-cluster-id",
     name: "free-cluster",
     paused: false,
     stateName: "IDLE",
@@ -31,6 +32,7 @@ const freeClusterApiResponse = {
 };
 
 const flexClusterApiResponse = {
+    id: "flex-cluster-id",
     name: "flex-cluster",
     stateName: "IDLE",
     mongoDBVersion: "8.0",
@@ -109,6 +111,10 @@ describe("ListClustersTool", () => {
             const [description, untrusted] = result.content.map((c) => (c as { text: string }).text);
             expect(description).not.toContain("My Project");
             expect(untrusted).toContain("My Project");
+            expect(result.structuredContent?.clusters).toEqual([
+                expect.objectContaining({ name: "free-cluster", clusterId: "free-cluster-id" }),
+                expect.objectContaining({ name: "flex-cluster", clusterId: "flex-cluster-id" }),
+            ]);
         });
 
         it("calls getGroup, listClusters, and listFlexClusters", async () => {
@@ -185,6 +191,7 @@ describe("ListClustersTool", () => {
                     clusters: [
                         {
                             name: "free-cluster",
+                            clusterId: "free-cluster-id",
                             instanceType: "FREE",
                             instanceSize: undefined,
                             provider: "AWS",

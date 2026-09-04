@@ -991,8 +991,10 @@ export abstract class ToolBase<
             metadata.connection_host_type = connectionState.connectionStringInfo.hostType;
         }
 
-        if (connectionState.connectedAtlasCluster?.projectId) {
+        if (connectionState.connectedAtlasCluster) {
             metadata.project_id = connectionState.connectedAtlasCluster.projectId;
+            metadata.cluster_name = connectionState.connectedAtlasCluster.clusterName;
+            metadata.cluster_id = connectionState.connectedAtlasCluster.clusterId;
         }
 
         return metadata;
