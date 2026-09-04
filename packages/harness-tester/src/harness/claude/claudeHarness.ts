@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { TuiTest, type Backend } from "@microsoft/tui-test";
-import { ClaudeHarnessConfig, buildClaudeEnv, seedClaudeHome } from "./claudeConfig.js";
+import { ClaudeHarnessConfig, buildClaudeEnv, resolveClaudeModel, seedClaudeHome } from "./claudeConfig.js";
 import { resolveBackend } from "../shared.js";
 import { HarnessLogger } from "../logger.js";
 import { ClaudeTuiSession, type ClaudeState } from "./claudeSession.js";
@@ -79,7 +79,9 @@ export class ClaudeTuiHarness implements AgentHarness {
             backend: this.backend,
             timeouts: { ready: 60_000, text: 60_000, idle: 60_000 },
         });
-        await terminal.run(this.getBinaryPath(), ["--mcp-config", mcpConfigPath, "--strict-mcp-config"], {
+        // `--model` (plus `ANTHROPIC_MODEL` in the env) pins haiku: both outrank the
+        // org default (Opus) and override-user-selection per Claude Code docs.
+        await terminal.run(this.getBinaryPath(), ["--model", resolveClaudeModel(options), "--mcp-config", mcpConfigPath, "--strict-mcp-config"], {
             cwd: options.workDir,
             cols: this.cols,
             rows: this.rows,

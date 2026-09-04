@@ -2,6 +2,7 @@ import type { TuiTest } from "@microsoft/tui-test";
 import { parseClaudeTurn } from "./parseClaudeToolCalls.js";
 import { TuiSessionBase, type TuiState } from "../tuiSession.js";
 import type { AgentHarnessOptions, ToolCallRecord } from "../types.js";
+import { sleep } from "../shared.js";
 
 export type ClaudeState = TuiState;
 
@@ -41,6 +42,19 @@ export class ClaudeTuiSession extends TuiSessionBase {
         // contains `❯`, so a substring match would report idle too early — that prompt
         // echo is exactly the case that must NOT count as composition idle.
         return text.split("\n").some((l) => l.trim() === COMPOSER_IDLE_MARKER);
+    }
+
+    /**
+     * Claude renders the elicitation as a `→ to expand` dropdown field
+     * (Accept/Decline); expand it so the options are selectable.
+     */
+    protected override async sendChoice(choice: "confirm" | "decline"): Promise<void> {
+      // Claude presents a multi-field dropdown where you first expand using Right arrow to select the option.
+      await this.terminal.keyboard.press("Right");
+      if (choice == "decline") await this.terminal.keyboard.press("Down");
+      await this.terminal.keyboard.press("Enter");
+      await sleep(200);
+      await this.terminal.keyboard.press("Enter");
     }
 
     protected extractToolCalls(): ToolCallRecord[] {

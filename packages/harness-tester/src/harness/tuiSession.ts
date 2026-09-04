@@ -69,15 +69,19 @@ export abstract class TuiSessionBase implements AgentSession {
     }
 
     /**
-     * Answer a pending elicitation and run the turn to completion, returning the
-     * completed {@link AgentTurn}. `option` is the option label to send, e.g.
-     * "No, I do not confirm" or "Accept".
+     * Answer a pending elicitation (`confirm`/`decline`) and run the turn to
+     * completion, returning the completed {@link AgentTurn}.
      */
-    async chooseOption(option: string): Promise<AgentTurn> {
-        await this.terminal.type(option);
-        await this.terminal.keyboard.press("Enter");
+    async chooseOption(choice: "confirm" | "decline"): Promise<AgentTurn> {
+        await this.sendChoice(choice);
         return this.pollTurn(false);
     }
+
+    /**
+     * Submit `choice` in the confirmation prompt currently on screen. Each agent
+     * renders it with different labels/controls, so subclasses implement this.
+     */
+    protected abstract sendChoice(choice: "confirm" | "decline"): Promise<void>;
 
     /** Codex interposes its own tool-approval prompt before the server's elicitation. */
     protected isToolApproval(text: string): boolean {

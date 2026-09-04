@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { AgentTurn } from "@mongodb-js/harness-tester";
 import { useMcpAgent } from "./utils/useMcpAgent.js";
 import { describeHarness } from "./utils/describeHarness.js";
@@ -10,39 +10,35 @@ import { describeHarness } from "./utils/describeHarness.js";
  */
 describe("elicitation", () => {
     describeHarness(({ harness }) => {
-        const { mongoClient, dbName, buildOptions } = useMcpAgent({ harness });
+        const { mongoClient, buildOptions } = useMcpAgent({ harness });
 
-        async function dropDatabase(targetDb: string, choice: "confirm" | "decline"): Promise<AgentTurn> {
+        const targetDb = `test_elicitation_db`;
+        beforeEach(async () => {
             await mongoClient().db(targetDb).collection("c").insertOne({ seeded: true });
-            const session = await harness.start(buildOptions());
+        });
+
+        async function dropDatabase(choice: "confirm" | "decline"): Promise<AgentTurn> {
+            const session = await harness.start(buildOptions({ promptTimeoutMs: 30_000 }));
             try {
-                const turn = await session.prompt(`Use the "drop-database" tool to drop the database "${targetDb}".`);
-                // Send the literal option label the confirmation form showed.
-                const label =
-                    harness.name === "codex-tui"
-                        ? choice === "decline"
-                            ? "No, I do not confirm"
-                            : "Yes, I confirm"
-                        : choice === "decline"
-                          ? "Decline"
-                          : "Accept";
-                await session.chooseOption(label);
+                const turn = await session.prompt(
+                    `Use "drop-database" tool to drop the "${targetDb}" database. Do not ask questions, just do it.`
+                );
+                await session.chooseOption(choice);
                 return turn;
             } finally {
                 await session.dispose();
             }
         }
 
-        it("elicits confirmation for a confirmation-required tool", async () => {
-            const turn = await dropDatabase(`elicitation_${dbName}`, "decline");
+        it("elicits confirmation for a confirmation-required tool", { timeout: 30_000 }, async () => {
+            const turn = await dropDatabase("decline");
 
             expect(turn.state).toBe("elicitation");
             expect(turn.confirmation?.toLowerCase()).toContain("confirm");
         });
 
-        it("runs the tool when the elicitation is confirmed", async () => {
-            const targetDb = `elicitation_accept_${dbName}`;
-            const turn = await dropDatabase(targetDb, "confirm");
+        it("runs the tool when the elicitation is confirmed", { timeout: 30_000 }, async () => {
+            const turn = await dropDatabase("confirm");
 
             expect(turn.state).toBe("elicitation");
             expect(turn.confirmation?.toLowerCase()).toContain("confirm");

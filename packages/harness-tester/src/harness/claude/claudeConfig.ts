@@ -10,17 +10,22 @@ export const DEFAULT_CLAUDE_MODEL = "claude-haiku-4-5";
 /** Grove gateway Anthropic endpoint (no trailing /v1; claude appends it). */
 export const GROVE_ANTHROPIC_BASE_URL = "https://grove-gateway-prod.azure-api.net/grove-foundry-prod/anthropic";
 
+export function resolveClaudeModel(options: AgentHarnessOptions): string {
+    // Model priority: explicit `options.model` (CI override) > env override > default.
+    return options.model ?? process.env.AGENT_E2E_CLAUDE_MODEL ?? DEFAULT_CLAUDE_MODEL;
+}
+
 /** Env for the spawned claude process; the grove key is read live from `GROVE_API_KEY`, never written to config files. */
 export function buildClaudeEnv(options: AgentHarnessOptions): Record<string, string> {
     const groveApiKey = process.env.GROVE_API_KEY ?? "";
-    // Model priority: explicit `options.model` (CI override) > env override > default.
-    const model = options.model ?? process.env.AGENT_E2E_CLAUDE_MODEL ?? DEFAULT_CLAUDE_MODEL;
     return {
         CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1",
         ANTHROPIC_BASE_URL: GROVE_ANTHROPIC_BASE_URL,
         ANTHROPIC_AUTH_TOKEN: groveApiKey,
         ANTHROPIC_CUSTOM_HEADERS: `api-key: ${groveApiKey}`,
-        ANTHROPIC_MODEL: model,
+        // `ANTHROPIC_MODEL` and `--model` are the only model slots that win over the
+        // org default (Opus) even when the org sets override-user-selection; pin haiku.
+        ANTHROPIC_MODEL: resolveClaudeModel(options),
     };
 }
 
