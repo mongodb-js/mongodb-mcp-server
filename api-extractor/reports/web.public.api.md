@@ -200,13 +200,11 @@ export interface ApiClientOptions {
 
 // @public
 export type AtlasClusterConnectionInfo = {
-    username: string;
     projectId: string;
     clusterName: string;
-    instanceType: "FREE" | "FLEX" | "DEDICATED";
-    provider?: string;
-    region?: string;
-    expiryDate: Date;
+    clusterId: string;
+    username?: string;
+    instanceType?: "FREE" | "FLEX" | "DEDICATED";
 };
 
 // @public (undocumented)
@@ -340,6 +338,8 @@ export interface ConnectionManagerEvents {
 export type ConnectionMetadata = AtlasMetadata & AtlasLocalToolMetadata & {
     connection_auth_type?: string;
     connection_host_type?: string;
+    cluster_name?: string;
+    cluster_id?: string;
     shared_tier_alerts_detected?: TelemetryBoolSet;
     shared_tier_tier?: SharedTierTier;
     shared_tier_alerts?: SharedTierMetricName[];
@@ -485,18 +485,17 @@ export type ElicitedInputResult = {
 };
 
 // @public
-export class EventCache {
+export class EventCache<T extends TelemetryBaseEvent = TelemetryBaseEvent> {
     constructor();
-    appendEvents(events: TelemetryBaseEvent[]): void;
+    appendEvents(events: T[]): void;
     getEvents(): {
         id: number;
-        event: TelemetryBaseEvent;
+        event: T;
     }[];
-    static getInstance(): EventCache;
-    processOldestBatch<T>(batchSize: number, processor: (events: TelemetryBaseEvent[]) => Promise<{
+    processOldestBatch<R>(batchSize: number, processor: (events: T[]) => Promise<{
         removeProcessed: boolean;
-        result: T;
-    }>): Promise<T | undefined>;
+        result: R;
+    }>): Promise<R | undefined>;
     removeEvents(ids: number[]): void;
     get size(): number;
 }
@@ -732,7 +731,7 @@ export type TelemetryConfig = {
     keychain: IKeychain;
     enabled: boolean;
     serverMetadata: ServerMetadata;
-    eventCache?: EventCache;
+    eventCache?: EventCache<TelemetryEvent<TelemetryCommonProperties>>;
 };
 
 // @public (undocumented)

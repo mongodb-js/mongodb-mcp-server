@@ -512,30 +512,7 @@ export function createDefaultMetrics(): {
 export type DefaultEventMap = Record<string, never[]>;
 
 // @public (undocumented)
-export const defaultParserOptions: {
-    config: string;
-    envPrefix: string;
-    configuration: {
-        "populate--": true;
-        "boolean-negation"?: boolean | undefined;
-        "camel-case-expansion"?: boolean | undefined;
-        "combine-arrays"?: boolean | undefined;
-        "dot-notation"?: boolean | undefined;
-        "duplicate-arguments-array"?: boolean | undefined;
-        "flatten-duplicate-arrays"?: boolean | undefined;
-        "greedy-arrays"?: boolean | undefined;
-        "nargs-eats-options"?: boolean | undefined;
-        "halt-at-non-option"?: boolean | undefined;
-        "negation-prefix"?: string | undefined;
-        "parse-numbers"?: boolean | undefined;
-        "parse-positional-numbers"?: boolean | undefined;
-        "set-placeholder-key"?: boolean | undefined;
-        "short-option-groups"?: boolean | undefined;
-        "strip-aliased"?: boolean | undefined;
-        "strip-dashed"?: boolean | undefined;
-        "unknown-options-as-args"?: boolean | undefined;
-    };
-};
+export const defaultParserOptions: ParserOptions;
 
 // @public (undocumented)
 export type DefaultPrometheusMetricDefinitions = ReturnType<typeof createDefaultMetrics>;
@@ -590,18 +567,17 @@ export const ErrorCodes: {
 };
 
 // @public
-export class EventCache {
+export class EventCache<T extends TelemetryBaseEvent = TelemetryBaseEvent> {
     constructor();
-    appendEvents(events: TelemetryBaseEvent[]): void;
+    appendEvents(events: T[]): void;
     getEvents(): {
         id: number;
-        event: TelemetryBaseEvent;
+        event: T;
     }[];
-    static getInstance(): EventCache;
-    processOldestBatch<T>(batchSize: number, processor: (events: TelemetryBaseEvent[]) => Promise<{
+    processOldestBatch<R>(batchSize: number, processor: (events: T[]) => Promise<{
         removeProcessed: boolean;
-        result: T;
-    }>): Promise<T | undefined>;
+        result: R;
+    }>): Promise<R | undefined>;
     removeEvents(ids: number[]): void;
     get size(): number;
 }
@@ -1045,7 +1021,7 @@ export type TelemetryConfig = {
     keychain: IKeychain;
     enabled: boolean;
     serverMetadata: ServerMetadata;
-    eventCache?: EventCache;
+    eventCache?: EventCache<TelemetryEvent<TelemetryCommonProperties>>;
 };
 
 // @public (undocumented)
@@ -1071,6 +1047,11 @@ export type TelemetryEvents = {
 export type ToolArgs<T extends ZodRawShape> = {
     [K in keyof T]: z.infer<T[K]>;
 };
+
+// @public
+export class ToolArgumentValidationError extends UserFacingError {
+    constructor(message: string);
+}
 
 // @public
 export abstract class ToolBase<TSession extends IToolSession = IToolSession, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
@@ -1321,6 +1302,11 @@ export const UserConfigSchema: z.ZodObject<{
     }>]>>;
     browser: z.ZodOptional<z.ZodUnion<readonly [z.ZodLiteral<false>, z.ZodString]>>;
 }, z.core.$strip>;
+
+// @public
+export class UserFacingError extends Error {
+    constructor(message: string);
+}
 
 // (No @packageDocumentation comment for this package)
 

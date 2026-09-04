@@ -58,6 +58,9 @@ export class ConnectClusterTool extends AtlasToolBase {
     ): Promise<{ connectionString: string; atlas: AtlasClusterConnectionInfo }> {
         const cluster = await inspectCluster(this.apiClient, projectId, clusterName, context);
 
+        if (cluster.clusterId === undefined) {
+            throw new Error(`Atlas did not return an id for cluster "${clusterName}" in project "${projectId}"`);
+        }
         if (cluster.connectionStrings === undefined) {
             throw new Error("Connection strings not available");
         }
@@ -108,10 +111,8 @@ export class ConnectClusterTool extends AtlasToolBase {
             username,
             projectId,
             clusterName,
+            clusterId: cluster.clusterId,
             instanceType: cluster.instanceType,
-            provider: cluster.provider,
-            region: cluster.region,
-            expiryDate,
         };
 
         const cn = new URL(connectionString);

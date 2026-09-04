@@ -1,9 +1,12 @@
 import { z } from "zod";
-import { type ToolArgs, type ToolResult } from "@mongodb-js/mcp-core";
+import { type ToolArgs, type ToolResult, ToolArgumentValidationError } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { AtlasToolBase } from "../../atlasTool.js";
 import { makeCurrentIpAccessListEntry, DEFAULT_ACCESS_LIST_COMMENT } from "../../helpers/accessListUtils.js";
 import { AtlasArgs, CommonArgs } from "../../args.js";
+
+// Atlas rejects access list entry comments longer than this.
+const ACCESS_LIST_COMMENT_MAX_LENGTH = 80;
 
 export const CreateAccessListArgs = {
     projectId: AtlasArgs.projectId().describe("Atlas project ID"),
@@ -11,9 +14,9 @@ export const CreateAccessListArgs = {
     cidrBlocks: z.array(AtlasArgs.cidrBlock()).describe("CIDR blocks to allow access from").optional(),
     currentIpAddress: z.boolean().describe("Add the current IP address").default(false),
     comment: CommonArgs.asciiOnlyString()
+        .max(ACCESS_LIST_COMMENT_MAX_LENGTH)
         .describe("Comment for the access list entries")
-        .default(DEFAULT_ACCESS_LIST_COMMENT)
-        .optional(),
+        .default(DEFAULT_ACCESS_LIST_COMMENT),
 };
 
 const CreateAccessListOutputSchema = {
@@ -51,10 +54,10 @@ export class CreateAccessListTool extends AtlasToolBase {
     ): Promise<ToolResult<typeof this.outputSchema>> {
         if (!ipAddresses?.length && !cidrBlocks?.length && !currentIpAddress) {
             if (!this.apiClient.supportsCurrentIpLookup) {
-                throw new Error("Either ipAddresses or cidrBlocks must be provided.");
+                throw new ToolArgumentValidationError("Either ipAddresses or cidrBlocks must be provided.");
             }
 
-            throw new Error("One of ipAddresses, cidrBlocks, currentIpAddress must be provided.");
+            throw new ToolArgumentValidationError("One of ipAddresses, cidrBlocks, currentIpAddress must be provided.");
         }
 
         const ipInputs = (ipAddresses || []).map((ipAddress) => ({
