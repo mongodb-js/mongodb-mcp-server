@@ -58,7 +58,9 @@ export abstract class StdioRunner implements ITransportRunner {
                 context: "server",
                 message: `Fatal error running server: ${error as string}`,
             });
-            process.exit(1);
+            // Reject so the top-level CLI handler owns flushing the loggers and
+            // exiting, keeping a single shutdown path for every transport.
+            return Promise.reject(error instanceof Error ? error : new Error(String(error)));
         }
         return Promise.resolve();
     }
