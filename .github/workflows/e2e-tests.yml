@@ -53,5 +53,4 @@ jobs:
           name: e2e-tests-test-report
           path: |
             coverage
-            tmp
           if-no-files-found: ignore

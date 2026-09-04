@@ -25,6 +25,16 @@ export class CodexTuiSession extends TuiSessionBase {
         return text.includes(COMPOSER_IDLE_MARKER);
     }
 
+    /**
+     * Codex renders the elicitation as a numbered list using the schema's verbatim
+     * enumNames ("Yes, I confirm"/"No, I do not confirm"), so type the label.
+     */
+    protected override async sendChoice(choice: "confirm" | "decline"): Promise<void> {
+        const label = choice === "decline" ? "No, I do not confirm" : "Yes, I confirm";
+        await this.terminal.type(label);
+        await this.terminal.keyboard.press("Enter");
+    }
+
     protected extractToolCalls(delta: string): ToolCallRecord[] {
         return parseTuiTranscript(delta).toolCalls;
     }
