@@ -21,7 +21,7 @@ describe("elicitation", () => {
             const session = await harness.start(buildOptions({ promptTimeoutMs: 30_000 }));
             try {
                 const turn = await session.prompt(
-                    `Use "drop-database" tool to drop the "${targetDb}" database. Do not ask questions, just do it.`
+                    `Use "drop-database" tool to drop the "${targetDb}" database. Do not ask questions or run any other tools, just do it.`
                 );
                 await session.chooseOption(choice);
                 return turn;
