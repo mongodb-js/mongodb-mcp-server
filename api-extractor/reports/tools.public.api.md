@@ -2867,6 +2867,30 @@ export class StreamsBuildTool extends StreamsToolBase {
             db: z.ZodString;
             coll: z.ZodString;
         }, z.core.$strip>>;
+        processorTier: z.ZodOptional<z.ZodEnum<{
+            SP50: "SP50";
+            SP30: "SP30";
+            SP10: "SP10";
+            SP5: "SP5";
+            SP2: "SP2";
+        }>>;
+        autoscaling: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+            enabled: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
+            minTier: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+                SP50: "SP50";
+                SP30: "SP30";
+                SP10: "SP10";
+                SP5: "SP5";
+                SP2: "SP2";
+            }>>>;
+            maxTier: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+                SP50: "SP50";
+                SP30: "SP30";
+                SP10: "SP10";
+                SP5: "SP5";
+                SP2: "SP2";
+            }>>>;
+        }, z.core.$strip>>>;
         autoStart: z.ZodOptional<z.ZodBoolean>;
         privateLinkConfig: z.ZodOptional<z.ZodObject<{
             provider: z.ZodEnum<{
@@ -2957,6 +2981,12 @@ export class StreamsDiscoverTool extends StreamsToolBase {
             name: z.ZodString;
             state: z.ZodOptional<z.ZodString>;
             tier: z.ZodOptional<z.ZodString>;
+            effectiveTier: z.ZodOptional<z.ZodString>;
+            autoscaling: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+                enabled: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
+                minTier: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+                maxTier: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+            }, z.core.$strip>>>;
         }, z.core.$strip>>>;
         workspace: z.ZodOptional<z.ZodObject<{
             name: z.ZodString;
@@ -2972,6 +3002,12 @@ export class StreamsDiscoverTool extends StreamsToolBase {
             FAILED: "FAILED";
         }>>;
         tier: z.ZodOptional<z.ZodString>;
+        effectiveTier: z.ZodOptional<z.ZodString>;
+        autoscaling: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+            enabled: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
+            minTier: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+            maxTier: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+        }, z.core.$strip>>>;
         stats: z.ZodOptional<z.ZodObject<{
             inputMessageCount: z.ZodOptional<z.ZodNumber>;
             outputMessageCount: z.ZodOptional<z.ZodNumber>;
@@ -3039,6 +3075,23 @@ export class StreamsManageTool extends StreamsToolBase {
             SP30: "SP30";
             SP50: "SP50";
         }>>;
+        autoscaling: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+            enabled: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
+            minTier: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+                SP50: "SP50";
+                SP30: "SP30";
+                SP10: "SP10";
+                SP5: "SP5";
+                SP2: "SP2";
+            }>>>;
+            maxTier: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+                SP50: "SP50";
+                SP30: "SP30";
+                SP10: "SP10";
+                SP5: "SP5";
+                SP2: "SP2";
+            }>>>;
+        }, z.core.$strip>>>;
         resumeFromCheckpoint: z.ZodOptional<z.ZodBoolean>;
         startAtOperationTime: z.ZodOptional<z.ZodString>;
         pipeline: z.ZodOptional<z.ZodArray<z.ZodRecord<z.ZodString, z.ZodUnknown>>>;
@@ -3138,7 +3191,25 @@ export class StreamsManageTool extends StreamsToolBase {
         }>>;
         region: z.ZodOptional<z.ZodString>;
         tier: z.ZodOptional<z.ZodString>;
+        effectiveTier: z.ZodOptional<z.ZodString>;
         maxTier: z.ZodOptional<z.ZodString>;
+        autoscaling: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+            enabled: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
+            minTier: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+                SP50: "SP50";
+                SP30: "SP30";
+                SP10: "SP10";
+                SP5: "SP5";
+                SP2: "SP2";
+            }>>>;
+            maxTier: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+                SP50: "SP50";
+                SP30: "SP30";
+                SP10: "SP10";
+                SP5: "SP5";
+                SP2: "SP2";
+            }>>>;
+        }, z.core.$strip>>>;
         peeringState: z.ZodOptional<z.ZodEnum<{
             ACCEPTED: "ACCEPTED";
             REJECTED: "REJECTED";

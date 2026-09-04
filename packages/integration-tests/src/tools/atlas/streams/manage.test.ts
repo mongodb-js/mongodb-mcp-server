@@ -48,6 +48,8 @@ describeWithStreams("atlas-streams-manage", (integration) => {
                         resource: "processor",
                         workspaceName: getWorkspaceName(),
                         processorName,
+                        processorTier: "SP10",
+                        autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" },
                         pipeline: [
                             { $source: { connectionName: "sample_stream_solar" } },
                             {
@@ -67,6 +69,25 @@ describeWithStreams("atlas-streams-manage", (integration) => {
                 expect(content).toContain(processorName);
                 expect(content).toContain("deployed");
             }, 60_000);
+
+            it("create processor — persists baseline tier and autoscaling", async () => {
+                const response = await integration.mcpClient().callTool({
+                    name: "atlas-streams-discover",
+                    arguments: {
+                        projectId: getProjectId(),
+                        workspaceName: getWorkspaceName(),
+                        action: "inspect-processor",
+                        resourceName: processorName,
+                    },
+                });
+                const content = getResponseContent(response.content);
+                expect(response.isError, `Unexpected error: ${content}`).toBeFalsy();
+                expectDefined(response.structuredContent);
+                expect(response.structuredContent).toMatchObject({
+                    tier: "SP10",
+                    autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" },
+                });
+            }, 30_000);
 
             it("start-processor — starts successfully", async () => {
                 const response = await integration.mcpClient().callTool({
@@ -98,6 +119,45 @@ describeWithStreams("atlas-streams-manage", (integration) => {
                 expect(content).toContain("stopped");
                 expectDefined(response.structuredContent);
                 expect(response.structuredContent).toEqual({ processorState: "STOPPED" });
+            }, 30_000);
+
+            it("modify-processor — updates and resets autoscaling", async () => {
+                const updateResponse = await integration.mcpClient().callTool({
+                    name: "atlas-streams-manage",
+                    arguments: {
+                        projectId: getProjectId(),
+                        workspaceName: getWorkspaceName(),
+                        action: "modify-processor",
+                        resourceName: processorName,
+                        tier: "SP5",
+                        autoscaling: { enabled: true, minTier: null, maxTier: "SP30" },
+                    },
+                });
+                const updateContent = getResponseContent(updateResponse.content);
+                expect(updateResponse.isError, `Unexpected error: ${updateContent}`).toBeFalsy();
+                expectDefined(updateResponse.structuredContent);
+                expect(updateResponse.structuredContent).toMatchObject({
+                    processorState: "STOPPED",
+                    tier: "SP5",
+                    autoscaling: { enabled: true, maxTier: "SP30" },
+                });
+
+                const disableResponse = await integration.mcpClient().callTool({
+                    name: "atlas-streams-manage",
+                    arguments: {
+                        projectId: getProjectId(),
+                        workspaceName: getWorkspaceName(),
+                        action: "modify-processor",
+                        resourceName: processorName,
+                        autoscaling: null,
+                    },
+                });
+                const disableContent = getResponseContent(disableResponse.content);
+                expect(disableResponse.isError, `Unexpected error: ${disableContent}`).toBeFalsy();
+                expect(disableResponse.structuredContent).toMatchObject({
+                    processorState: "STOPPED",
+                    autoscaling: null,
+                });
             }, 30_000);
 
             it("modify-processor — changes pipeline", async () => {

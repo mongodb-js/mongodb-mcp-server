@@ -3,15 +3,25 @@ import { StreamsToolBase } from "../../streams/streamsToolBase.js";
 import type { CallToolResult, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { formatUntrustedData, type ToolArgs } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
-import { StreamsArgs } from "../../streams/streamsArgs.js";
+import { StreamsArgs, StreamsTier } from "../../streams/streamsArgs.js";
 import { StreamsInvalidArgumentError } from "../../streams/errors.js";
+
+type StreamsTierValue = "SP2" | "SP5" | "SP10" | "SP30" | "SP50";
 
 type StreamsProcessorWithStats = {
     name?: string;
     state?: string;
-    tier?: string;
+    tier?: StreamsTierValue;
+    effectiveTier?: StreamsTierValue;
     stats?: Record<string, unknown>;
-    options?: { dlq?: { connectionName?: string; db?: string; coll?: string } };
+    options?: {
+        dlq?: { connectionName?: string; db?: string; coll?: string };
+        autoscaling?: {
+            enabled?: boolean | null;
+            minTier?: StreamsTierValue | null;
+            maxTier?: StreamsTierValue | null;
+        } | null;
+    };
     pipeline?: Record<string, unknown>[];
 };
 
@@ -75,10 +85,20 @@ function toConnectionInspect(data: Record<string, unknown>): ConnectionInspect {
     } as ConnectionInspect;
 }
 
+const AutoscalingSchema = z
+    .object({
+        enabled: z.boolean().nullable().optional(),
+        minTier: StreamsTier.nullable().optional(),
+        maxTier: StreamsTier.nullable().optional(),
+    })
+    .nullable();
+
 const ProcessorSummarySchema = z.object({
     name: z.string(),
     state: z.string().optional(),
-    tier: z.string().optional(),
+    tier: StreamsTier.optional(),
+    effectiveTier: StreamsTier.optional(),
+    autoscaling: AutoscalingSchema.optional(),
 });
 
 const ProcessorState = z.enum(["STARTED", "STOPPED", "CREATED", "FAILED"]);
@@ -153,7 +173,9 @@ export const DiscoverOutputSchema = z.object({
     processors: z.array(ProcessorSummarySchema).optional(),
     workspace: WorkspaceInspectConciseSchema.optional(),
     processorState: ProcessorState.optional(),
-    tier: z.string().optional(),
+    tier: StreamsTier.optional(),
+    effectiveTier: StreamsTier.optional(),
+    autoscaling: AutoscalingSchema.optional(),
     stats: ProcessorStatsSchema.optional(),
     dlq: DlqConfigSchema.optional(),
     pipeline: z.array(z.record(z.string(), z.unknown())).optional(),
@@ -177,6 +199,12 @@ function buildProcessorStructuredContent(
     }
     if (proc.tier !== undefined) {
         structuredContent.tier = proc.tier;
+    }
+    if (proc.effectiveTier !== undefined) {
+        structuredContent.effectiveTier = proc.effectiveTier;
+    }
+    if (proc.options?.autoscaling !== undefined) {
+        structuredContent.autoscaling = proc.options.autoscaling;
     }
     if (proc.stats && Object.keys(proc.stats).length > 0) {
         structuredContent.stats = {
@@ -536,6 +564,8 @@ export class StreamsDiscoverTool extends StreamsToolBase {
             name: p.name,
             state: p.state,
             tier: p.tier,
+            effectiveTier: p.effectiveTier,
+            autoscaling: p.options?.autoscaling,
         }));
         const processors = format === "concise" ? conciseProcessors : data.results;
 
@@ -598,8 +628,12 @@ export class StreamsDiscoverTool extends StreamsToolBase {
             Object.assign(structuredContent, buildProcessorStructuredContent(proc));
 
             sections.push(
-                `## Processor State\n- Name: ${proc.name}\n- State: ${proc.state}\n- Tier: ${proc.tier ?? "default"}`
+                `## Processor State\n- Name: ${proc.name}\n- State: ${proc.state}\n- Baseline Tier: ${proc.tier ?? "default"}\n- Effective Tier: ${proc.effectiveTier ?? proc.tier ?? "default"}`
             );
+
+            if (proc.options?.autoscaling !== undefined) {
+                sections.push(`## Autoscaling\n${JSON.stringify(proc.options.autoscaling, null, 2)}`);
+            }
 
             if (proc.stats && Object.keys(proc.stats).length > 0 && structuredContent.stats) {
                 const stats = structuredContent.stats;

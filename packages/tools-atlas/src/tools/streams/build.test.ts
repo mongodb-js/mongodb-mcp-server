@@ -201,6 +201,37 @@ describe("StreamsBuildTool", () => {
             });
         });
 
+        it("should create a processor with a baseline tier and autoscaling", async () => {
+            const pipeline = [
+                { $source: { connectionName: "src" } },
+                { $merge: { into: { connectionName: "sink", db: "db1", coll: "coll1" } } },
+            ];
+            mockApiClient.listStreamConnections!.mockResolvedValue({
+                results: [{ name: "src" }, { name: "sink" }],
+            });
+
+            await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "proc1",
+                pipeline,
+                processorTier: "SP10",
+                autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" },
+            });
+
+            expect(mockApiClient.createStreamProcessor).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: {
+                        name: "proc1",
+                        pipeline,
+                        tier: "SP10",
+                        options: { autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" } },
+                    },
+                }),
+                expect.anything()
+            );
+        });
+
         it("should throw when processorName is missing", async () => {
             await expect(
                 exec({

@@ -3,7 +3,7 @@ import { StreamsToolBase } from "../../streams/streamsToolBase.js";
 import type { CallToolResult, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { LogId, requestIdAttr, type ToolArgs } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
-import { ConnectionConfig, StreamsArgs } from "../../streams/streamsArgs.js";
+import { ConnectionConfig, StreamsArgs, StreamsAutoscaling, StreamsTier } from "../../streams/streamsArgs.js";
 import { StreamsInvalidArgumentError } from "../../streams/errors.js";
 
 const ManageAction = z.enum([
@@ -24,8 +24,10 @@ export const ManageOutputSchema = z.object({
     processorState: ProcessorState.optional().describe("Processor state after a lifecycle action"),
     connectionState: ConnectionState.optional().describe("Connection state after an update"),
     region: z.string().optional().describe("Confirmed workspace region after an update"),
-    tier: z.string().optional().describe("Confirmed workspace tier after an update"),
-    maxTier: z.string().optional().describe("Confirmed workspace max tier after an update"),
+    tier: StreamsTier.optional().describe("Confirmed workspace or processor baseline tier"),
+    effectiveTier: StreamsTier.optional().describe("Current effective processor tier"),
+    maxTier: StreamsTier.optional().describe("Confirmed workspace max tier after an update"),
+    autoscaling: StreamsAutoscaling.optional().describe("Confirmed processor autoscaling configuration"),
     peeringState: PeeringState.optional().describe("Outcome of a VPC peering accept or reject action"),
 });
 
@@ -50,7 +52,7 @@ export class StreamsManageTool extends StreamsToolBase {
             "Action to perform. One of: " +
                 "'start-processor' — begin or resume processing (requires resourceName). " +
                 "'stop-processor' — pause processing (requires resourceName). " +
-                "'modify-processor' — change pipeline, DLQ, or rename (requires resourceName and at least one of: pipeline, dlq, newName; processor must be stopped first). " +
+                "'modify-processor' — change pipeline, DLQ, name, baseline tier, or autoscaling (requires resourceName and at least one changed field; processor must be stopped first). " +
                 "'update-workspace' — change workspace tier or region. " +
                 "'update-connection' — update connection config (requires resourceName). " +
                 "'accept-peering' — accept a VPC peering request (requires peeringId, requesterAccountId, requesterVpcId). " +
@@ -62,14 +64,15 @@ export class StreamsManageTool extends StreamsToolBase {
             .describe("Processor or connection name. Required for processor and connection actions."),
 
         // start-processor options
-        tier: z
-            .enum(["SP2", "SP5", "SP10", "SP30", "SP50"])
-            .optional()
-            .describe(
-                "Override processing tier for this run. " +
-                    "Must not exceed the workspace's max tier. Use `atlas-streams-discover` action='inspect-workspace' to check. " +
-                    "Only for 'start-processor'."
-            ),
+        tier: StreamsTier.optional().describe(
+            "Processing tier. For 'start-processor', sets the baseline tier for this run. " +
+                "For 'modify-processor', updates the persisted baseline tier. Must not exceed the workspace maximum tier."
+        ),
+        autoscaling: StreamsAutoscaling.optional().describe(
+            "Autoscaling configuration for 'start-processor' or 'modify-processor'. " +
+                "Omit to preserve persisted settings. Set enabled=false or null, or set autoscaling=null, to disable and clear it. " +
+                "Omitted bounds preserve persisted values or use workspace defaults when first enabling."
+        ),
         resumeFromCheckpoint: z
             .boolean()
             .optional()
@@ -214,7 +217,10 @@ export class StreamsManageTool extends StreamsToolBase {
     private static mapUpdateWorkspaceStructuredContent(
         updated: {
             dataProcessRegion?: { cloudProvider?: string; region?: string };
-            streamConfig?: { tier?: string; maxTierSize?: string } | null;
+            streamConfig?: {
+                tier?: "SP2" | "SP5" | "SP10" | "SP30" | "SP50";
+                maxTierSize?: "SP2" | "SP5" | "SP10" | "SP30" | "SP50";
+            } | null;
         },
         options: { includeRegion: boolean; includeTier: boolean }
     ): ManageOutput {
@@ -287,12 +293,14 @@ export class StreamsManageTool extends StreamsToolBase {
 
         const hasStartOptions =
             args.tier !== undefined ||
+            args.autoscaling !== undefined ||
             args.resumeFromCheckpoint !== undefined ||
             args.startAtOperationTime !== undefined;
 
         if (hasStartOptions) {
             const startBody: Record<string, unknown> = {};
             if (args.tier !== undefined) startBody.tier = args.tier;
+            if (args.autoscaling !== undefined) startBody.autoscaling = args.autoscaling;
             if (args.resumeFromCheckpoint !== undefined) startBody.resumeFromCheckpoint = args.resumeFromCheckpoint;
             if (args.startAtOperationTime !== undefined) startBody.startAtOperationTime = args.startAtOperationTime;
 
@@ -413,27 +421,39 @@ export class StreamsManageTool extends StreamsToolBase {
         const body: Record<string, unknown> = {};
         if (args.pipeline) body.pipeline = args.pipeline;
         if (args.newName) body.name = args.newName;
-        if (args.dlq) body.options = { dlq: args.dlq };
+        if (args.tier) body.tier = args.tier;
+        const options = {
+            ...(args.dlq !== undefined && { dlq: args.dlq }),
+            ...(args.autoscaling !== undefined && { autoscaling: args.autoscaling }),
+        };
+        if (Object.keys(options).length > 0) body.options = options;
 
         if (Object.keys(body).length === 0) {
             return {
                 content: [
                     {
                         type: "text",
-                        text: "No modifications specified. Provide at least one of: pipeline, dlq, or newName.",
+                        text: "No modifications specified. Provide at least one of: pipeline, dlq, newName, tier, or autoscaling.",
                     },
                 ],
                 isError: true,
             };
         }
 
-        await this.apiClient.updateStreamProcessor(
+        const updated = await this.apiClient.updateStreamProcessor(
             {
                 params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
                 body: body,
             },
             context
         );
+
+        const structuredContent: ManageOutput = { processorState: "STOPPED" };
+        if (args.tier !== undefined && updated.tier !== undefined) structuredContent.tier = updated.tier;
+        if ((args.tier !== undefined || args.autoscaling !== undefined) && updated.effectiveTier !== undefined) {
+            structuredContent.effectiveTier = updated.effectiveTier;
+        }
+        if (args.autoscaling !== undefined) structuredContent.autoscaling = updated.options?.autoscaling ?? null;
 
         const changes = Object.keys(body).join(", ");
         return {
@@ -445,7 +465,7 @@ export class StreamsManageTool extends StreamsToolBase {
                         `Use action 'start-processor' to resume processing with the updated configuration.`,
                 },
             ],
-            structuredContent: { processorState: "STOPPED" },
+            structuredContent,
         };
     }
 

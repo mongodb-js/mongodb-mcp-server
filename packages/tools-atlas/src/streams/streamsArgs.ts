@@ -4,6 +4,18 @@ import { AtlasArgs } from "../args.js";
 const ALLOWED_STREAMS_NAME_REGEX = /^[a-zA-Z0-9_-]+$/;
 const ALLOWED_STREAMS_NAME_ERROR = "Name can only contain ASCII letters, numbers, hyphens, and underscores";
 
+type StreamsTierValues = {
+    SP50: "SP50";
+    SP30: "SP30";
+    SP10: "SP10";
+    SP5: "SP5";
+    SP2: "SP2";
+};
+
+export const StreamsTier: z.ZodEnum<StreamsTierValues> = z.enum(["SP2", "SP5", "SP10", "SP30", "SP50"]);
+
+const DBRoleType: z.ZodEnum<{ CUSTOM: "CUSTOM"; BUILT_IN: "BUILT_IN" }> = z.enum(["BUILT_IN", "CUSTOM"]);
+
 /** Typed schema for connectionConfig — all fields optional to support elicitation of partial configs. */
 export const ConnectionConfig = z
     .object({
@@ -47,7 +59,7 @@ export const ConnectionConfig = z
         dbRoleToExecute: z
             .object({
                 role: z.string().optional(),
-                type: z.enum(["BUILT_IN", "CUSTOM"]).optional(),
+                type: DBRoleType.optional(),
             })
             .optional()
             .describe("Database role. Defaults to {role: 'readWriteAnyDatabase', type: 'BUILT_IN'}."),
@@ -161,6 +173,22 @@ export const PrivateLinkConfig = z
             .describe("GCP Private Service Connect attachment URIs. Required for GCP CONFLUENT."),
     })
     .passthrough();
+
+export const StreamsAutoscaling = z
+    .object({
+        enabled: z
+            .boolean()
+            .nullable()
+            .optional()
+            .describe("Enable autoscaling. Explicit false or null disables autoscaling and clears its configuration."),
+        minTier: StreamsTier.nullable()
+            .optional()
+            .describe("Autoscaling floor. Null resets the floor to the workspace default tier."),
+        maxTier: StreamsTier.nullable()
+            .optional()
+            .describe("Autoscaling ceiling. Null resets the ceiling to the workspace maximum tier."),
+    })
+    .nullable();
 
 export const StreamsArgs = {
     workspaceName: (): z.ZodString =>
