@@ -11,7 +11,7 @@ const TYPE_TO_ENTER_DELAY_MS = 800;
 const IDLE_BAIL_GRACE_MS = 30_000;
 
 /** How long the not-working+not-idle state must persist before we treat it as an awaited confirmation. */
-const CONFIRMATION_PENDING_GRACE_MS = 6_000;
+const CONFIRMATION_PENDING_GRACE_MS = 1_000;
 
 /** Per-poll state shared by both agent TUI sessions. */
 export interface TuiState {
@@ -62,22 +62,14 @@ export abstract class TuiSessionBase implements AgentSession {
     }
 
     /**
-     * Select an option in a confirmation prompt (e.g. an MCP elicitation). The
-     * prompt is a multiple-choice list rendering either as a numbered list with
-     * "enter to submit" (codex) or as a clickable Accept/Decline form (claude),
-     * so we locate the option by label and pick the right interaction.
-     * Subclasses may override for agent-specific menus.
+     * Select "confirm" or "decline" in a confirmation prompt. Agents render the
+     * options differently (codex: numbered list; claude: clickable Accept/Decline).
      */
-    async chooseOption(option: string): Promise<void> {
-        const text = await this.terminal.text({ full: true });
-        const lines = text.split("\n");
-        // Locate the option: prefer the given label, else fall back to a decline
-        // keyword so one response works across agent renderings (codex's
-        // "No, I do not confirm" vs claude's "Decline").
-        const declineRe = /No, I do not confirm|Decline/i;
-        const target =
-            lines.find((l) => l.toLowerCase().includes(option.toLowerCase())) ?? lines.find((l) => declineRe.test(l));
-        const numbered = target?.match(/^\s*[›❯]?\s*(\d+)\.\s+(.+)$/);
+    async chooseOption(choice: "confirm" | "decline"): Promise<void> {
+        const lines = (await this.terminal.text({ full: true })).split("\n");
+        const re = choice === "decline" ? /No, I do not confirm|Decline/i : /Yes, I confirm|Accept/i;
+        const line = lines.find((l) => re.test(l));
+        const numbered = line?.match(/^\s*[›❯]?\s*(\d+)\.\s+(.+)$/);
         if (numbered) {
             // Cursor starts on option 1, so move (target - 1) rows down, then submit.
             for (let i = 1; i < Number(numbered[1]); i++) {
@@ -86,22 +78,18 @@ export abstract class TuiSessionBase implements AgentSession {
             await this.terminal.keyboard.press("Enter");
             return;
         }
-        // Clickable form (claude): click the decline option, then submit.
-        const clickText = target?.match(/(No, I do not confirm|Decline)/)?.[0] ?? option;
-        await this.terminal.mouse.click(null, null, { onText: clickText });
-        await this.terminal.keyboard.press("Enter");
+        const label = line?.match(re)?.[0];
+        if (label) {
+            await this.terminal.mouse.click(null, null, { onText: label });
+            await this.terminal.keyboard.press("Enter");
+        }
     }
 
-    /**
-     * Heuristic for an agent-native tool-permission prompt (e.g. codex's
-     * "Allow the ... MCP server to run tool") that precedes the server's
-     * elicitation. Approve it so the call reaches the server.
-     */
+    /** Codex interposes its own tool-approval prompt before the server's elicitation. */
     protected isToolApproval(text: string): boolean {
         return /Allow the .* MCP server to run tool/.test(text);
     }
 
-    /** Submit the default choice of a tool-permission prompt (codex's "1. Allow"). */
     protected async approveTool(): Promise<void> {
         await this.terminal.keyboard.press("Enter");
     }
@@ -150,11 +138,8 @@ export abstract class TuiSessionBase implements AgentSession {
             }
             prevDeltaLength = delta.length;
 
-            // Answer a mid-turn confirmation (e.g. an MCP elicitation prompt) or
-            // auto-approve an agent tool-permission prompt. The agent is waiting at
-            // a choice when it is no longer working but the composer is not idle;
-            // require that state to persist a couple of polls so we do not fire
-            // during the working→idle transition.
+            // Agent is awaiting input when not working and not idle; require that
+            // state to persist a couple of polls so we do not fire mid-transition.
             const onConfirmation = options?.onConfirmation;
             if (
                 onConfirmation &&
@@ -166,16 +151,12 @@ export abstract class TuiSessionBase implements AgentSession {
                 confirmationPendingSinceMs ??= state.elapsedMs;
                 if (state.elapsedMs - confirmationPendingSinceMs >= CONFIRMATION_PENDING_GRACE_MS) {
                     if (this.isToolApproval(viewport)) {
-                        // Agent-native tool approval (e.g. codex) precedes the MCP
-                        // elicitation; approve it so the call reaches the server.
-                        this.log.debug(`${this.label} approving tool call`);
                         await this.approveTool();
                         confirmationPendingSinceMs = undefined;
                         continue;
                     }
-                    this.log.debug(`${this.label} awaiting confirmation; selecting the chosen option`);
-                    const option = await onConfirmation({ text: viewport });
-                    await this.chooseOption(option);
+                    const choice = await onConfirmation({ text: viewport });
+                    await this.chooseOption(choice);
                     handledConfirmationAtLength = delta.length;
                     confirmationPendingSinceMs = undefined;
                     continue;
@@ -219,7 +200,7 @@ export abstract class TuiSessionBase implements AgentSession {
                 break;
             }
             lastError = "";
-            await sleep(2000);
+            await sleep(500);
         }
 
         const text = await this.transcriptText();

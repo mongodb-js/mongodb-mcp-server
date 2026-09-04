@@ -1,47 +1,48 @@
 import { describe, expect, it } from "vitest";
+import { CodexTuiHarness } from "@mongodb-js/harness-tester";
 import { useMcpAgent } from "./utils/useMcpAgent.js";
-import { describeHarness } from "./utils/describeHarness.js";
 
 /**
- * Elicitation (multi-round-trip confirmation) end-to-end: the server is
- * configured to require confirmation before confirmation-required tools run
- * (`confirmationRequiredTools`, default includes `drop-database`). We drive
- * the agent to call such a tool and answer the surfaced confirmation (decline)
- * through the harness, then assert the destructive tool did not run.
+ * Elicitation end-to-end against codex: the server requires confirmation before
+ * confirmation-required tools run (`confirmationRequiredTools` includes
+ * `drop-database`). We drive codex to call it and answer the confirmation.
  */
 describe("elicitation", () => {
-    describeHarness(({ harness }) => {
-        const { mongoClient, dbName, buildOptions } = useMcpAgent({ harness });
+    const { harness, mongoClient, dbName, buildOptions } = useMcpAgent({ harness: new CodexTuiHarness() });
 
-        it("elicits confirmation for a confirmation-required tool and does not run it when declined", async () => {
-            const targetDb = `elicitation_${dbName}`;
-            // Seed a database so the tool call has something deterministic to act on.
-            const seeded = mongoClient().db(targetDb).collection("c").insertOne({ seeded: true });
-            await seeded;
+    async function dropDatabase(targetDb: string, choice: "confirm" | "decline"): Promise<string[]> {
+        await mongoClient().db(targetDb).collection("c").insertOne({ seeded: true });
+        const confirmations: string[] = [];
+        const session = await harness.start(buildOptions());
+        try {
+            await session.prompt(`Use the "drop-database" tool to drop the database "${targetDb}".`, {
+                onConfirmation: ({ text }) => {
+                    confirmations.push(text);
+                    return choice;
+                },
+            });
+        } finally {
+            await session.dispose();
+        }
+        return confirmations;
+    }
 
-            const session = await harness.start(buildOptions());
-            const confirmations: string[] = [];
-            try {
-                const turn = await session.prompt(`Use the "drop-database" tool to drop the database "${targetDb}".`, {
-                    onConfirmation: ({ text }) => {
-                        confirmations.push(text);
-                        return "No, I do not confirm";
-                    },
-                });
+    it("elicits confirmation for a confirmation-required tool", async () => {
+        const confirmations = await dropDatabase(`elicitation_decline_${dbName}`, "decline");
 
-                if (process.env.AGENT_E2E_DEBUG) {
-                    // The tool call is not always recorded for an elicitation round-trip.
-                    console.log(`[elicitation] toolCalls=${JSON.stringify(turn.toolCalls)}`);
-                    console.log(`[elicitation] confirmations=${JSON.stringify(confirmations)}`);
-                    console.log(`[elicitation] reply:\n${turn.text}`);
-                }
+        expect(confirmations.length).toBeGreaterThan(0);
+        expect(confirmations[0]?.toLowerCase()).toContain("confirm");
+    });
 
-                // The server surfaced an elicitation confirmation to the agent.
-                expect(confirmations.length).toBeGreaterThan(0);
-                expect(confirmations[0]?.toLowerCase()).toContain("confirm");
-            } finally {
-                await session.dispose();
-            }
-        });
+    it("runs the tool when the elicitation is confirmed", async () => {
+        const targetDb = `elicitation_accept_${dbName}`;
+        const confirmations = await dropDatabase(targetDb, "confirm");
+
+        expect(confirmations.length).toBeGreaterThan(0);
+        expect(confirmations[0]?.toLowerCase()).toContain("confirm");
+
+        // Confirming executes the tool: the database is dropped.
+        const dbs = await mongoClient().db(targetDb).listCollections().toArray();
+        expect(dbs.length).toBe(0);
     });
 });
