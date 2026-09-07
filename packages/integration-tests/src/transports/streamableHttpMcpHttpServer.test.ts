@@ -118,20 +118,25 @@ describe("MCPHttpServer (streamable HTTP)", () => {
         });
     });
 
-    describe("stateless 2025-era requests", () => {
+    describe("2025-era requests (sessionful)", () => {
         beforeEach(async () => {
             ({ runner } = createStreamableHttpTestRunner(config));
             await runner.start();
         });
 
-        it("serves initialize with no session id via the stateless fallback", async () => {
+        it("serves initialize with no session id, issuing a session", async () => {
             const response = await sendHttpRequest({ method: "initialize" });
             expect(response.ok).toBe(true);
+            // Serving 2025-era traffic sessionfully issues a session id.
+            expect(response.headers.get("mcp-session-id")).toBeTruthy();
         });
 
-        it("serves tools/list with no session id via the stateless fallback", async () => {
+        it("requires a session id for a non-initialize request", async () => {
             const response = await sendHttpRequest({ method: "tools/list" });
-            expect(response.ok).toBe(true);
+            // 2025-era serving is sessionful, so a bare claim-less request
+            // without a session id is rejected rather than served statelessly.
+            expect(response.ok).toBe(false);
+            expect(response.status).toBe(400);
         });
 
         it("serves a full client session over HTTP", async () => {
@@ -141,12 +146,9 @@ describe("MCPHttpServer (streamable HTTP)", () => {
             expect(response.tools.length).toBeGreaterThan(0);
         });
 
-        it("ignores arbitrary mcp-session-id headers", async () => {
+        it("rejects an unknown mcp-session-id", async () => {
             const response = await sendHttpRequest({ method: "tools/list", sessionId: "arbitrary-session-id" });
-            expect(response.ok).toBe(true);
-
-            const response2 = await sendHttpRequest({ method: "initialize", sessionId: "arbitrary-session-id" });
-            expect(response2.ok).toBe(true);
+            expect(response.status).toBe(404);
         });
     });
 
