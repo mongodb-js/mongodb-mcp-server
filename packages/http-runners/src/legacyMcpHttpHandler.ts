@@ -10,17 +10,20 @@ import type {
     HttpServerOptions,
     BaseServer,
 } from "@mongodb-js/mcp-types";
-import {
-    LogId,
-    JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
-    getRandomUUID,
-    requestIdAttr,
-} from "@mongodb-js/mcp-core";
+import { LogId, getRandomUUID, requestIdAttr } from "@mongodb-js/mcp-core";
 import { SessionStore, SessionLimitExceededError } from "@mongodb-js/mcp-core";
+import { sleep } from "./utils.js";
 
-/** Codes for 2025-era session operations (the branch removed the shared constants). */
-const JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND = -32007;
-/** Reaching the concurrent-session cap: the server refuses to start new sessions. HTTP status 503. */
+/**
+ * Session error codes as they were served to 2025-era clients on main; the
+ * shared constants were removed from mcp-core with the session surface, so
+ * the legacy path keeps its wire contract locally.
+ */
+const JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED = -32001;
+const JSON_RPC_ERROR_CODE_SESSION_ID_INVALID = -32002;
+const JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND = -32003;
+const JSON_RPC_ERROR_CODE_INVALID_REQUEST = -32004;
+const JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION = -32005;
 const JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED = -32006;
 
 /** The per-request server contract the sessionful legacy path relies on in
@@ -125,6 +128,99 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
         };
     }
 
+    /** Reports a session error the way main did: same codes, messages, and statuses. */
+    private reportSessionError(res: express.Response, errorCode: number): void {
+        let message: string;
+        let statusCode = 400;
+
+        switch (errorCode) {
+            case JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED:
+                message = "session id is required";
+                break;
+            case JSON_RPC_ERROR_CODE_SESSION_ID_INVALID:
+                message = "session id is invalid";
+                break;
+            case JSON_RPC_ERROR_CODE_INVALID_REQUEST:
+                message = "invalid request";
+                break;
+            case JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND:
+                message = "session not found";
+                statusCode = 404;
+                break;
+            case JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION:
+                message = "cannot provide sessionId when externally managed sessions are disabled";
+                break;
+            case JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED:
+                message = "server has reached the maximum number of concurrent sessions, try again later";
+                statusCode = 503;
+                break;
+            default:
+                message = "unknown error";
+                statusCode = 500;
+        }
+        res.status(statusCode).json({
+            jsonrpc: "2.0",
+            error: {
+                code: errorCode,
+                message,
+            },
+        });
+    }
+
+    /**
+     * Keeps the session's SSE idle stream alive through proxies and reaps dead
+     * clients: pings every 30s and closes the transport after 3 consecutive
+     * failures. Not started in JSON response mode, where connections are
+     * short-lived and pings aren't needed.
+     */
+    private async startKeepAliveLoop({
+        transport,
+        signal,
+    }: {
+        transport: NodeStreamableHTTPServerTransport;
+        signal: AbortSignal;
+    }): Promise<void> {
+        if (this.http.responseType === "json") {
+            return;
+        }
+
+        let failedPings = 0;
+
+        while (!signal.aborted) {
+            try {
+                this.logger.debug({
+                    id: LogId.streamableHttpTransportKeepAlive,
+                    context: "streamableHttpTransport",
+                    message: "Sending ping",
+                });
+
+                await transport.send({
+                    jsonrpc: "2.0",
+                    method: "ping",
+                });
+                failedPings = 0;
+            } catch (err) {
+                try {
+                    failedPings++;
+                    this.logger.warning({
+                        id: LogId.streamableHttpTransportKeepAliveFailure,
+                        context: "streamableHttpTransport",
+                        message: `Error sending ping (attempt #${failedPings}): ${err instanceof Error ? err.message : String(err)}`,
+                    });
+
+                    if (failedPings > 3) {
+                        await transport.close();
+                        return;
+                    }
+                } catch {
+                    // Ignore the error of the transport close
+                }
+            }
+
+            await sleep(30_000, { signal });
+        }
+    }
+
     /**
      * Creates a fresh session: builds a request-scoped server, connects it to a
      * sessionful streamable HTTP transport (so `initialize` negotiates and the
@@ -149,10 +245,12 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
             throw error;
         }
 
-        await server.connect(transport);
+        const keepAliveController = new AbortController();
+        void this.startKeepAliveLoop({ transport, signal: keepAliveController.signal });
         // When the transport closes (client disconnect or store-initiated
         // eviction/timeout), tear down the server and remove the session.
         transport.onclose = (): void => {
+            keepAliveController.abort();
             void server
                 .close()
                 .catch((error: unknown) => {
@@ -163,6 +261,12 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
                     });
                 })
                 .finally(() => {
+                    // The store removes the session before it closes the
+                    // transport, so on store-initiated closes (eviction, idle
+                    // timeout) the session is already gone — nothing to do.
+                    if (!this.sessions.hasSession(sessionId)) {
+                        return;
+                    }
                     this.sessions.closeSession({ sessionId, reason: "transport_closed" }).catch((error: unknown) => {
                         this.logger.error({
                             id: LogId.streamableHttpTransportCloseFailure,
@@ -172,6 +276,16 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
                     });
                 });
         };
+
+        try {
+            await server.connect(transport);
+        } catch (error) {
+            // Don't leave a never-connected session registered; closing the
+            // transport triggers the onclose teardown above.
+            await this.sessions.closeSession({ sessionId, reason: "unknown" }).catch(() => undefined);
+            await server.close().catch(() => undefined);
+            throw error;
+        }
 
         return transport;
     }
@@ -186,27 +300,40 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
         const sessionId = req.headers["mcp-session-id"];
 
         if (req.method === "GET") {
-            // The SSE idle stream for a session (server→client requests).
-            const transport = await this.getSession(req, res, sessionId);
-            if (!transport) {
+            // The SSE idle stream only exists in SSE response mode.
+            if (this.http.responseType === "json") {
+                res.status(405).set("Allow", ["POST", "DELETE"]).send("Method Not Allowed");
                 return;
             }
-            await transport.handleRequest(req, res);
+            await this.handleSessionRequest(req, res, sessionId);
             return;
         }
 
         if (req.method === "DELETE") {
-            // Close the session.
-            const transport = await this.getSession(req, res, sessionId);
-            if (!transport) {
-                return;
-            }
-            await transport.handleRequest(req, res);
+            await this.handleSessionRequest(req, res, sessionId);
             return;
         }
 
         // POST /mcp.
-        if (isInitializeRequest(req.body) && typeof sessionId !== "string") {
+        if (sessionId && typeof sessionId !== "string") {
+            this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_INVALID);
+            return;
+        }
+
+        if (isInitializeRequest(req.body)) {
+            if (sessionId) {
+                // This shim has no externally managed sessions; a client-provided
+                // session id on initialize is rejected as on main.
+                this.logger.debug({
+                    id: LogId.streamableHttpTransportDisallowedExternalSessionError,
+                    context: "streamableHttpTransport",
+                    message: `Client provided session ID ${sessionId} on initialize, but externally managed sessions are not supported`,
+                    attributes: { ...requestIdAttr(req.headers) },
+                });
+                this.reportSessionError(res, JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION);
+                return;
+            }
+
             let transport: NodeStreamableHTTPServerTransport;
             try {
                 transport = await this.createSession(req);
@@ -218,14 +345,7 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
                         message: `Rejecting legacy session startup: ${error.message}`,
                         attributes: { ...requestIdAttr(req.headers) },
                     });
-                    res.status(503).json({
-                        jsonrpc: "2.0",
-                        error: {
-                            code: JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED,
-                            message: `Server has reached the maximum number of concurrent sessions. Try again later.`,
-                        },
-                        id: null,
-                    });
+                    this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED);
                     return;
                 }
                 throw error;
@@ -234,54 +354,39 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
             return;
         }
 
-        const transport = await this.getSession(req, res, sessionId);
-        if (!transport) {
+        if (!sessionId) {
+            this.reportSessionError(res, JSON_RPC_ERROR_CODE_INVALID_REQUEST);
             return;
         }
-        await transport.handleRequest(req, res, req.body);
+
+        await this.handleSessionRequest(req, res, sessionId);
     }
 
-    /** Looks up a live session's transport; reports a session error when missing. */
-    private async getSession(
+    /** Routes a session-carrying request to its live transport; reports a session error when missing. */
+    private async handleSessionRequest(
         req: express.Request,
         res: express.Response,
         sessionId: string | string[] | undefined
-    ): Promise<NodeStreamableHTTPServerTransport | undefined> {
-        if (typeof sessionId !== "string" || sessionId.length === 0) {
-            this.logger.warning({
-                id: LogId.streamableHttpTransportRequestFailure,
-                context: "streamableHttpTransport",
-                message: "Legacy session request missing a session id",
-                attributes: { ...requestIdAttr(req.headers) },
-            });
-            res.status(400).json({
-                jsonrpc: "2.0",
-                error: {
-                    code: JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
-                    message: "Session ID is required.",
-                },
-                id: null,
-            });
-            return undefined;
+    ): Promise<void> {
+        if (!sessionId) {
+            this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED);
+            return;
+        }
+        if (typeof sessionId !== "string") {
+            this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_INVALID);
+            return;
         }
         const transport = await this.sessions.getSession(sessionId);
         if (!transport) {
             this.logger.debug({
-                id: LogId.streamableHttpTransportRequestFailure,
+                id: LogId.streamableHttpTransportSessionNotFound,
                 context: "streamableHttpTransport",
-                message: `Legacy session ${sessionId} not found`,
+                message: `Session with ID ${sessionId} not found`,
                 attributes: { ...requestIdAttr(req.headers) },
             });
-            res.status(404).json({
-                jsonrpc: "2.0",
-                error: {
-                    code: JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND,
-                    message: "Session not found.",
-                },
-                id: null,
-            });
-            return undefined;
+            this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND);
+            return;
         }
-        return transport;
+        await transport.handleRequest(req, res, req.body);
     }
 }

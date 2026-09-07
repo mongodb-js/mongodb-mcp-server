@@ -308,13 +308,55 @@ describe("MCPHttpServer stateless serving", () => {
             expect(text).toMatch(/"id":1/);
         });
 
-        it("answers 2025 session operations (GET/DELETE) without a session id with 400", async () => {
+        it("answers 2025 session operations (GET/DELETE) without a session id", async () => {
             await startServer();
+            // In JSON response mode there is no SSE idle stream, so GET is 405.
             const getRes = await fetch(`${server.serverAddress}/mcp`, { method: "GET" });
-            expect(getRes.status).toBe(400);
+            expect(getRes.status).toBe(405);
 
             const delRes = await fetch(`${server.serverAddress}/mcp`, { method: "DELETE" });
             expect(delRes.status).toBe(400);
+            await expect(delRes.json()).resolves.toMatchObject({
+                error: { code: -32001, message: "session id is required" },
+            });
+        });
+
+        it("reports legacy session errors with main's codes and statuses", async () => {
+            await startServer();
+            const post = (body: string, headers: Record<string, string> = {}): Promise<Response> =>
+                fetch(`${server.serverAddress}/mcp`, {
+                    method: "POST",
+                    headers: {
+                        "content-type": "application/json",
+                        accept: "application/json, text/event-stream",
+                        ...headers,
+                    },
+                    body,
+                });
+
+            // Non-initialize POST without a session id: invalid request.
+            const noSession = await post(JSON.stringify({ jsonrpc: "2.0", method: "tools/list", id: 2, params: {} }));
+            expect(noSession.status).toBe(400);
+            await expect(noSession.json()).resolves.toMatchObject({
+                error: { code: -32004, message: "invalid request" },
+            });
+
+            // Unknown session id: not found.
+            const unknownSession = await post(
+                JSON.stringify({ jsonrpc: "2.0", method: "tools/list", id: 3, params: {} }),
+                { "mcp-session-id": "does-not-exist" }
+            );
+            expect(unknownSession.status).toBe(404);
+            await expect(unknownSession.json()).resolves.toMatchObject({
+                error: { code: -32003, message: "session not found" },
+            });
+
+            // Initialize carrying a session id: disallowed (no externally managed sessions here).
+            const initWithSession = await post(LEGACY_INIT_BODY, { "mcp-session-id": "external-id" });
+            expect(initWithSession.status).toBe(400);
+            await expect(initWithSession.json()).resolves.toMatchObject({
+                error: { code: -32005 },
+            });
         });
     });
 });
