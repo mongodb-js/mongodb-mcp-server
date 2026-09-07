@@ -73,7 +73,7 @@ const MODERN_BODY = JSON.stringify({
     },
 });
 
-function makeFakeServer(): BaseServer {
+function makeFakeServer(): BaseServer & { connect: (t: unknown) => Promise<void>; close: () => Promise<void> } {
     const mcpServer = new McpServer({ name: "test-server", version: "1.0.0" });
     mcpServer.registerTool(
         "echo",
@@ -84,6 +84,8 @@ function makeFakeServer(): BaseServer {
     return {
         mcpServer,
         register: vi.fn().mockResolvedValue(undefined),
+        connect: vi.fn().mockImplementation((transport: never) => mcpServer.connect(transport)),
+        close: vi.fn().mockResolvedValue(undefined),
     };
 }
 
@@ -273,10 +275,10 @@ describe("MCPHttpServer stateless serving", () => {
         });
     });
 
-    describe("legacy (2025-era) stateless serving", () => {
+    describe("legacy (2025-era) sessionful serving", () => {
         // A 2025-era initialize: no `_meta` envelope claim, negotiated via the
-        // legacy handshake. The stateless server serves it through the SDK's
-        // `legacy: 'stateless'` fallback.
+        // legacy handshake. The server serves legacy traffic sessionfully so
+        // the SDK's legacy elicitation shim has a live return channel.
         const LEGACY_INIT_BODY = JSON.stringify({
             jsonrpc: "2.0",
             method: "initialize",
@@ -288,7 +290,7 @@ describe("MCPHttpServer stateless serving", () => {
             },
         });
 
-        it("serves a legacy initialize POST through the stateless fallback", async () => {
+        it("serves a legacy initialize POST sessionfully, issuing a session id", async () => {
             await startServer();
             const res = await fetch(`${server.serverAddress}/mcp`, {
                 method: "POST",
@@ -300,22 +302,19 @@ describe("MCPHttpServer stateless serving", () => {
                 body: LEGACY_INIT_BODY,
             });
             expect(res.status).toBe(200);
+            expect(res.headers.get("mcp-session-id")).toBeTruthy();
             const text = await res.text();
-            // The stateless legacy transport answers over an SSE stream.
-            expect(text).toContain("data:");
             expect(text).toContain("protocolVersion");
             expect(text).toMatch(/"id":1/);
         });
 
-        it("answers 2025 session operations (GET/DELETE) with 405", async () => {
+        it("answers 2025 session operations (GET/DELETE) without a session id with 400", async () => {
             await startServer();
             const getRes = await fetch(`${server.serverAddress}/mcp`, { method: "GET" });
-            expect(getRes.status).toBe(405);
-            expect(getRes.headers.get("allow")).toBe("POST");
+            expect(getRes.status).toBe(400);
 
             const delRes = await fetch(`${server.serverAddress}/mcp`, { method: "DELETE" });
-            expect(delRes.status).toBe(405);
-            expect(delRes.headers.get("allow")).toBe("POST");
+            expect(delRes.status).toBe(400);
         });
     });
 });

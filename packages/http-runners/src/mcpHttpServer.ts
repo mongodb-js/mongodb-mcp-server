@@ -1,6 +1,10 @@
-import { createMcpHandler } from "@modelcontextprotocol/server";
-import type { McpHttpHandler, McpRequestContext } from "@modelcontextprotocol/server";
-import { toNodeHandler } from "@modelcontextprotocol/node";
+import {
+    createMcpHandler,
+    isLegacyRequest,
+    type McpHttpHandler,
+    type McpRequestContext,
+} from "@modelcontextprotocol/server";
+import { toNodeHandler, toWebRequest } from "@modelcontextprotocol/node";
 import express from "express";
 import type {
     ICompositeLogger,
@@ -17,6 +21,7 @@ import {
     requestIdAttr,
 } from "@mongodb-js/mcp-core";
 import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
+import { LegacyMcpHttpHandler, type LegacyMcpHandler } from "./legacyMcpHttpHandler.js";
 
 /**
  * Options for creating an MCPHttpServer instance.
@@ -33,22 +38,19 @@ export type MCPHttpServerOptions<TMetrics extends DefaultMetricDefinitions = Def
 };
 
 /**
- * HTTP server that serves MCP requests over HTTP using the stateless
- * protocol of revision 2026-07-28 through the SDK's `createMcpHandler`
- * entry.
+ * HTTP server that serves MCP requests over HTTP.
  *
- * The server is deliberately stateless: no per-client sessions, no
- * `mcp-session-id` routing, no server-held transports. Each request is
- * served by a fresh request-scoped server instance produced by
- * {@link createServerForRequest}; all heavy dependencies (connections,
- * exports, API client, telemetry) live once per process and are referenced,
- * not owned, by each request's instance. 2025-era (legacy) requests are served
- * statelessly through the SDK's stateless fallback (`legacy: "stateless"`),
- * each answered by a fresh instance over a stateless transport. Because there
- * is no session to stream or close, the 2025 session operations are not
- * supported: the SSE transport (`GET /mcp`, used for streaming responses and
- * server-initiated notifications) and session termination (`DELETE /mcp`) are
- * answered with `405 Method Not Allowed`.
+ * The 2026-07-28 protocol is served **statelessly** through the SDK's
+ * `createMcpHandler` (`legacy: 'reject'`): each request builds a fresh
+ * request-scoped server and carries client identity per request in the `_meta`
+ * envelope. No per-client sessions, no `mcp-session-id` routing on that path.
+ *
+ * 2025-era (legacy) requests are delegated to a sessionful
+ * {@link LegacyMcpHttpHandler} (see its docs for why): the 2025 protocol needs
+ * a live, correlated transport for its `initialize`-declared capabilities and
+ * server→client elicitation, which the SDK's `legacy: 'stateless'` mode cannot
+ * provide. The modern/legacy split is isolated from this class so each path
+ * stays clean.
  *
  * @example
  * ```typescript
@@ -63,8 +65,10 @@ export abstract class MCPHttpServer<
     TServer extends BaseServer = BaseServer,
     TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > extends ExpressBasedHttpServer {
-    /** The 2026-07-28 serving entry; every request is routed here. */
+    /** The 2026-07-28 serving entry; modern requests are routed here. */
     private readonly modernHandler: McpHttpHandler;
+    /** Sessionful 2025-era serving (initialize/SSE/requests carried per session). */
+    private readonly legacyHandler: LegacyMcpHandler;
     protected readonly metrics: IMetrics<TMetrics>;
 
     constructor({ options, logger, metrics }: MCPHttpServerOptions<TMetrics>) {
@@ -77,10 +81,32 @@ export abstract class MCPHttpServer<
         });
         this.metrics = metrics;
         this.modernHandler = this.createModernHandler();
+        this.legacyHandler = this.createLegacyHandler({ logger, http: options.http });
     }
 
     public async stop(): Promise<void> {
-        await Promise.all([this.modernHandler.close(), super.stop()]);
+        await Promise.allSettled([this.modernHandler.close(), this.legacyHandler.close()]);
+        await super.stop();
+    }
+
+    /**
+     * Builds the handler that serves 2025-era (legacy) traffic. Subclasses may
+     * override this to plug in an alternative legacy transport/session
+     * implementation; the default returns a {@link LegacyMcpHttpHandler} built
+     * from {@link MCPHttpServer.createServerForRequest}.
+     */
+    protected createLegacyHandler({
+        logger,
+        http,
+    }: {
+        logger: ICompositeLogger;
+        http: HttpServerOptions;
+    }): LegacyMcpHandler {
+        return new LegacyMcpHttpHandler({
+            createServer: async (request): Promise<TServer> => this.createServerForRequest(request),
+            logger,
+            http,
+        });
     }
 
     /**
@@ -90,13 +116,12 @@ export abstract class MCPHttpServer<
     protected abstract createServerForRequest(request: TransportRequestContext): Promise<TServer>;
 
     /**
-     * Builds the 2026-07-28 serving entry. One factory backs every request:
-     * it constructs a fresh request-scoped server, registers it, and hands
-     * the underlying {@link McpServer} to `createMcpHandler`. `legacy:
-     * 'stateless'` serves 2025-era traffic through the SDK's stateless
-     * fallback — each request is answered by a fresh instance over a
-     * stateless streamable HTTP transport (no `Mcp-Session-Id`, no
-     * server-held per-client state).
+     * Builds the 2026-07-28 serving entry. One factory backs every modern
+     * request: it constructs a fresh request-scoped server, registers it, and
+     * hands the underlying {@link McpServer} to `createMcpHandler`.
+     * `legacy: 'reject'` means this entry serves ONLY the 2026-07-28 era;
+     * 2025-era traffic is routed to the sessionful legacy handler (see
+     * {@link LegacyMcpHttpHandler}).
      */
     protected createModernHandler(): McpHttpHandler {
         const handler = createMcpHandler(
@@ -118,7 +143,7 @@ export abstract class MCPHttpServer<
                 await server.register();
                 return server.mcpServer;
             },
-            { legacy: "stateless" }
+            { legacy: "reject" }
         );
 
         if (this.httpOptions.authMode !== "authenticated") {
@@ -166,7 +191,14 @@ export abstract class MCPHttpServer<
         this.app.post(
             "/mcp",
             this.withErrorHandling(async (req: express.Request, res: express.Response) => {
-                await toNodeHandler({ fetch: (request, opts) => this.modernHandler.fetch(request, opts) })(
+                // 2025-era (no envelope claim) requests are served sessionfully so
+                // the legacy elicitation shim has a live return channel. Everything
+                // else (modern-enveloped) goes to the stateless modern handler.
+                const webRequest = await toWebRequest(req, req.body);
+                if (await isLegacyRequest(webRequest)) {
+                    return await this.legacyHandler.handle(req, res);
+                }
+                return await toNodeHandler({ fetch: (request, opts) => this.modernHandler.fetch(request, opts) })(
                     req,
                     res,
                     req.body
@@ -174,24 +206,16 @@ export abstract class MCPHttpServer<
             })
         );
 
-        // 2025-era session operations (SSE stream via GET, session close via
-        // DELETE) have no session to operate on in this stateless server. The
-        // SDK's stateless fallback answers them with `405`; here we mirror that
-        // rather than letting Express fall through to its own bare 404.
-        const methodNotAllowed = (req: express.Request, res: express.Response): void => {
-            res.status(405)
-                .set("Allow", "POST")
-                .json({
-                    jsonrpc: "2.0",
-                    error: {
-                        code: JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
-                        message: "Method not allowed.",
-                    },
-                    id: null,
-                });
-        };
-        this.app.get("/mcp", methodNotAllowed);
-        this.app.delete("/mcp", methodNotAllowed);
+        // 2025-era session operations (SSE idle stream via GET, session close via
+        // DELETE) only exist on the sessionful legacy path.
+        this.app.get(
+            "/mcp",
+            this.withErrorHandling((req, res) => this.legacyHandler.handle(req, res))
+        );
+        this.app.delete(
+            "/mcp",
+            this.withErrorHandling((req, res) => this.legacyHandler.handle(req, res))
+        );
     }
 
     private withErrorHandling(

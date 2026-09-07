@@ -287,21 +287,22 @@ describe("StreamableHttpRunner", () => {
         return response;
     };
 
-    describe("2025-era stateless fallback", () => {
+    describe("2025-era sessionful serving", () => {
         beforeEach(async () => {
             runner = await createStreamableHttpRunner(config);
             await runner.start();
         });
 
-        it("should serve an initialize request without a session ID", async () => {
+        it("serves an initialize request and issues a session ID", async () => {
             const response = await sendHttpRequest("initialize");
 
             expect(response.ok).toBe(true);
-            // Stateless serving never returns an `mcp-session-id` header.
-            expect(response.headers.get("mcp-session-id")).toBeNull();
+            // Legacy serving is sessionful so the SDK's elicitation shim has a
+            // live return channel; the initialize response carries the session id.
+            expect(response.headers.get("mcp-session-id")).toBeTruthy();
         });
 
-        it("should return SSE responses for 2025-era requests", async () => {
+        it("returns SSE responses for 2025-era requests", async () => {
             const response = await sendHttpRequest("initialize");
 
             expect(response.ok).toBe(true);
@@ -313,11 +314,13 @@ describe("StreamableHttpRunner", () => {
             expect(data).toContain("data: ");
         });
 
-        it("should serve a non-initialize request without a session ID", async () => {
-            // The stateless fallback (`sessionIdGenerator: undefined`) does not
-            // validate `mcp-session-id`, so claim-less requests succeed without one.
+        it("requires a session ID for a non-initialize request", async () => {
+            // Legacy serving is sessionful: a claim-less non-initialize request
+            // without an `mcp-session-id` is rejected (400) rather than served
+            // statelessly.
             const response = await sendHttpRequest("tools/list");
-            expect(response.ok).toBe(true);
+            expect(response.ok).toBe(false);
+            expect(response.status).toBe(400);
         });
     });
 

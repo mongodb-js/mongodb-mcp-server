@@ -5,6 +5,7 @@ export { StreamableHttpRunner } from "./streamableHttpRunner.js";
 
 // HTTP Servers
 export { MCPHttpServer, type MCPHttpServerOptions } from "./mcpHttpServer.js";
+export { LegacyMcpHttpHandler, type LegacyMcpHttpHandlerOptions } from "./legacyMcpHttpHandler.js";
 export { MonitoringServer, type MonitoringServerOptions } from "./monitoringServer.js";
 
 // Express HTTP Server base
