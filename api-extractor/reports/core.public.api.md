@@ -5,6 +5,8 @@
 ```ts
 
 import { CallToolResult } from '@modelcontextprotocol/server';
+import type { ClientCapabilities } from '@modelcontextprotocol/server';
+import type { CloseableTransport } from '@mongodb-js/mcp-types';
 import type { ConnectionMetadata } from '@mongodb-js/mcp-types';
 import type { DefaultEventMap } from '@mongodb-js/mcp-types';
 import type { DefaultMetricDefinitions } from '@mongodb-js/mcp-types';
@@ -14,6 +16,7 @@ import type { ElicitInputRequiredParams } from '@mongodb-js/mcp-types';
 import { ElicitRequestSchema } from '@mongodb-js/mcp-types';
 import { EventEmitter } from 'events';
 import type { EventMap } from '@mongodb-js/mcp-types';
+import type { ICompositeLogger } from '@mongodb-js/mcp-types';
 import { IElicitation } from '@mongodb-js/mcp-types';
 import type { IKeychain } from '@mongodb-js/mcp-types';
 import type { ILogger } from '@mongodb-js/mcp-types';
@@ -21,6 +24,7 @@ import type { IMetrics } from '@mongodb-js/mcp-types';
 import { Implementation } from '@modelcontextprotocol/server';
 import { InputRequiredResult } from '@modelcontextprotocol/server';
 import type { IResourceServer } from '@mongodb-js/mcp-types';
+import type { ISessionStore } from '@mongodb-js/mcp-types';
 import type { ITelemetry } from '@mongodb-js/mcp-types';
 import type { IToolConfig } from '@mongodb-js/mcp-types';
 import type { ITransportRunner } from '@mongodb-js/mcp-types';
@@ -38,6 +42,8 @@ import type { ResourceConfiguration } from '@mongodb-js/mcp-types';
 import type { ResourceMetadata } from '@modelcontextprotocol/server';
 import { Secret } from 'mongodb-redact';
 import { ServerContext } from '@modelcontextprotocol/server';
+import type { SessionCloseReason } from '@mongodb-js/mcp-types';
+import type { SessionStoreConstructorArgs } from '@mongodb-js/mcp-types';
 import type { SupportedConnectionState } from '@mongodb-js/mcp-types';
 import type { TelemetryToolMetadata } from '@mongodb-js/mcp-types';
 import { ToolAnnotations } from '@modelcontextprotocol/server';
@@ -87,6 +93,12 @@ export class CompositeLogger extends LoggerBase {
 
 // @public
 export const CONFIRMATION_INPUT_KEY = "confirmation";
+
+// @public @deprecated
+export function createDefaultSessionStore<TTransport extends CloseableTransport = CloseableTransport, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions>(params: SessionStoreConstructorArgs<TMetrics>): SessionStore<TTransport>;
+
+// @public @deprecated
+export type CreateSessionStoreFn<TTransport extends CloseableTransport = CloseableTransport, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> = (args: SessionStoreConstructorArgs<TMetrics>) => ISessionStore<TTransport>;
 
 // @public
 export class Elicitation implements IElicitation {
@@ -154,6 +166,8 @@ export class InMemoryTransport implements Transport {
 }
 
 export { InputRequiredResult }
+
+export { ISessionStore }
 
 // @public
 export const JSON_RPC_ERROR_CODE_INVALID_REQUEST = -32004;
@@ -245,9 +259,19 @@ export const LogId: {
     readonly updateToolMetadata: MongoLogId;
     readonly toolValidationError: MongoLogId;
     readonly streamableHttpTransportStarted: MongoLogId;
+    readonly sessionCloseFailure: MongoLogId;
+    readonly sessionCloseNotification: MongoLogId;
+    readonly sessionCloseNotificationFailure: MongoLogId;
     readonly streamableHttpTransportRequestFailure: MongoLogId;
     readonly streamableHttpTransportCloseFailure: MongoLogId;
+    readonly streamableHttpTransportKeepAliveFailure: MongoLogId;
+    readonly streamableHttpTransportKeepAlive: MongoLogId;
     readonly streamableHttpTransportHttpHostWarning: MongoLogId;
+    readonly streamableHttpTransportSessionNotFound: MongoLogId;
+    readonly streamableHttpTransportDisallowedExternalSessionError: MongoLogId;
+    readonly streamableHttpTransportSessionLimitExceeded: MongoLogId;
+    readonly streamableHttpTransportClientStateSaveFailure: MongoLogId;
+    readonly streamableHttpTransportClientStateRestoreFailure: MongoLogId;
     readonly httpServerStarted: MongoLogId;
     readonly httpServerStopping: MongoLogId;
     readonly httpServerStopped: MongoLogId;
@@ -355,6 +379,46 @@ export function registerGlobalSecretToRedact(value: Secret["value"], kind: Secre
 export function requestIdAttr(headers: Record<string, unknown> | undefined): Record<string, string>;
 
 export { Secret }
+
+// @public @deprecated (undocumented)
+export class SessionLimitExceededError extends Error {
+    constructor(message: string);
+}
+
+// @public @deprecated (undocumented)
+export class SessionRejectedError extends Error {
+    constructor(message: string);
+}
+
+// @public @deprecated
+export class SessionStore<T extends CloseableTransport = CloseableTransport> implements ISessionStore<T> {
+    constructor(params: SessionStoreConstructorArgs<DefaultMetricDefinitions>);
+    // (undocumented)
+    addSession(params: {
+        sessionId: string;
+        transport: T;
+        logger: ILogger;
+        session?: {
+            logger: ICompositeLogger;
+        };
+        headers?: Record<string, unknown>;
+    }): Promise<void>;
+    // (undocumented)
+    closeAllSessions(): Promise<void>;
+    // (undocumented)
+    closeSession(input: {
+        sessionId: string;
+        reason?: SessionCloseReason;
+    }): Promise<void>;
+    // (undocumented)
+    getSession(sessionId: string, _headers?: Record<string, unknown>): Promise<T | undefined>;
+    hasSession(sessionId: string): boolean;
+    // (undocumented)
+    loadNegotiatedClientState(sessionId: string, headers?: Record<string, unknown>): Promise<NegotiatedClientState | undefined>;
+    saveNegotiatedClientState(sessionId: string, state: NegotiatedClientState, headers?: Record<string, unknown>): Promise<void>;
+}
+
+export { SessionStoreConstructorArgs }
 
 // @public (undocumented)
 export function setManagedTimeout(callback: () => Promise<void> | void, timeoutMS: number): ManagedTimeout;

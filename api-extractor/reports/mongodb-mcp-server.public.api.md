@@ -23,7 +23,7 @@ import type { Implementation } from '@modelcontextprotocol/server';
 import { InputRequiredResult } from '@modelcontextprotocol/server';
 import type { InputResponses } from '@modelcontextprotocol/server';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/server';
-import type { McpHttpHandler } from '@modelcontextprotocol/server';
+import { McpHttpHandler } from '@modelcontextprotocol/server';
 import { McpServer } from '@modelcontextprotocol/server';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import type { ReadResourceCallback } from '@modelcontextprotocol/server';
@@ -522,6 +522,9 @@ export const createAtlasLocalClient: AtlasLocalClientFactoryFn;
 // @public
 export function createDefaultMetrics(): {
     readonly toolExecutionDuration: Histogram<"tool_name" | "category" | "status" | "operation_type" | "error_type">;
+    readonly sessionCreated: Counter<string>;
+    readonly sessionClosed: Counter<"reason">;
+    readonly sessionsActive: Gauge<string>;
 };
 
 // @public (undocumented)
@@ -720,6 +723,11 @@ export class MCPConnectionManager extends ConnectionManager {
 // @public
 export abstract class MCPHttpServer<TServer extends BaseServer = BaseServer, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> extends ExpressBasedHttpServer {
     constructor(input: MCPHttpServerOptions<TMetrics>);
+    protected createLegacyHandler(input: {
+        logger: ICompositeLogger;
+        http: HttpServerOptions;
+        sessionOptions?: LegacySessionOptions;
+    }): LegacyMcpHandler;
     protected createModernHandler(): McpHttpHandler;
     protected abstract createServerForRequest(request: TransportRequestContext): Promise<TServer>;
     // (undocumented)
@@ -737,6 +745,7 @@ export type MCPHttpServerOptions<TMetrics extends DefaultMetricDefinitions = Def
     };
     logger: ICompositeLogger;
     metrics: IMetrics<TMetrics>;
+    sessionOptions?: LegacySessionOptions;
 };
 
 // @public (undocumented)
@@ -1092,6 +1101,10 @@ export const UserConfigSchema: z.ZodObject<{
     httpHeaders: z.ZodDefault<z.ZodObject<{}, z.core.$catchall<z.ZodString>>>;
     httpBodyLimit: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxActiveConnections: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    maxSessions: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    idleTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    notificationTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    evictionIdleGraceMS: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxBytesPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxDocumentsPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxTimeMS: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
