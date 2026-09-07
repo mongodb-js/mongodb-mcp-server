@@ -21,8 +21,7 @@ import {
     requestIdAttr,
 } from "@mongodb-js/mcp-core";
 import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
-import { LegacyMcpHttpHandler, type LegacyMcpHandler } from "./legacyMcpHttpHandler.js";
-import type { LegacySessionOptions } from "@mongodb-js/mcp-core";
+import { LegacyMcpHttpHandler, type LegacyMcpHandler, type LegacySessionOptions } from "./legacyMcpHttpHandler.js";
 
 /**
  * Options for creating an MCPHttpServer instance.

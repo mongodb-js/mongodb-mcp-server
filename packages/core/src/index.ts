@@ -30,15 +30,13 @@ export { CommonArgs, ASCII_ONLY_NON_CC_ERROR } from "./args.js";
 export { LogId } from "./logId.js";
 export { setManagedTimeout, type ManagedTimeout, sleep } from "./managedTimeout.js";
 export {
-    LegacySessionStore,
-    SessionLimitExceededError,
+    SessionStore,
     SessionRejectedError,
-    DEFAULT_MAX_SESSIONS,
-    DEFAULT_EVICTION_IDLE_GRACE_MS,
-    type SessionCloseReason,
-    type SessionCloseHandler,
-    type LegacySessionOptions,
-    type LegacySessionStoreConstructorArgs,
+    SessionLimitExceededError,
+    createDefaultSessionStore,
+    type ISessionStore,
+    type SessionStoreConstructorArgs,
+    type CreateSessionStoreFn,
 } from "./sessionStore.js";
 export { requestIdAttr } from "./helpers/requestIdAttr.js";
 

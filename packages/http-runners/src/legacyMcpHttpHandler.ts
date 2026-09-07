@@ -16,10 +16,12 @@ import {
     getRandomUUID,
     requestIdAttr,
 } from "@mongodb-js/mcp-core";
-import { LegacySessionStore, SessionLimitExceededError, type LegacySessionOptions } from "@mongodb-js/mcp-core";
+import { SessionStore, SessionLimitExceededError } from "@mongodb-js/mcp-core";
 
 /** Codes for 2025-era session operations (the branch removed the shared constants). */
 const JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND = -32007;
+/** Reaching the concurrent-session cap: the server refuses to start new sessions. HTTP status 503. */
+const JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED = -32006;
 
 /** The per-request server contract the sessionful legacy path relies on in
  * addition to {@link BaseServer}: it must be connectable to a transport so a
@@ -30,14 +32,16 @@ type SessionfulServer = BaseServer & {
     close(): Promise<void>;
 };
 
-/** A live 2025-era session: the transport the client talks over plus the connected server. */
-interface LegacySession {
-    transport: NodeStreamableHTTPServerTransport;
-    server: SessionfulServer;
-}
-
 /** Builds a fresh request-scoped server for a legacy request. */
 export type LegacyServerFactory = (request: TransportRequestContext) => Promise<BaseServer>;
+
+/** Tunables forwarded to the {@link SessionStore}. */
+export type LegacySessionOptions = {
+    maxSessions?: number;
+    idleTimeoutMS?: number;
+    notificationTimeoutMS?: number;
+    evictionIdleGraceMS?: number;
+};
 
 export type LegacyMcpHttpHandlerOptions = {
     /** Builds a fresh request-scoped server for each legacy session. */
@@ -76,46 +80,31 @@ export interface LegacyMcpHandler {
  * This handler owns that sessionful lifecycle: an `initialize` POST creates a
  * session (a connected transport/server pair), later requests and the SSE idle
  * stream reuse the session's transport (the shim's return channel), and a
- * DELETE closes it. Sessions are bounded by a {@link LegacySessionStore},
- * capped by `sessionOptions.maxSessions` with LRU idle eviction and idle /
- * notification timeouts. Keeping it isolated from {@link MCPHttpServer} leaves
- * the modern stateless path clean.
+ * DELETE closes it. Sessions are bounded by a {@link SessionStore}, capped by
+ * `sessionOptions.maxSessions` with LRU idle eviction and idle / notification
+ * timeouts. Keeping it isolated from {@link MCPHttpServer} leaves the modern
+ * stateless path clean.
  */
 export class LegacyMcpHttpHandler implements LegacyMcpHandler {
     private readonly createServer: LegacyServerFactory;
     private readonly logger: ILogger;
     private readonly http: HttpServerOptions;
-    private readonly sessions: LegacySessionStore<{
-        transport: NodeStreamableHTTPServerTransport;
-        server: SessionfulServer;
-    }>;
+    private readonly sessions: SessionStore<NodeStreamableHTTPServerTransport>;
 
     constructor({ createServer, logger, metrics, http, sessionOptions }: LegacyMcpHttpHandlerOptions) {
         this.createServer = createServer;
         this.logger = logger;
         this.http = http;
-        this.sessions = new LegacySessionStore<{
-            transport: NodeStreamableHTTPServerTransport;
-            server: SessionfulServer;
-        }>({
-            options: sessionOptions,
+        this.sessions = new SessionStore<NodeStreamableHTTPServerTransport>({
+            options: {
+                idleTimeoutMS: sessionOptions?.idleTimeoutMS ?? 600_000,
+                notificationTimeoutMS: sessionOptions?.notificationTimeoutMS ?? 540_000,
+                maxSessions: sessionOptions?.maxSessions ?? 1000,
+                evictionIdleGraceMS: sessionOptions?.evictionIdleGraceMS ?? 120_000,
+            },
             logger,
             metrics,
-            onSessionClosed: (session): void => {
-                void session.server.close().catch((error: unknown) => {
-                    this.logger.error({
-                        id: LogId.streamableHttpTransportCloseFailure,
-                        context: "streamableHttpTransport",
-                        message: `Error closing evicted/timed-out legacy session: ${error instanceof Error ? error.message : String(error)}`,
-                    });
-                });
-            },
         });
-    }
-
-    /** The number of live sessions currently held (testing/introspection). */
-    public get sessionCount(): number {
-        return this.sessions.size;
     }
 
     /** Closes every live session (e.g. on server shutdown). */
@@ -140,10 +129,10 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
      * Creates a fresh session: builds a request-scoped server, connects it to a
      * sessionful streamable HTTP transport (so `initialize` negotiates and the
      * SDK keeps the client's capabilities on the connected server), and stores
-     * the pair so later requests and the SSE idle stream reuse the same
-     * transport — the return channel the legacy elicitation shim needs.
+     * the transport so later requests and the SSE idle stream reuse it (the
+     * return channel the legacy elicitation shim needs).
      */
-    private async createSession(req: express.Request): Promise<LegacySession> {
+    private async createSession(req: express.Request): Promise<NodeStreamableHTTPServerTransport> {
         const sessionId = getRandomUUID();
         const transport = new NodeStreamableHTTPServerTransport({
             sessionIdGenerator: (): string => sessionId,
@@ -151,11 +140,9 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
         });
         const server = (await this.createServer(this.buildTransportContext(req))) as unknown as SessionfulServer;
 
-        // Admit (check cap, reap idle, evict LRU idle victim). The store reports
-        // any evicted/reaped session through `onSessionClosed`; a rejection admits
-        // nothing.
+        // Admit (check cap, evict LRU idle victim). A rejection admits nothing.
         try {
-            this.sessions.addSession({ sessionId, value: { transport, server } });
+            await this.sessions.addSession({ sessionId, transport, logger: this.logger });
         } catch (error) {
             // Dispose the un-connected server we built for a rejected session.
             await server.close().catch(() => undefined);
@@ -163,17 +150,30 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
         }
 
         await server.connect(transport);
+        // When the transport closes (client disconnect or store-initiated
+        // eviction/timeout), tear down the server and remove the session.
         transport.onclose = (): void => {
-            this.sessions.closeSession({ sessionId, reason: "transport_closed" }).catch((error: unknown) => {
-                this.logger.error({
-                    id: LogId.streamableHttpTransportCloseFailure,
-                    context: "streamableHttpTransport",
-                    message: `Error closing legacy session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
+            void server
+                .close()
+                .catch((error: unknown) => {
+                    this.logger.error({
+                        id: LogId.streamableHttpTransportCloseFailure,
+                        context: "streamableHttpTransport",
+                        message: `Error closing legacy session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
+                    });
+                })
+                .finally(() => {
+                    this.sessions.closeSession({ sessionId, reason: "transport_closed" }).catch((error: unknown) => {
+                        this.logger.error({
+                            id: LogId.streamableHttpTransportCloseFailure,
+                            context: "streamableHttpTransport",
+                            message: `Error removing legacy session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
+                        });
+                    });
                 });
-            });
         };
 
-        return { transport, server };
+        return transport;
     }
 
     /**
@@ -187,29 +187,29 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
 
         if (req.method === "GET") {
             // The SSE idle stream for a session (server→client requests).
-            const session = this.getSession(req, res, sessionId);
-            if (!session) {
+            const transport = await this.getSession(req, res, sessionId);
+            if (!transport) {
                 return;
             }
-            await session.transport.handleRequest(req, res);
+            await transport.handleRequest(req, res);
             return;
         }
 
         if (req.method === "DELETE") {
             // Close the session.
-            const session = this.getSession(req, res, sessionId);
-            if (!session) {
+            const transport = await this.getSession(req, res, sessionId);
+            if (!transport) {
                 return;
             }
-            await session.transport.handleRequest(req, res);
+            await transport.handleRequest(req, res);
             return;
         }
 
         // POST /mcp.
         if (isInitializeRequest(req.body) && typeof sessionId !== "string") {
-            let session: LegacySession;
+            let transport: NodeStreamableHTTPServerTransport;
             try {
-                session = await this.createSession(req);
+                transport = await this.createSession(req);
             } catch (error) {
                 if (error instanceof SessionLimitExceededError) {
                     this.logger.warning({
@@ -221,7 +221,7 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
                     res.status(503).json({
                         jsonrpc: "2.0",
                         error: {
-                            code: -32006,
+                            code: JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED,
                             message: `Server has reached the maximum number of concurrent sessions. Try again later.`,
                         },
                         id: null,
@@ -230,23 +230,23 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
                 }
                 throw error;
             }
-            await session.transport.handleRequest(req, res, req.body);
+            await transport.handleRequest(req, res, req.body);
             return;
         }
 
-        const session = this.getSession(req, res, sessionId);
-        if (!session) {
+        const transport = await this.getSession(req, res, sessionId);
+        if (!transport) {
             return;
         }
-        await session.transport.handleRequest(req, res, req.body);
+        await transport.handleRequest(req, res, req.body);
     }
 
-    /** Looks up a live session; reports a session error when missing. */
-    private getSession(
+    /** Looks up a live session's transport; reports a session error when missing. */
+    private async getSession(
         req: express.Request,
         res: express.Response,
         sessionId: string | string[] | undefined
-    ): LegacySession | undefined {
+    ): Promise<NodeStreamableHTTPServerTransport | undefined> {
         if (typeof sessionId !== "string" || sessionId.length === 0) {
             this.logger.warning({
                 id: LogId.streamableHttpTransportRequestFailure,
@@ -264,8 +264,8 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
             });
             return undefined;
         }
-        const value = this.sessions.getSession(sessionId);
-        if (!value) {
+        const transport = await this.sessions.getSession(sessionId);
+        if (!transport) {
             this.logger.debug({
                 id: LogId.streamableHttpTransportRequestFailure,
                 context: "streamableHttpTransport",
@@ -282,6 +282,6 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
             });
             return undefined;
         }
-        return value;
+        return transport;
     }
 }

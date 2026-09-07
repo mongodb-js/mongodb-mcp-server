@@ -1,28 +1,41 @@
-import type { ILogger, IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
-import { setManagedTimeout, type ManagedTimeout } from "./managedTimeout.js";
+import type { ClientCapabilities, Implementation } from "@modelcontextprotocol/server";
+import type {
+    ILogger,
+    ICompositeLogger,
+    IMetrics,
+    CloseableTransport,
+    SessionCloseReason,
+    DefaultMetricDefinitions,
+    ISessionStore,
+    SessionStoreConstructorArgs,
+} from "@mongodb-js/mcp-types";
 import { LogId } from "./logId.js";
+import { setManagedTimeout, type ManagedTimeout } from "./managedTimeout.js";
 
-/** Default cap on concurrent sessions when {@link LegacySessionOptions.maxSessions} is omitted. */
-export const DEFAULT_MAX_SESSIONS = 1000;
-/** Default idle grace (ms) before the LRU session may be evicted to admit a new one at the cap. */
-export const DEFAULT_EVICTION_IDLE_GRACE_MS = 120_000;
-/** Default session idle timeout (ms) after which the reaper closes the session. */
-const DEFAULT_IDLE_TIMEOUT_MS = 600_000;
-/** Default notification timeout (ms) after which an idle session is about to be closed. */
-const DEFAULT_NOTIFICATION_TIMEOUT_MS = 540_000;
+export type { ISessionStore, SessionStoreConstructorArgs };
 
-/** How a session can leave the store: evicted at the cap, or closed by a lifecycle timeout. */
-export type SessionCloseReason = "idle_timeout" | "transport_closed" | "server_stop" | "unknown" | "evicted";
+/**
+ * The client state negotiated during MCP initialization. Stores that persist
+ * it durably allow an implicitly re-initialized session (one restored on a
+ * pod that never saw the client's `initialize` request) to retain the
+ * client's capabilities — e.g. whether it supports elicitation — instead of
+ * treating the restored client as capability-less.
+ */
+export type NegotiatedClientState = {
+    clientCapabilities?: ClientCapabilities;
+    clientInfo?: Implementation;
+};
 
-/** Thrown when the concurrent-session cap is reached and no idle session is eligible for eviction. */
-export class SessionLimitExceededError extends Error {
-    constructor(message: string) {
-        super(message);
-        this.name = "SessionLimitExceededError";
-    }
-}
-
-/** Error thrown from `getSession` to reject a session request (e.g. a failed identity check). */
+/**
+ * Error that `ISessionStore` implementations can throw from `getSession` to
+ * reject a request (e.g. when identity validation against the request headers
+ * fails). Unlike returning `undefined`, which means the session does not exist
+ * and may trigger implicit session initialization, throwing this error fails
+ * the request without creating a session. To avoid leaking whether the
+ * session exists, the response is indistinguishable from "session not found";
+ * the error message is only logged server-side.
+ */
+/** @deprecated The per-client session concept is being removed; the 2025-era legacy path is the only remaining consumer. */
 export class SessionRejectedError extends Error {
     constructor(message: string) {
         super(message);
@@ -30,91 +43,57 @@ export class SessionRejectedError extends Error {
     }
 }
 
-/** Tunables for the 2025-era session lifecycle. */
-export type LegacySessionOptions = {
-    /**
-     * Maximum number of concurrent sessions held in memory. Defaults to 1000
-     * ({@link DEFAULT_MAX_SESSIONS}). At the cap the least-recently-used idle
-     * session is evicted (if one is idle past {@link evictionIdleGraceMS}) to
-     * admit a new session; otherwise the startup is rejected with a
-     * session-limit error.
-     */
-    maxSessions?: number;
-    /**
-     * A session idle longer than this (ms) is closed by the background reaper
-     * to free memory (default: 600_000). Must be greater than
-     * {@link notificationTimeoutMS}.
-     */
-    idleTimeoutMS?: number;
-    /**
-     * A session whose client has not refreshed the SSE/notification channel
-     * within this many ms is about to be closed (default: 540_000).
-     */
-    notificationTimeoutMS?: number;
-    /**
-     * Minimum idle time (ms) a session must have before it is eligible for LRU
-     * eviction at the `maxSessions` cap. Defaults to
-     * {@link DEFAULT_EVICTION_IDLE_GRACE_MS}, clamped to `idleTimeoutMS`. Must
-     * be < `idleTimeoutMS` (the reaper already removes anything past that), or
-     * the valve never fires.
-     */
-    evictionIdleGraceMS?: number;
-};
-
-/** Called when the store closes a session (eviction or timeout) so the holder can tear it down. */
-export type SessionCloseHandler<T> = (value: T, reason: SessionCloseReason) => void | Promise<void>;
-
-export type LegacySessionStoreConstructorArgs<T> = {
-    options?: LegacySessionOptions;
-    logger: ILogger;
-    metrics: IMetrics<DefaultMetricDefinitions>;
-    /** Called when a session leaves the store, so the holder can tear it down. */
-    onSessionClosed: SessionCloseHandler<T>;
-};
+/**
+ * Error thrown from `addSession` when the store has already reached its
+ * configured `maxSessions` limit. Callers should surface this distinctly
+ * from a generic failure so clients can be told to retry later rather than
+ * treating it as a permanent request error.
+ */
+/** @deprecated The per-client session concept is being removed; the 2025-era legacy path is the only remaining consumer. */
+export class SessionLimitExceededError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "SessionLimitExceededError";
+    }
+}
 
 /**
- * Default in-memory session store. Mirrors the sessionful `LegacySessionStore`
- * removed with the session concept: sessions are keyed by id, bounded by
- * `maxSessions`, kept alive by an idle `abortTimeout` and a `notificationTimeout`
- * (both managed), and at the cap the least-recently-used session idle past
- * `evictionIdleGraceMS` is evicted to admit a newcomer.
+ * Default in-memory session store for the 2025-era (legacy) HTTP path.
  *
- * It is generic over the held value (the handler's per-session object) rather
- * than a transport, so the holder can close whatever it needs; every session
- * that leaves is reported through {@link onSessionClosed}.
+ * @deprecated The per-client session concept is being removed; this store is now
+ * used only for the 2025-era legacy transport, where sessionful serving is
+ * needed to support the SDK's elicitation shim.
  */
-export class LegacySessionStore<T> {
-    private readonly sessions = new Map<
-        string,
-        {
-            value: T;
+export class SessionStore<T extends CloseableTransport = CloseableTransport> implements ISessionStore<T> {
+    private sessions: {
+        [sessionId: string]: {
+            logger: ILogger;
+            transport: T;
             abortTimeout: ManagedTimeout;
             notificationTimeout: ManagedTimeout;
             /** Epoch ms of the last activity on this session; drives LRU eviction order. */
             lastUsedAt: number;
-        }
-    >();
-    private readonly maxSessions: number;
+        };
+    } = {};
+
     private readonly idleTimeoutMS: number;
     private readonly notificationTimeoutMS: number;
+    private readonly maxSessions: number;
+    /** Min idle time (ms) before the LRU session may be evicted to admit a new one. */
     private readonly evictionIdleGraceMS: number;
     private readonly logger: ILogger;
     private readonly metrics: IMetrics<DefaultMetricDefinitions>;
-    private readonly onSessionClosed: SessionCloseHandler<T>;
 
-    constructor({ options, logger, metrics, onSessionClosed }: LegacySessionStoreConstructorArgs<T>) {
-        this.maxSessions = options?.maxSessions ?? DEFAULT_MAX_SESSIONS;
-        this.idleTimeoutMS = options?.idleTimeoutMS ?? DEFAULT_IDLE_TIMEOUT_MS;
-        this.notificationTimeoutMS = options?.notificationTimeoutMS ?? DEFAULT_NOTIFICATION_TIMEOUT_MS;
-        // The reaper already removes sessions idle past idleTimeoutMS, so a larger
-        // grace would make eviction a no-op.
-        this.evictionIdleGraceMS = Math.min(
-            options?.evictionIdleGraceMS ?? DEFAULT_EVICTION_IDLE_GRACE_MS,
-            this.idleTimeoutMS
-        );
+    constructor(params: SessionStoreConstructorArgs<DefaultMetricDefinitions>) {
+        const { options, logger, metrics } = params;
+        this.idleTimeoutMS = options.idleTimeoutMS;
+        this.notificationTimeoutMS = options.notificationTimeoutMS;
+        this.maxSessions = options.maxSessions;
+        // Default 2 min, but never >= idleTimeoutMS: the reaper already removes sessions
+        // idle past idleTimeoutMS, so a larger grace would make eviction a no-op.
+        this.evictionIdleGraceMS = Math.min(options.evictionIdleGraceMS ?? 120_000, this.idleTimeoutMS);
         this.logger = logger;
         this.metrics = metrics;
-        this.onSessionClosed = onSessionClosed;
 
         if (this.idleTimeoutMS <= 0) {
             throw new Error("idleTimeoutMS must be greater than 0");
@@ -130,35 +109,79 @@ export class LegacySessionStore<T> {
         }
     }
 
-    /** The number of live sessions currently held. */
-    public get size(): number {
-        return this.sessions.size;
-    }
-
-    public hasSession(sessionId: string): boolean {
-        return this.sessions.has(sessionId);
-    }
-
-    /**
-     * Returns the session value for the given id, resetting the session's idle
-     * (and notification) timeouts so the activity extends its lifetime. Returns
-     * `undefined` when the session does not exist.
-     */
-    public getSession(sessionId: string): T | undefined {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    async getSession(sessionId: string, _headers?: Record<string, unknown>): Promise<T | undefined> {
         this.resetTimeout(sessionId);
-        return this.sessions.get(sessionId)?.value;
+        return Promise.resolve(this.sessions[sessionId]?.transport);
     }
 
     /**
-     * Registers a new session. When at `maxSessions`, first evicts the
-     * least-recently-used session idle past `evictionIdleGraceMS` to make room;
-     * if nothing is idle enough it throws {@link SessionLimitExceededError}.
+     * Returns whether a session with the given id exists in this store.
+     *
+     * Unlike `getSession`, this does not reset the session's idle
+     * timeout, so it is safe to call when probing on behalf of requests that
+     * may not be served (e.g. authorization checks) without extending the
+     * session's lifetime.
      */
-    public addSession({ sessionId, value }: { sessionId: string; value: T }): void {
-        if (this.sessions.has(sessionId)) {
+    hasSession(sessionId: string): boolean {
+        return this.sessions[sessionId] !== undefined;
+    }
+
+    private resetTimeout(sessionId: string): void {
+        const session = this.sessions[sessionId];
+        if (!session) {
+            return;
+        }
+        session.abortTimeout.restart();
+        session.notificationTimeout.restart();
+        session.lastUsedAt = Date.now();
+    }
+
+    private findEvictableSession(): string | undefined {
+        const now = Date.now();
+        let oldestId: string | undefined;
+        let oldestLastUsedAt = Infinity;
+        for (const [id, session] of Object.entries(this.sessions)) {
+            if (session.lastUsedAt < oldestLastUsedAt) {
+                oldestLastUsedAt = session.lastUsedAt;
+                oldestId = id;
+            }
+        }
+        if (oldestId === undefined || now - oldestLastUsedAt < this.evictionIdleGraceMS) {
+            return undefined;
+        }
+        return oldestId;
+    }
+
+    private sendNotification(sessionId: string): void {
+        const session = this.sessions[sessionId];
+        if (!session) {
+            this.logger.warning({
+                id: LogId.sessionCloseNotificationFailure,
+                context: "sessionStore",
+                message: `session ${sessionId} not found, no notification delivered`,
+            });
+            return;
+        }
+        session.logger.info({
+            id: LogId.sessionCloseNotification,
+            context: "sessionStore",
+            message: "Session is about to be closed due to inactivity",
+        });
+    }
+
+    async addSession(params: {
+        sessionId: string;
+        transport: T;
+        logger: ILogger;
+        session?: { logger: ICompositeLogger };
+        headers?: Record<string, unknown>;
+    }): Promise<void> {
+        const { sessionId, transport, logger } = params;
+        if (this.sessions[sessionId]) {
             throw new Error(`Session ${sessionId} already exists`);
         }
-        if (this.sessions.size >= this.maxSessions) {
+        if (Object.keys(this.sessions).length >= this.maxSessions) {
             // At capacity: rather than hard-rejecting, evict the least-recently-used
             // session if it has been idle at least evictionIdleGraceMS — a local-only
             // close that frees a slot while the evicted client can transparently
@@ -183,97 +206,119 @@ export class LegacySessionStore<T> {
             });
         }
         const abortTimeout = setManagedTimeout(async () => {
-            if (this.sessions.has(sessionId)) {
+            if (this.sessions[sessionId]) {
+                this.sessions[sessionId].logger.info({
+                    id: LogId.sessionCloseNotification,
+                    context: "sessionStore",
+                    message: "Session closed due to inactivity",
+                });
                 await this.closeSession({ sessionId, reason: "idle_timeout" });
             }
         }, this.idleTimeoutMS);
-        const notificationTimeout = setManagedTimeout(() => {
-            this.sendNotification(sessionId);
-        }, this.notificationTimeoutMS);
-        this.sessions.set(sessionId, {
-            value,
+        const notificationTimeout = setManagedTimeout(
+            () => this.sendNotification(sessionId),
+            this.notificationTimeoutMS
+        );
+        this.sessions[sessionId] = {
+            transport,
             abortTimeout,
             notificationTimeout,
+            logger,
             lastUsedAt: Date.now(),
-        });
+        };
+        // Track session created metric
         this.metrics.get("sessionCreated").inc();
-        this.metrics.get("sessionsActive").set(this.sessions.size);
+        this.metrics.get("sessionsActive").set(Object.keys(this.sessions).length);
+        return Promise.resolve();
     }
 
-    /**
-     * Closes a session: removes it from the map, cancels its timers, and reports
-     * the value through {@link onSessionClosed} for teardown. When `reason` is
-     * `"transport_closed"` the holder initiates the teardown, so it is reported
-     * but not double-torn-down by the store.
-     */
-    public async closeSession({
+    async closeSession({
         sessionId,
         reason = "unknown",
     }: {
         sessionId: string;
         reason?: SessionCloseReason;
     }): Promise<void> {
-        const session = this.sessions.get(sessionId);
+        const session = this.sessions[sessionId];
         if (!session) {
             throw new Error(`Session ${sessionId} not found`);
         }
-        // Remove from map before reporting so a re-entrant callback sees the
-        // session as already gone.
-        this.sessions.delete(sessionId);
+
+        // Remove from map before closing transport so that a re-entrant
+        // onsessionclosed callback (fired by transport.close()) sees the
+        // session as already gone and doesn't double-count metrics.
+        delete this.sessions[sessionId];
+
         session.abortTimeout.cancel();
         session.notificationTimeout.cancel();
+
+        if (reason !== "transport_closed") {
+            // Only close the transport when the server initiates the close.
+            try {
+                await session.transport.close();
+            } catch (error) {
+                this.logger.error({
+                    id: LogId.sessionCloseFailure,
+                    context: "streamableHttpTransport",
+                    message: `Error closing transport ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
+                });
+            }
+        }
+
+        // Track session closed metric
         this.metrics.get("sessionClosed").inc({ reason });
-        this.metrics.get("sessionsActive").set(this.sessions.size);
-        await Promise.resolve(this.onSessionClosed(session.value, reason));
+        this.metrics.get("sessionsActive").set(Object.keys(this.sessions).length);
     }
 
-    /** Closes every live session (e.g. on server shutdown). */
-    public async closeAllSessions(): Promise<void> {
+    async closeAllSessions(): Promise<void> {
         await Promise.all(
-            [...this.sessions.keys()].map((sessionId) => this.closeSession({ sessionId, reason: "server_stop" }))
+            Object.keys(this.sessions).map((sessionId) => this.closeSession({ sessionId, reason: "server_stop" }))
         );
     }
 
-    private resetTimeout(sessionId: string): void {
-        const session = this.sessions.get(sessionId);
-        if (!session) {
-            return;
-        }
-        session.abortTimeout.restart();
-        session.notificationTimeout.restart();
-        session.lastUsedAt = Date.now();
+    /**
+     * The in-memory store does not persist negotiated client state: a session
+     * it evicts loses its transport too, and restoring client state is only
+     * meaningful with durable session storage. Restored sessions therefore
+     * behave as capability-less unless a subclass overrides these.
+     */
+    /* eslint-disable @typescript-eslint/no-unused-vars */
+    saveNegotiatedClientState(
+        sessionId: string,
+        state: NegotiatedClientState,
+        headers?: Record<string, unknown>
+    ): Promise<void> {
+        return Promise.resolve();
     }
 
-    private findEvictableSession(): string | undefined {
-        const now = Date.now();
-        let oldestId: string | undefined;
-        let oldestLastUsedAt = Infinity;
-        for (const [id, session] of this.sessions) {
-            if (session.lastUsedAt < oldestLastUsedAt) {
-                oldestLastUsedAt = session.lastUsedAt;
-                oldestId = id;
-            }
-        }
-        if (oldestId === undefined || now - oldestLastUsedAt < this.evictionIdleGraceMS) {
-            return undefined;
-        }
-        return oldestId;
+    loadNegotiatedClientState(
+        sessionId: string,
+        headers?: Record<string, unknown>
+    ): Promise<NegotiatedClientState | undefined> {
+        return Promise.resolve(undefined);
     }
+    /* eslint-enable @typescript-eslint/no-unused-vars */
+}
 
-    private sendNotification(sessionId: string): void {
-        const session = this.sessions.get(sessionId);
-        if (!session) {
-            this.logger.warning({
-                id: LogId.sessionCloseNotificationFailure,
-                context: "sessionStore",
-                message: `session ${sessionId} not found, no notification delivered`,
-            });
-            return;
-        }
-        this.logger.info({
-            id: LogId.sessionCloseNotification,
-            context: "sessionStore",
-            message: "Session is about to be closed due to inactivity",
-        });
-    }
+/**
+ * A function to create a custom SessionStore instance.
+ * When provided, the runner will use this function instead of the default SessionStore constructor.
+ *
+ * @deprecated The per-client session concept is being removed; the 2025-era legacy path is the only remaining consumer.
+ */
+export type CreateSessionStoreFn<
+    TTransport extends CloseableTransport = CloseableTransport,
+    TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions,
+> = (args: SessionStoreConstructorArgs<TMetrics>) => ISessionStore<TTransport>;
+
+/**
+ * Creates a default SessionStore instance from the provided constructor arguments.
+ *
+ * @deprecated The per-client session concept is being removed; the 2025-era legacy path is the only remaining consumer.
+ */
+export function createDefaultSessionStore<
+    TTransport extends CloseableTransport = CloseableTransport,
+    TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions,
+>(params: SessionStoreConstructorArgs<TMetrics>): SessionStore<TTransport> {
+    return new SessionStore(params);
 }
