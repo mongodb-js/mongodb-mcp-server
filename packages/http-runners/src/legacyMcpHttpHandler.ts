@@ -3,6 +3,8 @@ import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
 import type express from "express";
 import type {
     ILogger,
+    IMetrics,
+    DefaultMetricDefinitions,
     TransportRequestContext,
     RequestAuthInfo,
     HttpServerOptions,
@@ -41,6 +43,7 @@ export type LegacyMcpHttpHandlerOptions = {
     /** Builds a fresh request-scoped server for each legacy session. */
     createServer: LegacyServerFactory;
     logger: ILogger;
+    metrics: IMetrics<DefaultMetricDefinitions>;
     http: HttpServerOptions;
     /** Session lifecycle tunables (cap / timeouts / eviction). */
     sessionOptions?: LegacySessionOptions;
@@ -87,7 +90,7 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
         server: SessionfulServer;
     }>;
 
-    constructor({ createServer, logger, http, sessionOptions }: LegacyMcpHttpHandlerOptions) {
+    constructor({ createServer, logger, metrics, http, sessionOptions }: LegacyMcpHttpHandlerOptions) {
         this.createServer = createServer;
         this.logger = logger;
         this.http = http;
@@ -97,6 +100,7 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
         }>({
             options: sessionOptions,
             logger,
+            metrics,
             onSessionClosed: (session): void => {
                 void session.server.close().catch((error: unknown) => {
                     this.logger.error({

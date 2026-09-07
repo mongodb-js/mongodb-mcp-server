@@ -351,6 +351,9 @@ importers:
       '@microsoft/api-extractor':
         specifier: ^7.59.0
         version: 7.59.0(@types/node@25.6.0)
+      '@mongodb-js/mcp-test-utils':
+        specifier: workspace:*
+        version: link:../test-utils
       '@mongodb-js/mcp-types':
         specifier: workspace:*
         version: link:../types
@@ -6416,6 +6419,7 @@ packages:
 
   mongodb-runner@6.10.0:
     resolution: {integrity: sha512-EEvZpIKyHzH8M1LXd4Pb1JgCH+HxvUYrm2458VakEvAFea6hHOmwwGhrlRHYZfpGTcLDyLtIclsrHci1IpP01Q==}
+    deprecated: This package is not maintained anymore. Please use @mongodb-js/mongodb-runner instead
     hasBin: true
 
   mongodb-schema@12.7.0:

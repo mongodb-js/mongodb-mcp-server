@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { ILogger } from "@mongodb-js/mcp-types";
+import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 import { LegacySessionStore, SessionLimitExceededError, type SessionCloseReason } from "./sessionStore.js";
 
 /** A generic session value: a plain closable object. */
@@ -26,16 +27,18 @@ function makeStore(
     options: Partial<
         Record<"maxSessions" | "idleTimeoutMS" | "notificationTimeoutMS" | "evictionIdleGraceMS", number>
     > = {}
-): { store: LegacySessionStore<TestValue>; closed: ClosedRecord[] } {
+): { store: LegacySessionStore<TestValue>; closed: ClosedRecord[]; metrics: MockMetrics } {
     const closed: ClosedRecord[] = [];
+    const metrics = new MockMetrics();
     const store = new LegacySessionStore<TestValue>({
         options,
         logger: createMockLogger(),
+        metrics,
         onSessionClosed: (value, reason): void => {
             closed.push({ id: value.id, reason });
         },
     });
-    return { store, closed };
+    return { store, closed, metrics };
 }
 
 describe("LegacySessionStore lifecycle", () => {
@@ -89,6 +92,23 @@ describe("LegacySessionStore lifecycle", () => {
         expect(store.size).toBe(0);
         expect(closed).toHaveLength(2);
         expect(closed.every((c) => c.reason === "server_stop")).toBe(true);
+    });
+
+    it("tracks session metrics across the lifecycle", async () => {
+        const { store, metrics } = makeStore({ maxSessions: 5 });
+        store.addSession({ sessionId: "s1", value: makeValue("s1") });
+        store.addSession({ sessionId: "s2", value: makeValue("s2") });
+
+        expect((await metrics.get("sessionCreated").get()).values[0]?.value).toBe(2);
+        expect((await metrics.get("sessionsActive").get()).values[0]?.value).toBe(2);
+
+        await store.closeSession({ sessionId: "s1", reason: "transport_closed" });
+
+        const closed = (await metrics.get("sessionClosed").get()).values.find(
+            (v) => v.labels.reason === "transport_closed"
+        );
+        expect(closed?.value).toBe(1);
+        expect((await metrics.get("sessionsActive").get()).values[0]?.value).toBe(1);
     });
 });
 

@@ -1,4 +1,4 @@
-import type { ILogger } from "@mongodb-js/mcp-types";
+import type { ILogger, IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 import { setManagedTimeout, type ManagedTimeout } from "./managedTimeout.js";
 import { LogId } from "./logId.js";
 
@@ -67,6 +67,7 @@ export type SessionCloseHandler<T> = (value: T, reason: SessionCloseReason) => v
 export type LegacySessionStoreConstructorArgs<T> = {
     options?: LegacySessionOptions;
     logger: ILogger;
+    metrics: IMetrics<DefaultMetricDefinitions>;
     /** Called when a session leaves the store, so the holder can tear it down. */
     onSessionClosed: SessionCloseHandler<T>;
 };
@@ -98,9 +99,10 @@ export class LegacySessionStore<T> {
     private readonly notificationTimeoutMS: number;
     private readonly evictionIdleGraceMS: number;
     private readonly logger: ILogger;
+    private readonly metrics: IMetrics<DefaultMetricDefinitions>;
     private readonly onSessionClosed: SessionCloseHandler<T>;
 
-    constructor({ options, logger, onSessionClosed }: LegacySessionStoreConstructorArgs<T>) {
+    constructor({ options, logger, metrics, onSessionClosed }: LegacySessionStoreConstructorArgs<T>) {
         this.maxSessions = options?.maxSessions ?? DEFAULT_MAX_SESSIONS;
         this.idleTimeoutMS = options?.idleTimeoutMS ?? DEFAULT_IDLE_TIMEOUT_MS;
         this.notificationTimeoutMS = options?.notificationTimeoutMS ?? DEFAULT_NOTIFICATION_TIMEOUT_MS;
@@ -111,6 +113,7 @@ export class LegacySessionStore<T> {
             this.idleTimeoutMS
         );
         this.logger = logger;
+        this.metrics = metrics;
         this.onSessionClosed = onSessionClosed;
 
         if (this.idleTimeoutMS <= 0) {
@@ -165,7 +168,7 @@ export class LegacySessionStore<T> {
             const victimId = this.findEvictableSession();
             if (victimId === undefined) {
                 this.logger.warning({
-                    id: LogId.streamableHttpTransportRequestFailure,
+                    id: LogId.streamableHttpTransportSessionLimitExceeded,
                     context: "sessionStore",
                     message: `Refusing to create session ${sessionId}: maxSessions limit of ${this.maxSessions} reached and no session is idle past the eviction grace`,
                 });
@@ -193,6 +196,8 @@ export class LegacySessionStore<T> {
             notificationTimeout,
             lastUsedAt: Date.now(),
         });
+        this.metrics.get("sessionCreated").inc();
+        this.metrics.get("sessionsActive").set(this.sessions.size);
     }
 
     /**
@@ -217,6 +222,8 @@ export class LegacySessionStore<T> {
         this.sessions.delete(sessionId);
         session.abortTimeout.cancel();
         session.notificationTimeout.cancel();
+        this.metrics.get("sessionClosed").inc({ reason });
+        this.metrics.get("sessionsActive").set(this.sessions.size);
         await Promise.resolve(this.onSessionClosed(session.value, reason));
     }
 
@@ -254,16 +261,17 @@ export class LegacySessionStore<T> {
     }
 
     private sendNotification(sessionId: string): void {
-        if (!this.sessions.has(sessionId)) {
+        const session = this.sessions.get(sessionId);
+        if (!session) {
             this.logger.warning({
-                id: LogId.streamableHttpTransportRequestFailure,
+                id: LogId.sessionCloseNotificationFailure,
                 context: "sessionStore",
                 message: `session ${sessionId} not found, no notification delivered`,
             });
             return;
         }
         this.logger.info({
-            id: LogId.streamableHttpTransportRequestFailure,
+            id: LogId.sessionCloseNotification,
             context: "sessionStore",
             message: "Session is about to be closed due to inactivity",
         });

@@ -114,6 +114,7 @@ export abstract class MCPHttpServer<
         return new LegacyMcpHttpHandler({
             createServer: async (request): Promise<TServer> => this.createServerForRequest(request),
             logger,
+            metrics: this.metrics,
             http,
             sessionOptions,
         });
