@@ -8,10 +8,12 @@ import type { AggregationCursor } from 'mongodb';
 import { CallToolResult } from '@modelcontextprotocol/server';
 import type { Client } from '@mongodb-js/atlas-local';
 import { ConnectionInfo } from '@mongosh/arg-parser';
+import { Counter } from 'prom-client';
 import type { ElicitRequestFormParams } from '@modelcontextprotocol/server';
 import { EventEmitter } from 'events';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
+import { Gauge } from 'prom-client';
 import { Histogram } from 'prom-client';
 import { InputRequiredResult } from '@modelcontextprotocol/server';
 import type { InputResponses } from '@modelcontextprotocol/server';
@@ -422,6 +424,9 @@ export type ConnectionTag = "connected" | "connecting" | "disconnected" | "error
 // @public
 export function createDefaultMetrics(): {
     readonly toolExecutionDuration: Histogram<"tool_name" | "category" | "status" | "operation_type" | "error_type">;
+    readonly sessionCreated: Counter<string>;
+    readonly sessionClosed: Counter<"reason">;
+    readonly sessionsActive: Gauge<string>;
 };
 
 // @public (undocumented)
@@ -429,7 +434,10 @@ export type DefaultEventMap = Record<string, never[]>;
 
 // @public
 export type DefaultMetricDefinitions = {
+    sessionCreated: ICounter;
+    sessionClosed: ICounter;
     toolExecutionDuration: IObservable;
+    sessionsActive: IGauge;
 };
 
 // @public (undocumented)
