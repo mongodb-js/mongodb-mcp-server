@@ -194,7 +194,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
      */
     register(): Promise<void> {
         if (this.closed) {
-            throw new Error("Cannot register a closed server");
+            return Promise.reject(new Error("Cannot register a closed server"));
         }
         if (this.registered) {
             return Promise.resolve();
