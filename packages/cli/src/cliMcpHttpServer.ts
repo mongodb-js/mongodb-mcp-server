@@ -1,4 +1,5 @@
 import { MCPHttpServer, StreamableHttpRunner } from "@mongodb-js/mcp-http-runners";
+import type { LegacySessionOptions } from "@mongodb-js/mcp-http-runners";
 import type { HttpServerOptions } from "@mongodb-js/mcp-types";
 import type { TransportRequestContext } from "@mongodb-js/mcp-types";
 import type { CliServer } from "./cliServer.js";
@@ -7,8 +8,8 @@ import { applyConfigOverrides } from "./config/configOverrides.js";
 
 export type CliMcpHttpServerOptions = {
     http: HttpServerOptions;
-    /** Maximum number of concurrent 2025-era sessions the HTTP transport holds in memory. */
-    maxSessions?: number;
+    /** Session lifecycle tunables for the 2025-era HTTP transport (cap / timeouts / eviction). */
+    sessionOptions?: LegacySessionOptions;
 };
 
 /**
@@ -31,7 +32,7 @@ export class CliMcpHttpServer extends MCPHttpServer<CliServer> {
             options,
             logger: sharedServices.logger,
             metrics: sharedServices.metrics,
-            maxSessions: options.maxSessions,
+            sessionOptions: options.sessionOptions,
         });
         this.sharedServices = sharedServices;
     }
@@ -66,7 +67,12 @@ export function createHttpTransportRunnerFromConfig(sharedServices: SharedServer
                 // with authMode: "authenticated" themselves.
                 authMode: "unauthenticated",
             },
-            maxSessions: config.maxSessions,
+            sessionOptions: {
+                maxSessions: config.maxSessions,
+                idleTimeoutMS: config.idleTimeoutMs,
+                notificationTimeoutMS: config.notificationTimeoutMs,
+                evictionIdleGraceMS: config.evictionIdleGraceMS,
+            },
         },
     });
 

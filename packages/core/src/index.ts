@@ -29,6 +29,17 @@ export { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
 export { CommonArgs, ASCII_ONLY_NON_CC_ERROR } from "./args.js";
 export { LogId } from "./logId.js";
 export { setManagedTimeout, type ManagedTimeout, sleep } from "./managedTimeout.js";
+export {
+    LegacySessionStore,
+    SessionLimitExceededError,
+    SessionRejectedError,
+    DEFAULT_MAX_SESSIONS,
+    DEFAULT_EVICTION_IDLE_GRACE_MS,
+    type SessionCloseReason,
+    type SessionCloseHandler,
+    type LegacySessionOptions,
+    type LegacySessionStoreConstructorArgs,
+} from "./sessionStore.js";
 export { requestIdAttr } from "./helpers/requestIdAttr.js";
 
 // Web-friendly transports

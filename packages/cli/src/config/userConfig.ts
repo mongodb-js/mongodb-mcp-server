@@ -18,7 +18,11 @@ import {
     AGG_COUNT_MAX_TIME_MS_CAP,
 } from "@mongodb-js/mcp-tools-mongodb";
 import { argMetadata, CliOptionsSchema as MongoshCliOptionsSchema } from "@mongosh/arg-parser/arg-parser";
-import { TRANSPORT_PAYLOAD_LIMITS, DEFAULT_MAX_SESSIONS } from "../transports/constants.js";
+import {
+    TRANSPORT_PAYLOAD_LIMITS,
+    DEFAULT_MAX_SESSIONS,
+    DEFAULT_EVICTION_IDLE_GRACE_MS,
+} from "../transports/constants.js";
 
 export const configRegistry = z.registry<ConfigFieldMeta>();
 
@@ -189,6 +193,25 @@ const ServerConfigSchema = z.object({
         .default(DEFAULT_MAX_SESSIONS)
         .describe(
             "Maximum number of concurrent sessions the HTTP transport will hold in memory (only used when transport is 'http'). Each session holds a full server instance, transport, and timers, so choose a value based on your deployment's available memory; the default is a conservative safety net rather than a recommended production value."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    idleTimeoutMs: z.coerce
+        .number()
+        .default(600_000)
+        .describe("Idle timeout for a client to disconnect (only applies to http transport).")
+        .register(configRegistry, { overrideBehavior: onlyLowerThanBaseValueOverride() }),
+    notificationTimeoutMs: z.coerce
+        .number()
+        .default(540_000)
+        .describe("Notification timeout for a client to be aware of disconnect (only applies to http transport).")
+        .register(configRegistry, { overrideBehavior: onlyLowerThanBaseValueOverride() }),
+    evictionIdleGraceMS: z.coerce
+        .number()
+        .int()
+        .min(0, "Invalid evictionIdleGraceMS: must be at least 0")
+        .default(DEFAULT_EVICTION_IDLE_GRACE_MS)
+        .describe(
+            "How long a session must be idle before it becomes eligible for least-recently-used eviction when the HTTP transport is at its maxSessions cap (only used when transport is 'http'). Swept back to idleTimeoutMs when larger."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
     maxBytesPerQuery: z.coerce

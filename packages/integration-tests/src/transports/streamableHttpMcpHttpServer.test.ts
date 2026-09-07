@@ -158,16 +158,38 @@ describe("MCPHttpServer (streamable HTTP)", () => {
             ({ runner } = createStreamableHttpTestRunner(config));
             await runner.start();
 
+            // A real client holds its session open via the SSE stream, so it
+            // counts against the cap.
+            const first = await connectClient({});
+            const tools = await first.listTools();
+            expect(tools.tools.length).toBeGreaterThan(0);
+
+            // A second client cannot open a session while the first holds the
+            // only slot -> the initialize is rejected (503) and connect() fails.
+            const client = new Client({ name: "second", version: "1.0" });
+            const transport = new StreamableHTTPClientTransport(new URL(`${getServerAddress(runner)}/mcp`), {});
+            await expect(client.connect(transport)).rejects.toThrow();
+            await client.close();
+            await transport.close();
+        });
+
+        it("evicts the least-recently-used idle session to admit a new one at the cap", async () => {
+            config.maxSessions = 1;
+            ({ runner } = createStreamableHttpTestRunner(config, { evictionIdleGraceMS: 0 }));
+            await runner.start();
+
             // First legacy client's initialize opens a session.
             const first = await sendHttpRequest({ method: "initialize" });
             expect(first.ok).toBe(true);
-            expect(first.headers.get("mcp-session-id")).toBeTruthy();
+            const firstSessionId = first.headers.get("mcp-session-id");
+            expect(firstSessionId).toBeTruthy();
 
-            // A second concurrent session exceeds the cap and is rejected (503).
+            // With evictionIdleGraceMS: 0 the first session is immediately idle,
+            // so at capacity a second initialize evicts it (LRU) instead of
+            // rejecting — the new session is admitted (200).
             const second = await sendHttpRequest({ method: "initialize" });
-            expect(second.status).toBe(503);
-            const body = (await second.json()) as { error?: { code?: number; message?: string } };
-            expect(body.error?.message).toContain("maximum number of concurrent sessions");
+            expect(second.status).toBe(200);
+            expect(second.headers.get("mcp-session-id")).not.toBe(firstSessionId);
         });
 
         it("allows sessions below the cap", async () => {

@@ -31,6 +31,11 @@ export type CreateStreamableHttpTestRunnerOptions = {
     createServer?: (config: UserConfig) => Promise<CliServer>;
     /** Set to `false` to skip creating a monitoring server from the config (default: `true`). */
     enableMonitoringServer?: boolean;
+    /**
+     * Override the idle grace (ms) before a 2025-era session becomes eligible for
+     * LRU eviction at the `maxSessions` cap. Test-only override.
+     */
+    evictionIdleGraceMS?: number;
 };
 
 export type StreamableHttpTestRunnerComponents = {
@@ -59,6 +64,7 @@ export class TestMCPHttpServer extends MCPHttpServer<CliServer> {
         tools,
         customMetrics,
         createServer,
+        evictionIdleGraceMS,
     }: {
         userConfig: UserConfig;
         options: {
@@ -69,8 +75,17 @@ export class TestMCPHttpServer extends MCPHttpServer<CliServer> {
         tools?: AnyToolClass[];
         customMetrics?: PrometheusMetrics<DefaultPrometheusMetricDefinitions>;
         createServer?: (config: UserConfig) => Promise<CliServer>;
+        evictionIdleGraceMS?: number;
     }) {
-        super({ options, logger, metrics, maxSessions: userConfig.maxSessions });
+        super({
+            options,
+            logger,
+            metrics,
+            sessionOptions: {
+                maxSessions: userConfig.maxSessions,
+                evictionIdleGraceMS,
+            },
+        });
         this.userConfig = userConfig;
         this.tools = tools;
         this.customMetrics = customMetrics;
@@ -126,6 +141,7 @@ export function createStreamableHttpTestRunner(
         tools: options.tools,
         customMetrics: options.customMetrics,
         createServer: options.createServer,
+        evictionIdleGraceMS: options.evictionIdleGraceMS,
     });
 
     const monitoringServer =

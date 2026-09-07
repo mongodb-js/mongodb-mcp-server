@@ -22,6 +22,7 @@ import {
 } from "@mongodb-js/mcp-core";
 import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
 import { LegacyMcpHttpHandler, type LegacyMcpHandler } from "./legacyMcpHttpHandler.js";
+import type { LegacySessionOptions } from "@mongodb-js/mcp-core";
 
 /**
  * Options for creating an MCPHttpServer instance.
@@ -36,11 +37,11 @@ export type MCPHttpServerOptions<TMetrics extends DefaultMetricDefinitions = Def
     /** Metrics instance */
     metrics: IMetrics<TMetrics>;
     /**
-     * Maximum number of concurrent 2025-era sessions the HTTP transport will
-     * hold in memory. When exceeded, new session startups are rejected. Each
-     * session holds a full server instance, transport, and timers.
+     * Tunables for the 2025-era (legacy) session lifecycle: the `maxSessions`
+     * cap, the idle/notification timeouts, and the LRU eviction idle grace. See
+     * {@link LegacySessionOptions}.
      */
-    maxSessions?: number;
+    sessionOptions?: LegacySessionOptions;
 };
 
 /**
@@ -77,7 +78,7 @@ export abstract class MCPHttpServer<
     private readonly legacyHandler: LegacyMcpHandler;
     protected readonly metrics: IMetrics<TMetrics>;
 
-    constructor({ options, logger, metrics, maxSessions }: MCPHttpServerOptions<TMetrics>) {
+    constructor({ options, logger, metrics, sessionOptions }: MCPHttpServerOptions<TMetrics>) {
         super({
             options: {
                 logContext: "mcpHttpServer",
@@ -87,7 +88,7 @@ export abstract class MCPHttpServer<
         });
         this.metrics = metrics;
         this.modernHandler = this.createModernHandler();
-        this.legacyHandler = this.createLegacyHandler({ logger, http: options.http, maxSessions });
+        this.legacyHandler = this.createLegacyHandler({ logger, http: options.http, sessionOptions });
     }
 
     public async stop(): Promise<void> {
@@ -104,17 +105,17 @@ export abstract class MCPHttpServer<
     protected createLegacyHandler({
         logger,
         http,
-        maxSessions,
+        sessionOptions,
     }: {
         logger: ICompositeLogger;
         http: HttpServerOptions;
-        maxSessions?: number;
+        sessionOptions?: LegacySessionOptions;
     }): LegacyMcpHandler {
         return new LegacyMcpHttpHandler({
             createServer: async (request): Promise<TServer> => this.createServerForRequest(request),
             logger,
             http,
-            maxSessions,
+            sessionOptions,
         });
     }
 
