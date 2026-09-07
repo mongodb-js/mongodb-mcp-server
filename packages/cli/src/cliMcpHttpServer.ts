@@ -7,6 +7,8 @@ import { applyConfigOverrides } from "./config/configOverrides.js";
 
 export type CliMcpHttpServerOptions = {
     http: HttpServerOptions;
+    /** Maximum number of concurrent 2025-era sessions the HTTP transport holds in memory. */
+    maxSessions?: number;
 };
 
 /**
@@ -29,6 +31,7 @@ export class CliMcpHttpServer extends MCPHttpServer<CliServer> {
             options,
             logger: sharedServices.logger,
             metrics: sharedServices.metrics,
+            maxSessions: options.maxSessions,
         });
         this.sharedServices = sharedServices;
     }
@@ -63,6 +66,7 @@ export function createHttpTransportRunnerFromConfig(sharedServices: SharedServer
                 // with authMode: "authenticated" themselves.
                 authMode: "unauthenticated",
             },
+            maxSessions: config.maxSessions,
         },
     });
 

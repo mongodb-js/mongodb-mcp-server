@@ -35,6 +35,12 @@ export type MCPHttpServerOptions<TMetrics extends DefaultMetricDefinitions = Def
     logger: ICompositeLogger;
     /** Metrics instance */
     metrics: IMetrics<TMetrics>;
+    /**
+     * Maximum number of concurrent 2025-era sessions the HTTP transport will
+     * hold in memory. When exceeded, new session startups are rejected. Each
+     * session holds a full server instance, transport, and timers.
+     */
+    maxSessions?: number;
 };
 
 /**
@@ -71,7 +77,7 @@ export abstract class MCPHttpServer<
     private readonly legacyHandler: LegacyMcpHandler;
     protected readonly metrics: IMetrics<TMetrics>;
 
-    constructor({ options, logger, metrics }: MCPHttpServerOptions<TMetrics>) {
+    constructor({ options, logger, metrics, maxSessions }: MCPHttpServerOptions<TMetrics>) {
         super({
             options: {
                 logContext: "mcpHttpServer",
@@ -81,7 +87,7 @@ export abstract class MCPHttpServer<
         });
         this.metrics = metrics;
         this.modernHandler = this.createModernHandler();
-        this.legacyHandler = this.createLegacyHandler({ logger, http: options.http });
+        this.legacyHandler = this.createLegacyHandler({ logger, http: options.http, maxSessions });
     }
 
     public async stop(): Promise<void> {
@@ -98,14 +104,17 @@ export abstract class MCPHttpServer<
     protected createLegacyHandler({
         logger,
         http,
+        maxSessions,
     }: {
         logger: ICompositeLogger;
         http: HttpServerOptions;
+        maxSessions?: number;
     }): LegacyMcpHandler {
         return new LegacyMcpHttpHandler({
             createServer: async (request): Promise<TServer> => this.createServerForRequest(request),
             logger,
             http,
+            maxSessions,
         });
     }
 

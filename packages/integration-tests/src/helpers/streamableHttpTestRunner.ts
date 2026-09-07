@@ -70,7 +70,7 @@ export class TestMCPHttpServer extends MCPHttpServer<CliServer> {
         customMetrics?: PrometheusMetrics<DefaultPrometheusMetricDefinitions>;
         createServer?: (config: UserConfig) => Promise<CliServer>;
     }) {
-        super({ options, logger, metrics });
+        super({ options, logger, metrics, maxSessions: userConfig.maxSessions });
         this.userConfig = userConfig;
         this.tools = tools;
         this.customMetrics = customMetrics;

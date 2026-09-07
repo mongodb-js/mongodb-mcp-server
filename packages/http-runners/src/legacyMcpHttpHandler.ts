@@ -17,6 +17,22 @@ import {
 
 /** Codes for 2025-era session operations (the branch removed the shared constants). */
 const JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND = -32007;
+/** Reaching the concurrent-session cap: the server refuses to start new sessions. */
+const JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED = -32008;
+
+/** Default cap on concurrent sessions when {@link LegacyMcpHttpHandlerOptions.maxSessions} is omitted. */
+const DEFAULT_MAX_SESSIONS = 1000;
+
+/** Thrown by {@link LegacyMcpHttpHandler} when the concurrent-session cap is reached. */
+class SessionLimitExceededError extends Error {
+    public readonly maxSessions: number;
+
+    constructor(maxSessions: number) {
+        super(`Session limit exceeded (max ${maxSessions})`);
+        this.name = "SessionLimitExceededError";
+        this.maxSessions = maxSessions;
+    }
+}
 
 /**
  * The per-request server contract the sessionful legacy path relies on in
@@ -43,6 +59,12 @@ export type LegacyMcpHttpHandlerOptions = {
     createServer: LegacyServerFactory;
     logger: ILogger;
     http: HttpServerOptions;
+    /**
+     * Maximum number of concurrent sessions held in memory. Defaults to 1000
+     * ({@link DEFAULT_MAX_SESSIONS}) when omitted. New session startups beyond
+     * the cap are rejected with a session-limit error.
+     */
+    maxSessions?: number;
 };
 
 /**
@@ -79,13 +101,20 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
     private readonly createServer: LegacyServerFactory;
     private readonly logger: ILogger;
     private readonly http: HttpServerOptions;
+    private readonly maxSessions: number;
     /** Live sessions keyed by `mcp-session-id`. */
     private readonly sessions = new Map<string, LegacySession>();
 
-    constructor({ createServer, logger, http }: LegacyMcpHttpHandlerOptions) {
+    constructor({ createServer, logger, http, maxSessions }: LegacyMcpHttpHandlerOptions) {
         this.createServer = createServer;
         this.logger = logger;
         this.http = http;
+        this.maxSessions = maxSessions ?? DEFAULT_MAX_SESSIONS;
+    }
+
+    /** The number of live sessions currently held (testing/introspection). */
+    public get sessionCount(): number {
+        return this.sessions.size;
     }
 
     /** Closes every live session (e.g. on server shutdown). */
@@ -115,6 +144,9 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
      * transport — the return channel the legacy elicitation shim needs.
      */
     private async createSession(req: express.Request): Promise<LegacySession> {
+        if (this.sessions.size >= this.maxSessions) {
+            throw new SessionLimitExceededError(this.maxSessions);
+        }
         const sessionId = getRandomUUID();
         const transport = new NodeStreamableHTTPServerTransport({
             sessionIdGenerator: (): string => sessionId,
@@ -170,7 +202,29 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
 
         // POST /mcp.
         if (isInitializeRequest(req.body) && typeof sessionId !== "string") {
-            const session = await this.createSession(req);
+            let session: LegacySession;
+            try {
+                session = await this.createSession(req);
+            } catch (error) {
+                if (error instanceof SessionLimitExceededError) {
+                    this.logger.warning({
+                        id: LogId.streamableHttpTransportRequestFailure,
+                        context: "streamableHttpTransport",
+                        message: `Rejecting legacy session startup: ${error.message}`,
+                        attributes: { ...requestIdAttr(req.headers) },
+                    });
+                    res.status(503).json({
+                        jsonrpc: "2.0",
+                        error: {
+                            code: JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED,
+                            message: `Server has reached the maximum number of concurrent sessions (${error.maxSessions}). Try again later.`,
+                        },
+                        id: null,
+                    });
+                    return;
+                }
+                throw error;
+            }
             await session.transport.handleRequest(req, res, req.body);
             return;
         }

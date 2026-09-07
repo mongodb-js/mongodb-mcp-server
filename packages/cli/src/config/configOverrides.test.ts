@@ -214,6 +214,7 @@ describe("configOverrides", () => {
                         "httpHost",
                         "httpHeaders",
                         "httpBodyLimit",
+                        "maxSessions",
                         "maxBytesPerQuery",
                         "maxDocumentsPerQuery",
                         "exportsPath",

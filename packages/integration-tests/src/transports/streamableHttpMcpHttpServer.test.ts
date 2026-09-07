@@ -152,6 +152,37 @@ describe("MCPHttpServer (streamable HTTP)", () => {
         });
     });
 
+    describe("concurrent session limit (maxSessions)", () => {
+        it("rejects new legacy sessions beyond the configured cap", async () => {
+            config.maxSessions = 1;
+            ({ runner } = createStreamableHttpTestRunner(config));
+            await runner.start();
+
+            // First legacy client's initialize opens a session.
+            const first = await sendHttpRequest({ method: "initialize" });
+            expect(first.ok).toBe(true);
+            expect(first.headers.get("mcp-session-id")).toBeTruthy();
+
+            // A second concurrent session exceeds the cap and is rejected (503).
+            const second = await sendHttpRequest({ method: "initialize" });
+            expect(second.status).toBe(503);
+            const body = (await second.json()) as { error?: { code?: number; message?: string } };
+            expect(body.error?.message).toContain("maximum number of concurrent sessions");
+        });
+
+        it("allows sessions below the cap", async () => {
+            config.maxSessions = 100;
+            ({ runner } = createStreamableHttpTestRunner(config));
+            await runner.start();
+
+            // Well under the cap: several sessions open without error.
+            for (let i = 0; i < 3; i++) {
+                const res = await sendHttpRequest({ method: "initialize" });
+                expect(res.ok).toBe(true);
+            }
+        });
+    });
+
     describe("HTTP header validation", () => {
         it("rejects requests with a missing configured header and accepts the correct one", async () => {
             config.httpHeaders = { "x-custom-header": "test-value" };
