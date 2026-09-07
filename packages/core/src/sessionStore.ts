@@ -16,12 +16,9 @@ export type SessionCloseReason = "idle_timeout" | "transport_closed" | "server_s
 
 /** Thrown when the concurrent-session cap is reached and no idle session is eligible for eviction. */
 export class SessionLimitExceededError extends Error {
-    public readonly maxSessions: number;
-
-    constructor(maxSessions: number) {
-        super(`Session limit of ${maxSessions} concurrent sessions reached`);
+    constructor(message: string) {
+        super(message);
         this.name = "SessionLimitExceededError";
-        this.maxSessions = maxSessions;
     }
 }
 
@@ -172,7 +169,7 @@ export class LegacySessionStore<T> {
                     context: "sessionStore",
                     message: `Refusing to create session ${sessionId}: maxSessions limit of ${this.maxSessions} reached and no session is idle past the eviction grace`,
                 });
-                throw new SessionLimitExceededError(this.maxSessions);
+                throw new SessionLimitExceededError(`Session limit of ${this.maxSessions} concurrent sessions reached`);
             }
             void this.closeSession({ sessionId: victimId, reason: "evicted" }).catch((error) => {
                 this.logger.error({

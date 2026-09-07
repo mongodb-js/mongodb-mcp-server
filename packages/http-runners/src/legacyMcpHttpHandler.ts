@@ -218,7 +218,7 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
                         jsonrpc: "2.0",
                         error: {
                             code: -32006,
-                            message: `Server has reached the maximum number of concurrent sessions (${error.maxSessions}). Try again later.`,
+                            message: `Server has reached the maximum number of concurrent sessions. Try again later.`,
                         },
                         id: null,
                     });
