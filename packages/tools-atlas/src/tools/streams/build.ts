@@ -12,23 +12,18 @@ import {
 } from "../../streams/streamsArgs.js";
 import { StreamsInvalidArgumentError } from "../../streams/errors.js";
 
-const BuildResource: z.ZodEnum<{
-    processor: "processor";
-    workspace: "workspace";
-    connection: "connection";
-    privatelink: "privatelink";
-}> = z.enum(["workspace", "connection", "processor", "privatelink"]);
+const BuildResource = z.enum(["workspace", "connection", "processor", "privatelink"]);
 
-const ConnectionType: z.ZodEnum<{
-    Cluster: "Cluster";
-    Kafka: "Kafka";
-    S3: "S3";
-    Https: "Https";
-    AWSKinesisDataStreams: "AWSKinesisDataStreams";
-    AWSLambda: "AWSLambda";
-    SchemaRegistry: "SchemaRegistry";
-    Sample: "Sample";
-}> = z.enum(["Kafka", "Cluster", "S3", "Https", "AWSKinesisDataStreams", "AWSLambda", "SchemaRegistry", "Sample"]);
+const ConnectionType = z.enum([
+    "Kafka",
+    "Cluster",
+    "S3",
+    "Https",
+    "AWSKinesisDataStreams",
+    "AWSLambda",
+    "SchemaRegistry",
+    "Sample",
+]);
 
 interface FieldSchema {
     title: string;

@@ -118,10 +118,7 @@ export class StreamsManageTool extends StreamsToolBase {
             .describe(
                 "New region for workspace. Only for 'update-workspace'. Use Atlas region names (e.g. AWS: 'VIRGINIA_USA', Azure: 'eastus2', GCP: 'US_CENTRAL1')."
             ),
-        newTier: z
-            .enum(["SP2", "SP5", "SP10", "SP30", "SP50"])
-            .optional()
-            .describe("New default tier for workspace. Only for 'update-workspace'."),
+        newTier: StreamsTier.optional().describe("New default tier for workspace. Only for 'update-workspace'."),
 
         // update-connection options
         connectionConfig: ConnectionConfig.optional().describe(
@@ -224,8 +221,8 @@ export class StreamsManageTool extends StreamsToolBase {
         updated: {
             dataProcessRegion?: { cloudProvider?: string; region?: string };
             streamConfig?: {
-                tier?: "SP2" | "SP5" | "SP10" | "SP30" | "SP50";
-                maxTierSize?: "SP2" | "SP5" | "SP10" | "SP30" | "SP50";
+                tier?: z.infer<typeof StreamsTier>;
+                maxTierSize?: z.infer<typeof StreamsTier>;
             } | null;
         },
         options: { includeRegion: boolean; includeTier: boolean }

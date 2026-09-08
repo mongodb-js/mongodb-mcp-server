@@ -4,17 +4,11 @@ import { AtlasArgs } from "../args.js";
 const ALLOWED_STREAMS_NAME_REGEX = /^[a-zA-Z0-9_-]+$/;
 const ALLOWED_STREAMS_NAME_ERROR = "Name can only contain ASCII letters, numbers, hyphens, and underscores";
 
-type StreamsTierValues = {
-    SP50: "SP50";
-    SP30: "SP30";
-    SP10: "SP10";
-    SP5: "SP5";
-    SP2: "SP2";
-};
+export const StreamsTier = z.enum(["SP2", "SP5", "SP10", "SP30", "SP50"]);
 
-export const StreamsTier: z.ZodEnum<StreamsTierValues> = z.enum(["SP2", "SP5", "SP10", "SP30", "SP50"]);
+export type StreamsTierValue = z.infer<typeof StreamsTier>;
 
-const DBRoleType: z.ZodEnum<{ CUSTOM: "CUSTOM"; BUILT_IN: "BUILT_IN" }> = z.enum(["BUILT_IN", "CUSTOM"]);
+const DBRoleType = z.enum(["BUILT_IN", "CUSTOM"]);
 
 /** Typed schema for connectionConfig — all fields optional to support elicitation of partial configs. */
 export const ConnectionConfig = z

@@ -3,10 +3,14 @@ import { StreamsToolBase } from "../../streams/streamsToolBase.js";
 import type { CallToolResult, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { formatUntrustedData, type ToolArgs } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
-import { StreamsArgs, StreamsAutoscaling, StreamsTier, toStreamsAutoscaling } from "../../streams/streamsArgs.js";
+import {
+    StreamsArgs,
+    StreamsAutoscaling,
+    StreamsTier,
+    StreamsTierValue,
+    toStreamsAutoscaling,
+} from "../../streams/streamsArgs.js";
 import { StreamsInvalidArgumentError } from "../../streams/errors.js";
-
-type StreamsTierValue = "SP2" | "SP5" | "SP10" | "SP30" | "SP50";
 
 type StreamsProcessorWithStats = {
     name?: string;
