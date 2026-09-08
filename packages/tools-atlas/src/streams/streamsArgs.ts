@@ -8,7 +8,7 @@ export const StreamsTier = z.enum(["SP2", "SP5", "SP10", "SP30", "SP50"]);
 
 export type StreamsTierValue = z.infer<typeof StreamsTier>;
 
-const DBRoleType = z.enum(["BUILT_IN", "CUSTOM"]);
+const DBRoleType = z.enum(["BUILT_IN", "CUSTOM"]).default("BUILT_IN");
 
 /** Typed schema for connectionConfig — all fields optional to support elicitation of partial configs. */
 export const ConnectionConfig = z
