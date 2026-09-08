@@ -491,7 +491,14 @@ describe("StreamsDiscoverTool", () => {
                         state: "STARTED",
                         tier: "SP10",
                         effectiveTier: "SP30",
-                        options: { autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" } },
+                        options: {
+                            autoscaling: {
+                                enabled: true,
+                                minTier: "SP5",
+                                maxTier: "SP30",
+                                links: [{ href: "https://example.com", rel: "self" }],
+                            },
+                        },
                     },
                     { name: "proc2", state: "STOPPED", tier: "SP30", effectiveTier: "SP30" },
                 ],
@@ -544,7 +551,14 @@ describe("StreamsDiscoverTool", () => {
                 state: "STARTED",
                 tier: "SP10",
                 effectiveTier: "SP30",
-                options: { autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" } },
+                options: {
+                    autoscaling: {
+                        enabled: true,
+                        minTier: "SP5",
+                        maxTier: "SP30",
+                        links: [{ href: "https://example.com", rel: "self" }],
+                    },
+                },
                 pipeline: [{ $source: { connectionName: "kafka-in" } }],
             });
 

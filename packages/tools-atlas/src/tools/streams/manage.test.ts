@@ -402,7 +402,14 @@ describe("StreamsManageTool", () => {
                 state: "STOPPED",
                 tier: "SP10",
                 effectiveTier: "SP10",
-                options: { autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" } },
+                options: {
+                    autoscaling: {
+                        enabled: true,
+                        minTier: "SP5",
+                        maxTier: "SP30",
+                        links: [{ href: "https://example.com", rel: "self" }],
+                    },
+                },
             });
 
             const result = await exec({
@@ -436,7 +443,14 @@ describe("StreamsManageTool", () => {
                 state: "STOPPED",
                 tier: "SP10",
                 effectiveTier: "SP30",
-                options: { autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" } },
+                options: {
+                    autoscaling: {
+                        enabled: true,
+                        minTier: "SP5",
+                        maxTier: "SP30",
+                        links: [{ href: "https://example.com", rel: "self" }],
+                    },
+                },
             });
 
             const result = await exec({

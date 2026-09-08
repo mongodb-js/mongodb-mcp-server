@@ -3,7 +3,7 @@ import { StreamsToolBase } from "../../streams/streamsToolBase.js";
 import type { CallToolResult, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { formatUntrustedData, type ToolArgs } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
-import { StreamsArgs, StreamsTier } from "../../streams/streamsArgs.js";
+import { StreamsArgs, StreamsAutoscaling, StreamsTier, toStreamsAutoscaling } from "../../streams/streamsArgs.js";
 import { StreamsInvalidArgumentError } from "../../streams/errors.js";
 
 type StreamsTierValue = "SP2" | "SP5" | "SP10" | "SP30" | "SP50";
@@ -85,13 +85,7 @@ function toConnectionInspect(data: Record<string, unknown>): ConnectionInspect {
     } as ConnectionInspect;
 }
 
-const AutoscalingSchema = z
-    .object({
-        enabled: z.boolean().nullable().optional(),
-        minTier: StreamsTier.nullable().optional(),
-        maxTier: StreamsTier.nullable().optional(),
-    })
-    .nullable();
+const AutoscalingSchema = StreamsAutoscaling;
 
 const ProcessorSummarySchema = z.object({
     name: z.string(),
@@ -204,7 +198,7 @@ function buildProcessorStructuredContent(
         structuredContent.effectiveTier = proc.effectiveTier;
     }
     if (proc.options?.autoscaling !== undefined) {
-        structuredContent.autoscaling = proc.options.autoscaling;
+        structuredContent.autoscaling = toStreamsAutoscaling(proc.options.autoscaling);
     }
     if (proc.stats && Object.keys(proc.stats).length > 0) {
         structuredContent.stats = {
@@ -565,7 +559,9 @@ export class StreamsDiscoverTool extends StreamsToolBase {
             state: p.state,
             tier: p.tier,
             effectiveTier: p.effectiveTier,
-            autoscaling: p.options?.autoscaling,
+            ...(p.options?.autoscaling !== undefined && {
+                autoscaling: toStreamsAutoscaling(p.options.autoscaling),
+            }),
         }));
         const processors = format === "concise" ? conciseProcessors : data.results;
 

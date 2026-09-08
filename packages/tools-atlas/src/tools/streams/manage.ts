@@ -3,7 +3,13 @@ import { StreamsToolBase } from "../../streams/streamsToolBase.js";
 import type { CallToolResult, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { LogId, requestIdAttr, type ToolArgs } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
-import { ConnectionConfig, StreamsArgs, StreamsAutoscaling, StreamsTier } from "../../streams/streamsArgs.js";
+import {
+    ConnectionConfig,
+    StreamsArgs,
+    StreamsAutoscaling,
+    StreamsTier,
+    toStreamsAutoscaling,
+} from "../../streams/streamsArgs.js";
 import { StreamsInvalidArgumentError } from "../../streams/errors.js";
 
 const ManageAction = z.enum([
@@ -453,7 +459,9 @@ export class StreamsManageTool extends StreamsToolBase {
         if ((args.tier !== undefined || args.autoscaling !== undefined) && updated.effectiveTier !== undefined) {
             structuredContent.effectiveTier = updated.effectiveTier;
         }
-        if (args.autoscaling !== undefined) structuredContent.autoscaling = updated.options?.autoscaling ?? null;
+        if (args.autoscaling !== undefined) {
+            structuredContent.autoscaling = toStreamsAutoscaling(updated.options?.autoscaling) ?? null;
+        }
 
         const changes = Object.keys(body).join(", ");
         return {

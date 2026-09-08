@@ -190,6 +190,27 @@ export const StreamsAutoscaling = z
     })
     .nullable();
 
+type StreamsAutoscalingValue = z.infer<typeof StreamsAutoscaling>;
+
+export function toStreamsAutoscaling(
+    data:
+        | {
+              enabled?: boolean | null;
+              minTier?: z.infer<typeof StreamsTier> | null;
+              maxTier?: z.infer<typeof StreamsTier> | null;
+          }
+        | null
+        | undefined
+): StreamsAutoscalingValue | undefined {
+    if (data === undefined) return undefined;
+    if (data === null) return null;
+    return {
+        ...(data.enabled !== undefined && { enabled: data.enabled }),
+        ...(data.minTier !== undefined && { minTier: data.minTier }),
+        ...(data.maxTier !== undefined && { maxTier: data.maxTier }),
+    };
+}
+
 export const StreamsArgs = {
     workspaceName: (): z.ZodString =>
         z
