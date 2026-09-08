@@ -7,7 +7,11 @@
     "@esbuild",
     "@braintrust",
     "@csstools",
-    "@microsoft"
+    "@microsoft",
+    "@emnapi",
+    "@napi-rs",
+    "@rolldown",
+    "@tybys"
   ],
   "ignoredPackages": [
     "bindings@1.5.0",
@@ -26,7 +30,9 @@
     "lightningcss-linux-x64-gnu@1.32.0",
     "lightningcss-linux-x64-musl@1.32.0",
     "lightningcss-win32-arm64-msvc@1.32.0",
-    "lightningcss-win32-x64-msvc@1.32.0"
+    "lightningcss-win32-x64-msvc@1.32.0",
+    "fsevents@2.3.2",
+    "fsevents@2.3.3"
   ],
   "licenseOverrides": {
     "node-addon-api@8.9.0": "MIT"
