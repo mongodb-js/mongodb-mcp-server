@@ -80,9 +80,9 @@ export interface LegacyMcpHandler {
  * This handler owns that sessionful lifecycle: an `initialize` POST creates a
  * session (a connected transport/server pair), later requests and the SSE idle
  * stream reuse the session's transport (the shim's return channel), and a
- * DELETE closes it. Sessions are bounded by the injected `sessionStore` (an
- * in-memory {@link SessionStore} by default). Keeping it isolated from
- * {@link MCPHttpServer} leaves the modern stateless path clean.
+ * DELETE closes it. Sessions are bounded by the injected `sessionStore`.
+ * Keeping it isolated from {@link MCPHttpServer} leaves the modern stateless
+ * path clean.
  */
 export class LegacyMcpHttpHandler implements LegacyMcpHandler {
     private readonly createServer: LegacyServerFactory;
@@ -225,7 +225,7 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
 
         // Admit (check cap, evict LRU idle victim). A rejection admits nothing.
         try {
-            await this.sessions.addSession({ sessionId, transport, logger: this.logger });
+            await this.sessions.addSession({ sessionId, transport, logger: this.logger, headers: req.headers });
         } catch (error) {
             // Dispose the un-connected server we built for a rejected session.
             await server.close().catch(() => undefined);
@@ -363,7 +363,7 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
             this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_INVALID);
             return;
         }
-        const transport = await this.sessions.getSession(sessionId);
+        const transport = await this.sessions.getSession(sessionId, req.headers);
         if (!transport) {
             this.logger.debug({
                 id: LogId.streamableHttpTransportSessionNotFound,

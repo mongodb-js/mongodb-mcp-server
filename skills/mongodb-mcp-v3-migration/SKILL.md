@@ -341,10 +341,11 @@ serves both the 2026-07-28 **stateless** protocol (each request builds a fresh
 request-scoped server) and the 2025-era **legacy** sessionful protocol (via an internal
 `LegacyMcpHttpHandler`). Key deltas from a sessionful embed:
 
-- **`MCPHttpServer` no longer takes a `sessionStore`.** Its options are
-  `{ options: { http }, logger, metrics, sessionOptions? }`. The `sessionOptions`
+- **`MCPHttpServer` has no `sessionStore` option.** Its options are
+  `{ options: { http }, logger, metrics, sessionOptions? }`; `sessionOptions`
   (`maxSessions`, `idleTimeoutMS`, `notificationTimeoutMS`, `evictionIdleGraceMS`)
-  tune the 2025-era legacy `SessionStore`; there is no external session store to wire.
+  configure the default legacy `SessionStore`. To inject your own, override
+  `createLegacyHandler` (see below).
 - **`createServerForRequest` returns a server-scoped `CliServer`** (no `Session`).
   The base calls `server.register()` for you before handing the `McpServer` to the
   transport, so a subclass must not register resources/tools itself. Build the server
