@@ -1,40 +1,48 @@
-import type { CallToolResult, ISession, IToolConfig, ConnectionMetadata } from "@mongodb-js/mcp-types";
-import type { ToolArgs } from "@mongodb-js/mcp-core";
-import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
-import { ToolBase } from "@mongodb-js/mcp-core";
 import { LogId } from "@mongodb-js/mcp-core";
+import { ToolBase } from "@mongodb-js/mcp-core";
+import type { ToolArgs } from "@mongodb-js/mcp-core";
+import type {
+    CallToolResult,
+    IToolConfig,
+    ConnectionMetadata,
+    ToolCategory,
+    ToolServices,
+    ToolServer,
+} from "@mongodb-js/mcp-types";
+import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
 import type { Client } from "@mongodb-js/atlas-local";
-import type { ToolCategory } from "@mongodb-js/mcp-types";
 import type { ConnectionRegistry } from "@mongodb-js/mcp-tools-mongodb";
 
 export interface IAtlasLocalConfig extends IToolConfig {
     voyageApiKey?: string;
 }
 
-export interface IAtlasLocalSession extends ISession {
-    config: IAtlasLocalConfig;
+/**
+ * The services specifically injected into Atlas Local tools. Injected
+ * individually — there is no server-scoped session object.
+ */
+export type AtlasLocalToolServices = ToolServices<IAtlasLocalConfig> & {
     readonly atlasLocalClient?: Client;
     readonly connectionRegistry: ConnectionRegistry;
-    connectToMongoDB(settings: { connectionString: string }): Promise<void>;
-}
+};
 
 export const AtlasLocalToolMetadataDeploymentIdKey = "deploymentId";
 
-export abstract class AtlasLocalToolBase extends ToolBase<IAtlasLocalSession> {
+export type AtlasLocalToolServer = ToolServer<AtlasLocalToolServices>;
+
+export abstract class AtlasLocalToolBase extends ToolBase<AtlasLocalToolServer> {
     static category: ToolCategory = "atlas-local";
 
-    declare protected readonly session: IAtlasLocalSession;
-
     protected verifyAllowed(): boolean {
-        return this.session.atlasLocalClient !== undefined && super.verifyAllowed();
+        return this.server.atlasLocalClient !== undefined && super.verifyAllowed();
     }
 
     protected async execute(
         args: ToolArgs<typeof this.argsShape>,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
         _context: ToolExecutionContext
     ): Promise<CallToolResult> {
-        const client = this.session.atlasLocalClient;
+        const client = this.server.atlasLocalClient;
 
         // If the client is not found, throw an error
         // This should never happen:
@@ -56,7 +64,7 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
             };
         }
 
-        return this.executeWithAtlasLocalClient(args, { client });
+        return this.executeWithAtlasLocalClient(args, { client, context: _context });
     }
 
     private async lookupDeploymentId(client: Client, containerId: string): Promise<string | undefined> {
@@ -64,7 +72,7 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
             // Lookup and return the deployment id for telemetry metadata.
             return await client.getDeploymentId(containerId);
         } catch (error) {
-            this.session.logger.debug({
+            this.server.logger.debug({
                 id: LogId.telemetryMetadataError,
                 context: "tool",
                 message: `Error looking up deployment ID: ${String(error)}`,
@@ -75,7 +83,7 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
     }
 
     protected async lookupTelemetryMetadata(client: Client, containerId: string): Promise<{ [key: string]: unknown }> {
-        if (!this.telemetry.isTelemetryEnabled()) {
+        if (!this.server.telemetry.isTelemetryEnabled()) {
             return {};
         }
 
@@ -91,7 +99,7 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
 
     protected abstract executeWithAtlasLocalClient(
         args: ToolArgs<typeof this.argsShape>,
-        context: { client: Client }
+        context: { client: Client; context: ToolExecutionContext }
     ): Promise<CallToolResult>;
 
     protected handleError(

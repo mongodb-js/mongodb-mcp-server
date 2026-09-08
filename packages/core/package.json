@@ -25,7 +25,7 @@
     "check:api": "api-extractor run --config api-extractor.json",
     "update:api": "api-extractor run --local --config api-extractor.json",
     "test": "vitest --run",
-    "check": "tsc --build tsconfig.build.json --noEmit"
+    "check": "tsc --noEmit --project tsconfig.json"
   },
   "dependencies": {
     "@mcp-ui/server": "^6.1.0",

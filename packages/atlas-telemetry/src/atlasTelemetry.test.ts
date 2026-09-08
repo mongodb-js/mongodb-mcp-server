@@ -1,4 +1,9 @@
-import { ApiClient, ApiClientError, userAgentFromServerMetadata } from "@mongodb-js/mcp-atlas-api-client";
+import {
+    ApiClient,
+    ApiClientError,
+    AuthProviderFactory,
+    userAgentFromServerMetadata,
+} from "@mongodb-js/mcp-atlas-api-client";
 import {
     AtlasTelemetry,
     nextBackoffMs,
@@ -63,7 +68,6 @@ describe("AtlasTelemetry", () => {
     let keychain: Keychain;
     let telemetry: AtlasTelemetry;
     let mockDeviceId: IDeviceId;
-    const sessionId = "test-session-id";
     const mcpClient = { name: "test-agent", version: "1.0.0" };
 
     type TestAtlasTelemetryOptions = {
@@ -84,7 +88,6 @@ describe("AtlasTelemetry", () => {
                 transport: "stdio",
                 mcp_client_version: mcpClient.version,
                 mcp_client_name: mcpClient.name,
-                session_id: sessionId,
                 config_atlas_auth: mockApiClient.isAuthConfigured() ? "true" : "false",
                 config_connection_string: "false",
                 ...this.commonPropertiesOverride?.(),
@@ -112,6 +115,7 @@ describe("AtlasTelemetry", () => {
                 keychain,
                 enabled: true,
                 serverMetadata,
+                eventCache: mockEventCache as unknown as EventCache<TelemetryEvent<TelemetryCommonProperties>>,
                 ...configOverrides,
             },
             { commonPropertiesOverride }
@@ -214,7 +218,6 @@ describe("AtlasTelemetry", () => {
                     }
                 ),
         };
-        vi.spyOn(EventCache, "getInstance").mockReturnValue(mockEventCache as unknown as EventCache);
 
         mockDeviceId = {
             get: vi.fn().mockResolvedValue("test-device-id"),
@@ -237,13 +240,134 @@ describe("AtlasTelemetry", () => {
             await telemetry.setupPromise;
 
             telemetry.emitEvents([testEvent]);
+            await vi.advanceTimersByTimeAsync(0);
 
             expect(mockApiClient.sendEvents).not.toHaveBeenCalled();
-            expect(mockEventCache.appendEvents).toHaveBeenCalledWith([testEvent]);
+            expect(mockEventCache.appendEvents).toHaveBeenCalledTimes(1);
+            expect(_cachedEvents[0]?.properties).toMatchObject({
+                ...testEvent.properties,
+                device_id: "test-device-id",
+            });
 
             await vi.advanceTimersByTimeAsync(SEND_INTERVAL_MS);
 
             expect(mockApiClient.sendEvents).toHaveBeenCalledTimes(1);
+        });
+
+        it("should add common properties when events are emitted, not when they are sent", async () => {
+            let hostingModeOverride = "hosting-at-emit";
+            vi.clearAllTimers();
+            telemetry = createAtlasTelemetry({
+                commonPropertiesOverride: () => ({ hosting_mode: hostingModeOverride }),
+            });
+            await telemetry.setupPromise;
+
+            telemetry.emitEvents([createTestEvent()]);
+            await vi.advanceTimersByTimeAsync(0);
+            hostingModeOverride = "hosting-at-send";
+
+            await emitEventsForTest([]);
+
+            const sentEvent = mockApiClient.sendEvents.mock.calls[0]?.[0]?.[0] as {
+                properties: Record<string, unknown>;
+            };
+            expectDefined(sentEvent);
+            expect(sentEvent.properties.hosting_mode).toBe("hosting-at-emit");
+        });
+
+        it("should not reject or throw when getCommonProperties throws", async () => {
+            vi.clearAllTimers();
+            telemetry = createAtlasTelemetry({
+                commonPropertiesOverride: () => {
+                    throw new Error("override failed");
+                },
+            });
+            await telemetry.setupPromise;
+            const unhandled = vi.fn();
+            process.on("unhandledRejection", unhandled);
+
+            try {
+                expect(() => telemetry.emitEvents([createTestEvent()])).not.toThrow();
+                await vi.advanceTimersByTimeAsync(SEND_INTERVAL_MS);
+            } finally {
+                process.off("unhandledRejection", unhandled);
+            }
+
+            expect(unhandled).not.toHaveBeenCalled();
+            expect(mockEventCache.appendEvents).not.toHaveBeenCalled();
+            expect(mockApiClient.sendEvents).not.toHaveBeenCalled();
+        });
+
+        it("should add device_id to events emitted before setup completes", async () => {
+            vi.clearAllTimers();
+            let resolveDeviceId: (value: string) => void = () => {};
+            const devId = {
+                get: vi.fn().mockReturnValue(
+                    new Promise<string>((resolve) => {
+                        resolveDeviceId = resolve;
+                    })
+                ),
+                close: vi.fn(),
+            } as unknown as IDeviceId;
+            telemetry = createAtlasTelemetry({ deviceId: devId });
+
+            telemetry.emitEvents([createTestEvent()]);
+            await vi.advanceTimersByTimeAsync(0);
+            expect(mockEventCache.appendEvents).not.toHaveBeenCalled();
+
+            resolveDeviceId("late-device-id");
+            await telemetry.setupPromise;
+            await vi.advanceTimersByTimeAsync(0);
+
+            expect(mockEventCache.appendEvents).toHaveBeenCalledTimes(1);
+            expect(_cachedEvents[0]?.properties).toMatchObject({ device_id: "late-device-id" });
+        });
+
+        it("should flush events emitted before setup completes on close", async () => {
+            vi.clearAllTimers();
+            let resolveDeviceId: (value: string) => void = () => {};
+            const devId = {
+                get: vi.fn().mockReturnValue(
+                    new Promise<string>((resolve) => {
+                        resolveDeviceId = resolve;
+                    })
+                ),
+                close: vi.fn(),
+            } as unknown as IDeviceId;
+            telemetry = createAtlasTelemetry({ deviceId: devId });
+
+            telemetry.emitEvents([createTestEvent()]);
+            const closePromise = telemetry.close();
+            resolveDeviceId("late-device-id");
+            await closePromise;
+
+            expect(mockApiClient.sendEvents).toHaveBeenCalledTimes(1);
+            expect(_cachedEvents).toHaveLength(0);
+        });
+
+        it("should not schedule sends when setup completes after close", async () => {
+            vi.clearAllTimers();
+            let resolveDeviceId: (value: string) => void = () => {};
+            const devId = {
+                get: vi.fn().mockReturnValue(
+                    new Promise<string>((resolve) => {
+                        resolveDeviceId = resolve;
+                    })
+                ),
+                close: vi.fn(),
+            } as unknown as IDeviceId;
+            telemetry = createAtlasTelemetry({ deviceId: devId });
+
+            const closePromise = telemetry.close();
+            resolveDeviceId("late-device-id");
+            await closePromise;
+            vi.clearAllMocks();
+
+            _cachedEvents.push(createTestEvent());
+            await vi.advanceTimersByTimeAsync(SEND_INTERVAL_MS * 2);
+
+            expect(mockApiClient.sendEvents).not.toHaveBeenCalled();
+            expect(_cachedEvents).toHaveLength(1);
         });
 
         it("should send events successfully and remove them from cache", async () => {
@@ -310,7 +434,6 @@ describe("AtlasTelemetry", () => {
             expect(commonProps).toMatchObject({
                 mcp_client_version: "1.0.0",
                 mcp_client_name: "test-agent",
-                session_id: "test-session-id",
                 config_atlas_auth: "true",
                 device_id: "test-device-id",
             });
@@ -544,7 +667,6 @@ describe("AtlasTelemetry", () => {
 
             it("should redact sensitive data from CommonProperties", async () => {
                 keychain.register("test-device-id", "password");
-                keychain.register(sessionId, "password");
 
                 await telemetry.setupPromise;
                 await emitEventsForTest([createTestEvent()]);
@@ -556,12 +678,10 @@ describe("AtlasTelemetry", () => {
                 expectDefined(sentEvent);
 
                 expect(sentEvent.properties.device_id).toBe("<password>");
-                expect(sentEvent.properties.session_id).toBe("<password>");
             });
 
             it("should redact sensitive data that is added to events", async () => {
                 keychain.register("test-device-id", "password");
-                keychain.register(sessionId, "password");
                 keychain.register("test-component", "password");
 
                 await telemetry.setupPromise;
@@ -574,7 +694,6 @@ describe("AtlasTelemetry", () => {
                 expectDefined(sentEvent);
 
                 expect(sentEvent.properties.device_id).toBe("<password>");
-                expect(sentEvent.properties.session_id).toBe("<password>");
                 expect(sentEvent.properties.component).toBe("<password>");
             });
         });
@@ -614,18 +733,15 @@ describe("AtlasTelemetry", () => {
      */
     describe("when sendBatch is triggered concurrently", () => {
         it("should not send the same cached event twice when two batches overlap", async () => {
-            const eventCache = new EventCache();
             const CACHED_MARKER = "cached-race-test";
-
-            eventCache.appendEvents([createTestEvent({ command: CACHED_MARKER, component: "cached" })]);
-
             mockApiClient.sendEvents.mockResolvedValue(undefined);
 
             vi.clearAllTimers();
-            // Route the AtlasTelemetry instance to the real cache via the mocked getInstance.
-            vi.spyOn(EventCache, "getInstance").mockReturnValue(eventCache);
-            const raceAtlasTelemetry = createAtlasTelemetry();
+            const raceAtlasTelemetry = createAtlasTelemetry({ eventCache: new EventCache() });
             await raceAtlasTelemetry.setupPromise;
+
+            raceAtlasTelemetry.emitEvents([createTestEvent({ command: CACHED_MARKER, component: "cached" })]);
+            await vi.advanceTimersByTimeAsync(0);
 
             await Promise.all([raceAtlasTelemetry["sendBatch"](), raceAtlasTelemetry["sendBatch"]()]);
 
@@ -638,6 +754,95 @@ describe("AtlasTelemetry", () => {
             }
             expect(cachedEventSendCount, "Cached event should be sent exactly once").toBe(1);
         });
+    });
+});
+
+/**
+ * Regression tests for multiple pipelines living in the same process (e.g. one
+ * per tenant in a hosted deployment). Each pipeline must only send the events
+ * it emitted, carrying the common properties of the pipeline that emitted them.
+ */
+describe("AtlasTelemetry with multiple instances in one process", () => {
+    const TEST_SERVER_METADATA = { mcpServerName: "test-server", version: "1.0.0" };
+
+    class TenantTelemetry extends AtlasTelemetry {
+        private readonly tenantId: string;
+
+        constructor(config: TelemetryConfig, tenantId: string) {
+            super(config);
+            this.tenantId = tenantId;
+        }
+
+        public override getCommonProperties(): TelemetryCommonProperties {
+            return { ...super.getCommonProperties(), hosting_mode: this.tenantId };
+        }
+
+        static createForTenant(config: TelemetryConfig, tenantId: string): TenantTelemetry {
+            const instance = new TenantTelemetry(config, tenantId);
+            void instance.setup();
+            return instance;
+        }
+    }
+
+    function createTenant(tenantId: string): {
+        telemetry: TenantTelemetry;
+        sendEvents: MockedFunction<(events: unknown[]) => Promise<void>>;
+    } {
+        const sendEvents = vi.fn().mockResolvedValue(undefined);
+        const apiClient = { sendEvents, isAuthConfigured: () => false } as unknown as ApiClient;
+        const telemetry = TenantTelemetry.createForTenant(
+            {
+                logger: new NoopLogger(),
+                deviceId: { get: vi.fn().mockResolvedValue(`device-${tenantId}`), close: vi.fn() },
+                apiClient,
+                keychain: new Keychain(),
+                enabled: true,
+                serverMetadata: TEST_SERVER_METADATA,
+            },
+            tenantId
+        );
+        return { telemetry, sendEvents };
+    }
+
+    function createEvent(command: string): TelemetryBaseEvent {
+        return {
+            timestamp: new Date().toISOString(),
+            source: "mdbmcp",
+            properties: { component: "test", duration_ms: 1, result: "success", category: "test", command },
+        };
+    }
+
+    beforeEach(() => {
+        vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
+    it("should send each event only through the pipeline that emitted it, with that pipeline's properties", async () => {
+        const tenantA = createTenant("tenant-a");
+        const tenantB = createTenant("tenant-b");
+        await Promise.all([tenantA.telemetry.setupPromise, tenantB.telemetry.setupPromise]);
+
+        tenantA.telemetry.emitEvents([createEvent("from-a")]);
+        tenantB.telemetry.emitEvents([createEvent("from-b")]);
+
+        const bothSent = Promise.all([
+            new Promise<void>((resolve) => tenantA.telemetry.events.once("events-emitted", resolve)),
+            new Promise<void>((resolve) => tenantB.telemetry.events.once("events-emitted", resolve)),
+        ]);
+        await vi.advanceTimersByTimeAsync(SEND_INTERVAL_MS);
+        await bothSent;
+
+        type Sent = { properties: { command: string; hosting_mode: string; device_id: string } };
+        const sentByA = tenantA.sendEvents.mock.calls.flatMap((call) => call[0] as Sent[]);
+        const sentByB = tenantB.sendEvents.mock.calls.flatMap((call) => call[0] as Sent[]);
+
+        expect(sentByA.map((e) => e.properties.command)).toEqual(["from-a"]);
+        expect(sentByB.map((e) => e.properties.command)).toEqual(["from-b"]);
+        expect(sentByA[0]?.properties).toMatchObject({ hosting_mode: "tenant-a", device_id: "device-tenant-a" });
+        expect(sentByB[0]?.properties).toMatchObject({ hosting_mode: "tenant-b", device_id: "device-tenant-b" });
     });
 });
 
@@ -662,7 +867,6 @@ describe("AtlasTelemetry credentials handling", () => {
     beforeEach(() => {
         vi.useFakeTimers();
         fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(new Response(null, { status: 200 }));
-        vi.spyOn(EventCache, "getInstance").mockReturnValue(new EventCache());
     });
 
     afterEach(() => {
@@ -689,21 +893,29 @@ describe("AtlasTelemetry credentials handling", () => {
         },
     ])("sends telemetry events $label", async ({ clientId, clientSecret, expectedPath, expectAuthHeader }) => {
         const logger = new NoopLogger();
-        const apiClient = new ApiClient(
+        const httpClient = {
+            fetch: globalThis.fetch.bind(globalThis),
+            Request: globalThis.Request,
+        };
+        const userAgent = userAgentFromServerMetadata(TEST_SERVER_METADATA);
+        const authProvider = AuthProviderFactory.create(
             {
-                baseUrl: API_BASE,
-                userAgent: userAgentFromServerMetadata(TEST_SERVER_METADATA),
-                credentials: {
-                    clientId,
-                    clientSecret,
-                },
-                httpClient: {
-                    fetch: globalThis.fetch.bind(globalThis),
-                    Request: globalThis.Request,
-                },
+                apiBaseUrl: API_BASE,
+                userAgent,
+                credentials: { clientId, clientSecret },
+                httpClient,
             },
             logger
         );
+        const apiClient = new ApiClient({
+            options: {
+                baseUrl: API_BASE,
+                userAgent,
+                httpClient,
+            },
+            logger,
+            authProvider,
+        });
 
         // When credentials are present, short-circuit the OAuth token fetch
         // so the test stays focused on the telemetry dispatch rather than the

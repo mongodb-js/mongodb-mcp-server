@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../../mongodbTool.js";
-import { type ToolArgs, type ToolResult } from "@mongodb-js/mcp-core";
+import { type ToolArgs, type ToolResult, ToolArgumentValidationError } from "@mongodb-js/mcp-core";
 import type { OperationType, IndexMetadata } from "@mongodb-js/mcp-types";
 import { IndexDirectionSchema, modelsSupportingAutoEmbedIndexes } from "../../mongodbSchemas.js";
 
@@ -245,7 +245,9 @@ This definition also accepts the following top-level fields, which are forwarded
         let indexes: string[] = [];
         const definition = definitions[0];
         if (!definition) {
-            throw new Error("Index definition not provided. Expected one of the following: `classic`, `vectorSearch`");
+            throw new ToolArgumentValidationError(
+                "Index definition not provided. Expected one of the following: `classic`, `vectorSearch`"
+            );
         }
 
         let responseClarification = "";

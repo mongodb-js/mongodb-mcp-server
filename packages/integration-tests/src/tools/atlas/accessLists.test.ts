@@ -1,5 +1,10 @@
 import { assertApiClientIsAvailable, describeWithAtlas, withProject } from "./atlasHelpers.js";
-import { expectDefined, getDataFromUntrustedContent, getResponseElements } from "../../integrationHelpers.js";
+import {
+    expectDefined,
+    getDataFromUntrustedContent,
+    getResponseContent,
+    getResponseElements,
+} from "../../integrationHelpers.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ensureCurrentIpInAccessList } from "@mongodb-js/mcp-tools-atlas";
 
@@ -18,17 +23,17 @@ describeWithAtlas("ip access lists", (integration) => {
         const values = [...ips, ...cidrBlocks];
 
         beforeAll(async () => {
-            const session = integration.mcpServer().session;
-            assertApiClientIsAvailable(session);
-            const apiClient = session.apiClient;
+            const server = integration.mcpServer();
+            assertApiClientIsAvailable(server);
+            const apiClient = server.apiClient;
             const ipInfo = await apiClient.getIpInfo();
             values.push(ipInfo.currentIpv4Address);
         });
 
         afterAll(async () => {
-            const session = integration.mcpServer().session;
-            assertApiClientIsAvailable(session);
-            const apiClient = session.apiClient;
+            const server = integration.mcpServer();
+            assertApiClientIsAvailable(server);
+            const apiClient = server.apiClient;
 
             const projectId = getProjectId();
             if (projectId) {
@@ -81,6 +86,24 @@ describeWithAtlas("ip access lists", (integration) => {
                     projectId,
                 });
             });
+
+            it("rejects a comment longer than 80 characters", async () => {
+                const projectId = getProjectId();
+
+                const response = await integration.mcpClient().callTool({
+                    name: "atlas-create-access-list",
+                    arguments: {
+                        projectId,
+                        ipAddresses: [generateRandomIp()],
+                        comment: "a".repeat(81),
+                    },
+                });
+
+                expect(response.isError).toBe(true);
+                const message = getResponseContent(response.content);
+                expect(message).toContain("Input validation error:");
+                expect(message).toContain("comment: Too big: expected string to have <=80 characters");
+            });
         });
 
         describe("atlas-inspect-access-list", () => {
@@ -126,9 +149,9 @@ describeWithAtlas("ip access lists", (integration) => {
 
         describe("ensureCurrentIpInAccessList helper", () => {
             it("should add the current IP to the access list and be idempotent", async () => {
-                const session = integration.mcpServer().session;
-                assertApiClientIsAvailable(session);
-                const apiClient = session.apiClient;
+                const server = integration.mcpServer();
+                assertApiClientIsAvailable(server);
+                const apiClient = server.apiClient;
                 const projectId = getProjectId();
                 const ipInfo = await apiClient.getIpInfo();
                 // First call should add the IP

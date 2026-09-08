@@ -13,7 +13,7 @@ const levenshtein = levenshteinModule.default;
 
 export type ParserOptions = typeof defaultArgParserOptions;
 
-export const defaultParserOptions = {
+export const defaultParserOptions: ParserOptions = {
     // This is the name of key that yargs-parser will look up in CLI
     // arguments (--config) and ENV variables (MDB_MCP_CONFIG) to load an
     // initial configuration from.
@@ -26,7 +26,7 @@ export const defaultParserOptions = {
         // populate `--` variable and altogether ignore them later.
         "populate--": true,
     },
-} satisfies ParserOptions;
+};
 
 export function parseUserConfig({
     args,

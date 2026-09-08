@@ -1,0 +1,3 @@
+[mcp_servers.mongodb]
+command="node"
+args = ["./packages/mongodb-mcp-server/dist/index.js"]

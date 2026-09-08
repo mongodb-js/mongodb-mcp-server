@@ -18,27 +18,33 @@ dir="${1:-.}"
 pkg_of() {
     # echo the v3 package for a given imported symbol.
     case "$1" in
-        # mcp-cli (CLI / server / session / config)
-        Server|ServerOptions|Session|SessionOptions|CliServer|CliServerOptions|CliSession|CliSessionOptions) echo "@mongodb-js/mcp-cli" ;;
+        # mcp-cli (CLI / request-scoped server / config)
+        Server|ServerOptions|CliServer|CliServerOptions) echo "@mongodb-js/mcp-cli" ;;
+        Session|SessionOptions|CliSession|CliSessionOptions) echo "REMOVED — v3 is sessionless; see the migration guide" ;;
         runMcpCli|Resources|startServer) echo "@mongodb-js/mcp-cli" ;;
-        createServicesFromConfig|createLoggerFromConfig|createApiClientFromConfig|createMonitoringServerFromConfig|createConnectionManagerFromConfig) echo "@mongodb-js/mcp-cli" ;;
+        createSharedServicesFromConfig|createServerFromConfig|createHttpTransportRunnerFromConfig|createRunnerFromConfig) echo "@mongodb-js/mcp-cli" ;;
+        createLoggerFromConfig|createApiClientFromConfig|createMonitoringServerFromConfig|createConnectionManagerFromConfig) echo "@mongodb-js/mcp-cli" ;;
         parseUserConfig|applyConfigOverrides|configRegistry|getConfigMeta|nameToConfigKey) echo "@mongodb-js/mcp-cli" ;;
         UserConfig|UserConfigSchema) echo "@mongodb-js/mcp-cli" ;;
-        HelpHandler|VersionHandler|DryRunHandler|Elicitation|McpSession|SessionCloseReason) echo "@mongodb-js/mcp-cli" ;;
+        HelpHandler|VersionHandler|DryRunHandler) echo "@mongodb-js/mcp-cli" ;;
 
         # mcp-core (runners, session store, tool base, helpers)
-        StdioRunner|SessionStore|Keychain|NoopTelemetry|InMemoryTransport|NoopLogger) echo "@mongodb-js/mcp-core" ;;
-        ToolBase|ToolClass|ToolArgs|OperationType|ToolCategory|packageInfo) echo "@mongodb-js/mcp-core" ;;
+        StdioRunner|CliStdioRunner|SessionStore|Keychain|Elicitation|NoopTelemetry|InMemoryTransport|NoopLogger|toToolExecutionContext|formatUntrustedData) echo "@mongodb-js/mcp-core" ;;
+        ToolBase|ToolClass|ToolServer|ToolServices|ToolArgs|OperationType|ToolCategory|packageInfo) echo "@mongodb-js/mcp-core" ;;
+
+        # mcp-types (sessionStore legacy types + shared types)
+        CloseableTransport|SessionCloseReason|ISessionStore) echo "@mongodb-js/mcp-types (deprecated legacy session types)" ;;
 
         # mcp-http-runners
         StreamableHttpRunner|MCPHttpServer|MonitoringServer) echo "@mongodb-js/mcp-http-runners" ;;
         StreamableHttpRunnerOptions|MCPHttpServerOptions|MonitoringServerOptions) echo "@mongodb-js/mcp-http-runners" ;;
 
         # mcp-types
-        TransportRequestContext|ITransportRunner|ISession|ServerMetadata|IMetrics|DefaultMetricDefinitions|TransportType) echo "@mongodb-js/mcp-types" ;;
+        TransportRequestContext|ITransportRunner|ServerMetadata|IMetrics|DefaultMetricDefinitions|TransportType|RequestAuthState|RequestAuthInfo|BaseServer|ToolRequest|ToolExecutionContext|ResourceServices|ResourceServerArg|IRedactor) echo "@mongodb-js/mcp-types" ;;
+        ISession|IToolSession|IResourceSession) echo "REMOVED — v3 is sessionless; see the migration guide" ;;
 
         # mcp-tools-mongodb
-        MongoDBToolBase|MongoDBTools|MCPConnectionManager|ConnectionManager|ErrorCodes|MongoDBError|ExportsManager) echo "@mongodb-js/mcp-tools-mongodb" ;;
+        MongoDBToolBase|MongoDBTools|MCPConnectionManager|ConnectionManager|ErrorCodes|MongoDBError|ExportsManager|MongoDBToolServer|MongoDBToolServices) echo "@mongodb-js/mcp-tools-mongodb" ;;
 
         # mcp-tools-atlas / -atlas-local / -assistant
         AtlasTools|AtlasToolBase) echo "@mongodb-js/mcp-tools-atlas" ;;

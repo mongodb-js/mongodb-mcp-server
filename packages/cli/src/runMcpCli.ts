@@ -85,14 +85,22 @@ export async function runMcpCli({
 
     // Create logger, then the transport runner (stdio or HTTP based on config)
     const logger = await createLoggerFromConfig({ config, keychain: Keychain.root });
-    const transportRunner = await createRunnerFromConfig({
-        config,
-        serverMetadata,
-        tools,
-        resources,
-        logger,
-    });
 
-    // Start the transport runner
-    await startRunner({ transportRunner, logger, onExit });
+    try {
+        const transportRunner = await createRunnerFromConfig({
+            config,
+            serverMetadata,
+            tools,
+            resources,
+            logger,
+        });
+
+        // Start the transport runner
+        await startRunner({ transportRunner, logger, onExit });
+    } catch (error) {
+        // Flush buffered logs (e.g. async disk writes) before the error reaches the
+        // caller, which exits the process without waiting for pending log writes.
+        await logger.flush();
+        throw error;
+    }
 }

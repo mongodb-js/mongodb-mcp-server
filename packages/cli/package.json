@@ -26,11 +26,10 @@
   "scripts": {
     "build": "tsc --build tsconfig.build.json",
     "test": "vitest --run",
-    "check": "tsc --build tsconfig.build.json --noEmit"
+    "check": "tsc --noEmit --project tsconfig.json"
   },
   "dependencies": {
     "@modelcontextprotocol/core": "^2.0.0",
-    "@modelcontextprotocol/node": "^2.0.0",
     "@modelcontextprotocol/server": "^2.0.0",
     "@mongodb-js/mcp-fetch": "workspace:*",
     "@mongodb-js/mcp-core": "workspace:*",

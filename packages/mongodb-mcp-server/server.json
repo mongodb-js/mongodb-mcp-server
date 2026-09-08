@@ -66,13 +66,6 @@
           "isSecret": false
         },
         {
-          "name": "MDB_MCP_CONNECTION_SCOPE",
-          "description": "Visibility scope for MongoDB connections created at runtime. With 'session' (the default), each MCP session only sees the connections it created (plus the shared 'preconfigured' one) and they are closed when the session ends — recommended when the HTTP transport is exposed to multiple clients without authentication. With 'global', connections are shared across all sessions and survive session rotation.",
-          "isRequired": false,
-          "format": "string",
-          "isSecret": false
-        },
-        {
           "name": "MDB_MCP_CONNECTION_STRING",
           "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
           "isRequired": false,
@@ -129,13 +122,6 @@
           "isSecret": false
         },
         {
-          "name": "MDB_MCP_EXTERNALLY_MANAGED_SESSIONS",
-          "description": "When true, the HTTP transport allows requests with a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional.",
-          "isRequired": false,
-          "format": "boolean",
-          "isSecret": false
-        },
-        {
           "name": "MDB_MCP_HEALTH_CHECK_HOST",
           "description": "Deprecated. Use `monitoringServerHost` instead. Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
           "isRequired": false,
@@ -185,13 +171,6 @@
           "isSecret": false
         },
         {
-          "name": "MDB_MCP_IDLE_TIMEOUT_MS",
-          "description": "Idle timeout for a client to disconnect (only applies to http transport).",
-          "isRequired": false,
-          "format": "number",
-          "isSecret": false
-        },
-        {
           "name": "MDB_MCP_INDEX_CHECK",
           "description": "When set to true, enforces that query operations must use an index, rejecting queries that perform a collection scan.",
           "isRequired": false,
@@ -214,7 +193,7 @@
         },
         {
           "name": "MDB_MCP_MAX_ACTIVE_CONNECTIONS",
-          "description": "Maximum number of MongoDB connections a single scope (an MCP session by default, see connectionScope) can hold open. When exceeded, the scope's least-recently-used connection is closed and its connectionId revoked. The preconfigured connection does not count towards the limit.",
+          "description": "Maximum number of MongoDB connections the server can hold open at once. When exceeded, the least-recently-used connection is closed and its connectionId revoked. The preconfigured connection does not count towards the limit.",
           "isRequired": false,
           "format": "number",
           "isSecret": false
@@ -229,13 +208,6 @@
         {
           "name": "MDB_MCP_MAX_DOCUMENTS_PER_QUERY",
           "description": "The maximum number of documents that can be returned by a find or aggregate tool call. For the find tool, the effective limit will be the smaller of this value and the tool's limit parameter.",
-          "isRequired": false,
-          "format": "number",
-          "isSecret": false
-        },
-        {
-          "name": "MDB_MCP_MAX_SESSIONS",
-          "description": "Maximum number of concurrent sessions the HTTP transport will hold in memory (only used when transport is 'http'). Each session holds a full server instance, transport, and timers, so choose a value based on your deployment's available memory; the default is a conservative safety net rather than a recommended production value.",
           "isRequired": false,
           "format": "number",
           "isSecret": false
@@ -271,13 +243,6 @@
         {
           "name": "MDB_MCP_MONITORING_SERVER_PORT",
           "description": "Port number for the monitoring HTTP server (only used when transport is 'http'). If provided, `monitoringServerHost` must also be set.",
-          "isRequired": false,
-          "format": "number",
-          "isSecret": false
-        },
-        {
-          "name": "MDB_MCP_NOTIFICATION_TIMEOUT_MS",
-          "description": "Notification timeout for a client to be aware of disconnect (only applies to http transport).",
           "isRequired": false,
           "format": "number",
           "isSecret": false
@@ -373,12 +338,6 @@
         },
         {
           "type": "named",
-          "name": "--connectionScope",
-          "description": "Visibility scope for MongoDB connections created at runtime. With 'session' (the default), each MCP session only sees the connections it created (plus the shared 'preconfigured' one) and they are closed when the session ends — recommended when the HTTP transport is exposed to multiple clients without authentication. With 'global', connections are shared across all sessions and survive session rotation.",
-          "isRequired": false
-        },
-        {
-          "type": "named",
           "name": "--connectionString",
           "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
           "isRequired": false
@@ -432,13 +391,6 @@
         },
         {
           "type": "named",
-          "name": "--externallyManagedSessions",
-          "description": "When true, the HTTP transport allows requests with a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional.",
-          "isRequired": false,
-          "format": "boolean"
-        },
-        {
-          "type": "named",
           "name": "--healthCheckHost",
           "description": "Deprecated. Use `monitoringServerHost` instead. Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
           "isRequired": false
@@ -484,13 +436,6 @@
         },
         {
           "type": "named",
-          "name": "--idleTimeoutMs",
-          "description": "Idle timeout for a client to disconnect (only applies to http transport).",
-          "isRequired": false,
-          "format": "number"
-        },
-        {
-          "type": "named",
           "name": "--indexCheck",
           "description": "When set to true, enforces that query operations must use an index, rejecting queries that perform a collection scan.",
           "isRequired": false,
@@ -511,7 +456,7 @@
         {
           "type": "named",
           "name": "--maxActiveConnections",
-          "description": "Maximum number of MongoDB connections a single scope (an MCP session by default, see connectionScope) can hold open. When exceeded, the scope's least-recently-used connection is closed and its connectionId revoked. The preconfigured connection does not count towards the limit.",
+          "description": "Maximum number of MongoDB connections the server can hold open at once. When exceeded, the least-recently-used connection is closed and its connectionId revoked. The preconfigured connection does not count towards the limit.",
           "isRequired": false,
           "format": "number"
         },
@@ -526,13 +471,6 @@
           "type": "named",
           "name": "--maxDocumentsPerQuery",
           "description": "The maximum number of documents that can be returned by a find or aggregate tool call. For the find tool, the effective limit will be the smaller of this value and the tool's limit parameter.",
-          "isRequired": false,
-          "format": "number"
-        },
-        {
-          "type": "named",
-          "name": "--maxSessions",
-          "description": "Maximum number of concurrent sessions the HTTP transport will hold in memory (only used when transport is 'http'). Each session holds a full server instance, transport, and timers, so choose a value based on your deployment's available memory; the default is a conservative safety net rather than a recommended production value.",
           "isRequired": false,
           "format": "number"
         },
@@ -565,13 +503,6 @@
           "type": "named",
           "name": "--monitoringServerPort",
           "description": "Port number for the monitoring HTTP server (only used when transport is 'http'). If provided, `monitoringServerHost` must also be set.",
-          "isRequired": false,
-          "format": "number"
-        },
-        {
-          "type": "named",
-          "name": "--notificationTimeoutMs",
-          "description": "Notification timeout for a client to be aware of disconnect (only applies to http transport).",
           "isRequired": false,
           "format": "number"
         },
@@ -672,13 +603,6 @@
           "isSecret": false
         },
         {
-          "name": "MDB_MCP_CONNECTION_SCOPE",
-          "description": "Visibility scope for MongoDB connections created at runtime. With 'session' (the default), each MCP session only sees the connections it created (plus the shared 'preconfigured' one) and they are closed when the session ends — recommended when the HTTP transport is exposed to multiple clients without authentication. With 'global', connections are shared across all sessions and survive session rotation.",
-          "isRequired": false,
-          "format": "string",
-          "isSecret": false
-        },
-        {
           "name": "MDB_MCP_CONNECTION_STRING",
           "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
           "isRequired": false,
@@ -735,13 +659,6 @@
           "isSecret": false
         },
         {
-          "name": "MDB_MCP_EXTERNALLY_MANAGED_SESSIONS",
-          "description": "When true, the HTTP transport allows requests with a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional.",
-          "isRequired": false,
-          "format": "boolean",
-          "isSecret": false
-        },
-        {
           "name": "MDB_MCP_HEALTH_CHECK_HOST",
           "description": "Deprecated. Use `monitoringServerHost` instead. Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
           "isRequired": false,
@@ -791,13 +708,6 @@
           "isSecret": false
         },
         {
-          "name": "MDB_MCP_IDLE_TIMEOUT_MS",
-          "description": "Idle timeout for a client to disconnect (only applies to http transport).",
-          "isRequired": false,
-          "format": "number",
-          "isSecret": false
-        },
-        {
           "name": "MDB_MCP_INDEX_CHECK",
           "description": "When set to true, enforces that query operations must use an index, rejecting queries that perform a collection scan.",
           "isRequired": false,
@@ -820,7 +730,7 @@
         },
         {
           "name": "MDB_MCP_MAX_ACTIVE_CONNECTIONS",
-          "description": "Maximum number of MongoDB connections a single scope (an MCP session by default, see connectionScope) can hold open. When exceeded, the scope's least-recently-used connection is closed and its connectionId revoked. The preconfigured connection does not count towards the limit.",
+          "description": "Maximum number of MongoDB connections the server can hold open at once. When exceeded, the least-recently-used connection is closed and its connectionId revoked. The preconfigured connection does not count towards the limit.",
           "isRequired": false,
           "format": "number",
           "isSecret": false
@@ -835,13 +745,6 @@
         {
           "name": "MDB_MCP_MAX_DOCUMENTS_PER_QUERY",
           "description": "The maximum number of documents that can be returned by a find or aggregate tool call. For the find tool, the effective limit will be the smaller of this value and the tool's limit parameter.",
-          "isRequired": false,
-          "format": "number",
-          "isSecret": false
-        },
-        {
-          "name": "MDB_MCP_MAX_SESSIONS",
-          "description": "Maximum number of concurrent sessions the HTTP transport will hold in memory (only used when transport is 'http'). Each session holds a full server instance, transport, and timers, so choose a value based on your deployment's available memory; the default is a conservative safety net rather than a recommended production value.",
           "isRequired": false,
           "format": "number",
           "isSecret": false
@@ -877,13 +780,6 @@
         {
           "name": "MDB_MCP_MONITORING_SERVER_PORT",
           "description": "Port number for the monitoring HTTP server (only used when transport is 'http'). If provided, `monitoringServerHost` must also be set.",
-          "isRequired": false,
-          "format": "number",
-          "isSecret": false
-        },
-        {
-          "name": "MDB_MCP_NOTIFICATION_TIMEOUT_MS",
-          "description": "Notification timeout for a client to be aware of disconnect (only applies to http transport).",
           "isRequired": false,
           "format": "number",
           "isSecret": false
@@ -979,12 +875,6 @@
         },
         {
           "type": "named",
-          "name": "--connectionScope",
-          "description": "Visibility scope for MongoDB connections created at runtime. With 'session' (the default), each MCP session only sees the connections it created (plus the shared 'preconfigured' one) and they are closed when the session ends — recommended when the HTTP transport is exposed to multiple clients without authentication. With 'global', connections are shared across all sessions and survive session rotation.",
-          "isRequired": false
-        },
-        {
-          "type": "named",
           "name": "--connectionString",
           "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
           "isRequired": false
@@ -1038,13 +928,6 @@
         },
         {
           "type": "named",
-          "name": "--externallyManagedSessions",
-          "description": "When true, the HTTP transport allows requests with a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional.",
-          "isRequired": false,
-          "format": "boolean"
-        },
-        {
-          "type": "named",
           "name": "--healthCheckHost",
           "description": "Deprecated. Use `monitoringServerHost` instead. Host address to bind the healthCheck HTTP server to (only used when transport is 'http'). If provided, `healthCheckPort` must also be set.",
           "isRequired": false
@@ -1090,13 +973,6 @@
         },
         {
           "type": "named",
-          "name": "--idleTimeoutMs",
-          "description": "Idle timeout for a client to disconnect (only applies to http transport).",
-          "isRequired": false,
-          "format": "number"
-        },
-        {
-          "type": "named",
           "name": "--indexCheck",
           "description": "When set to true, enforces that query operations must use an index, rejecting queries that perform a collection scan.",
           "isRequired": false,
@@ -1117,7 +993,7 @@
         {
           "type": "named",
           "name": "--maxActiveConnections",
-          "description": "Maximum number of MongoDB connections a single scope (an MCP session by default, see connectionScope) can hold open. When exceeded, the scope's least-recently-used connection is closed and its connectionId revoked. The preconfigured connection does not count towards the limit.",
+          "description": "Maximum number of MongoDB connections the server can hold open at once. When exceeded, the least-recently-used connection is closed and its connectionId revoked. The preconfigured connection does not count towards the limit.",
           "isRequired": false,
           "format": "number"
         },
@@ -1132,13 +1008,6 @@
           "type": "named",
           "name": "--maxDocumentsPerQuery",
           "description": "The maximum number of documents that can be returned by a find or aggregate tool call. For the find tool, the effective limit will be the smaller of this value and the tool's limit parameter.",
-          "isRequired": false,
-          "format": "number"
-        },
-        {
-          "type": "named",
-          "name": "--maxSessions",
-          "description": "Maximum number of concurrent sessions the HTTP transport will hold in memory (only used when transport is 'http'). Each session holds a full server instance, transport, and timers, so choose a value based on your deployment's available memory; the default is a conservative safety net rather than a recommended production value.",
           "isRequired": false,
           "format": "number"
         },
@@ -1171,13 +1040,6 @@
           "type": "named",
           "name": "--monitoringServerPort",
           "description": "Port number for the monitoring HTTP server (only used when transport is 'http'). If provided, `monitoringServerHost` must also be set.",
-          "isRequired": false,
-          "format": "number"
-        },
-        {
-          "type": "named",
-          "name": "--notificationTimeoutMs",
-          "description": "Notification timeout for a client to be aware of disconnect (only applies to http transport).",
           "isRequired": false,
           "format": "number"
         },

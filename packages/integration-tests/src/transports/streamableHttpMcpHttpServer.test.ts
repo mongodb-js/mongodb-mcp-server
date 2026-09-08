@@ -1,184 +1,20 @@
-import { StreamableHttpRunner, MCPHttpServer } from "@mongodb-js/mcp-http-runners";
-import { SessionStore, type ISessionStore, CompositeLogger, Keychain, type ToolClass } from "@mongodb-js/mcp-core";
-import { McpServer } from "@modelcontextprotocol/server";
-import type { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
-import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { UserConfig } from "mongodb-mcp-server";
-import {
-    CliServer,
-    Elicitation,
-    connectionErrorHandler,
-    ExportsManager,
-    packageInfo,
-    ToolBase,
-    type OperationType,
-    type ToolCategory,
-    AllTools,
-} from "mongodb-mcp-server";
-import { Session } from "@mongodb-js/mcp-cli";
-import { MCPConnectionStore } from "@mongodb-js/mcp-tools-mongodb";
+import { MCPHttpServer, StreamableHttpRunner } from "@mongodb-js/mcp-http-runners";
+import { CompositeLogger, type AnyToolClass } from "@mongodb-js/mcp-core";
 import type {
     CallToolResult,
     DefaultMetricDefinitions,
     HttpServerOptions,
     IMetrics,
-    SessionManagementOptions,
     TransportRequestContext,
 } from "@mongodb-js/mcp-types";
-import type { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
-import type { AtlasTelemetry, TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
-import { defaultTestConfig, createTestApiClient } from "../integrationHelpers.js";
-import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
-
-async function createTestServer(
-    config: UserConfig,
-    options: {
-        tools?: ToolClass[];
-    } = {}
-): Promise<CliServer> {
-    const logger = new CompositeLogger({ loggers: [] });
-    const keychain = Keychain.root;
-
-    const exportsManager = ExportsManager.init({
-        options: {
-            exportsPath: config.exportsPath,
-            exportTimeoutMs: config.exportTimeoutMs,
-            exportCleanupIntervalMs: config.exportCleanupIntervalMs,
-        },
-        logger,
-    });
-
-    const connectionRegistry = new MCPConnectionStore({
-        options: config,
-        logger,
-        deviceId: {} as unknown as DeviceId,
-    }).view();
-
-    const apiClient = createTestApiClient({
-        baseUrl: config.apiBaseUrl,
-        serverMetadata: packageInfo,
-        logger,
-        clientId: "test-client-id",
-        clientSecret: "test-client-secret",
-    });
-
-    vi.spyOn(apiClient, "validateAuthConfig").mockResolvedValue(undefined);
-    vi.spyOn(apiClient, "close").mockResolvedValue(undefined);
-
-    const atlasLocalClient = await createAtlasLocalClient({ logger });
-
-    const mcpServer = new McpServer({
-        name: "test-server",
-        version: packageInfo.version,
-    });
-
-    const elicitation = new Elicitation({ server: mcpServer.server });
-
-    const session = new Session({
-        logger,
-        exportsManager,
-        connectionRegistry,
-        keychain,
-        apiClient,
-        connectionErrorHandler,
-        atlasLocalClient,
-        config,
-    });
-
-    const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
-
-    return new CliServer({
-        session,
-        mcpServer,
-        telemetry: {
-            emitEvents: () => {},
-            close: () => Promise.resolve(),
-            isTelemetryEnabled: () => false,
-        } as unknown as AtlasTelemetry,
-        connectionErrorHandler,
-        elicitation,
-        metrics,
-        tools: options.tools,
-        serverMetadata: {
-            mcpServerName: "test-server",
-            version: "1.0",
-            engines: {
-                node: "20.0.0",
-            },
-        },
-    });
-}
-
-class TestMCPHttpServer extends MCPHttpServer<CliServer> {
-    protected userConfig: UserConfig;
-    protected tools?: ToolClass[];
-
-    constructor({
-        userConfig,
-        options,
-        logger,
-        metrics,
-        sessionStore,
-        tools,
-    }: {
-        userConfig: UserConfig;
-        options: {
-            http: HttpServerOptions;
-            session: SessionManagementOptions;
-        };
-        logger: CompositeLogger;
-        metrics: IMetrics<DefaultMetricDefinitions>;
-        sessionStore: ISessionStore<NodeStreamableHTTPServerTransport>;
-        tools?: ToolClass[];
-    }) {
-        super({
-            options,
-            logger,
-            metrics,
-            sessionStore: sessionStore,
-        });
-        this.userConfig = userConfig;
-        this.tools = tools;
-    }
-
-    protected override async createServerForRequest(request: TransportRequestContext): Promise<CliServer> {
-        void request;
-        return createTestServer(this.userConfig, { tools: this.tools });
-    }
-}
-
-type RunnerComponents = {
-    runner: StreamableHttpRunner<CliServer>;
-    sessionStore: ISessionStore<NodeStreamableHTTPServerTransport>;
-};
-
-function createRunnerComponents({
-    mcpHttpServer,
-    sessionStore,
-}: {
-    mcpHttpServer: MCPHttpServer<CliServer>;
-    sessionStore: ISessionStore<NodeStreamableHTTPServerTransport>;
-}): RunnerComponents {
-    const logger = new CompositeLogger({ loggers: [] });
-
-    const runner = new StreamableHttpRunner<CliServer>({
-        logger,
-        mcpHttpServer,
-    });
-
-    return { runner, sessionStore };
-}
-
-function getServerAddress(runner: StreamableHttpRunner<CliServer>): string {
-    return (runner as unknown as { mcpHttpServer: { serverAddress: string } }).mcpHttpServer.serverAddress;
-}
-
-function getSessionStore(runner: StreamableHttpRunner<CliServer>): ISessionStore<NodeStreamableHTTPServerTransport> {
-    return (runner as unknown as { mcpHttpServer: { sessionStore: ISessionStore<NodeStreamableHTTPServerTransport> } })
-        .mcpHttpServer.sessionStore;
-}
+import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { ToolBase, type CliServer, type OperationType, type ToolCategory, type UserConfig } from "mongodb-mcp-server";
+import { defaultTestConfig } from "../integrationHelpers.js";
+import { createTestServer } from "../helpers/createTestServer.js";
+import { createStreamableHttpTestRunner, getServerAddress } from "../helpers/streamableHttpTestRunner.js";
 
 describe("MCPHttpServer (streamable HTTP)", () => {
     let runner: StreamableHttpRunner<CliServer>;
@@ -246,10 +82,6 @@ describe("MCPHttpServer (streamable HTTP)", () => {
         });
     };
 
-    const getSessionFromStore = async (sessionId: string): Promise<NodeStreamableHTTPServerTransport | undefined> => {
-        return getSessionStore(runner).getSession(sessionId);
-    };
-
     beforeEach(() => {
         config = {
             ...defaultTestConfig,
@@ -267,111 +99,150 @@ describe("MCPHttpServer (streamable HTTP)", () => {
         runner = undefined as unknown as StreamableHttpRunner<CliServer>;
     });
 
-    describe("session initialization failure handling", () => {
-        let connectCallCount = 0;
+    describe("server startup from config", () => {
+        it("starts an HTTP server bound to the configured host/port", async () => {
+            ({ runner } = createStreamableHttpTestRunner(config));
+            await runner.start();
 
-        class ConnectFailingMCPHttpServer extends TestMCPHttpServer {
-            protected override async createServerForRequest(request: TransportRequestContext): Promise<CliServer> {
-                const server = await super.createServerForRequest(request);
-                const originalConnect = server.connect.bind(server);
-                vi.spyOn(server, "connect").mockImplementation(async (transport) => {
-                    connectCallCount++;
-                    if (connectCallCount === 1) {
-                        throw new Error("Simulated connection failure");
-                    }
-                    return originalConnect(transport);
-                });
-                return server;
-            }
-        }
+            const address = getServerAddress(runner);
+            expect(address).toMatch(new RegExp(`^http://${config.httpHost}:\\d+$`));
 
+            // The server is live: a malformed body is answered by the SDK's
+            // error handling rather than a connection failure.
+            const response = await fetch(`${address}/mcp`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: "not json",
+            });
+            expect(response.status).toBeGreaterThanOrEqual(400);
+        });
+    });
+
+    describe("2025-era requests (sessionful)", () => {
         beforeEach(async () => {
-            connectCallCount = 0;
-            config.externallyManagedSessions = true;
-            config.httpResponseType = "json";
-
-            const logger = new CompositeLogger({ loggers: [] });
-            const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
-            const sessionStore = new SessionStore<NodeStreamableHTTPServerTransport>({
-                options: {
-                    idleTimeoutMS: config.idleTimeoutMs,
-                    notificationTimeoutMS: config.notificationTimeoutMs,
-                    maxSessions: config.maxSessions,
-                },
-                logger,
-                metrics,
-            });
-
-            const mcpHttpServer = new ConnectFailingMCPHttpServer({
-                userConfig: config,
-                options: {
-                    http: {
-                        host: config.httpHost,
-                        port: config.httpPort,
-                        bodyLimit: config.httpBodyLimit,
-                        responseType: config.httpResponseType,
-                    },
-                    session: {
-                        idleTimeoutMs: config.idleTimeoutMs,
-                        notificationTimeoutMs: config.notificationTimeoutMs,
-                        externallyManagedSessions: config.externallyManagedSessions,
-                    },
-                },
-                logger,
-                metrics,
-                sessionStore,
-                tools: AllTools,
-            });
-
-            ({ runner } = createRunnerComponents({ mcpHttpServer, sessionStore }));
+            ({ runner } = createStreamableHttpTestRunner(config));
             await runner.start();
         });
 
-        it("should not store session when server.connect() fails, allowing retry to succeed", async () => {
-            const sessionId = "failing-session-test";
-
-            const firstResponse = await sendHttpRequest({ method: "tools/list", sessionId });
-            expect(firstResponse.ok).toBe(false);
-            expect(firstResponse.status).toBe(400);
-
-            expect(await getSessionFromStore(sessionId)).toBeUndefined();
-
-            const secondResponse = await sendHttpRequest({ method: "tools/list", sessionId });
-            expect(secondResponse.ok).toBe(true);
-
-            expect(await getSessionFromStore(sessionId)).toBeDefined();
-            expect(connectCallCount).toBe(2);
+        it("serves initialize with no session id, issuing a session", async () => {
+            const response = await sendHttpRequest({ method: "initialize" });
+            expect(response.ok).toBe(true);
+            // Serving 2025-era traffic sessionfully issues a session id.
+            expect(response.headers.get("mcp-session-id")).toBeTruthy();
         });
 
-        it("should only call addSession after successful server.connect()", async () => {
-            const sessionId = "addsession-order-test";
-            let addSessionCallCount = 0;
-            const addSessionCalls: { beforeConnect: boolean; afterConnect: boolean }[] = [];
+        it("requires a session id for a non-initialize request", async () => {
+            const response = await sendHttpRequest({ method: "tools/list" });
+            // 2025-era serving is sessionful, so a bare claim-less request
+            // without a session id is rejected rather than served statelessly.
+            expect(response.ok).toBe(false);
+            expect(response.status).toBe(400);
+        });
 
-            const sessionStore = getSessionStore(runner);
-            const originalAddSession = sessionStore.addSession.bind(sessionStore);
-            sessionStore.addSession = async (params): Promise<void> => {
-                addSessionCallCount++;
-                addSessionCalls.push({
-                    beforeConnect: connectCallCount === 0,
-                    afterConnect: connectCallCount > 0,
-                });
-                return originalAddSession(params);
-            };
+        it("serves a full client session over HTTP", async () => {
+            const client = await connectClient({});
+            const response = await client.listTools();
+            expect(response).toBeDefined();
+            expect(response.tools.length).toBeGreaterThan(0);
+        });
 
-            const firstResponse = await sendHttpRequest({ method: "tools/list", sessionId });
-            expect(firstResponse.ok).toBe(false);
-            expect(addSessionCallCount).toBe(0);
+        it("rejects an unknown mcp-session-id", async () => {
+            const response = await sendHttpRequest({ method: "tools/list", sessionId: "arbitrary-session-id" });
+            expect(response.status).toBe(404);
+        });
+    });
 
-            const secondResponse = await sendHttpRequest({ method: "tools/list", sessionId });
-            expect(secondResponse.ok).toBe(true);
-            expect(addSessionCallCount).toBe(1);
-            expect(addSessionCalls).toHaveLength(1);
-            expect(addSessionCalls[0]).toEqual({ beforeConnect: false, afterConnect: true });
+    describe("concurrent session limit (maxSessions)", () => {
+        it("rejects new legacy sessions beyond the configured cap", async () => {
+            config.maxSessions = 1;
+            ({ runner } = createStreamableHttpTestRunner(config));
+            await runner.start();
 
-            const thirdResponse = await sendHttpRequest({ method: "tools/list", sessionId });
-            expect(thirdResponse.ok).toBe(true);
-            expect(addSessionCallCount).toBe(1);
+            // A real client holds its session open via the SSE stream, so it
+            // counts against the cap.
+            const first = await connectClient({});
+            const tools = await first.listTools();
+            expect(tools.tools.length).toBeGreaterThan(0);
+
+            // A second client cannot open a session while the first holds the
+            // only slot -> the initialize is rejected (503) and connect() fails.
+            const client = new Client({ name: "second", version: "1.0" });
+            const transport = new StreamableHTTPClientTransport(new URL(`${getServerAddress(runner)}/mcp`), {});
+            await expect(client.connect(transport)).rejects.toThrow();
+            await client.close();
+            await transport.close();
+        });
+
+        it("evicts the least-recently-used idle session to admit a new one at the cap", async () => {
+            config.maxSessions = 1;
+            ({ runner } = createStreamableHttpTestRunner(config, { evictionIdleGraceMS: 0 }));
+            await runner.start();
+
+            // First legacy client's initialize opens a session.
+            const first = await sendHttpRequest({ method: "initialize" });
+            expect(first.ok).toBe(true);
+            const firstSessionId = first.headers.get("mcp-session-id");
+            expect(firstSessionId).toBeTruthy();
+
+            // With evictionIdleGraceMS: 0 the first session is immediately idle,
+            // so at capacity a second initialize evicts it (LRU) instead of
+            // rejecting — the new session is admitted (200).
+            const second = await sendHttpRequest({ method: "initialize" });
+            expect(second.status).toBe(200);
+            expect(second.headers.get("mcp-session-id")).not.toBe(firstSessionId);
+        });
+
+        it("allows sessions below the cap", async () => {
+            config.maxSessions = 100;
+            ({ runner } = createStreamableHttpTestRunner(config));
+            await runner.start();
+
+            // Well under the cap: several sessions open without error.
+            for (let i = 0; i < 3; i++) {
+                const res = await sendHttpRequest({ method: "initialize" });
+                expect(res.ok).toBe(true);
+            }
+        });
+    });
+
+    describe("HTTP header validation", () => {
+        it("rejects requests with a missing configured header and accepts the correct one", async () => {
+            config.httpHeaders = { "x-custom-header": "test-value" };
+            ({ runner } = createStreamableHttpTestRunner(config));
+            await runner.start();
+
+            const rejected = await sendHttpRequest({ method: "initialize" });
+            expect(rejected.status).toBe(403);
+            const body = (await rejected.json()) as { error?: string };
+            expect(body.error).toContain("Invalid value for header");
+
+            const accepted = await sendHttpRequest({
+                method: "initialize",
+                additionalHeaders: { "x-custom-header": "test-value" },
+            });
+            expect(accepted.ok).toBe(true);
+        });
+    });
+
+    describe("modern protocol path (2026-07-28)", () => {
+        it("serves modern-era clients", async () => {
+            ({ runner } = createStreamableHttpTestRunner(config));
+            await runner.start();
+
+            const transport = new StreamableHTTPClientTransport(new URL(`${getServerAddress(runner)}/mcp`), {});
+            const client = new Client(
+                { name: "modern-test", version: "1.0.0" },
+                { versionNegotiation: { mode: "auto" }, capabilities: { elicitation: {} } }
+            );
+            clients.push(client);
+            await client.connect(transport);
+
+            expect(client.getProtocolEra()).toBe("modern");
+
+            const { tools } = await client.listTools();
+            expect(tools.length).toBeGreaterThan(0);
+
+            await transport.close();
         });
     });
 
@@ -389,8 +260,8 @@ describe("MCPHttpServer (streamable HTTP)", () => {
                         {
                             type: "text",
                             text: JSON.stringify({
-                                readOnly: this.session.config.readOnly,
-                                maxDocumentsPerQuery: (this.session.config as UserConfig).maxDocumentsPerQuery,
+                                readOnly: this.server.config.readOnly,
+                                maxDocumentsPerQuery: (this.server.config as UserConfig).maxDocumentsPerQuery,
                             }),
                         },
                     ],
@@ -410,22 +281,18 @@ describe("MCPHttpServer (streamable HTTP)", () => {
                 options,
                 logger,
                 metrics,
-                sessionStore,
             }: {
                 baseConfig: UserConfig;
                 options: {
                     http: HttpServerOptions;
-                    session: SessionManagementOptions;
                 };
                 logger: CompositeLogger;
                 metrics: IMetrics<DefaultMetricDefinitions>;
-                sessionStore: ISessionStore<NodeStreamableHTTPServerTransport>;
             }) {
                 super({
                     options,
                     logger,
                     metrics,
-                    sessionStore: sessionStore,
                 });
                 this.baseConfig = baseConfig;
             }
@@ -496,29 +363,25 @@ describe("MCPHttpServer (streamable HTTP)", () => {
                 options,
                 logger,
                 metrics,
-                sessionStore,
             }: {
                 baseConfig: UserConfig;
                 options: {
                     http: HttpServerOptions;
-                    session: SessionManagementOptions;
                 };
                 logger: CompositeLogger;
                 metrics: IMetrics<DefaultMetricDefinitions>;
-                sessionStore: ISessionStore<NodeStreamableHTTPServerTransport>;
             }) {
                 super({
                     options,
                     logger,
                     metrics,
-                    sessionStore: sessionStore,
                 });
                 this.baseConfig = baseConfig;
             }
 
             protected override async createServerForRequest(request: TransportRequestContext): Promise<CliServer> {
                 const userRole = request.headers?.["x-user-role"];
-                const tools: ToolClass[] = userRole === "admin" ? [UserTool, AdminTool] : [UserTool];
+                const tools: AnyToolClass[] = userRole === "admin" ? [UserTool, AdminTool] : [UserTool];
                 return createTestServer(this.baseConfig, { tools });
             }
         }
@@ -526,15 +389,6 @@ describe("MCPHttpServer (streamable HTTP)", () => {
         it("should customize server configuration based on request headers", async () => {
             const logger = new CompositeLogger({ loggers: [] });
             const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
-            const sessionStore = new SessionStore<NodeStreamableHTTPServerTransport>({
-                options: {
-                    idleTimeoutMS: config.idleTimeoutMs,
-                    notificationTimeoutMS: config.notificationTimeoutMs,
-                    maxSessions: config.maxSessions,
-                },
-                logger,
-                metrics,
-            });
 
             const mcpHttpServer = new RoleBasedMCPHttpServer({
                 baseConfig: config,
@@ -542,20 +396,19 @@ describe("MCPHttpServer (streamable HTTP)", () => {
                     http: {
                         host: config.httpHost,
                         port: config.httpPort,
+                        bodyLimit: config.httpBodyLimit,
                         responseType: config.httpResponseType,
-                    },
-                    session: {
-                        idleTimeoutMs: config.idleTimeoutMs,
-                        notificationTimeoutMs: config.notificationTimeoutMs,
-                        externallyManagedSessions: config.externallyManagedSessions,
+                        authMode: "unauthenticated",
                     },
                 },
                 logger,
                 metrics,
-                sessionStore,
             });
 
-            ({ runner } = createRunnerComponents({ mcpHttpServer, sessionStore }));
+            runner = new StreamableHttpRunner<CliServer>({
+                logger,
+                mcpHttpServer,
+            });
             await runner.start();
 
             const analystClient = await connectClient({ additionalHeaders: { "x-user-role": "analyst" } });
@@ -598,15 +451,6 @@ describe("MCPHttpServer (streamable HTTP)", () => {
         it("should allow customizing tools based on request context", async () => {
             const logger = new CompositeLogger({ loggers: [] });
             const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
-            const sessionStore = new SessionStore<NodeStreamableHTTPServerTransport>({
-                options: {
-                    idleTimeoutMS: config.idleTimeoutMs,
-                    notificationTimeoutMS: config.notificationTimeoutMs,
-                    maxSessions: config.maxSessions,
-                },
-                logger,
-                metrics,
-            });
 
             const mcpHttpServer = new RoleBasedToolsMCPHttpServer({
                 baseConfig: config,
@@ -615,19 +459,17 @@ describe("MCPHttpServer (streamable HTTP)", () => {
                         host: config.httpHost,
                         port: config.httpPort,
                         responseType: config.httpResponseType,
-                    },
-                    session: {
-                        idleTimeoutMs: config.idleTimeoutMs,
-                        notificationTimeoutMs: config.notificationTimeoutMs,
-                        externallyManagedSessions: config.externallyManagedSessions,
+                        authMode: "unauthenticated",
                     },
                 },
                 logger,
                 metrics,
-                sessionStore,
             });
 
-            ({ runner } = createRunnerComponents({ mcpHttpServer, sessionStore }));
+            runner = new StreamableHttpRunner<CliServer>({
+                logger,
+                mcpHttpServer,
+            });
             await runner.start();
 
             const userClient = await connectClient({ additionalHeaders: { "x-user-role": "user" } });

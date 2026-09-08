@@ -46,19 +46,19 @@ export class PauseResumeClusterTool extends AtlasToolBase {
 
     protected async execute(
         args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        { request }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
         const projectId = args.projectId;
         const clusterName = args.clusterName;
         const action = args.action;
         const isPause = action === "PAUSE";
 
-        const result = await this.apiClient.updateCluster(
+        const result = await this.server.apiClient.updateCluster(
             {
                 params: { path: { groupId: projectId, clusterName } },
                 body: { paused: isPause } as unknown as ClusterDescription20240805,
             },
-            context
+            request
         );
 
         let text: string;
@@ -70,13 +70,13 @@ export class PauseResumeClusterTool extends AtlasToolBase {
                 `Paused clusters are unavailable for connections and do not incur compute costs.`;
 
             // Revoke any connections established to the cluster being paused.
-            const affected = await this.session.connectionRegistry.find(
+            const affected = await this.server.connectionRegistry.find(
                 (entry) =>
                     entry.state.connectedAtlasCluster?.projectId === projectId &&
                     entry.state.connectedAtlasCluster?.clusterName === clusterName
             );
             for (const entry of affected) {
-                await this.session.connectionRegistry.disconnect(entry.connectionId);
+                await this.server.connectionRegistry.disconnect(entry.connectionId);
             }
             disconnectedConnectionIds = affected.map((entry) => entry.connectionId);
             if (disconnectedConnectionIds.length > 0) {

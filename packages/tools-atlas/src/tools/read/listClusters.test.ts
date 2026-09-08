@@ -1,17 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { ListClustersTool } from "./listClusters.js";
-import type { IAtlasSession } from "../../atlasTool.js";
 import type { ITelemetry } from "@mongodb-js/mcp-types";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
+import type { AtlasToolServer } from "../../atlasTool.js";
 
 const projectId = "507f1f77bcf86cd799439011";
 
 const freeClusterApiResponse = {
+    id: "free-cluster-id",
     name: "free-cluster",
     paused: false,
     stateName: "IDLE",
@@ -32,6 +32,7 @@ const freeClusterApiResponse = {
 };
 
 const flexClusterApiResponse = {
+    id: "flex-cluster-id",
     name: "flex-cluster",
     stateName: "IDLE",
     mongoDBVersion: "8.0",
@@ -64,7 +65,7 @@ describe("ListClustersTool", () => {
         const mockSession = {
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
-        } as unknown as IAtlasSession;
+        } as unknown as AtlasToolServer;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
@@ -73,23 +74,24 @@ describe("ListClustersTool", () => {
 
         const mockElicitation = createMockElicitation() as unknown as Elicitation;
 
-        const params: ToolConstructorParams<IAtlasSession> = {
-            name: ListClustersTool.toolName,
-            category: "atlas",
-            operationType: ListClustersTool.operationType,
-            session: mockSession,
+        const server: AtlasToolServer = {
+            ...mockSession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
         };
 
-        tool = new ListClustersTool(params);
+        tool = new ListClustersTool({ server });
     });
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown> = { projectId }) =>
-        tool["execute"](args as never, { signal: new AbortController().signal });
+        tool["execute"](args as never, {
+            request: {
+                signal: new AbortController().signal,
+            },
+        });
 
     describe("with projectId", () => {
         beforeEach(() => {
@@ -109,6 +111,10 @@ describe("ListClustersTool", () => {
             const [description, untrusted] = result.content.map((c) => (c as { text: string }).text);
             expect(description).not.toContain("My Project");
             expect(untrusted).toContain("My Project");
+            expect(result.structuredContent?.clusters).toEqual([
+                expect.objectContaining({ name: "free-cluster", clusterId: "free-cluster-id" }),
+                expect.objectContaining({ name: "flex-cluster", clusterId: "flex-cluster-id" }),
+            ]);
         });
 
         it("calls getGroup, listClusters, and listFlexClusters", async () => {
@@ -185,6 +191,7 @@ describe("ListClustersTool", () => {
                     clusters: [
                         {
                             name: "free-cluster",
+                            clusterId: "free-cluster-id",
                             instanceType: "FREE",
                             instanceSize: undefined,
                             provider: "AWS",

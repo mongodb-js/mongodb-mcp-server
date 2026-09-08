@@ -1,5 +1,5 @@
-import type { CallToolResult, OperationType } from "@mongodb-js/mcp-types";
-import { AtlasLocalToolBase } from "../../atlasLocalTool.js";
+import type { CallToolResult, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { AtlasLocalToolBase, type IAtlasLocalConfig } from "../../atlasLocalTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import { CommonArgs } from "@mongodb-js/mcp-core";
 import type { Client, CreateDeploymentOptions, Deployment } from "@mongodb-js/atlas-local";
@@ -34,7 +34,7 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
 
     protected async executeWithAtlasLocalClient(
         { deploymentName, loadSampleData, imageTag }: ToolArgs<typeof this.argsShape>,
-        { client }: { client: Client }
+        { client }: { client: Client; context: ToolExecutionContext<IAtlasLocalConfig> }
     ): Promise<ToolResult<typeof CreateDeploymentOutputSchema> & Pick<CallToolResult, "_meta">> {
         const deploymentOptions: CreateDeploymentOptions = {
             name: deploymentName,
@@ -44,8 +44,8 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
             },
             loadSampleData,
             imageTag,
-            ...(this.session.config.voyageApiKey ? { voyageApiKey: this.session.config.voyageApiKey } : {}),
-            doNotTrack: !this.telemetry.isTelemetryEnabled(),
+            ...(this.server.config.voyageApiKey ? { voyageApiKey: this.server.config.voyageApiKey } : {}),
+            doNotTrack: !this.server.telemetry.isTelemetryEnabled(),
         };
         // Create the deployment
         const deployment = await client.createDeployment(deploymentOptions);

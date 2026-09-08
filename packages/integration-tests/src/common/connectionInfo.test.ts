@@ -218,8 +218,8 @@ describe("connectionInfo", () => {
             username: "testuser",
             projectId: "project123",
             clusterName: "TestCluster",
+            clusterId: "cluster123",
             instanceType: "FREE",
-            expiryDate: new Date("2025-12-31"),
         };
 
         it("should return both authType and hostType for a standard connection string", () => {
@@ -251,6 +251,22 @@ describe("connectionInfo", () => {
             const config = {} as UserConfig;
 
             const result = getConnectionStringInfo(connectionString, config, atlasClusterInfo);
+
+            expect(result).toEqual({
+                authType: "scram",
+                hostType: "atlas",
+            });
+        });
+
+        it("should override hostType to atlas for a coordinates-only atlasInfo", () => {
+            const connectionString = "mongodb://localhost:27017";
+            const config = {} as UserConfig;
+
+            const result = getConnectionStringInfo(connectionString, config, {
+                projectId: "test-project-id",
+                clusterName: "test-cluster",
+                clusterId: "test-cluster-id",
+            });
 
             expect(result).toEqual({
                 authType: "scram",

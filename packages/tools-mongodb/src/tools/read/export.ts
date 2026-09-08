@@ -2,9 +2,9 @@ import { z } from "zod";
 import { ObjectId } from "bson";
 import type { AggregationCursor, FindCursor } from "mongodb";
 import type { CallToolResult } from "@mongodb-js/mcp-types";
-import type { ToolArgs } from "@mongodb-js/mcp-core";
+import { type ToolArgs, ToolArgumentValidationError } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
-import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase, type IMongoDBConfig } from "../../mongodbTool.js";
 import { FindArgs } from "./find.js";
 import { jsonExportFormat } from "../../common/exportsManager.js";
 import { AggregateArgs } from "./aggregate.js";
@@ -67,40 +67,42 @@ export class ExportTool extends MongoDBToolBase {
             exportTitle,
             exportTarget: target,
         }: ToolArgs<typeof this.argsShape>,
-        { signal }: ToolExecutionContext
+        { request }: ToolExecutionContext<IMongoDBConfig>
     ): Promise<CallToolResult> {
         const provider = await this.resolveConnection(connectionId);
         const exportTarget = target[0];
         if (!exportTarget) {
-            throw new Error("Export target not provided. Expected one of the following: `aggregate`, `find`");
+            throw new ToolArgumentValidationError(
+                "Export target not provided. Expected one of the following: `aggregate`, `find`"
+            );
         }
 
         let cursor: FindCursor | AggregationCursor;
         if (exportTarget.name === "find") {
             const { filter, projection, sort, limit } = exportTarget.arguments;
-            this.assertMqlIsAllowed(filter, projection);
+            this.assertMqlIsAllowed(this.server.config, filter, projection);
             cursor = provider.find(database, collection, filter ?? {}, {
                 projection,
                 sort,
                 limit,
                 promoteValues: false,
                 bsonRegExp: true,
-                ...this.getOperationOptions(signal),
+                ...this.getOperationOptions(request),
             });
         } else {
             const { pipeline } = exportTarget.arguments;
-            this.assertMqlIsAllowed(pipeline);
+            this.assertMqlIsAllowed(this.server.config, pipeline);
             cursor = provider.aggregate(database, collection, pipeline, {
                 promoteValues: false,
                 bsonRegExp: true,
                 allowDiskUse: true,
-                ...this.getOperationOptions(signal),
+                ...this.getOperationOptions(request),
             });
         }
 
         const exportName = `${new ObjectId().toString()}.json`;
 
-        const { exportURI, exportPath } = await this.session.exportsManager.createJSONExport({
+        const { exportURI, exportPath } = await this.server.exportsManager.createJSONExport({
             input: cursor,
             exportName,
             exportTitle:
@@ -128,7 +130,7 @@ export class ExportTool extends MongoDBToolBase {
         // This special case is to make it easier to work with exported data for
         // clients that still cannot reference resources (Cursor).
         // More information here: https://jira.mongodb.org/browse/MCP-104
-        if (this.isServerRunningLocally()) {
+        if (this.isServerRunningLocally(this.server.config)) {
             toolCallContent.push({
                 type: "text",
                 text: `Optionally, when the export is finished, the exported data can also be accessed under path - "${exportPath}"`,
@@ -140,7 +142,7 @@ export class ExportTool extends MongoDBToolBase {
         };
     }
 
-    private isServerRunningLocally(): boolean {
-        return this.config.transport === "stdio" || ["127.0.0.1", "localhost"].includes(this.config.httpHost);
+    private isServerRunningLocally(config: IMongoDBConfig): boolean {
+        return config.transport === "stdio" || ["127.0.0.1", "localhost"].includes(config.httpHost);
     }
 }

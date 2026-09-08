@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { AggregationCursor } from "mongodb";
 import type { InputRequiredResult } from "@mongodb-js/mcp-core";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase, type IMongoDBConfig } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
@@ -154,20 +154,20 @@ export class AggregateTool extends MongoDBToolBase {
 
     protected async execute(
         { connectionId, database, collection, pipeline, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        context: ToolExecutionContext<IMongoDBConfig>
     ): Promise<ToolResult<typeof this.outputSchema> | InputRequiredResult> {
-        const { signal } = context;
+        const { request } = context;
         let aggregationCursor: AggregationCursor | undefined = undefined;
         try {
             const provider = await this.resolveConnection(connectionId);
             const isSearchSupported = await this.isSearchSupported(connectionId);
-            this.assertOnlyUsesPermittedStages({ isSearchSupported }, pipeline);
+            this.assertOnlyUsesPermittedStages(this.server.config, { isSearchSupported }, pipeline);
             if (isSearchSupported) {
                 let searchIndexes: SearchIndex[] | undefined;
                 try {
                     searchIndexes = (await provider.getSearchIndexes(database, collection)) as SearchIndex[];
                 } catch (error) {
-                    this.session.logger.debug({
+                    this.server.logger.debug({
                         id: LogId.mongodbGetSearchIndexesFailure,
                         context: "aggregate tool",
                         message: `Failed to fetch search indexes for pre-filter validation, skipping check: ${error instanceof Error ? error.message : String(error)}`,
@@ -177,13 +177,13 @@ export class AggregateTool extends MongoDBToolBase {
                     assertVectorSearchFilterFieldsAreIndexed({
                         searchIndexes,
                         pipeline,
-                        logger: this.session.logger,
+                        logger: this.server.logger,
                     });
                 }
             }
 
             // Check if aggregate operation uses an index if enabled
-            if (this.config.indexCheck) {
+            if (this.server.config.indexCheck) {
                 const [usesVectorSearchIndex, indexName] = await this.isVectorSearchIndexUsed(
                     { isSearchSupported, provider },
                     {
@@ -205,13 +205,13 @@ export class AggregateTool extends MongoDBToolBase {
                                         collection,
                                         pipeline,
                                         {
-                                            ...this.getOperationOptions(signal),
+                                            ...this.getOperationOptions(request),
                                         },
                                         { writeConcern: undefined }
                                     )
                                     .explain("queryPlanner");
                             },
-                            logger: this.session.logger,
+                            logger: this.server.logger,
                         });
                         break;
                     case "non-existent-index":
@@ -232,41 +232,40 @@ export class AggregateTool extends MongoDBToolBase {
 
             const writeStageTargets = getWriteStageTargets(pipeline, database);
             if (writeStageTargets.length > 0) {
-                const inputRequiredResult = this.getInputRequiredResult(writeStageTargets, context);
-                if (inputRequiredResult) {
-                    // If input is required, return the input-required result instead of running the pipeline
-                    return inputRequiredResult;
+                const writeConfirmation = this.confirmWriteStages(writeStageTargets, context);
+                if (writeConfirmation) {
+                    return writeConfirmation;
                 }
 
                 // This is a write pipeline, so special-case it and don't attempt to apply limits or caps
                 aggregationCursor = provider.aggregate(database, collection, pipeline, {
-                    signal,
+                    signal: request.signal,
                 });
 
                 documents = await aggregationCursor.toArray();
                 successMessage = "The aggregation pipeline executed successfully.";
             } else {
                 const cappedResultsPipeline: Document[] = [...pipeline];
-                if (this.config.maxDocumentsPerQuery > 0) {
-                    cappedResultsPipeline.push({ $limit: this.config.maxDocumentsPerQuery });
+                if (this.server.config.maxDocumentsPerQuery > 0) {
+                    cappedResultsPipeline.push({ $limit: this.server.config.maxDocumentsPerQuery });
                 }
                 aggregationCursor = provider.aggregate(database, collection, cappedResultsPipeline, {
-                    ...this.getOperationOptions(signal),
+                    ...this.getOperationOptions(request),
                 });
 
                 const [totalDocuments, cursorResults] = await Promise.all([
-                    this.countAggregationResultDocuments({
+                    this.countAggregationResultDocuments(this.server.config, {
                         provider,
                         database,
                         collection,
                         pipeline,
-                        abortSignal: signal,
+                        abortSignal: request.signal,
                     }),
                     collectCursorUntilMaxBytesLimit({
                         cursor: aggregationCursor,
-                        configuredMaxBytesPerQuery: this.config.maxBytesPerQuery,
+                        configuredMaxBytesPerQuery: this.server.config.maxBytesPerQuery,
                         toolResponseBytesLimit: responseBytesLimit,
-                        abortSignal: signal,
+                        abortSignal: request.signal,
                     }),
                 ]);
 
@@ -275,9 +274,9 @@ export class AggregateTool extends MongoDBToolBase {
                 // maxDocumentsPerQuery then we know for sure that the results were
                 // capped.
                 const aggregationResultsCappedByMaxDocumentsLimit =
-                    this.config.maxDocumentsPerQuery > 0 &&
+                    this.server.config.maxDocumentsPerQuery > 0 &&
                     !!totalDocuments &&
-                    totalDocuments > this.config.maxDocumentsPerQuery;
+                    totalDocuments > this.server.config.maxDocumentsPerQuery;
 
                 documents = cursorResults.documents;
                 count = totalDocuments;
@@ -316,7 +315,7 @@ export class AggregateTool extends MongoDBToolBase {
         try {
             await cursor.close();
         } catch (error) {
-            this.session.logger.warning({
+            this.server.logger.warning({
                 id: LogId.mongodbCursorCloseError,
                 context: "aggregate tool",
                 message: `Error when closing the cursor - ${error instanceof Error ? error.message : String(error)}`,
@@ -325,10 +324,11 @@ export class AggregateTool extends MongoDBToolBase {
     }
 
     private assertOnlyUsesPermittedStages(
+        config: IMongoDBConfig,
         { isSearchSupported }: { isSearchSupported: boolean },
         pipeline: Record<string, unknown>[]
     ): void {
-        this.assertMqlIsAllowed(pipeline);
+        this.assertMqlIsAllowed(config, pipeline);
 
         for (const stage of pipeline) {
             // This ensure that you can't use $search if the cluster does not support MongoDB Search
@@ -342,19 +342,22 @@ export class AggregateTool extends MongoDBToolBase {
         }
     }
 
-    private async countAggregationResultDocuments({
-        provider,
-        database,
-        collection,
-        pipeline,
-        abortSignal,
-    }: {
-        provider: NodeDriverServiceProvider;
-        database: string;
-        collection: string;
-        pipeline: Document[];
-        abortSignal?: AbortSignal;
-    }): Promise<number | undefined> {
+    private async countAggregationResultDocuments(
+        config: IMongoDBConfig,
+        {
+            provider,
+            database,
+            collection,
+            pipeline,
+            abortSignal,
+        }: {
+            provider: NodeDriverServiceProvider;
+            database: string;
+            collection: string;
+            pipeline: Document[];
+            abortSignal?: AbortSignal;
+        }
+    ): Promise<number | undefined> {
         const resultsCountAggregation = [...pipeline, { $count: "totalDocuments" }];
         return await operationWithFallback(async (): Promise<number | undefined> => {
             const aggregationResults = await provider
@@ -362,9 +365,9 @@ export class AggregateTool extends MongoDBToolBase {
                     signal: abortSignal,
                 })
                 .maxTimeMS(
-                    this.config.maxTimeMS !== undefined
-                        ? Math.min(this.config.maxTimeMS, this.config.aggregationCountMaxTimeMsCap)
-                        : this.config.aggregationCountMaxTimeMsCap
+                    config.maxTimeMS !== undefined
+                        ? Math.min(config.maxTimeMS, config.aggregationCountMaxTimeMsCap)
+                        : config.aggregationCountMaxTimeMsCap
                 )
                 .toArray();
 
@@ -416,7 +419,7 @@ export class AggregateTool extends MongoDBToolBase {
                 const indexes = await provider.getSearchIndexes(database, collection, indexName);
                 indexExists = indexes.length >= 1;
             } catch (error) {
-                this.session.logger.debug({
+                this.server.logger.debug({
                     id: LogId.mongodbGetSearchIndexesFailure,
                     context: "aggregate tool",
                     message: `Failed to fetch search indexes for vector search index check, skipping check: ${error instanceof Error ? error.message : String(error)}`,

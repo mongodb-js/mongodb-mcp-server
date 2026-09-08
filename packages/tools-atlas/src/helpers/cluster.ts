@@ -5,7 +5,8 @@ import type {
     FlexClusterDescription20241113,
     ApiClient,
 } from "@mongodb-js/mcp-atlas-api-client";
-import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
+import type { ToolRequest } from "@mongodb-js/mcp-types";
+import type { IAtlasConfig } from "../atlasTool.js";
 import { LogId, requestIdAttr } from "@mongodb-js/mcp-core";
 import { ConnectionString } from "mongodb-connection-string-url";
 
@@ -43,6 +44,7 @@ export interface Cluster {
     provider?: string;
     region?: string;
     paused: boolean;
+    clusterId?: string;
     state?: "IDLE" | "CREATING" | "UPDATING" | "DELETING" | "REPAIRING";
     mongoDBVersion?: string;
     connectionStrings?: ClusterConnectionStrings;
@@ -52,6 +54,7 @@ export interface Cluster {
 export function formatFlexCluster(cluster: FlexClusterDescription20241113): Cluster {
     return {
         name: cluster.name,
+        clusterId: cluster.id,
         instanceType: "FLEX",
         instanceSize: undefined,
         provider: cluster.providerSettings?.backingProviderName,
@@ -104,6 +107,7 @@ export function formatCluster(cluster: ClusterDescription20240805): Cluster {
 
     return {
         name: cluster.name,
+        clusterId: cluster.id,
         instanceType: clusterInstanceType,
         instanceSize: clusterInstanceType === "DEDICATED" ? instanceSize : undefined,
         provider,
@@ -120,7 +124,7 @@ export async function inspectCluster(
     apiClient: ApiClient,
     projectId: string,
     clusterName: string,
-    context?: ToolExecutionContext
+    request?: ToolRequest<IAtlasConfig>
 ): Promise<Cluster> {
     try {
         const cluster = await apiClient.getCluster(
@@ -132,7 +136,7 @@ export async function inspectCluster(
                     },
                 },
             },
-            context
+            request
         );
         return formatCluster(cluster);
     } catch (error) {
@@ -146,7 +150,7 @@ export async function inspectCluster(
                         },
                     },
                 },
-                context
+                request
             );
             return formatFlexCluster(cluster);
         } catch (flexError) {
@@ -155,7 +159,7 @@ export async function inspectCluster(
                 id: LogId.atlasInspectFailure,
                 context: "inspect-cluster",
                 message: `error inspecting cluster: ${err.message}`,
-                attributes: { ...requestIdAttr(context?.requestInfo?.headers) },
+                attributes: { ...requestIdAttr(request?.headers) },
             });
             throw error;
         }
@@ -187,10 +191,10 @@ export async function getProcessIdsFromCluster(
     apiClient: ApiClient,
     projectId: string,
     clusterName: string,
-    context?: ToolExecutionContext
+    request?: ToolRequest<IAtlasConfig>
 ): Promise<Array<string>> {
     try {
-        const cluster = await inspectCluster(apiClient, projectId, clusterName, context);
+        const cluster = await inspectCluster(apiClient, projectId, clusterName, request);
         return cluster.processIds || [];
     } catch (error) {
         throw new Error(

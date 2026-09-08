@@ -6,6 +6,7 @@ import {
     createLoggerFromConfig,
     createServerFromConfig,
     createSharedServicesFromConfig,
+    closeSharedServices,
     Resources,
     UserConfigSchema,
     type UserConfig,
@@ -62,6 +63,7 @@ export class InMemoryMcpConnection {
         return new InMemoryMcpConnection(client, async () => {
             await clientTransport.close();
             await server.close();
+            await closeSharedServices(sharedServices);
         });
     }
 

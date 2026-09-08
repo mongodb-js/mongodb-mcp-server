@@ -21,7 +21,7 @@
   "scripts": {
     "build": "tsc --build tsconfig.build.json",
     "test": "vitest --run",
-    "check": "tsc --build tsconfig.build.json --noEmit"
+    "check": "tsc --noEmit --project tsconfig.json"
   },
   "dependencies": {
     "@mongodb-js/mcp-core": "workspace:*",
