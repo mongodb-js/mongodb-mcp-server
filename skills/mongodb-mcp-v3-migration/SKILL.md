@@ -334,6 +334,28 @@ receives `(args, { request })`; per-request data (`request.headers`, `request.id
 `request.clientInfo`, `request.inputResponses`, …) travels on the request, while the
 effective config lives on `this.server.config`. `ToolCategory` gains `"custom"`.
 
+### Sessionless HTTP serving (`MCPHttpServer`)
+
+v3 hosts MCP over HTTP through `MCPHttpServer` (`@mongodb-js/mcp-http-runners`), which
+serves both the 2026-07-28 **stateless** protocol (each request builds a fresh
+request-scoped server) and the 2025-era **legacy** sessionful protocol (via an internal
+`LegacyMcpHttpHandler`). Key deltas from a sessionful embed:
+
+- **`MCPHttpServer` no longer takes a `sessionStore`.** Its options are
+  `{ options: { http }, logger, metrics, sessionOptions? }`. The `sessionOptions`
+  (`maxSessions`, `idleTimeoutMS`, `notificationTimeoutMS`, `evictionIdleGraceMS`)
+  tune the 2025-era legacy `SessionStore`; there is no external session store to wire.
+- **`createServerForRequest` returns a server-scoped `CliServer`** (no `Session`).
+  The base calls `server.register()` for you before handing the `McpServer` to the
+  transport, so a subclass must not register resources/tools itself. Build the server
+  with `transportRequest` so tools see the per-request headers/auth.
+- **Inject HTTP middleware** by overriding `protected registerMiddlewares(): void`
+  (called after body parsing + header validation, before the `/mcp` routes);
+  `this.app.use(...)` your auth/rate-limiter/observability.
+- **Inject a custom session store** for the legacy path: override
+  `MCPHttpServer.createLegacyHandler` to pass an auth-aware or durable `ISessionStore`
+  to the `LegacyMcpHttpHandler` (which requires one).
+
 ### Customizing via `create*FromConfig` factories
 
 When overriding only part of the stack, use individual factories from `@mongodb-js/mcp-cli`:
