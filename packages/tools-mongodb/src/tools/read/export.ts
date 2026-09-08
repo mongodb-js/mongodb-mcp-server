@@ -9,6 +9,7 @@ import { FindArgs } from "./find.js";
 import { jsonExportFormat } from "../../common/exportsManager.js";
 import { AggregateArgs } from "./aggregate.js";
 import { EXPORT_TOOL_NAME } from "../../helpers/constants.js";
+import { assertNoWriteStages } from "../../helpers/mqlGuards.js";
 
 export class ExportTool extends MongoDBToolBase {
     static toolName = EXPORT_TOOL_NAME;
@@ -91,6 +92,10 @@ export class ExportTool extends MongoDBToolBase {
             });
         } else {
             const { pipeline } = exportTarget.arguments;
+            assertNoWriteStages(
+                pipeline,
+                "The export tool can not run pipelines with $out or $merge stages. Use the aggregate tool to run a pipeline that writes to a collection."
+            );
             this.assertMqlIsAllowed(this.server.config, pipeline);
             cursor = provider.aggregate(database, collection, pipeline, {
                 promoteValues: false,
