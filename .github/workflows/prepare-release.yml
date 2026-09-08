@@ -46,6 +46,9 @@ jobs:
           pnpm run build:update-package-version
           echo "NEW_VERSION=v${NEW_VERSION}" >> "$GITHUB_OUTPUT"
 
+      - name: Build
+        run: pnpm run build
+
       - name: Update server.json version and arguments
         run: |
           pnpm run generate:arguments
