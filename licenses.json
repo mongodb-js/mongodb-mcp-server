@@ -1,16 +1,36 @@
 {
-  "ignoredOrgs": ["@mongodb-js", "@mongosh", "@oven", "@rollup"],
+  "ignoredOrgs": [
+    "@mongodb-js",
+    "@mongosh",
+    "@oven",
+    "@rollup",
+    "@esbuild",
+    "@braintrust",
+    "@csstools",
+    "@microsoft"
+  ],
   "ignoredPackages": [
     "bindings@1.5.0",
     "file-uri-to-path@1.0.0",
     "macos-export-certificate-and-key@2.0.1",
     "win-export-certificate-and-key@3.0.2",
-    "hadron-document@8.11.7",
-    "hadron-type-checker@7.5.7"
+    "hadron-document@8.11.5",
+    "hadron-type-checker@7.5.5",
+    "lightningcss-android-arm64@1.32.0",
+    "lightningcss-darwin-arm64@1.32.0",
+    "lightningcss-darwin-x64@1.32.0",
+    "lightningcss-freebsd-x64@1.32.0",
+    "lightningcss-linux-arm-gnueabihf@1.32.0",
+    "lightningcss-linux-arm64-gnu@1.32.0",
+    "lightningcss-linux-arm64-musl@1.32.0",
+    "lightningcss-linux-x64-gnu@1.32.0",
+    "lightningcss-linux-x64-musl@1.32.0",
+    "lightningcss-win32-arm64-msvc@1.32.0",
+    "lightningcss-win32-x64-msvc@1.32.0"
   ],
   "licenseOverrides": {
     "node-addon-api@8.9.0": "MIT"
   },
   "doNotValidatePackages": [],
-  "additionalAllowedLicenses": ["Python-2.0"]
+  "additionalAllowedLicenses": ["Python-2.0", "MPL-2.0", "CC0-1.0"]
 }
