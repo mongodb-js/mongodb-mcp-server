@@ -197,8 +197,9 @@ function buildProcessorStructuredContent(
     if (proc.effectiveTier !== undefined) {
         structuredContent.effectiveTier = proc.effectiveTier;
     }
-    if (proc.options?.autoscaling !== undefined) {
-        structuredContent.autoscaling = toStreamsAutoscaling(proc.options.autoscaling);
+    const autoscaling = toStreamsAutoscaling(proc.options?.autoscaling);
+    if (autoscaling !== undefined) {
+        structuredContent.autoscaling = autoscaling;
     }
     if (proc.stats && Object.keys(proc.stats).length > 0) {
         structuredContent.stats = {

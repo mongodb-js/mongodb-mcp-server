@@ -149,15 +149,15 @@ describeWithStreams("atlas-streams-manage", (integration) => {
                         workspaceName: getWorkspaceName(),
                         action: "modify-processor",
                         resourceName: processorName,
-                        autoscaling: null,
+                        autoscaling: { enabled: false },
                     },
                 });
                 const disableContent = getResponseContent(disableResponse.content);
                 expect(disableResponse.isError, `Unexpected error: ${disableContent}`).toBeFalsy();
                 expect(disableResponse.structuredContent).toMatchObject({
                     processorState: "STOPPED",
-                    autoscaling: null,
                 });
+                expect(disableResponse.structuredContent).not.toHaveProperty("autoscaling");
             }, 30_000);
 
             it("modify-processor — changes pipeline", async () => {

@@ -76,7 +76,7 @@ export class StreamsManageTool extends StreamsToolBase {
         ),
         autoscaling: StreamsAutoscaling.optional().describe(
             "Autoscaling configuration for 'start-processor' or 'modify-processor'. " +
-                "Omit to preserve persisted settings. Set enabled=false or null, or set autoscaling=null, to disable and clear it. " +
+                "Omit to preserve persisted settings. Set enabled=false to disable and clear it. " +
                 "Omitted bounds preserve persisted values or use workspace defaults when first enabling."
         ),
         resumeFromCheckpoint: z
@@ -460,7 +460,8 @@ export class StreamsManageTool extends StreamsToolBase {
             structuredContent.effectiveTier = updated.effectiveTier;
         }
         if (args.autoscaling !== undefined) {
-            structuredContent.autoscaling = toStreamsAutoscaling(updated.options?.autoscaling) ?? null;
+            const autoscaling = toStreamsAutoscaling(updated.options?.autoscaling);
+            if (autoscaling !== undefined) structuredContent.autoscaling = autoscaling;
         }
 
         const changes = Object.keys(body).join(", ");

@@ -174,21 +174,18 @@ export const PrivateLinkConfig = z
     })
     .passthrough();
 
-export const StreamsAutoscaling = z
-    .object({
-        enabled: z
-            .boolean()
-            .nullable()
-            .optional()
-            .describe("Enable autoscaling. Explicit false or null disables autoscaling and clears its configuration."),
-        minTier: StreamsTier.nullable()
-            .optional()
-            .describe("Autoscaling floor. Null resets the floor to the workspace default tier."),
-        maxTier: StreamsTier.nullable()
-            .optional()
-            .describe("Autoscaling ceiling. Null resets the ceiling to the workspace maximum tier."),
-    })
-    .nullable();
+export const StreamsAutoscaling = z.object({
+    enabled: z
+        .boolean()
+        .optional()
+        .describe("Enable autoscaling. Explicit false disables autoscaling and clears its configuration."),
+    minTier: StreamsTier.nullable()
+        .optional()
+        .describe("Autoscaling floor. Null resets the floor to the workspace default tier."),
+    maxTier: StreamsTier.nullable()
+        .optional()
+        .describe("Autoscaling ceiling. Null resets the ceiling to the workspace maximum tier."),
+});
 
 type StreamsAutoscalingValue = z.infer<typeof StreamsAutoscaling>;
 
@@ -203,9 +200,9 @@ export function toStreamsAutoscaling(
         | undefined
 ): StreamsAutoscalingValue | undefined {
     if (data === undefined) return undefined;
-    if (data === null) return null;
+    if (data === null) return undefined;
     return {
-        ...(data.enabled !== undefined && { enabled: data.enabled }),
+        ...(data.enabled !== undefined && data.enabled !== null && { enabled: data.enabled }),
         ...(data.minTier !== undefined && { minTier: data.minTier }),
         ...(data.maxTier !== undefined && { maxTier: data.maxTier }),
     };

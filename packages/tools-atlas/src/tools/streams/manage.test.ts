@@ -467,7 +467,7 @@ describe("StreamsManageTool", () => {
             });
         });
 
-        it("should pass null autoscaling through to disable it", async () => {
+        it("should disable autoscaling with enabled false", async () => {
             mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "STOPPED", name: "proc1" });
             mockApiClient.updateStreamProcessor!.mockResolvedValue({
                 state: "STOPPED",
@@ -480,17 +480,16 @@ describe("StreamsManageTool", () => {
                 ...baseArgs,
                 action: "modify-processor",
                 resourceName: "proc1",
-                autoscaling: null,
+                autoscaling: { enabled: false },
             });
 
             expect(mockApiClient.updateStreamProcessor).toHaveBeenCalledWith(
-                expect.objectContaining({ body: { options: { autoscaling: null } } }),
+                expect.objectContaining({ body: { options: { autoscaling: { enabled: false } } } }),
                 expect.anything()
             );
             expect(result.structuredContent).toEqual({
                 processorState: "STOPPED",
                 effectiveTier: "SP10",
-                autoscaling: null,
             });
         });
 
