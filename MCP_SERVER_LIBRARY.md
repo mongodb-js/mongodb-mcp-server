@@ -58,18 +58,18 @@ All packages are available as ES modules. The server targets Node.js `>= 24`.
 
 ### The entry points
 
-| Package                            | Role                                                                                                                                                                                                                                                   |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Package                            | Role                                                                                                                                                                                                                                                                                                                                                  |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@mongodb-js/mcp-cli`              | **Primary entry point.** Custom CLI (`runMcpCli`), the request-scoped server class (`CliServer`), config (`parseUserConfig`, `UserConfigSchema`, `configRegistry`, `applyConfigOverrides`), `createSharedServicesFromConfig` + `createServerFromConfig` + `createRunnerFromConfig` + `createHttpTransportRunnerFromConfig`, `Resources`, CLI handlers |
-| `@mongodb-js/mcp-core`             | Transports (`StdioRunner`, `InMemoryTransport`), tool base classes (`ToolBase`, `ToolClass`) + `toToolExecutionContext`, `Keychain`/`IRedactor`, `Elicitation`, `NoopLogger`, `NoopTelemetry`, deprecated `SessionStore` (2025-era legacy)                       |
-| `@mongodb-js/mcp-http-runners`     | HTTP transport (`StreamableHttpRunner`, `MCPHttpServer`, `MonitoringServer`)                                                                                                                                                                           |
-| `@mongodb-js/mcp-types`            | Shared types (`ServerMetadata`, `TransportRequestContext`, `ToolCategory`, `OperationType`, `UserConfig`, …)                                                                                                                                           |
-| `@mongodb-js/mcp-tools-*`          | Tool bundles: `@mongodb-js/mcp-tools-mongodb`, `-atlas`, `-atlas-local`, `-assistant`                                                                                                                                                                  |
-| `@mongodb-js/mcp-atlas-api-client` | Atlas Admin API client (`ApiClient`, `ClientCredentialsAuthProvider`)                                                                                                                                                                                  |
-| `@mongodb-js/mcp-atlas-telemetry`  | Telemetry pipeline (`AtlasTelemetry`)                                                                                                                                                                                                                  |
-| `@mongodb-js/mcp-logging`          | Loggers (`ConsoleLogger`, `DiskLogger`, `McpLogger`)                                                                                                                                                                                                   |
-| `@mongodb-js/mcp-metrics`          | Metrics (`PrometheusMetrics`, `createDefaultMetrics`)                                                                                                                                                                                                  |
-| `@mongodb-js/mcp-ui`               | MCP UI registry (`UIRegistry`)                                                                                                                                                                                                                         |
+| `@mongodb-js/mcp-core`             | Transports (`StdioRunner`, `InMemoryTransport`), tool base classes (`ToolBase`, `ToolClass`) + `toToolExecutionContext`, `Keychain`/`IRedactor`, `Elicitation`, `NoopLogger`, `NoopTelemetry`, deprecated `SessionStore` (2025-era legacy)                                                                                                            |
+| `@mongodb-js/mcp-http-runners`     | HTTP transport (`StreamableHttpRunner`, `MCPHttpServer`, `MonitoringServer`)                                                                                                                                                                                                                                                                          |
+| `@mongodb-js/mcp-types`            | Shared types (`ServerMetadata`, `TransportRequestContext`, `ToolCategory`, `OperationType`, `UserConfig`, …)                                                                                                                                                                                                                                          |
+| `@mongodb-js/mcp-tools-*`          | Tool bundles: `@mongodb-js/mcp-tools-mongodb`, `-atlas`, `-atlas-local`, `-assistant`                                                                                                                                                                                                                                                                 |
+| `@mongodb-js/mcp-atlas-api-client` | Atlas Admin API client (`ApiClient`, `ClientCredentialsAuthProvider`)                                                                                                                                                                                                                                                                                 |
+| `@mongodb-js/mcp-atlas-telemetry`  | Telemetry pipeline (`AtlasTelemetry`)                                                                                                                                                                                                                                                                                                                 |
+| `@mongodb-js/mcp-logging`          | Loggers (`ConsoleLogger`, `DiskLogger`, `McpLogger`)                                                                                                                                                                                                                                                                                                  |
+| `@mongodb-js/mcp-metrics`          | Metrics (`PrometheusMetrics`, `createDefaultMetrics`)                                                                                                                                                                                                                                                                                                 |
+| `@mongodb-js/mcp-ui`               | MCP UI registry (`UIRegistry`)                                                                                                                                                                                                                                                                                                                        |
 
 ### Customizing Server Behavior
 
@@ -238,13 +238,14 @@ const serverMetadata: ServerMetadata = {
 const { parsed: baseConfig } = parseUserConfig({ args: process.argv.slice(2) });
 const keychain = Keychain.root;
 const logger = await createLoggerFromConfig({ config: baseConfig, keychain });
-const sharedServices: SharedServerServices = await createSharedServicesFromConfig({
-  config: baseConfig,
-  serverMetadata,
-  tools: MongoDBTools,
-  resources: Resources,
-  logger,
-});
+const sharedServices: SharedServerServices =
+  await createSharedServicesFromConfig({
+    config: baseConfig,
+    serverMetadata,
+    tools: MongoDBTools,
+    resources: Resources,
+    logger,
+  });
 
 // A request-scoped server per HTTP request: every heavy service comes from
 // sharedServices; only the config, the connection registry view and the
@@ -321,13 +322,17 @@ await runner.start();
 
 > **Note:** `MongoDBTools`, `MCPConnectionStore`, `DeviceId`, and `ConnectionRegistry` come from `@mongodb-js/mcp-tools-mongodb` (see [Connection management](#connection-management)); a real embedding typically wires `createSharedServicesFromConfig` once (as above) and builds only the request-scoped `CliServer` per request via `createServerFromConfig`. MongoDB connection state deliberately lives at the app level (`connectionStore`/`connectionRegistry`), not in any session — tools address connections by `connectionId`, and per-request `createServerFromConfig` scopes that registry per request (stable scope for identified clients, ephemeral otherwise).
 
-
 ### Use Case 3: Adding Custom Tools
 
 Implement custom tools by extending `ToolBase` from `@mongodb-js/mcp-core`:
 
 ```typescript
-import { ToolBase, type ToolClass, type ToolCategory, type OperationType } from "@mongodb-js/mcp-core";
+import {
+  ToolBase,
+  type ToolClass,
+  type ToolCategory,
+  type OperationType,
+} from "@mongodb-js/mcp-core";
 import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { z } from "zod";
 
@@ -389,62 +394,62 @@ const standard = [...MongoDBTools, ...AtlasTools, ...AtlasLocalTools];
 
 ### `@mongodb-js/mcp-cli`
 
-| Symbol                                                                                                                                                       | Description                                                                      |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| `runMcpCli({ args, serverMetadata, consoleLogger, onExit, tools, resources, handlers? })`                                                                    | Run the full CLI: parse config → handlers → create infrastructure → start server |
-| `CliServer` / `CliServerOptions`                                                                                                                             | The request-scoped server wrapping the `McpServer`; a fresh instance per HTTP request / stdio connection |
-| `parseUserConfig({ args })`                                                                                                                                  | Parse CLI args/env into `{ error, warnings, parsed }`                            |
-| `UserConfigSchema`, `configRegistry`, `ALL_CONFIG_KEYS`                                                                                                      | Config schema and registry                                                       |
-| `applyConfigOverrides`, `getConfigMeta`, `nameToConfigKey`                                                                                                   | Request-level config overrides (HTTP headers / query params)                     |
+| Symbol                                                                                                                                                       | Description                                                                                                                                     |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `runMcpCli({ args, serverMetadata, consoleLogger, onExit, tools, resources, handlers? })`                                                                    | Run the full CLI: parse config → handlers → create infrastructure → start server                                                                |
+| `CliServer` / `CliServerOptions`                                                                                                                             | The request-scoped server wrapping the `McpServer`; a fresh instance per HTTP request / stdio connection                                        |
+| `parseUserConfig({ args })`                                                                                                                                  | Parse CLI args/env into `{ error, warnings, parsed }`                                                                                           |
+| `UserConfigSchema`, `configRegistry`, `ALL_CONFIG_KEYS`                                                                                                      | Config schema and registry                                                                                                                      |
+| `applyConfigOverrides`, `getConfigMeta`, `nameToConfigKey`                                                                                                   | Request-level config overrides (HTTP headers / query params)                                                                                    |
 | `createSharedServicesFromConfig({ config, serverMetadata, tools, resources, logger })`                                                                       | Build app-level infra shared by every request-scoped server (metrics, keychain, connection store/registry, API client, exports, telemetry, ...) |
-| `createServerFromConfig({ config, sharedServices, request? })`                                                                                               | Build one request-scoped `CliServer` from a resolved config and shared services |
-| `createRunnerFromConfig({ config, serverMetadata, tools, resources, logger })`                                                                               | Build shared services + the transport runner only (`CliStdioRunner` / `StreamableHttpRunner`) |
-| `createHttpTransportRunnerFromConfig(sharedServices)`                                                                                                        | Build the HTTP transport runner with a `CliMcpHttpServer` (fresh `CliServer` per request) |
-| `CliMcpHttpServer` / `CliStdioRunner`                                                                                                                        | HTTP / stdio servers that build a fresh request-scoped `CliServer` per request   |
-| `closeSharedServices(sharedServices)` / `SharedServerServices`                                                                                               | Release app-level services on shutdown / the shared app-level services container |
-| `startRunner({ transportRunner, logger, onExit })`                                                                                                           | Start the runner and manage graceful shutdown                                    |
-| `createLoggerFromConfig` / `createApiClientFromConfig` / `createExportsManagerFromConfig` / `createTelemetryFromConfig` / `createMonitoringServerFromConfig` | Individual infrastructure factories                                              |
-| `Resources`, `ConfigResource`, `DebugResource`, `ExportedData`                                                                                               | Built-in MCP resources                                                           |
-| `HelpHandler`, `VersionHandler`, `DryRunHandler`                                                                                                             | CLI handlers                                                                     |
+| `createServerFromConfig({ config, sharedServices, request? })`                                                                                               | Build one request-scoped `CliServer` from a resolved config and shared services                                                                 |
+| `createRunnerFromConfig({ config, serverMetadata, tools, resources, logger })`                                                                               | Build shared services + the transport runner only (`CliStdioRunner` / `StreamableHttpRunner`)                                                   |
+| `createHttpTransportRunnerFromConfig(sharedServices)`                                                                                                        | Build the HTTP transport runner with a `CliMcpHttpServer` (fresh `CliServer` per request)                                                       |
+| `CliMcpHttpServer` / `CliStdioRunner`                                                                                                                        | HTTP / stdio servers that build a fresh request-scoped `CliServer` per request                                                                  |
+| `closeSharedServices(sharedServices)` / `SharedServerServices`                                                                                               | Release app-level services on shutdown / the shared app-level services container                                                                |
+| `startRunner({ transportRunner, logger, onExit })`                                                                                                           | Start the runner and manage graceful shutdown                                                                                                   |
+| `createLoggerFromConfig` / `createApiClientFromConfig` / `createExportsManagerFromConfig` / `createTelemetryFromConfig` / `createMonitoringServerFromConfig` | Individual infrastructure factories                                                                                                             |
+| `Resources`, `ConfigResource`, `DebugResource`, `ExportedData`                                                                                               | Built-in MCP resources                                                                                                                          |
+| `HelpHandler`, `VersionHandler`, `DryRunHandler`                                                                                                             | CLI handlers                                                                                                                                    |
 
 | Types | `ToolRegistry`, `ResourceRegistry`, `RunMcpCliOptions`, `SharedServerServices` |
 
 ### `@mongodb-js/mcp-core`
 
-| Symbol                                                                                            | Description                                                                                                  |
-| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `ToolBase`, `ToolClass`, `ToolArgs`, `ToolResult`, `formatUntrustedData`                         | Custom tool authoring                                                                                        |
-| `toToolExecutionContext`                                                                          | Adapts the SDK `ServerContext` to a `ToolExecutionContext` (builds the per-request object; the request-scoped server is carried on the tool, not the request) |
-| `StdioRunner({ logger })`                                                                         | Abstract stdio transport runner (`serveStdio`; override `createServer()` to return a registered `McpServer`) |
-| `InMemoryTransport`                                                                               | In-memory transport for tests                                                                                |
-| `SessionStore`, `createDefaultSessionStore`                                                       | **Deprecated** legacy 2025-era HTTP session store                                                           |
-| `Keychain`, `registerGlobalSecretToRedact`                                                         | Secret storage/redaction (the `IRedactor` type lives in `@mongodb-js/mcp-types`); `Keychain.redact(value)` replaces the removed `allSecrets` field |
-| `Elicitation`                                                                                     | Multi-round-trip confirmation/input (`confirmationRequired`/`readConfirmation`/`inputRequired`/`readInput`) |
-| `NoopLogger`, `NoopTelemetry`, `LoggerBase`, `RedactingLoggerBase`, `CompositeLogger`             | Logging/telemetry primitives                                                                                 |
-| `McpServer` (re-export)                                                                           | `@modelcontextprotocol/server`                                                                               |
+| Symbol                                                                                | Description                                                                                                                                                   |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ToolBase`, `ToolClass`, `ToolArgs`, `ToolResult`, `formatUntrustedData`              | Custom tool authoring                                                                                                                                         |
+| `toToolExecutionContext`                                                              | Adapts the SDK `ServerContext` to a `ToolExecutionContext` (builds the per-request object; the request-scoped server is carried on the tool, not the request) |
+| `StdioRunner({ logger })`                                                             | Abstract stdio transport runner (`serveStdio`; override `createServer()` to return a registered `McpServer`)                                                  |
+| `InMemoryTransport`                                                                   | In-memory transport for tests                                                                                                                                 |
+| `SessionStore`, `createDefaultSessionStore`                                           | **Deprecated** legacy 2025-era HTTP session store                                                                                                             |
+| `Keychain`, `registerGlobalSecretToRedact`                                            | Secret storage/redaction (the `IRedactor` type lives in `@mongodb-js/mcp-types`); `Keychain.redact(value)` replaces the removed `allSecrets` field            |
+| `Elicitation`                                                                         | Multi-round-trip confirmation/input (`confirmationRequired`/`readConfirmation`/`inputRequired`/`readInput`)                                                   |
+| `NoopLogger`, `NoopTelemetry`, `LoggerBase`, `RedactingLoggerBase`, `CompositeLogger` | Logging/telemetry primitives                                                                                                                                  |
+| `McpServer` (re-export)                                                               | `@modelcontextprotocol/server`                                                                                                                                |
 
 ### `@mongodb-js/mcp-http-runners`
 
-| Symbol                                                 | Description                                                                                                 |
-| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| `StreamableHttpRunner` / `StreamableHttpRunnerOptions` | HTTP transport runner                                                                                       |
+| Symbol                                                 | Description                                                                                                                                                                                                                                             |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `StreamableHttpRunner` / `StreamableHttpRunnerOptions` | HTTP transport runner                                                                                                                                                                                                                                   |
 | `MCPHttpServer` / `MCPHttpServerOptions`               | HTTP server; override abstract `createServerForRequest(request: TransportRequestContext): Promise<TServer>`. `options.http.authMode` is required (`"authenticated"` \| `"unauthenticated"`); `sessionOptions` is for the legacy 2025-era lifecycle only |
-| `MonitoringServer` / `MonitoringServerOptions`         | Optional `/metrics` monitoring server                                                                       |
-| `ExpressBasedHttpServer`                               | Base class for Express-based HTTP servers                                                                   |
+| `MonitoringServer` / `MonitoringServerOptions`         | Optional `/metrics` monitoring server                                                                                                                                                                                                                   |
+| `ExpressBasedHttpServer`                               | Base class for Express-based HTTP servers                                                                                                                                                                                                               |
 
 ### Other packages
 
-| Package                             | Symbols                                                                                                                                                                            |
-| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@mongodb-js/mcp-tools-mongodb`     | `MongoDBTools`, `MongoDBToolBase`, `MongoDBToolServer`, `MongoDBToolServices`, `MCPConnectionManager`, `ConnectionManager`, `MCPConnectionStore`, `ErrorCodes`, `MongoDBError`, exports manager & connection types |
-| `@mongodb-js/mcp-tools-atlas`       | `AtlasTools`, `AtlasToolBase`                                                                                                                                                      |
-| `@mongodb-js/mcp-tools-atlas-local` | `AtlasLocalTools`, `createAtlasLocalClient`                                                                                                                                        |
-| `@mongodb-js/mcp-tools-assistant`   | `AssistantTools`                                                                                                                                                                   |
-| `@mongodb-js/mcp-atlas-api-client`  | `ApiClient`, `ClientCredentialsAuthProvider`                                                                                                                                       |
-| `@mongodb-js/mcp-atlas-telemetry`   | `AtlasTelemetry` (`create({ logger, deviceId, apiClient, keychain, enabled, serverMetadata })`), `TelemetryConfig`, `TelemetryBaseEvent`, `TelemetryCommonProperties`              |
-| `@mongodb-js/mcp-logging`           | `ConsoleLogger`, `DiskLogger`, `McpLogger`                                                                                                                                         |
-| `@mongodb-js/mcp-metrics`           | `PrometheusMetrics`, `createDefaultMetrics`                                                                                                                                        |
-| `@mongodb-js/mcp-ui`                | `UIRegistry`                                                                                                                                                                       |
+| Package                             | Symbols                                                                                                                                                                                                                                                                                                                                |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@mongodb-js/mcp-tools-mongodb`     | `MongoDBTools`, `MongoDBToolBase`, `MongoDBToolServer`, `MongoDBToolServices`, `MCPConnectionManager`, `ConnectionManager`, `MCPConnectionStore`, `ErrorCodes`, `MongoDBError`, exports manager & connection types                                                                                                                     |
+| `@mongodb-js/mcp-tools-atlas`       | `AtlasTools`, `AtlasToolBase`                                                                                                                                                                                                                                                                                                          |
+| `@mongodb-js/mcp-tools-atlas-local` | `AtlasLocalTools`, `createAtlasLocalClient`                                                                                                                                                                                                                                                                                            |
+| `@mongodb-js/mcp-tools-assistant`   | `AssistantTools`                                                                                                                                                                                                                                                                                                                       |
+| `@mongodb-js/mcp-atlas-api-client`  | `ApiClient`, `ClientCredentialsAuthProvider`                                                                                                                                                                                                                                                                                           |
+| `@mongodb-js/mcp-atlas-telemetry`   | `AtlasTelemetry` (`create({ logger, deviceId, apiClient, keychain, enabled, serverMetadata })`), `TelemetryConfig`, `TelemetryBaseEvent`, `TelemetryCommonProperties`                                                                                                                                                                  |
+| `@mongodb-js/mcp-logging`           | `ConsoleLogger`, `DiskLogger`, `McpLogger`                                                                                                                                                                                                                                                                                             |
+| `@mongodb-js/mcp-metrics`           | `PrometheusMetrics`, `createDefaultMetrics`                                                                                                                                                                                                                                                                                            |
+| `@mongodb-js/mcp-ui`                | `UIRegistry`                                                                                                                                                                                                                                                                                                                           |
 | `@mongodb-js/mcp-types`             | `ServerMetadata`, `TransportRequestContext`, `RequestAuthState`, `RequestAuthInfo`, `ToolCategory`, `OperationType`, `UserConfig`, `IMetrics`, `DefaultMetricDefinitions`, `ITransportRunner`, `BaseServer`, `ToolServer`, `ToolServices`, `ToolRequest`, `ToolExecutionContext`, `ResourceServices`, `ResourceServerArg`, `IRedactor` |
 
 ## Advanced Topics
