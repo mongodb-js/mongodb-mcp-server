@@ -35,6 +35,7 @@ export type NegotiatedClientState = {
  * session exists, the response is indistinguishable from "session not found";
  * the error message is only logged server-side.
  */
+/** @deprecated The per-client session concept is being removed; the 2025-era legacy path is the only remaining consumer. */
 export class SessionRejectedError extends Error {
     constructor(message: string) {
         super(message);
@@ -48,6 +49,7 @@ export class SessionRejectedError extends Error {
  * from a generic failure so clients can be told to retry later rather than
  * treating it as a permanent request error.
  */
+/** @deprecated The per-client session concept is being removed; the 2025-era legacy path is the only remaining consumer. */
 export class SessionLimitExceededError extends Error {
     constructor(message: string) {
         super(message);
@@ -56,7 +58,11 @@ export class SessionLimitExceededError extends Error {
 }
 
 /**
- * Default in-memory session store implementation.
+ * Default in-memory session store for the 2025-era (legacy) HTTP path.
+ *
+ * @deprecated The per-client session concept is being removed; this store is now
+ * used only for the 2025-era legacy transport, where sessionful serving is
+ * needed to support the SDK's elicitation shim.
  */
 export class SessionStore<T extends CloseableTransport = CloseableTransport> implements ISessionStore<T> {
     private sessions: {
@@ -297,6 +303,8 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
 /**
  * A function to create a custom SessionStore instance.
  * When provided, the runner will use this function instead of the default SessionStore constructor.
+ *
+ * @deprecated The per-client session concept is being removed; the 2025-era legacy path is the only remaining consumer.
  */
 export type CreateSessionStoreFn<
     TTransport extends CloseableTransport = CloseableTransport,
@@ -305,6 +313,8 @@ export type CreateSessionStoreFn<
 
 /**
  * Creates a default SessionStore instance from the provided constructor arguments.
+ *
+ * @deprecated The per-client session concept is being removed; the 2025-era legacy path is the only remaining consumer.
  */
 export function createDefaultSessionStore<
     TTransport extends CloseableTransport = CloseableTransport,

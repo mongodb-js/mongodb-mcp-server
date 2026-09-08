@@ -18,7 +18,11 @@ import {
     AGG_COUNT_MAX_TIME_MS_CAP,
 } from "@mongodb-js/mcp-tools-mongodb";
 import { argMetadata, CliOptionsSchema as MongoshCliOptionsSchema } from "@mongosh/arg-parser/arg-parser";
-import { TRANSPORT_PAYLOAD_LIMITS, DEFAULT_MAX_SESSIONS } from "../transports/constants.js";
+import {
+    TRANSPORT_PAYLOAD_LIMITS,
+    DEFAULT_MAX_SESSIONS,
+    DEFAULT_EVICTION_IDLE_GRACE_MS,
+} from "../transports/constants.js";
 
 export const configRegistry = z.registry<ConfigFieldMeta>();
 
@@ -173,6 +177,24 @@ const ServerConfigSchema = z.object({
             "Maximum size of the HTTP request body in bytes (only used when transport is 'http'). This value is passed as the optional limit parameter to the Express.js json() middleware."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    maxActiveConnections: z.coerce
+        .number()
+        .int()
+        .min(1, "Invalid maxActiveConnections: must be at least 1")
+        .default(10)
+        .describe(
+            "Maximum number of MongoDB connections the server can hold open at once. When exceeded, the least-recently-used connection is closed and its connectionId revoked. The preconfigured connection does not count towards the limit."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    maxSessions: z.coerce
+        .number()
+        .int()
+        .min(1, "Invalid maxSessions: must be at least 1")
+        .default(DEFAULT_MAX_SESSIONS)
+        .describe(
+            "Maximum number of concurrent sessions the HTTP transport will hold in memory (only used when transport is 'http'). Each session holds a full server instance, transport, and timers, so choose a value based on your deployment's available memory; the default is a conservative safety net rather than a recommended production value."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
     idleTimeoutMs: z.coerce
         .number()
         .default(600_000)
@@ -183,29 +205,13 @@ const ServerConfigSchema = z.object({
         .default(540_000)
         .describe("Notification timeout for a client to be aware of disconnect (only applies to http transport).")
         .register(configRegistry, { overrideBehavior: onlyLowerThanBaseValueOverride() }),
-    maxSessions: z.coerce
+    evictionIdleGraceMS: z.coerce
         .number()
         .int()
-        .min(1, "Invalid maxSessions: must be at least 1")
-        .default(DEFAULT_MAX_SESSIONS)
+        .min(0, "Invalid evictionIdleGraceMS: must be at least 0")
+        .default(DEFAULT_EVICTION_IDLE_GRACE_MS)
         .describe(
-            "Maximum number of concurrent sessions the HTTP transport will hold in memory (only used when transport is 'http'). Each session holds a full server instance, transport, and timers, so choose a value based on your deployment's available memory; the default is a conservative safety net rather than a recommended production value."
-        )
-        .register(configRegistry, { overrideBehavior: "not-allowed" }),
-    maxActiveConnections: z.coerce
-        .number()
-        .int()
-        .min(1, "Invalid maxActiveConnections: must be at least 1")
-        .default(10)
-        .describe(
-            "Maximum number of MongoDB connections a single scope (an MCP session by default, see connectionScope) can hold open. When exceeded, the scope's least-recently-used connection is closed and its connectionId revoked. The preconfigured connection does not count towards the limit."
-        )
-        .register(configRegistry, { overrideBehavior: "not-allowed" }),
-    connectionScope: z
-        .enum(["session", "global"])
-        .default("session")
-        .describe(
-            "Visibility scope for MongoDB connections created at runtime. With 'session' (the default), each MCP session only sees the connections it created (plus the shared 'preconfigured' one) and they are closed when the session ends — recommended when the HTTP transport is exposed to multiple clients without authentication. With 'global', connections are shared across all sessions and survive session rotation."
+            "How long a session must be idle before it becomes eligible for least-recently-used eviction when the HTTP transport is at its maxSessions cap (only used when transport is 'http'). Swept back to idleTimeoutMs when larger."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
     maxBytesPerQuery: z.coerce
@@ -298,13 +304,6 @@ const ServerConfigSchema = z.object({
         .default(false)
         .describe(
             "When true, runs the server in dry mode: dumps configuration and enabled tools, then exits without starting the server."
-        )
-        .register(configRegistry, { overrideBehavior: "not-allowed" }),
-    externallyManagedSessions: z
-        .boolean()
-        .default(false)
-        .describe(
-            "When true, the HTTP transport allows requests with a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
     httpResponseType: z

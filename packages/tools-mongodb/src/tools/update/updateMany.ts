@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase, type IMongoDBConfig } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
-import type { OperationType } from "@mongodb-js/mcp-types";
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { checkIndexUsage } from "../../helpers/indexCheck.js";
 import { zEJSON } from "../../args.js";
 
@@ -39,20 +39,17 @@ export class UpdateManyTool extends MongoDBToolBase {
     };
     static operationType: OperationType = "update";
 
-    protected async execute({
-        connectionId,
-        database,
-        collection,
-        filter,
-        update,
-        upsert,
-    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+    protected async execute(
+        { connectionId, database, collection, filter, update, upsert }: ToolArgs<typeof this.argsShape>,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        _context: ToolExecutionContext<IMongoDBConfig>
+    ): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.resolveConnection(connectionId);
 
-        this.assertMqlIsAllowed(filter);
+        this.assertMqlIsAllowed(this.server.config, filter);
 
         // Check if update operation uses an index if enabled
-        if (this.config.indexCheck) {
+        if (this.server.config.indexCheck) {
             await checkIndexUsage({
                 database,
                 collection,
@@ -71,10 +68,12 @@ export class UpdateManyTool extends MongoDBToolBase {
                             ],
                         },
                         verbosity: "queryPlanner",
-                        ...(this.config.maxTimeMS !== undefined && { maxTimeMS: this.config.maxTimeMS }),
+                        ...(this.server.config.maxTimeMS !== undefined && {
+                            maxTimeMS: this.server.config.maxTimeMS,
+                        }),
                     });
                 },
-                logger: this.session.logger,
+                logger: this.server.logger,
             });
         }
 

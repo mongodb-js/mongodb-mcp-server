@@ -26,7 +26,7 @@ describeWithStreams("atlas-streams workflows", (integration) => {
             }, 30_000);
 
             afterAll(async () => {
-                const session = integration.mcpServer().session;
+                const session = integration.mcpServer();
                 assertApiClientIsAvailable(session);
                 try {
                     await session.apiClient.deleteStreamConnection({
@@ -349,7 +349,7 @@ describeWithStreams("atlas-streams workflows", (integration) => {
             }, 120_000);
 
             afterAll(async () => {
-                const session = integration.mcpServer().session;
+                const session = integration.mcpServer();
                 assertApiClientIsAvailable(session);
                 try {
                     await session.apiClient.deleteStreamWorkspace({

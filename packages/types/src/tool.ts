@@ -1,23 +1,74 @@
-import type { CallToolResult, RequestMeta } from "@modelcontextprotocol/server";
+import type { CallToolResult, RequestMeta, ServerContext, McpServer } from "@modelcontextprotocol/server";
 
 export type { CallToolResult };
 import type { IToolConfig } from "./config.js";
-import type { ElicitationInputResponses } from "./elicitation.js";
-import type { IRedactor } from "./keychain.js";
+import type { ElicitationInputResponses, IElicitation } from "./elicitation.js";
 import type { ICompositeLogger } from "./logging.js";
+import type { IKeychain } from "./keychain.js";
+import type { DefaultMetricDefinitions, IMetrics } from "./metrics.js";
+import type { IUIRegistry } from "./ui.js";
+import type { ITelemetry } from "./telemetry.js";
 
 /**
- * The minimal session surface tools rely on: config and logging. The CLI's
- * session is deliberately stateless (connection state lives in the app-level
- * registry and is addressed by connectionId), so tools are not constrained to
- * the full {@link ISession} shape.
+ * The services every tool receives at construction, injected individually
+ * (no server-scoped "session" object exists). The server is deliberately
+ * stateless: MongoDB connection state lives in the app-level registry and is
+ * addressed per request by `connectionId`, and per-client identity travels on
+ * the tool request (see `ToolExecutionContext.request.clientInfo`).
+ *
+ * Tool categories extend this type with the specific app-level services they
+ * need (e.g. the connection registry); `TConfig` narrows the configuration
+ * subset a category reads.
  */
-export interface IToolSession {
-    readonly config: IToolConfig;
+export type ToolServices<TConfig extends IToolConfig = IToolConfig> = {
+    /** Configuration for the server */
+    readonly config: TConfig;
+    /** Logger for the server */
     readonly logger: ICompositeLogger;
     /** Redacts registered secrets from a value (used by ToolBase error handling). */
-    readonly keychain: IRedactor;
-}
+    readonly keychain: IKeychain;
+};
+
+/**
+ * The service surface a tool reads from its server. Tool constructors receive
+ * exactly one argument — the server — which carries the individually-injected
+ * services ({@link ToolServices}) plus the shared infrastructure every tool
+ * needs (telemetry, elicitation, metrics and the UI registry). Category
+ * services (e.g. the connection registry) travel in `TServices`, so a server
+ * is structurally assignable to the `ToolServer` of each tool category it
+ * hosts.
+ */
+/**
+ * The minimal surface of a registered tool that a host reads off `server.tools`.
+ * Kept structural (rather than referencing {@link AnyToolBase} from mcp-core) to
+ * avoid a circular dependency: `@mongodb-js/mcp-types` is a base package.
+ */
+export type ToolServerTool = {
+    readonly name: string;
+    readonly category: ToolCategory;
+    readonly operationType: OperationType;
+    isEnabled(): boolean;
+};
+
+export type ToolServer<
+    TServices extends ToolServices = ToolServices,
+    TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions,
+> = TServices & {
+    /** Telemetry for tracking tool usage. */
+    readonly telemetry: ITelemetry;
+    /** Elicitation for requesting user confirmation / input. */
+    readonly elicitation: IElicitation;
+    /** Metrics for tracking tool execution. */
+    readonly metrics: IMetrics<TMetricsDefinitions>;
+    /** UI registry for tools that embed interactive widget content. */
+    readonly uiRegistry?: IUIRegistry;
+    /** The SDK McpServer this tool is registered against. */
+    readonly mcpServer: McpServer;
+    /** The tools registered on this server (used to detect the export tool / list available tools). */
+    readonly tools: readonly ToolServerTool[];
+    /** Reports whether a tool category is enabled on this server. */
+    isToolCategoryAvailable(name: ToolCategory): boolean;
+};
 
 /**
  * The type of operation the tool performs. This is used when evaluating if a tool is allowed to run based on
@@ -46,22 +97,40 @@ export type OperationType = "metadata" | "read" | "create" | "delete" | "update"
 export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant" | "custom";
 
 /**
- * Context provided during tool execution.
+ * The request object passed to tool implementations: everything derived from
+ * the individual request being handled. It is built fresh for each tool call
+ * and deliberately lives nowhere else — the server holds no per-client or
+ * per-request state. The request-scoped server (and the effective,
+ * possibly request-overridden config it carries) is NOT on the request: tools
+ * read it off their construction-time `this.server` (the same instance). The
+ * per-request data (raw SDK request, signal, id, headers, client identity,
+ * ...) travels on the request itself (see `ToolExecutionContext.request`).
  */
-export type ToolExecutionContext = {
+// TConfig is retained for backward compatibility with existing `ToolRequest<...>`
+// annotations even though the request no longer carries the config-typed server.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export type ToolRequest<TConfig extends IToolConfig = IToolConfig> = {
+    /**
+     * The original request this request object was built around: the SDK's
+     * per-request `mcpReq` object the tool call handler received. Undefined
+     * when the tool is invoked directly in unit tests without a real SDK
+     * request. Prefer the normalized fields (`headers`, `id`, `clientInfo`,
+     * ...); reach for `raw` only when the typed surface does not cover what
+     * you need.
+     */
+    readonly raw?: ServerContext["mcpReq"];
     /** AbortSignal for cancellation support */
     signal: AbortSignal;
     /**
-     * Request context object available only when running atop
-     * StreamableHttpTransport.
+     * HTTP request headers, available only when running atop
+     * StreamableHttpTransport. Used for request correlation (e.g.
+     * `x-request-id`) and forwarded to outgoing Atlas API requests.
      */
-    requestInfo?: {
-        headers?: Record<string, unknown>;
-    };
+    headers?: Record<string, unknown>;
     /** Metadata from the original MCP request (e.g. the client's progress token). */
     _meta?: RequestMeta;
     /** The request id, when invoked through an MCP server. */
-    requestId?: string | number;
+    id?: string | number;
     /** Send an MCP server notification. */
     sendNotification?: (notification: unknown) => Promise<void>;
     /**
@@ -81,6 +150,27 @@ export type ToolExecutionContext = {
      * time the tool spent working.
      */
     elicitationDurationMs?: number;
+    /**
+     * Identity of the MCP client that issued this request, as negotiated
+     * during initialization (or as declared on the request envelope in the
+     * 2026-07-28 protocol). Carried on the request — it is deliberately not
+     * stored on any server-scoped object, so the server holds no per-client
+     * state.
+     */
+    clientInfo?: { name?: string; version?: string; title?: string };
+};
+
+/**
+ * Request-scoped context provided during tool execution. The request object
+ * ({@link ToolRequest}) holds everything derived from the individual request
+ * — the request-scoped `server` (which carries the effective config), the
+ * original `raw` request, signal, request id, client identity, elicitation
+ * state — and is built fresh per call by `toToolExecutionContext`. Tools
+ * receive it as the `request` argument.
+ */
+export type ToolExecutionContext<TConfig extends IToolConfig = IToolConfig> = {
+    /** The request object this execution is built around. */
+    request: ToolRequest<TConfig>;
 };
 
 export type ToolClass<TParams extends unknown[] = unknown[]> = {

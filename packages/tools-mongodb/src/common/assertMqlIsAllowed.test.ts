@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
+
 import { FindTool } from "../tools/read/find.js";
-import type { IMongoDBSession, IMongoDBConfig } from "../mongodbTool.js";
+import type { MongoDBToolServer, IMongoDBConfig } from "../mongodbTool.js";
 import type { ITelemetry } from "@mongodb-js/mcp-types";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
@@ -15,31 +15,31 @@ function makeTool(config: Partial<IMongoDBConfig>): (...values: unknown[]) => vo
         error: vi.fn(),
     } as unknown as CompositeLogger;
 
-    const params: ToolConstructorParams<IMongoDBSession> = {
-        name: FindTool.toolName,
-        category: "mongodb",
-        operationType: FindTool.operationType,
-        session: {
-            logger: mockLogger,
-
-            config: {
-                disableServerSideJs: true,
-                readOnly: false,
-                disabledTools: [],
-                confirmationRequiredTools: [],
-                previewFeatures: [],
-                ...config,
-            } as unknown as IMongoDBSession["config"],
-        } as unknown as IMongoDBSession,
+    const server: MongoDBToolServer = {
+        config: {
+            disableServerSideJs: true,
+            readOnly: false,
+            disabledTools: [],
+            confirmationRequiredTools: [],
+            previewFeatures: [],
+            ...config,
+        } as unknown as IMongoDBConfig,
+        logger: mockLogger,
+        keychain: { redact: (value: unknown) => value } as never,
+        connectionRegistry: {} as never,
+        connectionErrorHandler: (() => ({ errorHandled: false, result: undefined })) as never,
+        exportsManager: { createJSONExport: vi.fn() },
         telemetry: { isTelemetryEnabled: () => false, emitEvents: vi.fn() } as unknown as ITelemetry,
         elicitation: createMockElicitation(),
         metrics: new MockMetrics(),
-
         uiRegistry: { get: vi.fn().mockResolvedValue(null) },
-    };
+    } as unknown as MongoDBToolServer;
 
-    const tool = new FindTool(params) as unknown as { assertMqlIsAllowed: (...values: unknown[]) => void };
-    return (...values: unknown[]) => tool.assertMqlIsAllowed(...values);
+    const tool = new FindTool({ server }) as unknown as {
+        assertMqlIsAllowed: (config: IMongoDBConfig, ...values: unknown[]) => void;
+    };
+    const toolConfig = server.config;
+    return (...values: unknown[]) => tool.assertMqlIsAllowed(toolConfig, ...values);
 }
 
 const jsProjection = { computed: { $function: { body: "function() { return 1; }", args: [], lang: "js" } } };

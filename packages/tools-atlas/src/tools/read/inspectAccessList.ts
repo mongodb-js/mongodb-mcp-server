@@ -32,9 +32,9 @@ export class InspectAccessListTool extends AtlasToolBase {
 
     protected async execute(
         { projectId }: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        { request }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
-        const accessList = await this.apiClient.listAccessListEntries(
+        const accessList = await this.server.apiClient.listAccessListEntries(
             {
                 params: {
                     path: {
@@ -42,7 +42,7 @@ export class InspectAccessListTool extends AtlasToolBase {
                     },
                 },
             },
-            context
+            request
         );
 
         const results = accessList.results ?? [];

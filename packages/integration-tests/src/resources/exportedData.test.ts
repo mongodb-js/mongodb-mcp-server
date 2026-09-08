@@ -42,7 +42,7 @@ describeWithMongoDB(
                 {
                     name: "exported-data",
                     uriTemplate: "exported-data://{exportName}",
-                    description: "Data files exported in the current session.",
+                    description: "Data files exported through the export tool.",
                 },
             ]);
         });

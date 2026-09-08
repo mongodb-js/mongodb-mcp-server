@@ -31,7 +31,6 @@ export {
     type MongoDBIntegrationTest,
     type MongoDBIntegrationTestCase,
     describeWithMongoDB,
-    syncMongoToolsConfigFromUserConfig,
     validateAutoConnectBehavior,
     getSingleDocFromUntrustedContent,
     getDocsFromUntrustedContent,

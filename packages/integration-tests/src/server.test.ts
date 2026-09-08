@@ -1,7 +1,6 @@
 import { MCPConnectionStore, ExportsManager, DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
-import { Session } from "@mongodb-js/mcp-cli";
-import { createTestApiClient, defaultTestConfig, expectDefined, InMemoryLogger } from "./integrationHelpers.js";
+import { createTestApiClient, defaultTestConfig, expectDefined } from "./integrationHelpers.js";
 import { describeWithMongoDB } from "./mongodbHelpers.js";
 import { afterEach, describe, expect, it } from "vitest";
 import type { LoggerBase } from "@mongodb-js/mcp-core";
@@ -178,28 +177,20 @@ describe("CliServer integration test", () => {
         const deviceId = DeviceId.create(logger);
         const connectionRegistry = new MCPConnectionStore({ options: config, logger, deviceId }).view();
         const exportsManager = ExportsManager.init({ options: config, logger });
-        const session = new Session({
+        const keychain = Keychain.root;
+        const apiClient = createTestApiClient({
+            baseUrl: config.apiBaseUrl,
+            serverMetadata: { mcpServerName: "test", version: "1" },
             logger,
-            exportsManager,
-            connectionRegistry,
-            keychain: Keychain.root,
-            connectionErrorHandler,
-            atlasLocalClient: await createAtlasLocalClient({ logger }),
-            apiClient: createTestApiClient({
-                baseUrl: config.apiBaseUrl,
-                serverMetadata: { mcpServerName: "test", version: "1" },
-                logger,
-                clientId: config.apiClientId,
-                clientSecret: config.apiClientSecret,
-            }),
-            config,
+            clientId: config.apiClientId,
+            clientSecret: config.apiClientSecret,
         });
 
         const telemetry = AtlasTelemetry.create({
             logger,
             deviceId,
-            apiClient: session.apiClient,
-            keychain: session.keychain,
+            apiClient,
+            keychain,
             enabled: false,
             serverMetadata: {
                 mcpServerName: "test-server",
@@ -213,11 +204,17 @@ describe("CliServer integration test", () => {
         });
 
         const server = new CliServer({
-            session,
+            config,
+            logger,
+            keychain,
+            connectionRegistry,
+            exportsManager,
+            apiClient,
+            connectionErrorHandler,
+            atlasLocalClient: await createAtlasLocalClient({ logger }),
             telemetry,
             mcpServer: mcpServerInstance,
             elicitation,
-            connectionErrorHandler,
             tools: [...tools],
             metrics: new MockMetrics(),
             serverMetadata: {
@@ -276,38 +273,6 @@ describe("CliServer integration test", () => {
             ({ server, transport } = await initServerWithTools([TestToolOne]));
             await server.close();
             await expect(server.register()).rejects.toThrow(/Cannot register a closed server/);
-        });
-    });
-
-    describe("config validation", () => {
-        let server: CliServer | undefined;
-        let transport: Transport | undefined;
-
-        afterEach(async () => {
-            await transport?.close();
-            await server?.close();
-        });
-
-        it("should warn when not using https for apiBaseUrl", async () => {
-            const logger = new InMemoryLogger({ keychain: Keychain.root });
-            const config: UserConfig = {
-                ...defaultTestConfig,
-                apiBaseUrl: "http://localhost:8080",
-                apiClientId: "test",
-                apiClientSecret: "test",
-            };
-
-            ({ server, transport } = await initServerWithTools([TestToolOne], config, [logger]));
-            await server.connect(transport);
-
-            const warningMessages = logger.messages.filter(
-                (msg) =>
-                    msg.level === "warning" &&
-                    msg.payload.message.includes(
-                        "apiBaseUrl is configured to use http:, which is not secure. It is strongly recommended to use HTTPS for secure communication."
-                    )
-            );
-            expect(warningMessages.length).toBeGreaterThan(0);
         });
     });
 

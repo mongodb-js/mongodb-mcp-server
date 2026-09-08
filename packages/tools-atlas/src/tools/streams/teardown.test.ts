@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
-import type { IAtlasConfig, IAtlasSession } from "@mongodb-js/mcp-tools-atlas";
+import type { IAtlasConfig } from "@mongodb-js/mcp-tools-atlas";
 import { StreamsTeardownTool } from "@mongodb-js/mcp-tools-atlas";
 import { ErrorCodes, MongoDBError } from "@mongodb-js/mcp-tools-mongodb";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
@@ -9,7 +8,7 @@ import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
-import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
+import type { AtlasToolServer } from "../../atlasTool.js";
 
 describe("StreamsTeardownTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
@@ -48,7 +47,7 @@ describe("StreamsTeardownTool", () => {
                 apiClientSecret: "test-secret",
                 atlasTemporaryDatabaseUserLifetimeMs: 3600000,
             } as unknown as IAtlasConfig,
-        } as unknown as IAtlasSession;
+        } as unknown as AtlasToolServer;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
@@ -57,24 +56,25 @@ describe("StreamsTeardownTool", () => {
 
         const mockElicitation = createMockElicitation() as unknown as Elicitation;
 
-        const params: ToolConstructorParams<IAtlasSession, DefaultPrometheusMetricDefinitions> = {
-            name: StreamsTeardownTool.toolName,
-            category: "atlas",
-            operationType: StreamsTeardownTool.operationType,
-            session: mockSession,
+        const server: AtlasToolServer = {
+            ...mockSession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
         };
 
-        tool = new StreamsTeardownTool(params);
+        tool = new StreamsTeardownTool({ server });
     });
 
     const baseArgs = { projectId: "proj1" };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["execute"](args as never, { signal: new AbortController().signal });
+        tool["execute"](args as never, {
+            request: {
+                signal: new AbortController().signal,
+            },
+        });
     const confirmMsg = (args: Record<string, unknown>): string => tool["getConfirmationMessage"](args as never);
 
     describe("error classification boundary", () => {
@@ -92,7 +92,11 @@ describe("StreamsTeardownTool", () => {
                     resource: "processor",
                     resourceName: "proc1",
                 },
-                { signal: new AbortController().signal }
+                {
+                    request: {
+                        signal: new AbortController().signal,
+                    },
+                }
             );
 
             expect(wrappedHandleError).toHaveBeenCalledOnce();
@@ -155,7 +159,12 @@ describe("StreamsTeardownTool", () => {
 
             await tool["execute"](
                 { ...baseArgs, resource: "processor", workspaceName: "ws1", resourceName: "proc1" } as never,
-                { signal: new AbortController().signal, requestInfo: { headers: { "x-request-id": "req-del-1" } } }
+                {
+                    request: {
+                        signal: new AbortController().signal,
+                        headers: { "x-request-id": "req-del-1" },
+                    },
+                }
             );
 
             expect(mockLogger.debug).toHaveBeenCalledWith(

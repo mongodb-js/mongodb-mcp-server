@@ -31,7 +31,6 @@ export type TelemetryCommonProperties = {
     transport?: "stdio" | "http";
     config_atlas_auth?: TelemetryBoolSet;
     config_connection_string?: TelemetryBoolSet;
-    session_id?: string;
     hosting_mode?: string;
     has_docker?: TelemetryBoolSet;
 } & TelemetryCommonStaticProperties;

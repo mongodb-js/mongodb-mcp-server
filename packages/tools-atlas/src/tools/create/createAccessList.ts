@@ -32,7 +32,7 @@ export class CreateAccessListTool extends AtlasToolBase {
     // offered an option that cannot work there. Typed as the full shape because
     // execute() still receives currentIpAddress as optional either way.
     public get argsShape(): typeof CreateAccessListArgs {
-        if (this.session.apiClient?.supportsCurrentIpLookup === false) {
+        if (this.server.apiClient?.supportsCurrentIpLookup === false) {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { currentIpAddress, ...rest } = CreateAccessListArgs;
             return rest as typeof CreateAccessListArgs;
@@ -45,15 +45,15 @@ export class CreateAccessListTool extends AtlasToolBase {
     // argsShape drops currentIpAddress when IP lookup is unsupported, so the two
     // shapes must be cached and shared separately.
     protected override schemaVariantKey(): string {
-        return this.session.apiClient?.supportsCurrentIpLookup === false ? "no-current-ip" : "current-ip";
+        return this.server.apiClient?.supportsCurrentIpLookup === false ? "no-current-ip" : "current-ip";
     }
 
     protected async execute(
         { projectId, ipAddresses, cidrBlocks, comment, currentIpAddress }: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        { request }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
         if (!ipAddresses?.length && !cidrBlocks?.length && !currentIpAddress) {
-            if (!this.apiClient.supportsCurrentIpLookup) {
+            if (!this.server.apiClient.supportsCurrentIpLookup) {
                 throw new ToolArgumentValidationError("Either ipAddresses or cidrBlocks must be provided.");
             }
 
@@ -68,7 +68,7 @@ export class CreateAccessListTool extends AtlasToolBase {
 
         if (currentIpAddress) {
             const input = await makeCurrentIpAccessListEntry(
-                this.apiClient,
+                this.server.apiClient,
                 projectId,
                 comment || DEFAULT_ACCESS_LIST_COMMENT
             );
@@ -83,7 +83,7 @@ export class CreateAccessListTool extends AtlasToolBase {
 
         const inputs = [...ipInputs, ...cidrInputs];
 
-        await this.apiClient.createAccessListEntry(
+        await this.server.apiClient.createAccessListEntry(
             {
                 params: {
                     path: {
@@ -92,7 +92,7 @@ export class CreateAccessListTool extends AtlasToolBase {
                 },
                 body: inputs,
             },
-            context
+            request
         );
 
         return {

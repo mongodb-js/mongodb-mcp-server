@@ -525,7 +525,7 @@ describe("drop-index tool", () => {
                     const entry = (
                         await integration
                             .mcpServer()
-                            .session.connectionRegistry.find((entry) => entry.state.tag === "connected")
+                            .connectionRegistry.find((entry) => entry.state.tag === "connected")
                     )[0];
                     expectDefined(entry);
                     dropSearchIndexSpy = vi.spyOn(entry.getServiceProvider(), "dropSearchIndex");

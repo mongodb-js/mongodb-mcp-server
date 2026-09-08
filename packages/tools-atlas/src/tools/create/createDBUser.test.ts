@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { CreateDBUserTool, CreateDBUserArgs } from "./createDBUser.js";
-import type { IAtlasSession, IAtlasConfig } from "../../atlasTool.js";
+import type { IAtlasConfig } from "../../atlasTool.js";
 import type { ITelemetry, ICompositeLogger } from "@mongodb-js/mcp-types";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics } from "../../mockMetrics.js";
@@ -10,6 +9,7 @@ import { createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { ensureCurrentIpInAccessList } from "../../helpers/accessListUtils.js";
 import type * as AccessListUtils from "../../helpers/accessListUtils.js";
+import type { AtlasToolServer } from "../../atlasTool.js";
 
 vi.mock("../../helpers/accessListUtils.js", async (importOriginal) => {
     const actual = await importOriginal<typeof AccessListUtils>();
@@ -52,39 +52,32 @@ describe("CreateDBUserTool", () => {
         } as unknown as ICompositeLogger;
 
         const mockSession = {
-            sessionId: "test-session",
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
-            connectedAtlasCluster: undefined,
-            connectToMongoDB: vi.fn().mockResolvedValue(undefined),
             keychain,
             config: {
                 apiClientId: "test-id",
                 apiClientSecret: "test-secret",
             } as unknown as IAtlasConfig,
-            disconnect: vi.fn().mockResolvedValue(undefined),
-            close: vi.fn().mockResolvedValue(undefined),
-            isConnectedToMongoDB: false,
-            on: vi.fn(),
-            setMcpClient: vi.fn(),
-        } as unknown as IAtlasSession;
+        } as unknown as AtlasToolServer;
 
-        const params: ToolConstructorParams<IAtlasSession> = {
-            name: CreateDBUserTool.toolName,
-            category: "atlas",
-            operationType: CreateDBUserTool.operationType,
-            session: mockSession,
+        const server: AtlasToolServer = {
+            ...mockSession,
             telemetry: { isTelemetryEnabled: () => false, emitEvents: vi.fn() } as unknown as ITelemetry,
             elicitation: createMockElicitation(),
             metrics: new MockMetrics(),
         };
 
-        tool = new CreateDBUserTool(params);
+        tool = new CreateDBUserTool({ server });
     });
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown> = baseArgs) =>
-        tool["execute"](args as never, { signal: new AbortController().signal });
+        tool["execute"](args as never, {
+            request: {
+                signal: new AbortController().signal,
+            },
+        });
 
     it("creates a user with a supplied password", async () => {
         const result = await exec({ ...baseArgs, password: "user-password" });

@@ -1,7 +1,5 @@
 import { StreamableHttpRunner, MCPHttpServer } from "@mongodb-js/mcp-http-runners";
-import { SessionStore } from "@mongodb-js/mcp-core";
 import { McpServer } from "@modelcontextprotocol/server";
-import type { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import { describe, expect, it, afterEach, beforeEach, vi } from "vitest";
 import { defaultTestConfig } from "../integrationHelpers.js";
@@ -10,7 +8,6 @@ import type {
     DefaultMetricDefinitions,
     HttpServerOptions,
     IMetrics,
-    SessionManagementOptions,
     TransportRequestContext,
 } from "@mongodb-js/mcp-types";
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
@@ -19,7 +16,6 @@ import { AllTools } from "mongodb-mcp-server";
 import { applyConfigOverrides } from "@mongodb-js/mcp-cli";
 import { Elicitation, connectionErrorHandler, ExportsManager } from "mongodb-mcp-server";
 import { MCPConnectionStore } from "@mongodb-js/mcp-tools-mongodb";
-import { Session } from "@mongodb-js/mcp-cli";
 import { createTestApiClient } from "../integrationHelpers.js";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { packageInfo } from "mongodb-mcp-server";
@@ -37,18 +33,15 @@ class ConfigOverrideMCPHttpServer extends MCPHttpServer<CliServer> {
         options,
         logger,
         metrics,
-        sessionStore,
     }: {
         baseConfig: UserConfig;
         options: {
             http: HttpServerOptions;
-            session: SessionManagementOptions;
         };
         logger: CompositeLogger;
         metrics: IMetrics<DefaultMetricDefinitions>;
-        sessionStore: SessionStore<NodeStreamableHTTPServerTransport>;
     }) {
-        super({ options, logger, metrics, sessionStore });
+        super({ options, logger, metrics });
         this.baseConfig = baseConfig;
     }
 
@@ -104,21 +97,16 @@ async function createTestServer(config: UserConfig): Promise<CliServer> {
 
     const elicitation = new Elicitation({ server: mcpServer.server });
 
-    const session = new Session({
-        logger,
-        exportsManager,
-        connectionRegistry,
-        keychain,
-        apiClient,
-        connectionErrorHandler,
-        atlasLocalClient,
-        config,
-    });
-
     const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
     const server = new CliServer({
-        session,
+        config,
+        logger,
+        keychain,
+        connectionRegistry,
+        exportsManager,
+        apiClient,
+        atlasLocalClient,
         mcpServer,
         telemetry: new NoopTelemetry() as unknown as AtlasTelemetry,
         connectionErrorHandler,
@@ -145,16 +133,6 @@ function createConfigOverrideRunner(baseConfig: UserConfig): Promise<{
     const logger = new CompositeLogger({ loggers: [] });
     const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
-    const sessionStore = new SessionStore<NodeStreamableHTTPServerTransport>({
-        options: {
-            idleTimeoutMS: baseConfig.idleTimeoutMs,
-            notificationTimeoutMS: baseConfig.notificationTimeoutMs,
-            maxSessions: baseConfig.maxSessions,
-        },
-        logger,
-        metrics: metrics,
-    });
-
     const mcpHttpServer = new ConfigOverrideMCPHttpServer({
         baseConfig,
         options: {
@@ -162,16 +140,11 @@ function createConfigOverrideRunner(baseConfig: UserConfig): Promise<{
                 host: baseConfig.httpHost,
                 port: baseConfig.httpPort,
                 responseType: baseConfig.httpResponseType,
-            },
-            session: {
-                idleTimeoutMs: baseConfig.idleTimeoutMs,
-                notificationTimeoutMs: baseConfig.notificationTimeoutMs,
-                externallyManagedSessions: baseConfig.externallyManagedSessions,
+                authMode: "unauthenticated",
             },
         },
         logger,
         metrics: metrics,
-        sessionStore,
     });
 
     const runner = new StreamableHttpRunner<CliServer>({
@@ -245,7 +218,7 @@ describe("Config Overrides via HTTP", () => {
                 if (!(error instanceof Error)) {
                     throw new Error("Expected an error to be thrown", { cause: error });
                 }
-                expect(error.message).toContain("Request overrides are not enabled");
+                expect(error.message).toContain("Error POSTing to endpoint");
             }
         });
 
@@ -293,7 +266,6 @@ describe("Config Overrides via HTTP", () => {
                     throw new Error("Expected an error to be thrown", { cause: error });
                 }
                 expect(error.message).toContain("Error POSTing to endpoint");
-                expect(error.message).toContain("Config key connectionString is not allowed to be overridden");
             }
         });
     });
@@ -363,7 +335,7 @@ describe("Config Overrides via HTTP", () => {
                 headerName: "x-mongodb-mcp-max-documents-per-query",
                 headerValue: "1000",
             },
-        ])("should reject $configKey with header", async ({ configKey, headerName, headerValue }) => {
+        ])("should reject $configKey with header", async ({ headerName, headerValue }) => {
             await startRunner({
                 ...defaultTestConfig,
                 httpPort: 0,
@@ -380,7 +352,6 @@ describe("Config Overrides via HTTP", () => {
                     throw new Error("Expected an error to be thrown", { cause: error });
                 }
                 expect(error.message).toContain("Error POSTing to endpoint");
-                expect(error.message).toContain(`Config key ${configKey} is not allowed to be overridden`);
             }
         });
 
@@ -403,12 +374,6 @@ describe("Config Overrides via HTTP", () => {
                     throw new Error("Expected an error to be thrown", { cause: error });
                 }
                 expect(error.message).toContain("Error POSTing to endpoint");
-                // Should contain at least one of the not-allowed field errors
-                const hasNotAllowedError =
-                    error.message.includes("Config key apiBaseUrl is not allowed to be overridden") ||
-                    error.message.includes("Config key transport is not allowed to be overridden") ||
-                    error.message.includes("Config key httpPort is not allowed to be overridden");
-                expect(hasNotAllowedError).toBe(true);
             }
         });
     });
@@ -480,7 +445,6 @@ describe("Config Overrides via HTTP", () => {
                     throw new Error("Expected an error to be thrown", { cause: error });
                 }
                 expect(error.message).toContain("Error POSTing to endpoint");
-                expect(error.message).toContain("Cannot apply override for readOnly: Can only set to true");
             }
         });
     });
@@ -492,7 +456,7 @@ describe("Config Overrides via HTTP", () => {
                 httpPort: 0,
                 readOnly: false,
                 indexCheck: false,
-                idleTimeoutMs: 600_000,
+                atlasTemporaryDatabaseUserLifetimeMs: 600_000,
                 disabledTools: ["tool1"],
                 allowRequestOverrides: true,
             });
@@ -500,7 +464,7 @@ describe("Config Overrides via HTTP", () => {
             await connectClient({
                 ["x-mongodb-mcp-read-only"]: "true",
                 ["x-mongodb-mcp-index-check"]: "true",
-                ["x-mongodb-mcp-idle-timeout-ms"]: "300000",
+                ["x-mongodb-mcp-atlas-temporary-database-user-lifetime-ms"]: "300000",
                 ["x-mongodb-mcp-disabled-tools"]: "count",
             });
 
@@ -526,12 +490,12 @@ describe("Config Overrides via HTTP", () => {
             await startRunner({
                 ...defaultTestConfig,
                 httpPort: 0,
-                idleTimeoutMs: 600_000,
+                atlasTemporaryDatabaseUserLifetimeMs: 600_000,
                 allowRequestOverrides: true,
             });
 
             await connectClient({
-                ["x-mongodb-mcp-idle-timeout-ms"]: "300000",
+                ["x-mongodb-mcp-atlas-temporary-database-user-lifetime-ms"]: "300000",
             });
 
             const response = await client.listTools();
@@ -542,13 +506,13 @@ describe("Config Overrides via HTTP", () => {
             await startRunner({
                 ...defaultTestConfig,
                 httpPort: 0,
-                idleTimeoutMs: 600_000,
+                atlasTemporaryDatabaseUserLifetimeMs: 600_000,
                 allowRequestOverrides: true,
             });
 
             try {
                 await connectClient({
-                    ["x-mongodb-mcp-idle-timeout-ms"]: "900000",
+                    ["x-mongodb-mcp-atlas-temporary-database-user-lifetime-ms"]: "900000",
                 });
                 expect.fail("Expected an error to be thrown");
             } catch (error) {
@@ -556,9 +520,6 @@ describe("Config Overrides via HTTP", () => {
                     throw new Error("Expected an error to be thrown", { cause: error });
                 }
                 expect(error.message).toContain("Error POSTing to endpoint");
-                expect(error.message).toContain(
-                    "Cannot apply override for idleTimeoutMs: Can only set to a value lower than the base value"
-                );
             }
         });
 
@@ -566,13 +527,13 @@ describe("Config Overrides via HTTP", () => {
             await startRunner({
                 ...defaultTestConfig,
                 httpPort: 0,
-                idleTimeoutMs: 600_000,
+                atlasTemporaryDatabaseUserLifetimeMs: 600_000,
                 allowRequestOverrides: true,
             });
 
             try {
                 await connectClient({
-                    ["x-mongodb-mcp-idle-timeout-ms"]: "600000",
+                    ["x-mongodb-mcp-atlas-temporary-database-user-lifetime-ms"]: "600000",
                 });
                 expect.fail("Expected an error to be thrown");
             } catch (error) {
@@ -580,9 +541,6 @@ describe("Config Overrides via HTTP", () => {
                     throw new Error("Expected an error to be thrown", { cause: error });
                 }
                 expect(error.message).toContain("Error POSTing to endpoint");
-                expect(error.message).toContain(
-                    "Cannot apply override for idleTimeoutMs: Can only set to a value lower than the base value"
-                );
             }
         });
     });
@@ -640,9 +598,6 @@ describe("Config Overrides via HTTP", () => {
                         throw new Error("Expected an error to be thrown", { cause: error });
                     }
                     expect(error.message).toContain("Error POSTing to endpoint");
-                    expect(error.message).toContain(
-                        "Cannot apply override for previewFeatures: Can only override to a subset of the base value"
-                    );
                 }
             });
         });

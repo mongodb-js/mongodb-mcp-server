@@ -20,7 +20,7 @@ describeWithStreams("atlas-streams-build", (integration) => {
             const connectionName = `httpsconn${randomId().slice(0, 8)}`;
 
             afterAll(async () => {
-                const session = integration.mcpServer().session;
+                const session = integration.mcpServer();
                 assertApiClientIsAvailable(session);
                 try {
                     await session.apiClient.deleteStreamConnection({
@@ -67,7 +67,7 @@ describeWithStreams("atlas-streams-build", (integration) => {
             const kafkaConnName = `kafkaconn${randomId().slice(0, 8)}`;
 
             afterAll(async () => {
-                const session = integration.mcpServer().session;
+                const session = integration.mcpServer();
                 assertApiClientIsAvailable(session);
                 try {
                     await session.apiClient.deleteStreamConnection({
@@ -115,7 +115,7 @@ describeWithStreams("atlas-streams-build", (integration) => {
             const srConnName = `srconn${randomId().slice(0, 8)}`;
 
             afterAll(async () => {
-                const session = integration.mcpServer().session;
+                const session = integration.mcpServer();
                 assertApiClientIsAvailable(session);
                 try {
                     await session.apiClient.deleteStreamConnection({

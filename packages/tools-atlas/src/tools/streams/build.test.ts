@@ -1,16 +1,15 @@
-import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
-import type { CallToolResult } from "@mongodb-js/mcp-types";
-import type { IAtlasConfig, IAtlasSession } from "@mongodb-js/mcp-tools-atlas";
+import type { IAtlasConfig } from "@mongodb-js/mcp-tools-atlas";
 import { StreamsBuildTool } from "@mongodb-js/mcp-tools-atlas";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+import type { AtlasToolServer } from "../../atlasTool.js";
 
 describe("StreamsBuildTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
@@ -52,7 +51,7 @@ describe("StreamsBuildTool", () => {
                 apiClientSecret: "test-secret",
                 atlasTemporaryDatabaseUserLifetimeMs: 3600000,
             } as unknown as IAtlasConfig,
-        } as unknown as IAtlasSession;
+        } as unknown as AtlasToolServer;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
@@ -71,23 +70,26 @@ describe("StreamsBuildTool", () => {
             confirmationRequired: vi.fn(),
         };
 
-        const params: ToolConstructorParams<IAtlasSession, DefaultPrometheusMetricDefinitions> = {
-            name: StreamsBuildTool.toolName,
-            category: "atlas",
-            operationType: StreamsBuildTool.operationType,
-            session: mockSession,
+        const server: AtlasToolServer = {
+            ...mockSession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation as unknown as Elicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
         };
 
-        tool = new StreamsBuildTool(params);
+        tool = new StreamsBuildTool({ server });
     });
 
     const baseArgs = { projectId: "proj1", workspaceName: "ws1" };
-    const exec = (args: Record<string, unknown>): Promise<CallToolResult> =>
-        tool["execute"](args as never, { signal: new AbortController().signal }) as Promise<CallToolResult>;
+    // The execute() result is narrowed to CallToolResult: the tool under test
+    // never returns input_required.
+    const exec = async (args: Record<string, unknown>): Promise<CallToolResult> =>
+        (await tool["execute"](args as never, {
+            request: {
+                signal: new AbortController().signal,
+            },
+        })) as CallToolResult;
 
     describe("createWorkspace", () => {
         it("should create workspace with correct provider/region/tier", async () => {
@@ -793,7 +795,7 @@ describe("StreamsBuildTool", () => {
             expect(result.isError).toBe(true);
             const text = (result.content[0] as { text: string }).text;
             expect(text).toContain("$$NOW");
-            expect(text).toContain("not available in streaming context");
+            expect(text).toContain("not available in streaming request");
             expect(mockApiClient.createStreamProcessor).not.toHaveBeenCalled();
         });
 

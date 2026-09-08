@@ -30,7 +30,6 @@
   },
   "dependencies": {
     "@modelcontextprotocol/core": "^2.0.0",
-    "@modelcontextprotocol/node": "^2.0.0",
     "@modelcontextprotocol/server": "^2.0.0",
     "@mongodb-js/mcp-fetch": "workspace:*",
     "@mongodb-js/mcp-core": "workspace:*",

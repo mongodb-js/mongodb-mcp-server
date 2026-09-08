@@ -1,9 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
-import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { ConnectClusterTool } from "./connectCluster.js";
-import type { IAtlasSession, IAtlasConfig } from "../../atlasTool.js";
-import type { ITelemetry, ICompositeLogger } from "@mongodb-js/mcp-types";
+import type { IAtlasConfig } from "../../atlasTool.js";
+import type { ITelemetry, ICompositeLogger, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
@@ -18,6 +16,7 @@ import { Keychain } from "@mongodb-js/mcp-core";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
+import type { AtlasToolServer } from "../../atlasTool.js";
 
 const defaultTestConfig: UserConfig = {
     ...UserConfigSchema.parse({}),
@@ -51,7 +50,7 @@ const CLUSTER_DESCRIPTION = {
 describe("ConnectClusterTool", () => {
     let mockLogger: Record<string, ReturnType<typeof vi.fn>>;
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
-    let mockSession: Partial<IAtlasSession>;
+    let mockSession: Partial<AtlasToolServer>;
     let connectionRegistry: ConnectionRegistry;
     let tool: ConnectClusterTool;
 
@@ -102,25 +101,26 @@ describe("ConnectClusterTool", () => {
 
         const mockElicitation = createMockElicitation();
 
-        const params: ToolConstructorParams<IAtlasSession> = {
-            name: ConnectClusterTool.toolName,
-            category: "atlas",
-            operationType: ConnectClusterTool.operationType,
-            session: mockSession as IAtlasSession,
+        const server: AtlasToolServer = {
+            ...mockSession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
-        };
+        } as unknown as AtlasToolServer;
 
-        tool = new ConnectClusterTool(params);
+        tool = new ConnectClusterTool({ server });
     });
 
     describe("execute", () => {
         const args = { projectId: "proj1", clusterName: "cluster1", connectionType: "standard" as const };
 
         it("names the entry combining the project and cluster names", async () => {
-            const result = await tool["execute"](args, { signal: new AbortController().signal });
+            const result = await tool["execute"](args, {
+                request: {
+                    signal: new AbortController().signal,
+                },
+            });
 
             expect(mockApiClient.getGroup).toHaveBeenCalledWith(
                 { params: { path: { groupId: "proj1" } } },
@@ -133,7 +133,7 @@ describe("ConnectClusterTool", () => {
         });
 
         it("records the cluster id alongside the project and cluster name on the connection", async () => {
-            const result = await tool["execute"](args, { signal: new AbortController().signal });
+            const result = await tool["execute"](args, { request: { signal: new AbortController().signal } });
 
             const connectionId = result.structuredContent?.connectionId;
             const entry = await connectionRegistry.peek(connectionId);
@@ -150,7 +150,7 @@ describe("ConnectClusterTool", () => {
             void _id;
             mockApiClient.getCluster?.mockResolvedValue(withoutId);
 
-            await expect(tool["execute"](args, { signal: new AbortController().signal })).rejects.toThrow(
+            await expect(tool["execute"](args, { request: { signal: new AbortController().signal } })).rejects.toThrow(
                 'Atlas did not return an id for cluster "cluster1" in project "proj1"'
             );
             expect(mockApiClient.createDatabaseUser).not.toHaveBeenCalled();
@@ -159,7 +159,11 @@ describe("ConnectClusterTool", () => {
         it("falls back to the cluster name alone when the project lookup fails", async () => {
             mockApiClient.getGroup?.mockRejectedValue(new Error("forbidden"));
 
-            const result = await tool["execute"](args, { signal: new AbortController().signal });
+            const result = await tool["execute"](args, {
+                request: {
+                    signal: new AbortController().signal,
+                },
+            });
 
             expect(result.structuredContent?.state).toBe("connected");
             const connectionId = result.structuredContent?.connectionId;
@@ -168,8 +172,16 @@ describe("ConnectClusterTool", () => {
         });
 
         it("reuses the existing entry when called again for the same cluster", async () => {
-            const first = await tool["execute"](args, { signal: new AbortController().signal });
-            const second = await tool["execute"](args, { signal: new AbortController().signal });
+            const first = await tool["execute"](args, {
+                request: {
+                    signal: new AbortController().signal,
+                },
+            });
+            const second = await tool["execute"](args, {
+                request: {
+                    signal: new AbortController().signal,
+                },
+            });
 
             expect(second.structuredContent?.connectionId).toBe(first.structuredContent?.connectionId);
             expect(first.structuredContent?.createdTemporaryUser).toBe(true);
@@ -180,11 +192,19 @@ describe("ConnectClusterTool", () => {
         });
 
         it("creates a separate entry for a different cluster", async () => {
-            const first = await tool["execute"](args, { signal: new AbortController().signal });
+            const first = await tool["execute"](args, {
+                request: {
+                    signal: new AbortController().signal,
+                },
+            });
             mockApiClient.getCluster?.mockResolvedValue({ ...CLUSTER_DESCRIPTION, name: "cluster2" });
             const second = await tool["execute"](
                 { ...args, clusterName: "cluster2" },
-                { signal: new AbortController().signal }
+                {
+                    request: {
+                        signal: new AbortController().signal,
+                    },
+                }
             );
 
             expect(second.structuredContent?.connectionId).not.toBe(first.structuredContent?.connectionId);
@@ -194,13 +214,15 @@ describe("ConnectClusterTool", () => {
 
     describe("connectToCluster request ID logging", () => {
         it("includes x-request-id in attempt and success debug logs", async () => {
-            const context: ToolExecutionContext = {
-                signal: new AbortController().signal,
-                requestInfo: { headers: { "x-request-id": "req-connect-abc" } },
+            const context: ToolExecutionContext<IAtlasConfig> = {
+                request: {
+                    signal: new AbortController().signal,
+                    headers: { "x-request-id": "req-connect-abc" },
+                },
             };
 
             const entry = await connectionRegistry.createEntry({ name: ATLAS_INFO.clusterName });
-            await tool["connectToCluster"](entry, "mongodb://localhost", ATLAS_INFO, context);
+            await tool["connectToCluster"](entry, "mongodb://localhost", ATLAS_INFO, context.request);
 
             expect(mockLogger.debug).toHaveBeenCalledWith(
                 expect.objectContaining({
@@ -220,13 +242,15 @@ describe("ConnectClusterTool", () => {
             );
         });
 
-        it("omits x-request-id from log attributes when context has no requestInfo", async () => {
-            const context: ToolExecutionContext = {
-                signal: new AbortController().signal,
+        it("omits x-request-id from log attributes when context carries no headers", async () => {
+            const context: ToolExecutionContext<IAtlasConfig> = {
+                request: {
+                    signal: new AbortController().signal,
+                },
             };
 
             const entry = await connectionRegistry.createEntry({ name: ATLAS_INFO.clusterName });
-            await tool["connectToCluster"](entry, "mongodb://localhost", ATLAS_INFO, context);
+            await tool["connectToCluster"](entry, "mongodb://localhost", ATLAS_INFO, context.request);
 
             for (const [payload] of (mockLogger.debug as ReturnType<typeof vi.fn>).mock.calls) {
                 expect((payload as { attributes?: Record<string, string> }).attributes).not.toHaveProperty(

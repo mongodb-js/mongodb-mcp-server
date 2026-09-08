@@ -48,25 +48,25 @@ export class LoadSampleDatasetTool extends AtlasToolBase {
 
     protected async execute(
         { projectId, clusterName, jobId }: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        { request }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
         let status: SampleDatasetStatus;
         let headerText: string;
         if (jobId !== undefined && clusterName === undefined) {
-            status = await this.apiClient.getSampleDatasetLoad(
+            status = await this.server.apiClient.getSampleDatasetLoad(
                 {
                     params: { path: { groupId: projectId, sampleDatasetId: jobId } },
                 },
-                context
+                request
             );
 
             headerText = `Sample dataset load status for cluster "${status.clusterName}" in project ${projectId}.`;
         } else if (clusterName !== undefined && jobId === undefined) {
-            status = await this.apiClient.requestSampleDatasetLoad(
+            status = await this.server.apiClient.requestSampleDatasetLoad(
                 {
                     params: { path: { groupId: projectId, name: clusterName } },
                 },
-                context
+                request
             );
 
             headerText = `Sample dataset load requested for cluster "${status.clusterName}" in project ${projectId}.`;

@@ -9,7 +9,6 @@ import {
     setupIntegrationTest,
     defaultTestConfig,
     getDataFromUntrustedContent,
-    syncMongoToolsConfigFromUserConfig,
 } from "./integrationHelpers.js";
 import type { UserConfig } from "mongodb-mcp-server";
 import type { CliServerOptions } from "mongodb-mcp-server";
@@ -234,8 +233,6 @@ export function setupMongoDBIntegrationTest(
     };
 }
 
-export { syncMongoToolsConfigFromUserConfig };
-
 export function validateAutoConnectBehavior(
     integration: IntegrationTest & MongoDBIntegrationTest,
     name: string,
@@ -253,7 +250,7 @@ export function validateAutoConnectBehavior(
 
         afterEach(async () => {
             const store = integration.connectionStore();
-            const registry = integration.mcpServer().session.connectionRegistry;
+            const registry = integration.mcpServer().connectionRegistry;
             if (await registry.peek(PRECONFIGURED_CONNECTION_ID)) {
                 await registry.disconnect(PRECONFIGURED_CONNECTION_ID);
                 // Directly reach into the store: tests seed/remove the preconfigured

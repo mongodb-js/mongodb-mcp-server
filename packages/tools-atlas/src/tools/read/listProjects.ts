@@ -44,10 +44,10 @@ export class ListProjectsTool extends AtlasToolBase {
 
     protected async execute(
         { orgId, limit, pageNum, includeCount }: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        { request }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
         const data = orgId
-            ? await this.apiClient.getOrgGroups(
+            ? await this.server.apiClient.getOrgGroups(
                   {
                       params: {
                           path: {
@@ -60,9 +60,9 @@ export class ListProjectsTool extends AtlasToolBase {
                           },
                       },
                   },
-                  context
+                  request
               )
-            : await this.apiClient.listGroups(
+            : await this.server.apiClient.listGroups(
                   {
                       params: {
                           query: {
@@ -72,7 +72,7 @@ export class ListProjectsTool extends AtlasToolBase {
                           },
                       },
                   },
-                  context
+                  request
               );
 
         const projects = (data?.results ?? []).map((project) => ({

@@ -3,7 +3,8 @@ import { ToolBase } from "@mongodb-js/mcp-core";
 import type { ToolArgs } from "@mongodb-js/mcp-core";
 import type {
     IToolConfig,
-    ISession,
+    ToolServices,
+    ToolServer,
     OperationType,
     ToolCategory,
     CallToolResult,
@@ -12,8 +13,11 @@ import type {
 import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 
+/** The server shape the test tools read their services from. */
+export type TestServer = ToolServer<ToolServices<IToolConfig>>;
+
 /** General-purpose tool used by most ToolBase unit tests. */
-export class TestTool extends ToolBase<ISession<IToolConfig>, DefaultPrometheusMetricDefinitions> {
+export class TestTool extends ToolBase<TestServer, DefaultPrometheusMetricDefinitions> {
     static toolName = "test-tool";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "delete";
@@ -42,7 +46,7 @@ export class TestTool extends ToolBase<ISession<IToolConfig>, DefaultPrometheusM
 }
 
 /** Tool that returns structured content, used by appendUIResource tests. */
-export class TestToolWithOutputSchema extends ToolBase<ISession<IToolConfig>, DefaultPrometheusMetricDefinitions> {
+export class TestToolWithOutputSchema extends ToolBase<TestServer, DefaultPrometheusMetricDefinitions> {
     static toolName = "test-tool-with-output-schema";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "metadata";
@@ -68,10 +72,7 @@ export class TestToolWithOutputSchema extends ToolBase<ISession<IToolConfig>, De
 }
 
 /** Tool that declares an outputSchema but never returns structuredContent. */
-export class TestToolWithoutStructuredContent extends ToolBase<
-    ISession<IToolConfig>,
-    DefaultPrometheusMetricDefinitions
-> {
+export class TestToolWithoutStructuredContent extends ToolBase<TestServer, DefaultPrometheusMetricDefinitions> {
     static toolName = "test-tool-without-structured";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "metadata";
@@ -95,7 +96,7 @@ export class TestToolWithoutStructuredContent extends ToolBase<
 }
 
 /** Tool whose execute() always throws – used by error-path tests. */
-export class ErrorTool extends ToolBase<ISession<IToolConfig>, DefaultPrometheusMetricDefinitions> {
+export class ErrorTool extends ToolBase<TestServer, DefaultPrometheusMetricDefinitions> {
     static toolName = "error-tool";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "read";
@@ -112,7 +113,7 @@ export class ErrorTool extends ToolBase<ISession<IToolConfig>, DefaultPrometheus
 }
 
 /** Minimal tool that returns a static "ok" response. */
-export class EchoTool extends ToolBase<ISession<IToolConfig>, DefaultPrometheusMetricDefinitions> {
+export class EchoTool extends ToolBase<TestServer, DefaultPrometheusMetricDefinitions> {
     static toolName = "echo-tool";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "read";
@@ -156,7 +157,7 @@ export class ConfirmingTool extends ToolBase {
 }
 
 /** No-op tool used for session / lifecycle tests that don't need tool logic. */
-export class NoopTool extends ToolBase<ISession<IToolConfig>, DefaultPrometheusMetricDefinitions> {
+export class NoopTool extends ToolBase<TestServer, DefaultPrometheusMetricDefinitions> {
     static toolName = "noop-tool";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "read";

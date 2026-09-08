@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { type ToolArgs, type ToolResult, ToolArgumentValidationError } from "@mongodb-js/mcp-core";
-import type { OperationType, ToolExecutionContext, CallToolResult } from "@mongodb-js/mcp-types";
-import { AtlasToolBase } from "../../atlasTool.js";
+import type { OperationType, ToolExecutionContext, ToolRequest, CallToolResult } from "@mongodb-js/mcp-types";
+import { AtlasToolBase, type IAtlasConfig } from "../../atlasTool.js";
 import { formatCluster } from "../../helpers/cluster.js";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
@@ -168,10 +168,10 @@ async function resolveClusterInfo(
     projectId: string,
     clusterName: string,
     argOverrides: { provider?: string; region?: string },
-    context: ToolExecutionContext
+    request: ToolRequest<IAtlasConfig>
 ): Promise<ResolvedClusterInfo> {
     try {
-        const raw = await apiClient.getCluster({ params: { path: { groupId: projectId, clusterName } } }, context);
+        const raw = await apiClient.getCluster({ params: { path: { groupId: projectId, clusterName } } }, request);
         const cluster = formatCluster(raw);
         return {
             instanceType: cluster.instanceType,
@@ -188,7 +188,7 @@ async function resolveClusterInfo(
         }
         const raw = await apiClient.getFlexCluster(
             { params: { path: { groupId: projectId, name: clusterName } } },
-            context
+            request
         );
         return {
             instanceType: "FLEX",
@@ -391,16 +391,16 @@ export class UpgradeClusterTool extends AtlasToolBase {
 
     protected async execute(
         args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        { request }: ToolExecutionContext
     ): Promise<ToolResult<typeof this.outputSchema>> {
         const { projectId, clusterName } = args;
 
         const clusterInfo = await resolveClusterInfo(
-            this.apiClient,
+            this.server.apiClient,
             projectId,
             clusterName,
             { provider: args.provider, region: args.region },
-            context
+            request
         );
 
         let clusterId: string | undefined;
@@ -487,12 +487,12 @@ export class UpgradeClusterTool extends AtlasToolBase {
                     maxInstanceSize: resolvedMax,
                 });
 
-                const result = await this.apiClient.updateCluster(
+                const result = await this.server.apiClient.updateCluster(
                     {
                         params: { path: { groupId: projectId, clusterName } },
                         body: body as unknown as ClusterDescription20240805,
                     },
-                    context
+                    request
                 );
                 clusterId = result.id;
                 targetInstanceSize = resolvedInstanceSize;
@@ -510,7 +510,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
                 const resolvedAutoScaling = resolveM10AutoScaling(args, clusterInfo.provider);
 
                 // tenantUpgrade: upgrades Flex clusters to Dedicated (M10+)
-                ({ id: clusterId } = await this.apiClient.tenantUpgrade(
+                ({ id: clusterId } = await this.server.apiClient.tenantUpgrade(
                     {
                         params: { path: { groupId: projectId } },
                         body: buildM10UpgradeBody(
@@ -520,8 +520,8 @@ export class UpgradeClusterTool extends AtlasToolBase {
                             clusterInfo.provider,
                             clusterInfo.region
                         ),
-                    } as unknown as Parameters<typeof this.apiClient.tenantUpgrade>[0],
-                    context
+                    } as unknown as Parameters<typeof this.server.apiClient.tenantUpgrade>[0],
+                    request
                 ));
                 break;
             }
@@ -545,7 +545,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
                     clusterInfo.provider,
                     clusterInfo.region,
                     args,
-                    context
+                    request
                 ));
                 break;
         }
@@ -632,12 +632,12 @@ export class UpgradeClusterTool extends AtlasToolBase {
         backingProviderName: string | undefined,
         regionName: string | undefined,
         autoScalingArgs: AutoScalingArgs,
-        context: ToolExecutionContext
+        request: ToolRequest<IAtlasConfig>
     ): Promise<{ id?: string }> {
         // upgradeTenantUpgrade: upgrades Free (M0/shared) clusters to Flex or Dedicated (M10+)
         switch (target) {
             case "FLEX":
-                return await this.apiClient.upgradeTenantUpgrade(
+                return await this.server.apiClient.upgradeTenantUpgrade(
                     {
                         params: { path: { groupId: projectId } },
                         body: {
@@ -649,11 +649,11 @@ export class UpgradeClusterTool extends AtlasToolBase {
                                 ...(regionName !== undefined && { regionName }),
                             },
                         },
-                    } as unknown as Parameters<typeof this.apiClient.upgradeTenantUpgrade>[0],
-                    context
+                    } as unknown as Parameters<typeof this.server.apiClient.upgradeTenantUpgrade>[0],
+                    request
                 );
             case "M10":
-                return await this.apiClient.upgradeTenantUpgrade(
+                return await this.server.apiClient.upgradeTenantUpgrade(
                     {
                         params: { path: { groupId: projectId } },
                         body: buildM10UpgradeBody(
@@ -663,8 +663,8 @@ export class UpgradeClusterTool extends AtlasToolBase {
                             backingProviderName,
                             regionName
                         ),
-                    } as unknown as Parameters<typeof this.apiClient.upgradeTenantUpgrade>[0],
-                    context
+                    } as unknown as Parameters<typeof this.server.apiClient.upgradeTenantUpgrade>[0],
+                    request
                 );
         }
     }

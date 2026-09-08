@@ -5,7 +5,6 @@ import type { components, paths, operations } from "./openapi.js";
 import type { TelemetryEvent, TelemetryCommonProperties } from "@mongodb-js/mcp-types";
 import type { LoggerBase } from "@mongodb-js/mcp-core";
 import type { Credentials, AuthProvider } from "./auth/authProvider.js";
-import { AuthProviderFactory } from "./auth/authProvider.js";
 
 const ATLAS_API_VERSION = "2025-03-12";
 const DEFAULT_SEND_TIMEOUT_MS = 5_000;
@@ -54,14 +53,12 @@ export type RequestContext = {
 
 /**
  * Per-request context passed to the auto-generated Atlas API methods, mirroring
- * `ToolExecutionContext.requestInfo`. When provided, its headers (e.g. the
- * `x-request-id` forwarded from the incoming MCP request) are merged into the
- * outgoing Atlas API request.
+ * `ToolRequest.headers`. When provided, its headers (e.g. the `x-request-id`
+ * forwarded from the incoming MCP request) are merged into the outgoing Atlas
+ * API request.
  */
 export type ApiClientRequestContext = {
-    requestInfo?: {
-        headers?: Record<string, unknown>;
-    };
+    headers?: Record<string, unknown>;
 };
 
 /**
@@ -72,11 +69,30 @@ export type ApiClientRequestContext = {
  */
 const FORWARDABLE_REQUEST_HEADERS: ReadonlySet<string> = new Set(["x-request-id"]);
 
-export type ApiClientFactoryFn = (options: ApiClientOptions, logger: LoggerBase) => ApiClient;
+export type ApiClientFactoryFn = (construction: ApiClientConstruction) => ApiClient;
 
 /** @public */
-export const defaultCreateApiClient: ApiClientFactoryFn = (options, logger) => {
-    return new ApiClient(options, logger);
+export const defaultCreateApiClient: ApiClientFactoryFn = (construction) => {
+    return new ApiClient(construction);
+};
+
+/**
+ * The construction input for {@link ApiClient}: field-specific options plus
+ * the injected logger and an optionally-supplied auth provider. `authProvider`
+ * is omitted when the client is unauthenticated (e.g. anonymous telemetry) —
+ * the client no longer derives one from `options.credentials`; call sites that
+ * need auth build the provider explicitly (e.g. via {@link AuthProviderFactory}).
+ */
+export type ApiClientConstruction = {
+    /** Field-specific client options (base URL, user agent, http client, ...). */
+    options: ApiClientOptions;
+    /** Logger used by the client and its auth provider. */
+    logger: LoggerBase;
+    /**
+     * The auth strategy for Atlas API requests. Omit when the client is not
+     * authenticated (no auth headers, `isAuthConfigured()` returns `false`).
+     */
+    authProvider?: AuthProvider;
 };
 
 export class ApiClient {
@@ -95,25 +111,14 @@ export class ApiClient {
         return !!this.authProvider;
     }
 
-    constructor(options: ApiClientOptions, logger: LoggerBase, authProvider?: AuthProvider) {
+    constructor({ options, logger, authProvider }: ApiClientConstruction) {
         this.logger = logger;
+        this.authProvider = authProvider;
         this.options = {
             baseUrl: options.baseUrl,
             userAgent: options.userAgent,
             supportsCurrentIpLookup: options.supportsCurrentIpLookup ?? true,
         };
-
-        this.authProvider =
-            authProvider ??
-            AuthProviderFactory.create(
-                {
-                    apiBaseUrl: this.options.baseUrl,
-                    userAgent: this.options.userAgent,
-                    credentials: options.credentials ?? {},
-                    httpClient: options.httpClient,
-                },
-                logger
-            );
 
         this.client = createClient<paths>({
             baseUrl: this.options.baseUrl,
@@ -125,7 +130,7 @@ export class ApiClient {
             Request: options.httpClient.Request,
         });
 
-        if (this.authProvider) {
+        if (this.isAuthConfigured()) {
             this.client.use(this.createAuthMiddleware());
         }
     }
@@ -167,7 +172,7 @@ export class ApiClient {
      * from the context. Used by the auto-generated Atlas API methods.
      */
     private applyRequestContext<Options>(options: Options, context?: ApiClientRequestContext): Options {
-        const contextHeaders = context?.requestInfo?.headers;
+        const contextHeaders = context?.headers;
         if (!contextHeaders) {
             return options;
         }
@@ -228,7 +233,7 @@ export class ApiClient {
         events: TelemetryEvent<TelemetryCommonProperties>[],
         { signal = AbortSignal.timeout(DEFAULT_SEND_TIMEOUT_MS) }: { signal?: AbortSignal } = {}
     ): Promise<void> {
-        if (!this.authProvider) {
+        if (!this.isAuthConfigured()) {
             await this.sendUnauthEvents(events, signal);
             return;
         }

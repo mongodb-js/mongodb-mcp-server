@@ -1,6 +1,7 @@
 import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import type { IMongoDBConfig } from "../../mongodbTool.js";
 import { checkIndexUsage } from "../../helpers/indexCheck.js";
 import { zEJSON } from "../../args.js";
 import { z } from "zod";
@@ -33,14 +34,14 @@ export class CountTool extends MongoDBToolBase {
 
     protected async execute(
         { connectionId, database, collection, query }: ToolArgs<typeof this.argsShape>,
-        { signal }: ToolExecutionContext
+        { request }: ToolExecutionContext<IMongoDBConfig>
     ): Promise<ToolResult<typeof this.outputSchema>> {
         const provider = await this.resolveConnection(connectionId);
 
-        this.assertMqlIsAllowed(query);
+        this.assertMqlIsAllowed(this.server.config, query);
 
         // Check if count operation uses an index if enabled
-        if (this.config.indexCheck) {
+        if (this.server.config.indexCheck) {
             await checkIndexUsage({
                 database,
                 collection,
@@ -54,19 +55,21 @@ export class CountTool extends MongoDBToolBase {
                                 query,
                             },
                             verbosity: "queryPlanner",
-                            ...(this.config.maxTimeMS !== undefined && { maxTimeMS: this.config.maxTimeMS }),
+                            ...(this.server.config.maxTimeMS !== undefined && {
+                                maxTimeMS: this.server.config.maxTimeMS,
+                            }),
                         },
                         {
-                            signal,
+                            signal: request.signal,
                         }
                     );
                 },
-                logger: this.session.logger,
+                logger: this.server.logger,
             });
         }
 
         const count = await provider.countDocuments(database, collection, query, {
-            ...this.getOperationOptions(signal),
+            ...this.getOperationOptions(request),
         });
 
         return {

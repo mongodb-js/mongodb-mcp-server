@@ -1,4 +1,4 @@
-export { AtlasToolBase, type IAtlasConfig, type IAtlasSession } from "./atlasTool.js";
+export { AtlasToolBase, type IAtlasConfig, type AtlasToolServices, type AtlasToolServer } from "./atlasTool.js";
 export { ATLAS_CREATE_CLUSTER_README_DESCRIPTION } from "./tools/create/createCluster.js";
 export { ATLAS_PAUSE_RESUME_CLUSTER_README_DESCRIPTION } from "./tools/update/pauseResumeCluster.js";
 export { StreamsToolBase } from "./streams/streamsToolBase.js";
@@ -51,7 +51,7 @@ export {
     UpgradeClusterTool,
 } from "./tools/tools.js";
 
-import type { IAtlasSession } from "./atlasTool.js";
+import type { AtlasToolServer } from "./atlasTool.js";
 import {
     ListClustersTool,
     ListProjectsTool,
@@ -78,7 +78,7 @@ import {
 } from "./tools/tools.js";
 import type { ToolClass } from "@mongodb-js/mcp-core";
 
-export const AtlasTools: ToolClass<IAtlasSession>[] = [
+export const AtlasTools: ToolClass<AtlasToolServer>[] = [
     ListClustersTool,
     ListProjectsTool,
     InspectClusterTool,
