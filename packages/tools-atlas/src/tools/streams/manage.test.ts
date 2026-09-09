@@ -404,6 +404,8 @@ describe("StreamsManageTool", () => {
                 state: "STOPPED",
                 tier: "SP10",
                 effectiveTier: "SP10",
+                // Atlas responses echo a read-only HAL `links` inside StreamsAutoscaling;
+                // assert toStreamsAutoscaling strips it before structured output.
                 options: {
                     autoscaling: {
                         enabled: true,
@@ -445,6 +447,8 @@ describe("StreamsManageTool", () => {
                 state: "STOPPED",
                 tier: "SP10",
                 effectiveTier: "SP30",
+                // Atlas responses echo a read-only HAL `links` inside StreamsAutoscaling;
+                // assert toStreamsAutoscaling strips it before structured output.
                 options: {
                     autoscaling: {
                         enabled: true,

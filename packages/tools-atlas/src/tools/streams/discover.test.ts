@@ -491,6 +491,8 @@ describe("StreamsDiscoverTool", () => {
                         state: "STARTED",
                         tier: "SP10",
                         effectiveTier: "SP30",
+                        // Atlas responses echo a read-only HAL `links` inside StreamsAutoscaling;
+                        // assert toStreamsAutoscaling strips it before structured output.
                         options: {
                             autoscaling: {
                                 enabled: true,
@@ -551,6 +553,8 @@ describe("StreamsDiscoverTool", () => {
                 state: "STARTED",
                 tier: "SP10",
                 effectiveTier: "SP30",
+                // Atlas responses echo a read-only HAL `links` inside StreamsAutoscaling;
+                // assert toStreamsAutoscaling strips it before structured output.
                 options: {
                     autoscaling: {
                         enabled: true,
