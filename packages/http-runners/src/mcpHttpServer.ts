@@ -161,6 +161,7 @@ export abstract class MCPHttpServer<
                     authInfo: ctx.authInfo
                         ? { mode: "authenticated", state: ctx.authInfo }
                         : { mode: "unauthenticated" },
+                    protocol: "2026-07-28",
                 };
                 const server = await this.createServerForRequest(request);
                 await server.register();
