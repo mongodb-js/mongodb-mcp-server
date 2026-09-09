@@ -1,6 +1,6 @@
 {
   "name": "@mongodb-js/harness-tester",
-  "version": "3.0.0-prerelease.2",
+  "version": "3.0.0-prerelease.3",
   "private": true,
   "type": "module",
   "description": "Tooling to drive real LLM coding-agent CLIs (codex, claude) interactively through their TUIs for end-to-end tests",
