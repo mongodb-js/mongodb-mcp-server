@@ -732,6 +732,7 @@ export abstract class MCPHttpServer<TServer extends BaseServer = BaseServer, TMe
     protected abstract createServerForRequest(request: TransportRequestContext): Promise<TServer>;
     // (undocumented)
     protected readonly metrics: IMetrics<TMetrics>;
+    protected registerMiddlewares(): void;
     // (undocumented)
     protected setupRoutes(): Promise<void>;
     // (undocumented)

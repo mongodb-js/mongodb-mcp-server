@@ -3,15 +3,13 @@ import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
 import type express from "express";
 import type {
     ILogger,
-    IMetrics,
-    DefaultMetricDefinitions,
     TransportRequestContext,
     RequestAuthInfo,
     HttpServerOptions,
     BaseServer,
 } from "@mongodb-js/mcp-types";
 import { LogId, getRandomUUID, requestIdAttr } from "@mongodb-js/mcp-core";
-import { SessionStore, SessionLimitExceededError } from "@mongodb-js/mcp-core";
+import { SessionLimitExceededError, type ISessionStore } from "@mongodb-js/mcp-core";
 import { sleep } from "./utils.js";
 
 /**
@@ -47,13 +45,12 @@ export type LegacySessionOptions = {
 };
 
 export type LegacyMcpHttpHandlerOptions = {
-    /** Builds a fresh request-scoped server for each legacy session. */
+    /** Builds a fresh request-scoped server for the legacy session. */
     createServer: LegacyServerFactory;
     logger: ILogger;
-    metrics: IMetrics<DefaultMetricDefinitions>;
     http: HttpServerOptions;
-    /** Session lifecycle tunables (cap / timeouts / eviction). */
-    sessionOptions?: LegacySessionOptions;
+    /** Session store backing the legacy sessionful path (auth-aware or durable). */
+    sessionStore: ISessionStore<NodeStreamableHTTPServerTransport>;
 };
 
 /**
@@ -83,31 +80,21 @@ export interface LegacyMcpHandler {
  * This handler owns that sessionful lifecycle: an `initialize` POST creates a
  * session (a connected transport/server pair), later requests and the SSE idle
  * stream reuse the session's transport (the shim's return channel), and a
- * DELETE closes it. Sessions are bounded by a {@link SessionStore}, capped by
- * `sessionOptions.maxSessions` with LRU idle eviction and idle / notification
- * timeouts. Keeping it isolated from {@link MCPHttpServer} leaves the modern
- * stateless path clean.
+ * DELETE closes it. Sessions are bounded by the injected `sessionStore`.
+ * Keeping it isolated from {@link MCPHttpServer} leaves the modern stateless
+ * path clean.
  */
 export class LegacyMcpHttpHandler implements LegacyMcpHandler {
     private readonly createServer: LegacyServerFactory;
     private readonly logger: ILogger;
     private readonly http: HttpServerOptions;
-    private readonly sessions: SessionStore<NodeStreamableHTTPServerTransport>;
+    private readonly sessions: ISessionStore<NodeStreamableHTTPServerTransport>;
 
-    constructor({ createServer, logger, metrics, http, sessionOptions }: LegacyMcpHttpHandlerOptions) {
+    constructor({ createServer, logger, http, sessionStore }: LegacyMcpHttpHandlerOptions) {
         this.createServer = createServer;
         this.logger = logger;
         this.http = http;
-        this.sessions = new SessionStore<NodeStreamableHTTPServerTransport>({
-            options: {
-                idleTimeoutMS: sessionOptions?.idleTimeoutMS ?? 600_000,
-                notificationTimeoutMS: sessionOptions?.notificationTimeoutMS ?? 540_000,
-                maxSessions: sessionOptions?.maxSessions ?? 1000,
-                evictionIdleGraceMS: sessionOptions?.evictionIdleGraceMS ?? 120_000,
-            },
-            logger,
-            metrics,
-        });
+        this.sessions = sessionStore;
     }
 
     /** Closes every live session (e.g. on server shutdown). */
@@ -238,7 +225,7 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
 
         // Admit (check cap, evict LRU idle victim). A rejection admits nothing.
         try {
-            await this.sessions.addSession({ sessionId, transport, logger: this.logger });
+            await this.sessions.addSession({ sessionId, transport, logger: this.logger, headers: req.headers });
         } catch (error) {
             // Dispose the un-connected server we built for a rejected session.
             await server.close().catch(() => undefined);
@@ -376,7 +363,7 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
             this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_INVALID);
             return;
         }
-        const transport = await this.sessions.getSession(sessionId);
+        const transport = await this.sessions.getSession(sessionId, req.headers);
         if (!transport) {
             this.logger.debug({
                 id: LogId.streamableHttpTransportSessionNotFound,

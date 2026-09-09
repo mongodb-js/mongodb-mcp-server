@@ -56,6 +56,8 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
         session?: { logger: ICompositeLogger };
         headers?: Record<string, unknown>;
     }): Promise<void>;
+    /** Returns whether a session exists, without resetting its idle timeout (unlike {@link getSession}). */
+    hasSession(sessionId: string): boolean;
     closeSession(params: { sessionId: string; reason?: SessionCloseReason }): Promise<void>;
     closeAllSessions(): Promise<void>;
     /**
