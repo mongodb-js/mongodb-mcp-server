@@ -328,7 +328,11 @@ describe("MCPHttpServer stateless serving", () => {
         });
 
         it("uses an overridden legacy handler / injected session store for legacy requests", async () => {
-            const handle = vi.fn().mockResolvedValue(undefined);
+            const handle = vi
+                .fn()
+                .mockImplementation((req: express.Request, res: express.Response) =>
+                    Promise.resolve(res.status(200).send())
+                );
             const close = vi.fn().mockResolvedValue(undefined);
             class CustomLegacyServer extends TestMCPHttpServer {
                 protected override createLegacyHandler(): LegacyMcpHandler {
@@ -340,8 +344,9 @@ describe("MCPHttpServer stateless serving", () => {
             await server.start();
 
             // GET /mcp is legacy-only, so it is routed through the overridden handler.
-            await fetch(`${server.serverAddress}/mcp`, { method: "GET" });
+            const res = await fetch(`${server.serverAddress}/mcp`, { method: "GET" });
 
+            expect(res.status).toBe(200);
             expect(handle).toHaveBeenCalledTimes(1);
         });
 
