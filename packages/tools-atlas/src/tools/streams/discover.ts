@@ -562,15 +562,16 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         }
 
         const format = responseFormat ?? "concise";
-        const conciseProcessors = data.results.map((p) => ({
-            name: p.name,
-            state: p.state,
-            tier: p.tier,
-            effectiveTier: p.effectiveTier,
-            ...(p.options?.autoscaling !== undefined && {
-                autoscaling: toStreamsAutoscaling(p.options.autoscaling),
-            }),
-        }));
+        const conciseProcessors = data.results.map((p) => {
+            const autoscaling = toStreamsAutoscaling(p.options?.autoscaling);
+            return {
+                name: p.name,
+                state: p.state,
+                tier: p.tier,
+                effectiveTier: p.effectiveTier,
+                ...(autoscaling !== undefined && { autoscaling }),
+            };
+        });
         const processors = format === "concise" ? conciseProcessors : data.results;
 
         return {
