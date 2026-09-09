@@ -42,6 +42,7 @@ jobs:
           NEW_VERSION=$(npm pkg get version | tr -d '"')
           pnpm -r --filter '@mongodb-js/mcp-*' exec npm version "$NEW_VERSION" --no-git-tag-version --allow-same-version
           pnpm --filter 'mongodb-mcp-server' exec npm version "$NEW_VERSION" --no-git-tag-version --allow-same-version
+          pnpm --filter '@mongodb-js/harness-tester' exec npm version "$NEW_VERSION" --no-git-tag-version --allow-same-version
           pnpm run build:update-package-version
           echo "NEW_VERSION=v${NEW_VERSION}" >> "$GITHUB_OUTPUT"
 
