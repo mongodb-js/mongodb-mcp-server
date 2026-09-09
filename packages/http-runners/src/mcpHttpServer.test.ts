@@ -452,6 +452,7 @@ describe("MCPHttpServer stateless serving", () => {
                 headers: {
                     "content-type": "application/json",
                     accept: "application/json, text/event-stream",
+                    "mcp-protocol-version": "2025-11-25",
                     "mcp-session-id": "external-id",
                 },
                 body: JSON.stringify({ jsonrpc: "2.0", method: "tools/list", id: 4, params: {} }),

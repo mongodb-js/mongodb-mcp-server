@@ -25,6 +25,9 @@ const JSON_RPC_ERROR_CODE_INVALID_REQUEST = -32004;
 const JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION = -32005;
 const JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED = -32006;
 
+/** Guards against oversized `mcp-session-id` headers (e.g. an abusive client). */
+const MAX_SESSION_ID_LENGTH = 512;
+
 /** The per-request server contract the sessionful legacy path relies on in
  * addition to {@link BaseServer}: it must be connectable to a transport so a
  * session can hold a live server/transport pair — the return channel the
@@ -236,13 +239,6 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
     }
 
     /**
-     * Creates a fresh session: builds a request-scoped server, connects it to a
-     * sessionful streamable HTTP transport (so `initialize` negotiates and the
-     * SDK keeps the client's capabilities on the connected server), and stores
-     * the transport so later requests and the SSE idle stream reuse it (the
-     * return channel the legacy elicitation shim needs).
-     */
-    /**
      * Creates a fresh session (or returns the existing / in-flight one for an
      * externally managed id). Concurrent initializations of the same session id
      * are serialized so they don't race on `addSession` (see
@@ -303,13 +299,19 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
         // HACK: When we're implicitly re-initializing an externally managed
         // session, mark the transport as already initialized so the SDK does
         // not reject follow-up requests with "transport not initialized".
+        // Guard the internal field: if the SDK's transport shape changes, the
+        // session degrades gracefully rather than throwing before the request
+        // can be answered.
         if (isImplicitInitialization) {
-            const internalTransport = transport["_webStandardTransport"] as unknown as {
-                _initialized: boolean;
-                sessionId: string;
-            };
-            internalTransport._initialized = true;
-            internalTransport.sessionId = sessionId;
+            const internalTransport = (
+                transport as unknown as {
+                    _webStandardTransport?: { _initialized?: boolean; sessionId?: string };
+                }
+            )._webStandardTransport;
+            if (internalTransport) {
+                internalTransport._initialized = true;
+                internalTransport.sessionId = sessionId;
+            }
         }
 
         const server = (await this.createServer(this.buildTransportContext(req))) as unknown as SessionfulServer;
@@ -400,6 +402,16 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
 
         // POST /mcp.
         if (sessionId && typeof sessionId !== "string") {
+            this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_INVALID);
+            return;
+        }
+        if (typeof sessionId === "string" && sessionId.length > MAX_SESSION_ID_LENGTH) {
+            this.logger.debug({
+                id: LogId.streamableHttpTransportSessionNotFound,
+                context: "streamableHttpTransport",
+                message: `Session ID exceeds maximum length ${MAX_SESSION_ID_LENGTH}`,
+                attributes: { ...requestIdAttr(req.headers) },
+            });
             this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_INVALID);
             return;
         }
