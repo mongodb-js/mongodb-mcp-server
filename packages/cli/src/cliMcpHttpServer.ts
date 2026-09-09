@@ -72,6 +72,7 @@ export function createHttpTransportRunnerFromConfig(sharedServices: SharedServer
                 idleTimeoutMS: config.idleTimeoutMs,
                 notificationTimeoutMS: config.notificationTimeoutMs,
                 evictionIdleGraceMS: config.evictionIdleGraceMS,
+                externallyManagedSessions: config.externallyManagedSessions,
             },
         },
     });

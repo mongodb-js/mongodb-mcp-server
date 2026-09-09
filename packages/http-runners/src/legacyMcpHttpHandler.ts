@@ -1,4 +1,4 @@
-import { isInitializeRequest } from "@modelcontextprotocol/server";
+import { isInitializeRequest, type ClientCapabilities, type Implementation } from "@modelcontextprotocol/server";
 import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
 import type express from "express";
 import type {
@@ -7,6 +7,7 @@ import type {
     RequestAuthInfo,
     HttpServerOptions,
     BaseServer,
+    NegotiatedClientState,
 } from "@mongodb-js/mcp-types";
 import { LogId, getRandomUUID, requestIdAttr } from "@mongodb-js/mcp-core";
 import { SessionLimitExceededError, type ISessionStore } from "@mongodb-js/mcp-core";
@@ -42,6 +43,16 @@ export type LegacySessionOptions = {
     idleTimeoutMS?: number;
     notificationTimeoutMS?: number;
     evictionIdleGraceMS?: number;
+    /**
+     * When true, the legacy (2025-era) HTTP transport accepts a client-supplied
+     * `mcp-session-id` header on `initialize` instead of rejecting it, and
+     * reuses that id for the session. When no session is found for a supplied
+     * id, the handler attempts an implicit re-initialization and restores the
+     * client's previously negotiated capabilities from the session store (see
+     * {@link ISessionStore.saveNegotiatedClientState}); a store without durable
+     * storage restores nothing. Defaults to `false`.
+     */
+    externallyManagedSessions?: boolean;
 };
 
 export type LegacyMcpHttpHandlerOptions = {
@@ -51,6 +62,12 @@ export type LegacyMcpHttpHandlerOptions = {
     http: HttpServerOptions;
     /** Session store backing the legacy sessionful path (auth-aware or durable). */
     sessionStore: ISessionStore<NodeStreamableHTTPServerTransport>;
+    /**
+     * When true, accept a client-supplied `mcp-session-id` on `initialize` and
+     * restore negotiated client state for implicitly re-initialized sessions.
+     * Defaults to `false`.
+     */
+    externallyManagedSessions?: boolean;
 };
 
 /**
@@ -89,12 +106,22 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
     private readonly logger: ILogger;
     private readonly http: HttpServerOptions;
     private readonly sessions: ISessionStore<NodeStreamableHTTPServerTransport>;
+    private readonly externallyManagedSessions: boolean;
+    /** Serializes concurrent initialization of the same session id (see {@link createSession}). */
+    private readonly pendingInitializations = new Map<string, Promise<NodeStreamableHTTPServerTransport>>();
 
-    constructor({ createServer, logger, http, sessionStore }: LegacyMcpHttpHandlerOptions) {
+    constructor({
+        createServer,
+        logger,
+        http,
+        sessionStore,
+        externallyManagedSessions = false,
+    }: LegacyMcpHttpHandlerOptions) {
         this.createServer = createServer;
         this.logger = logger;
         this.http = http;
         this.sessions = sessionStore;
+        this.externallyManagedSessions = externallyManagedSessions;
     }
 
     /** Closes every live session (e.g. on server shutdown). */
@@ -215,12 +242,76 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
      * the transport so later requests and the SSE idle stream reuse it (the
      * return channel the legacy elicitation shim needs).
      */
-    private async createSession(req: express.Request): Promise<NodeStreamableHTTPServerTransport> {
-        const sessionId = getRandomUUID();
+    /**
+     * Creates a fresh session (or returns the existing / in-flight one for an
+     * externally managed id). Concurrent initializations of the same session id
+     * are serialized so they don't race on `addSession` (see
+     * {@link createSessionInstance}).
+     */
+    private async createSession(
+        req: express.Request,
+        providedSessionId?: string,
+        isImplicitInitialization = false
+    ): Promise<NodeStreamableHTTPServerTransport> {
+        const sessionId = providedSessionId ?? getRandomUUID();
+
+        // An externally managed session may already exist in the store (e.g. a
+        // client re-sends `initialize` for the same id). Reuse it rather than
+        // creating a duplicate, which would throw "Session already exists".
+        const existingTransport = await this.sessions.getSession(sessionId, req.headers);
+        if (existingTransport) {
+            return existingTransport;
+        }
+
+        // Another request is already initializing this id; wait for it and reuse
+        // its transport instead of racing it.
+        const pendingInit = this.pendingInitializations.get(sessionId);
+        if (pendingInit) {
+            this.logger.debug({
+                id: LogId.streamableHttpTransportSessionNotFound,
+                context: "streamableHttpTransport",
+                message: `Session with ID ${sessionId} is already being initialized, waiting`,
+                attributes: { ...requestIdAttr(req.headers) },
+            });
+            try {
+                return await pendingInit;
+            } catch {
+                // The initializer handles its own error; fall through to retry.
+            }
+        }
+
+        const initPromise = this.createSessionInstance(req, sessionId, isImplicitInitialization);
+        this.pendingInitializations.set(sessionId, initPromise);
+        try {
+            return await initPromise;
+        } finally {
+            this.pendingInitializations.delete(sessionId);
+        }
+    }
+
+    /** Builds the server/transport pair and registers it in the session store. */
+    private async createSessionInstance(
+        req: express.Request,
+        sessionId: string,
+        isImplicitInitialization: boolean
+    ): Promise<NodeStreamableHTTPServerTransport> {
         const transport = new NodeStreamableHTTPServerTransport({
             sessionIdGenerator: (): string => sessionId,
             enableJsonResponse: this.http.responseType === "json",
         });
+
+        // HACK: When we're implicitly re-initializing an externally managed
+        // session, mark the transport as already initialized so the SDK does
+        // not reject follow-up requests with "transport not initialized".
+        if (isImplicitInitialization) {
+            const internalTransport = transport["_webStandardTransport"] as unknown as {
+                _initialized: boolean;
+                sessionId: string;
+            };
+            internalTransport._initialized = true;
+            internalTransport.sessionId = sessionId;
+        }
+
         const server = (await this.createServer(this.buildTransportContext(req))) as unknown as SessionfulServer;
 
         // Admit (check cap, evict LRU idle victim). A rejection admits nothing.
@@ -274,6 +365,12 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
             throw error;
         }
 
+        if (isImplicitInitialization) {
+            await this.restoreNegotiatedClientState(server, sessionId, req.headers);
+        } else {
+            this.captureNegotiatedClientStateOnInitialize(server, sessionId, req.headers);
+        }
+
         return transport;
     }
 
@@ -308,13 +405,15 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
         }
 
         if (isInitializeRequest(req.body)) {
-            if (sessionId) {
-                // This shim has no externally managed sessions; a client-provided
-                // session id on initialize is rejected as on main.
+            const resolvedSessionId =
+                typeof sessionId === "string" && this.externallyManagedSessions ? sessionId : undefined;
+            if (sessionId && !resolvedSessionId) {
+                // A client-supplied session id is only honored when externally
+                // managed sessions are enabled; otherwise it is rejected.
                 this.logger.debug({
                     id: LogId.streamableHttpTransportDisallowedExternalSessionError,
                     context: "streamableHttpTransport",
-                    message: `Client provided session ID ${sessionId} on initialize, but externally managed sessions are not supported`,
+                    message: `Client provided session ID ${sessionId}, but externallyManagedSessions is disabled`,
                     attributes: { ...requestIdAttr(req.headers) },
                 });
                 this.reportSessionError(res, JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION);
@@ -323,7 +422,7 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
 
             let transport: NodeStreamableHTTPServerTransport;
             try {
-                transport = await this.createSession(req);
+                transport = await this.createSession(req, resolvedSessionId);
             } catch (error) {
                 if (error instanceof SessionLimitExceededError) {
                     this.logger.warning({
@@ -363,17 +462,105 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
             this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_INVALID);
             return;
         }
-        const transport = await this.sessions.getSession(sessionId, req.headers);
+        let transport = await this.sessions.getSession(sessionId, req.headers);
         if (!transport) {
+            if (!this.externallyManagedSessions) {
+                this.logger.debug({
+                    id: LogId.streamableHttpTransportSessionNotFound,
+                    context: "streamableHttpTransport",
+                    message: `Session with ID ${sessionId} not found`,
+                    attributes: { ...requestIdAttr(req.headers) },
+                });
+                this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND);
+                return;
+            }
+
+            // Externally managed sessions may be implicitly re-initialized: a
+            // session held externally can arrive at this pod without being in
+            // the store. Build a fresh session under the supplied id and
+            // restore the client's previously negotiated capabilities (if the
+            // store persists them) instead of rejecting the request.
             this.logger.debug({
                 id: LogId.streamableHttpTransportSessionNotFound,
                 context: "streamableHttpTransport",
-                message: `Session with ID ${sessionId} not found`,
+                message: `Session with ID ${sessionId} not found, implicitly re-initializing`,
                 attributes: { ...requestIdAttr(req.headers) },
             });
-            this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_NOT_FOUND);
-            return;
+            transport = await this.createSession(req, sessionId, true);
         }
         await transport.handleRequest(req, res, req.body);
+    }
+
+    /**
+     * Restores the client state negotiated during the session's original
+     * `initialize` onto an implicitly re-initialized server. The session's
+     * server on this pod never saw the client's `initialize` request, so
+     * without this it would treat the client as capability-less — e.g.
+     * skipping confirmation elicitation for destructive tools. No-op when the
+     * session store does not persist negotiated client state.
+     */
+    private async restoreNegotiatedClientState(
+        server: SessionfulServer,
+        sessionId: string,
+        headers: Record<string, unknown>
+    ): Promise<void> {
+        let state: NegotiatedClientState | undefined;
+        try {
+            state = await this.sessions.loadNegotiatedClientState(sessionId, headers);
+        } catch (error) {
+            // The restored session stays usable; it just behaves as if the
+            // client had no optional capabilities.
+            this.logger.warning({
+                id: LogId.streamableHttpTransportClientStateRestoreFailure,
+                context: "streamableHttpTransport",
+                message: `Failed to restore negotiated client state for session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
+                attributes: { ...requestIdAttr(headers) },
+            });
+            return;
+        }
+        if (!state) {
+            return;
+        }
+
+        // HACK: the SDK offers no supported way to seed a Server with a
+        // previously negotiated initialization, so we write the private fields
+        // the initialize handler would have populated.
+        const protocolServer = server.mcpServer.server as unknown as {
+            _clientCapabilities?: ClientCapabilities;
+            _clientVersion?: Implementation;
+        };
+        protocolServer._clientCapabilities = state.clientCapabilities;
+        protocolServer._clientVersion = state.clientInfo;
+    }
+
+    /**
+     * Arranges for the client state negotiated by a real `initialize` exchange
+     * to be persisted through the session store, so implicit re-initializations
+     * of this session can restore it. Wraps the `oninitialized` callback
+     * installed by `server.connect`, hence must run after it.
+     */
+    private captureNegotiatedClientStateOnInitialize(
+        server: SessionfulServer,
+        sessionId: string,
+        headers: Record<string, unknown>
+    ): void {
+        const protocolServer = server.mcpServer.server;
+        const originalOnInitialized = protocolServer.oninitialized;
+        protocolServer.oninitialized = (): void => {
+            originalOnInitialized?.();
+
+            const state: NegotiatedClientState = {
+                clientCapabilities: protocolServer.getClientCapabilities(),
+                clientInfo: protocolServer.getClientVersion(),
+            };
+            this.sessions.saveNegotiatedClientState(sessionId, state, headers).catch((error: unknown) => {
+                this.logger.warning({
+                    id: LogId.streamableHttpTransportClientStateSaveFailure,
+                    context: "streamableHttpTransport",
+                    message: `Failed to save negotiated client state for session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
+                    attributes: { ...requestIdAttr(headers) },
+                });
+            });
+        };
     }
 }
