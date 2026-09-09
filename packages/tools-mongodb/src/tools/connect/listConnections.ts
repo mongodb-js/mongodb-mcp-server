@@ -5,21 +5,29 @@ import type { OperationType } from "@mongodb-js/mcp-types";
 import { ConnectionSummarySchema, summarizeConnection } from "../../common/connectionSummary.js";
 import { connectCapableTools } from "../../connectionErrorHandler.js";
 
+const ListConnectionsOutputSchema = {
+    connections: z.array(ConnectionSummarySchema),
+};
+
+const ListConnectionsArgsShape = {};
+
 export class ListConnectionsTool extends MongoDBToolBase {
     static toolName = "list-connections";
     public override description = this.server.config.connectionString
         ? 'List the active MongoDB connections and their connectionIds. Use this to discover the "preconfigured" connection or to find a connectionId established earlier.'
         : "List the active MongoDB connections and their connectionIds. Use this to find a connectionId established earlier.";
 
-    public override argsShape = {};
+    public override argsShape(): typeof ListConnectionsArgsShape {
+        return ListConnectionsArgsShape;
+    }
 
     static operationType: OperationType = "metadata";
 
-    public override outputSchema = {
-        connections: z.array(ConnectionSummarySchema),
-    };
+    public override outputSchema(): typeof ListConnectionsOutputSchema {
+        return ListConnectionsOutputSchema;
+    }
 
-    protected override async execute(): Promise<ToolResult<typeof this.outputSchema>> {
+    protected override async execute(): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const entries = await this.server.connectionRegistry.find();
         const connections = entries.map((entry) => summarizeConnection(entry));
 

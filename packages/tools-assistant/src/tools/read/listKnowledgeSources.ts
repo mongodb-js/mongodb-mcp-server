@@ -25,12 +25,16 @@ export type ListKnowledgeSourcesResponse = {
 
 export const ListKnowledgeSourcesToolName = "list-knowledge-sources";
 
+const ListKnowledgeSourcesArgsShape = {};
+
 export class ListKnowledgeSourcesTool extends AssistantToolBase {
     static toolName = ListKnowledgeSourcesToolName;
     static category: ToolCategory = "assistant";
     static operationType: OperationType = "read";
     public description = `List available data sources in the MongoDB Assistant knowledge base. Use this to explore available data sources or to find search filter parameters to use in search-knowledge.`;
-    public argsShape = {};
+    public argsShape(): typeof ListKnowledgeSourcesArgsShape {
+        return ListKnowledgeSourcesArgsShape;
+    }
 
     protected async execute(): Promise<CallToolResult> {
         const response = await this.callAssistantApi({

@@ -339,6 +339,46 @@ export const UpgradeClusterOutputSchema = {
     clusterId: z.string().optional(),
 };
 
+const UpgradeClusterArgsShape = {
+    projectId: AtlasArgs.projectId().describe("Atlas project ID"),
+    clusterName: AtlasArgs.clusterName().describe("Name of the cluster to upgrade"),
+    targetTier: z
+        .enum(["FLEX", ...standardInstanceSizeEnum.options])
+        .optional()
+        .describe(
+            "For a Free/Flex source cluster: the target tier to upgrade to, defaults to FLEX for Free clusters, M10 for Flex clusters. " +
+                "For a Dedicated cluster: the new instance size (M10-M80) to scale it to."
+        ),
+    computeAutoScaling: z
+        .boolean()
+        .optional()
+        .describe(
+            "Enable/disable compute autoscaling, for a Dedicated cluster or a Free/Flex-to-M10 upgrade. Omit unless explicitly specified by the user."
+        ),
+    minInstanceSize: standardInstanceSizeEnum
+        .optional()
+        .describe(
+            "Minimum instance size (M10-M80) for compute autoscaling, for a Dedicated cluster or a Free/Flex-to-M10 upgrade. Omit unless explicitly specified by the user."
+        ),
+    maxInstanceSize: maxAutoScalingSizeEnum
+        .optional()
+        .describe(
+            "Maximum instance size (M10-M200) for compute autoscaling, for a Dedicated cluster or a Free/Flex-to-M10 upgrade. Omit unless explicitly specified by the user."
+        ),
+    provider: z
+        .string()
+        .regex(ALLOWED_PROVIDER_REGEX, "Provider must be uppercase letters and underscores only")
+        .optional()
+        .describe(
+            "Cloud provider (e.g. AWS, GCP, AZURE) for a Free/Flex source cluster. Preserves the existing value if omitted. Does not apply if a cluster is already Dedicated."
+        ),
+    region: AtlasArgs.region()
+        .optional()
+        .describe(
+            "Cloud provider region in Atlas format using uppercase letters and underscores (e.g. US_EAST_1) for a Free/Flex source cluster. Preserves the existing value if omitted. Does not apply if a cluster is already Dedicated."
+        ),
+};
+
 export class UpgradeClusterTool extends AtlasToolBase {
     static toolName = "atlas-upgrade-cluster";
     public description =
@@ -348,51 +388,17 @@ export class UpgradeClusterTool extends AtlasToolBase {
         "Note to LLM: If provider and region are not already known, ask for both together in a single question before calling this tool. " +
         "Use atlas-get-regions to resolve natural-language locations or uncertain region codes before calling this tool.";
     static operationType: OperationType = "update";
-    public override outputSchema = UpgradeClusterOutputSchema;
-    public argsShape = {
-        projectId: AtlasArgs.projectId().describe("Atlas project ID"),
-        clusterName: AtlasArgs.clusterName().describe("Name of the cluster to upgrade"),
-        targetTier: z
-            .enum(["FLEX", ...standardInstanceSizeEnum.options])
-            .optional()
-            .describe(
-                "For a Free/Flex source cluster: the target tier to upgrade to, defaults to FLEX for Free clusters, M10 for Flex clusters. " +
-                    "For a Dedicated cluster: the new instance size (M10-M80) to scale it to."
-            ),
-        computeAutoScaling: z
-            .boolean()
-            .optional()
-            .describe(
-                "Enable/disable compute autoscaling, for a Dedicated cluster or a Free/Flex-to-M10 upgrade. Omit unless explicitly specified by the user."
-            ),
-        minInstanceSize: standardInstanceSizeEnum
-            .optional()
-            .describe(
-                "Minimum instance size (M10-M80) for compute autoscaling, for a Dedicated cluster or a Free/Flex-to-M10 upgrade. Omit unless explicitly specified by the user."
-            ),
-        maxInstanceSize: maxAutoScalingSizeEnum
-            .optional()
-            .describe(
-                "Maximum instance size (M10-M200) for compute autoscaling, for a Dedicated cluster or a Free/Flex-to-M10 upgrade. Omit unless explicitly specified by the user."
-            ),
-        provider: z
-            .string()
-            .regex(ALLOWED_PROVIDER_REGEX, "Provider must be uppercase letters and underscores only")
-            .optional()
-            .describe(
-                "Cloud provider (e.g. AWS, GCP, AZURE) for a Free/Flex source cluster. Preserves the existing value if omitted. Does not apply if a cluster is already Dedicated."
-            ),
-        region: AtlasArgs.region()
-            .optional()
-            .describe(
-                "Cloud provider region in Atlas format using uppercase letters and underscores (e.g. US_EAST_1) for a Free/Flex source cluster. Preserves the existing value if omitted. Does not apply if a cluster is already Dedicated."
-            ),
-    };
+    public override outputSchema(): typeof UpgradeClusterOutputSchema {
+        return UpgradeClusterOutputSchema;
+    }
+    public argsShape(): typeof UpgradeClusterArgsShape {
+        return UpgradeClusterArgsShape;
+    }
 
     protected async execute(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         { request }: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const { projectId, clusterName } = args;
 
         const clusterInfo = await resolveClusterInfo(
@@ -614,7 +620,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
         };
     }
 
-    protected override handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): CallToolResult {
+    protected override handleError(error: unknown, args: ToolArgs<ReturnType<typeof this.argsShape>>): CallToolResult {
         if (error instanceof UpgradeClusterError) {
             return {
                 content: [{ type: "text", text: error.message }],
@@ -670,7 +676,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
     }
 
     protected override async resolveTelemetryMetadata(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         context: { result: CallToolResult }
     ): Promise<UpgradeClusterMetadata> {
         const parentMetadata = await super.resolveTelemetryMetadata(args, context);

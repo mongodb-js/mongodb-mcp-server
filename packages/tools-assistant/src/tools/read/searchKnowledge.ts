@@ -54,11 +54,11 @@ export class SearchKnowledgeTool extends AssistantToolBase {
     static operationType: OperationType = "read";
     public description =
         "Search for information in the MongoDB Assistant knowledge base. This includes official documentation, curated expert guidance, and other resources provided by MongoDB. Supports filtering by data source and version.";
-    public argsShape = {
-        ...SearchKnowledgeToolArgs,
-    };
+    public argsShape(): typeof SearchKnowledgeToolArgs {
+        return SearchKnowledgeToolArgs;
+    }
 
-    protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute(args: ToolArgs<ReturnType<typeof this.argsShape>>): Promise<CallToolResult> {
         const response = await this.callAssistantApi({
             method: "POST",
             endpoint: "content/search",

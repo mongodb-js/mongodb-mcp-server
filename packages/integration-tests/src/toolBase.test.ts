@@ -759,7 +759,7 @@ describe("ToolBase", () => {
         });
     });
 
-    describe("shared schema caching", () => {
+    describe("static argsShape/outputSchema", () => {
         type CapturedSchema = {
             safeParseAsync: (value: unknown) => Promise<{ success: boolean; error?: { issues: unknown[] } }>;
         };
@@ -785,28 +785,23 @@ describe("ToolBase", () => {
             return new TestToolWithOutputSchema({ server: mockServer });
         }
 
-        it("reuses one input schema instance across registrations of the same tool", () => {
-            expect(register(newTestTool()).inputSchema).toBe(register(newTestTool()).inputSchema);
-        });
-
-        it("redirects each instance's argsShape to the shared shape", () => {
+        it("returns the same argsShape object across instances of the same tool", () => {
             const t1 = newTestTool();
             const t2 = newTestTool();
-            register(t1);
-            register(t2);
-            expect(t1.argsShape).toBe(t2.argsShape);
+            expect(t1.argsShape()).toBe(t2.argsShape());
         });
 
-        it("reuses one output schema instance across registrations", () => {
-            const a = register(newToolWithOutput()).outputSchema;
-            const b = register(newToolWithOutput()).outputSchema;
-            expect(a).toBeDefined();
-            expect(a).toBe(b);
+        it("returns the same outputSchema object across instances of the same tool", () => {
+            const a = newToolWithOutput();
+            const b = newToolWithOutput();
+            expect(a.outputSchema?.()).toBeDefined();
+            expect(a.outputSchema?.()).toBe(b.outputSchema?.());
         });
 
         it("keeps concurrent validation errors isolated across sessions", async () => {
-            // Two sessions share one schema instance; each concurrent parse must
-            // return its own error reflecting its own input, with no cross-talk.
+            // Two "sessions" here parse concurrently against the schema built for a
+            // single registration; each concurrent parse must return its own error
+            // reflecting its own input, with no cross-talk.
             const schema = register(newTestTool()).inputSchema;
             const [wrongType, unknownKey] = await Promise.all([
                 schema.safeParseAsync({ param1: 123 }),
@@ -823,7 +818,7 @@ describe("ToolBase", () => {
             register(newTestTool());
             const t = newTestTool();
             register(t);
-            expect(Object.keys(t.argsShape).sort()).toEqual(["param1", "param2"]);
+            expect(Object.keys(t.argsShape()).sort()).toEqual(["param1", "param2"]);
         });
     });
 });

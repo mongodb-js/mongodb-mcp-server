@@ -205,7 +205,7 @@ describe("UpgradeClusterTool", () => {
 
     describe("error cases", () => {
         it("requires projectId and clusterName in the args schema", () => {
-            const schema = z.object(tool.argsShape);
+            const schema = z.object(tool.argsShape());
 
             expect(schema.safeParse({}).success).toBe(false);
             expect(schema.safeParse({ projectId: "507f1f77bcf86cd799439011" }).success).toBe(false);

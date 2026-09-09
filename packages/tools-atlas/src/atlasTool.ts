@@ -43,7 +43,7 @@ export abstract class AtlasToolBase extends ToolBase<AtlasToolServer> {
 
     protected handleError(
         error: unknown,
-        args: ToolArgs<typeof this.argsShape>
+        args: ToolArgs<ReturnType<typeof this.argsShape>>
     ): Promise<CallToolResult> | CallToolResult {
         if (error instanceof ApiClientError) {
             const statusCode = error.response.status;
@@ -109,14 +109,14 @@ For more information on Atlas API access roles, visit: https://www.mongodb.com/d
      * @returns The tool metadata
      */
     protected resolveTelemetryMetadata(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         { result }: { result: CallToolResult }
     ): AtlasMetadata | Promise<AtlasMetadata> {
         const toolMetadata: AtlasMetadata = {};
 
         // Create a typed parser for the exact shape we expect
-        const argsShape = z.object(this.argsShape);
+        const argsShape = z.object(this.argsShape());
         const parsedResult = argsShape.safeParse(args);
 
         if (!parsedResult.success) {
