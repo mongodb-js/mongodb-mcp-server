@@ -40,11 +40,7 @@ jobs:
           set -euo pipefail
           npm version "$INPUTS_VERSION" --no-git-tag-version --allow-same-version
           NEW_VERSION=$(npm pkg get version | tr -d '"')
-          # Version-sync the scoped @mongodb-js/mcp-* packages AND the published mongodb-mcp-server
-          # package with the server. mongodb-mcp-server is unscoped so it isn't caught by the scope
-          # filter above; it is the package the publish workflow reads its version from, so it must be
-          # bumped here or publish would ship a stale version. mongodb-atlas-mcp-remote is intentionally
-          # unscoped so it versions independently and is excluded.
+          # mongodb-mcp-server is unscoped, so it isn't caught by the @mongodb-js/mcp-* filter below.
           pnpm -r --filter '@mongodb-js/mcp-*' exec npm version "$NEW_VERSION" --no-git-tag-version --allow-same-version
           pnpm --filter 'mongodb-mcp-server' exec npm version "$NEW_VERSION" --no-git-tag-version --allow-same-version
           pnpm run build:update-package-version
