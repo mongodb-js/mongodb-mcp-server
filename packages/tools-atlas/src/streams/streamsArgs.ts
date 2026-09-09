@@ -183,6 +183,13 @@ export const StreamsAutoscaling = z.object({
 
 type StreamsAutoscalingValue = z.infer<typeof StreamsAutoscaling>;
 
+/**
+ * Normalizes an Atlas `StreamsAutoscaling` response for tool structured output.
+ * The Atlas API may return the object as `null` (disabled/cleared), a null `enabled`,
+ * and/or an extra read-only `links` array; this projects only the declared fields
+ * (enabled/minTier/maxTier) and maps null/cleared to `undefined` (omitted), so the
+ * tool's own `StreamsAutoscaling` surface never carries null or undeclared keys.
+ */
 export function toStreamsAutoscaling(
     data:
         | {

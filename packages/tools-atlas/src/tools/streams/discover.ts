@@ -21,6 +21,8 @@ type StreamsProcessorWithStats = {
     stats?: Record<string, unknown>;
     options?: {
         dlq?: { connectionName?: string; db?: string; coll?: string };
+        // Atlas returns `autoscaling: null` (and `enabled: null`) when autoscaling is
+        // disabled/cleared; toStreamsAutoscaling normalizes this before structured output.
         autoscaling?: {
             enabled?: boolean | null;
             minTier?: StreamsTierValue | null;
