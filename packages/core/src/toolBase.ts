@@ -732,8 +732,8 @@ export abstract class ToolBase<
                     // Wrap the raw shape in a strict object so the SDK rejects unrecognized
                     // argument keys instead of silently stripping them (see MCP-602). Only the
                     // top-level object is strict; nested schemas keep their own behavior.
-                    inputSchema: z.object(this.argsShape()).strict(),
-                    outputSchema: this.outputSchema ? z.object(this.outputSchema()) : undefined,
+                    inputSchema: ToolBase.cachedInputSchema(this.argsShape()),
+                    outputSchema: ToolBase.cachedOutputSchema(this.outputSchema?.()),
                     annotations: this.annotations,
                     _meta: this.toolMeta,
                 },
@@ -746,6 +746,28 @@ export abstract class ToolBase<
             );
 
         return true;
+    }
+
+    // Caches so that we always pass the same instances to the MCP SDK
+    private static inputSchemaCache = new WeakMap<ZodRawShape, z.ZodObject<ZodRawShape>>();
+    private static outputSchemaCache = new WeakMap<ZodRawShape, z.ZodObject<ZodRawShape>>();
+    private static cachedInputSchema(inputShape: ZodRawShape): z.ZodObject<ZodRawShape> {
+        if (!this.inputSchemaCache.has(inputShape)) {
+            this.inputSchemaCache.set(inputShape, z.object(inputShape).strict());
+        }
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        return this.inputSchemaCache.get(inputShape)!;
+    }
+
+    private static cachedOutputSchema(outputShape: ZodRawShape | undefined): z.ZodObject<ZodRawShape> | undefined {
+        if (!outputShape) {
+            return undefined;
+        }
+        if (!this.outputSchemaCache.has(outputShape)) {
+            this.outputSchemaCache.set(outputShape, z.object(outputShape).strict());
+        }
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        return this.outputSchemaCache.get(outputShape)!;
     }
 
     public isEnabled(): boolean {
