@@ -16,7 +16,7 @@ import type { ConnectionMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "./common/errors.js";
 import type { ConnectionEntry, ConnectionRegistry } from "./common/connectionRegistry.js";
-import { assertNoServerSideJS, isWriteStage, type WriteStageTarget } from "./helpers/mqlGuards.js";
+import { assertNoServerSideJS, assertNoWriteStages, type WriteStageTarget } from "./helpers/mqlGuards.js";
 import { buildWriteStageConfirmationMessage } from "./helpers/writeStageConfirmation.js";
 import { EXPORT_TOOL_NAME } from "./helpers/constants.js";
 import type { AvailableExport, CreateJSONExportParams } from "./common/exportsManager.js";
@@ -211,11 +211,7 @@ export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
             }
 
             if (writeStageForbiddenErrorMessage) {
-                for (const stage of value) {
-                    if (isWriteStage(stage)) {
-                        throw new MongoDBError(ErrorCodes.ForbiddenWriteOperation, writeStageForbiddenErrorMessage);
-                    }
-                }
+                assertNoWriteStages(value, writeStageForbiddenErrorMessage);
             }
         }
     }
