@@ -61,7 +61,7 @@ export class ConnectTool extends MongoDBToolBase {
         const connectionId = (result.structuredContent as ToolOutput<typeof ConnectOutputSchema>).connectionId;
         return {
             ...(connectionId && { connection_id: connectionId }),
-            ...this.getConnectionInfoMetadata((await this.peekConnection(connectionId))?.state),
+            ...this.getConnectionInfoMetadata(await this.peekConnection(connectionId)),
         };
     }
 }

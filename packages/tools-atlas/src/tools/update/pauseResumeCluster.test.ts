@@ -168,12 +168,12 @@ describe("PauseResumeClusterTool", () => {
             clusterName: CLUSTER_NAME,
             clusterId: "test-cluster-id",
             instanceType: "DEDICATED",
-            username: "test-user",
         };
 
         it("revokes matching connections and mentions them in the response when pausing the cluster", async () => {
             const entry = await connectionRegistry.connect({
-                settings: { connectionString: "mongodb://localhost:27017", atlas: connectedCluster },
+                settings: { connectionString: "mongodb://localhost:27017" },
+                atlasCluster: connectedCluster,
             });
 
             const result = await exec({ ...BASE_ARGS, action: "PAUSE" });
@@ -188,10 +188,8 @@ describe("PauseResumeClusterTool", () => {
 
         it("does not disconnect connections to a different cluster", async () => {
             const entry = await connectionRegistry.connect({
-                settings: {
-                    connectionString: "mongodb://localhost:27017",
-                    atlas: { ...connectedCluster, clusterName: "other-cluster" },
-                },
+                settings: { connectionString: "mongodb://localhost:27017" },
+                atlasCluster: { ...connectedCluster, clusterName: "other-cluster" },
             });
 
             const result = await exec({ ...BASE_ARGS, action: "PAUSE" });

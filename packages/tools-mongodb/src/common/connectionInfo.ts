@@ -36,17 +36,18 @@ export interface ConnectionStringInfo {
  * Get metadata about the connection string including authentication type and host type.
  * @param connectionString - The connection string to analyze.
  * @param connectionInfo - Transport / browser hints used to determine auth type.
- * @param atlasInfo - Optional Atlas cluster connection info. If provided, host type is set to "atlas".
+ * @param hostType - Overrides the host type inferred from the connection string
+ *   (e.g. `"atlas"` for a cluster reached through a private or mesh address).
  * @returns The connection string metadata.
  */
 export function getConnectionStringInfo(
     connectionString: string,
     connectionInfo: ConnectionInfo,
-    atlasInfo?: AtlasClusterConnectionInfo
+    hostType?: ConnectionStringHostType
 ): ConnectionStringInfo {
     return {
         authType: getAuthType(connectionInfo, connectionString),
-        hostType: atlasInfo !== undefined ? "atlas" : getHostType(connectionString),
+        hostType: hostType ?? getHostType(connectionString),
     };
 }
 

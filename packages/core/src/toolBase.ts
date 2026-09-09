@@ -23,6 +23,7 @@ import type {
     IToolConfig,
     SupportedConnectionState,
     TransportRequestContext,
+    AtlasClusterConnectionInfo,
 } from "@mongodb-js/mcp-types";
 import { createUIResource, type UIResource } from "@mcp-ui/server";
 import { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
@@ -979,22 +980,31 @@ export abstract class ToolBase<
         return this.server.config.previewFeatures.includes(feature);
     }
 
-    protected getConnectionInfoMetadata(connectionState?: SupportedConnectionState): ConnectionMetadata {
+    /**
+     * Telemetry metadata for the connection entry a tool call ran against.
+     * Auth and host type come from the live state; Atlas attribution comes
+     * from the entry's `atlasCluster`, which a registry may know without a
+     * live connection.
+     */
+    protected getConnectionInfoMetadata(entry?: {
+        state: SupportedConnectionState;
+        atlasCluster?: AtlasClusterConnectionInfo;
+    }): ConnectionMetadata {
         const metadata: ConnectionMetadata = {};
 
-        if (connectionState === undefined) {
+        if (entry === undefined) {
             return metadata;
         }
 
-        if (connectionState.connectionStringInfo !== undefined) {
-            metadata.connection_auth_type = connectionState.connectionStringInfo.authType;
-            metadata.connection_host_type = connectionState.connectionStringInfo.hostType;
+        if (entry.state.connectionStringInfo !== undefined) {
+            metadata.connection_auth_type = entry.state.connectionStringInfo.authType;
+            metadata.connection_host_type = entry.state.connectionStringInfo.hostType;
         }
 
-        if (connectionState.connectedAtlasCluster) {
-            metadata.project_id = connectionState.connectedAtlasCluster.projectId;
-            metadata.cluster_name = connectionState.connectedAtlasCluster.clusterName;
-            metadata.cluster_id = connectionState.connectedAtlasCluster.clusterId;
+        if (entry.atlasCluster) {
+            metadata.project_id = entry.atlasCluster.projectId;
+            metadata.cluster_name = entry.atlasCluster.clusterName;
+            metadata.cluster_id = entry.atlasCluster.clusterId;
         }
 
         return metadata;

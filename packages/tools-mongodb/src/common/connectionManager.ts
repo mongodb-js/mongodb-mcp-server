@@ -13,7 +13,7 @@ import { type AppNameComponents, setAppNameParamIfMissing } from "../helpers/con
 import {
     getConnectionStringInfo,
     type ConnectionStringInfo,
-    type AtlasClusterConnectionInfo,
+    type ConnectionStringHostType,
     type ConnectionInfo,
 } from "./connectionInfo.js";
 import type { ServerMetadata } from "@mongodb-js/mcp-types";
@@ -28,7 +28,12 @@ export interface ConnectionSettings extends Omit<MongoshConnectionInfo, "driverO
      * mirroring the preconfigured-connection path.
      */
     driverOptions?: MongoshConnectionInfo["driverOptions"];
-    atlas?: AtlasClusterConnectionInfo;
+    /**
+     * Overrides the host type inferred from the connection string. An entry
+     * bound to an Atlas cluster passes `"atlas"` so a connection through a
+     * private or mesh address is still classified as Atlas.
+     */
+    hostType?: ConnectionStringHostType;
 }
 
 export type ConnectionTag = "connected" | "connecting" | "disconnected" | "errored";
@@ -37,7 +42,6 @@ export type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
 export interface ConnectionState {
     tag: ConnectionTag;
     connectionStringInfo?: ConnectionStringInfo;
-    connectedAtlasCluster?: AtlasClusterConnectionInfo;
 }
 
 const SEARCH_PROBE_COLLECTION_NAME = "test";
@@ -64,20 +68,16 @@ export class ConnectionStateConnected implements ConnectionState {
 
     public serviceProvider: NodeDriverServiceProvider;
     public connectionStringInfo?: ConnectionStringInfo;
-    public connectedAtlasCluster?: AtlasClusterConnectionInfo;
 
     constructor({
         serviceProvider,
         connectionStringInfo,
-        connectedAtlasCluster,
     }: {
         serviceProvider: NodeDriverServiceProvider;
         connectionStringInfo?: ConnectionStringInfo;
-        connectedAtlasCluster?: AtlasClusterConnectionInfo;
     }) {
         this.serviceProvider = serviceProvider;
         this.connectionStringInfo = connectionStringInfo;
-        this.connectedAtlasCluster = connectedAtlasCluster;
     }
 
     private _isSearchSupported?: boolean;
@@ -437,7 +437,7 @@ export class MCPConnectionManager extends ConnectionManager {
             connectionStringInfo = getConnectionStringInfo(
                 mongoshConnectionInfo.connectionString,
                 this.connectionInfo,
-                settings.atlas
+                settings.hostType
             );
 
             serviceProvider = NodeDriverServiceProvider.connect(
@@ -456,7 +456,6 @@ export class MCPConnectionManager extends ConnectionManager {
                 tag: "errored",
                 errorReason,
                 connectionStringInfo,
-                connectedAtlasCluster: settings.atlas,
             });
             throw new MongoDBError(ErrorCodes.MisconfiguredConnectionString, errorReason);
         }
@@ -466,7 +465,6 @@ export class MCPConnectionManager extends ConnectionManager {
                 return this.changeState("connection-request", {
                     tag: "connecting",
                     serviceProvider,
-                    connectedAtlasCluster: settings.atlas,
                     connectionStringInfo,
                     oidcConnectionType: connectionStringInfo.authType as OIDCConnectionAuthType,
                 });
@@ -477,7 +475,6 @@ export class MCPConnectionManager extends ConnectionManager {
                 new ConnectionStateConnected({
                     serviceProvider: await serviceProvider,
                     connectionStringInfo,
-                    connectedAtlasCluster: settings.atlas,
                 })
             );
         } catch (error: unknown) {
@@ -486,7 +483,6 @@ export class MCPConnectionManager extends ConnectionManager {
                 tag: "errored",
                 errorReason,
                 connectionStringInfo,
-                connectedAtlasCluster: settings.atlas,
             });
             throw new MongoDBError(ErrorCodes.NotConnectedToMongoDB, errorReason);
         }
@@ -561,7 +557,6 @@ export class MCPConnectionManager extends ConnectionManager {
                 new ConnectionStateConnected({
                     serviceProvider: await this.currentConnectionState.serviceProvider,
                     connectionStringInfo: this.currentConnectionState.connectionStringInfo,
-                    connectedAtlasCluster: this.currentConnectionState.connectedAtlasCluster,
                 })
             );
         }

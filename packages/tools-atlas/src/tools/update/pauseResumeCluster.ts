@@ -72,8 +72,7 @@ export class PauseResumeClusterTool extends AtlasToolBase {
             // Revoke any connections established to the cluster being paused.
             const affected = await this.server.connectionRegistry.find(
                 (entry) =>
-                    entry.state.connectedAtlasCluster?.projectId === projectId &&
-                    entry.state.connectedAtlasCluster?.clusterName === clusterName
+                    entry.atlasCluster?.projectId === projectId && entry.atlasCluster?.clusterName === clusterName
             );
             for (const entry of affected) {
                 await this.server.connectionRegistry.disconnect(entry.connectionId);

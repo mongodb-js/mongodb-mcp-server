@@ -132,6 +132,26 @@ describe("ConnectionEntry with MCPConnectionManager", () => {
         });
     });
 
+    describe("atlasCluster", () => {
+        const atlas = { projectId: "proj1", clusterName: "cluster1", clusterId: "cluster-id-1" };
+
+        it("is the cluster the entry was created for and marks the connection's host type as atlas", async () => {
+            const entry = await registry.connect({
+                settings: { connectionString: "mongodb://localhost:27017" },
+                atlasCluster: atlas,
+            });
+
+            expect(entry.atlasCluster).toEqual(atlas);
+            expect(entry.state.connectionStringInfo?.hostType).toBe("atlas");
+        });
+
+        it("is undefined for an entry that has not connected to an Atlas cluster", async () => {
+            const entry = await registry.createEntry({ name: "cold" });
+
+            expect(entry.atlasCluster).toBeUndefined();
+        });
+    });
+
     describe("isSearchSupported", () => {
         let getSearchIndexesMock: MockedFunction<() => unknown>;
         let createSearchIndexesMock: MockedFunction<() => unknown>;
