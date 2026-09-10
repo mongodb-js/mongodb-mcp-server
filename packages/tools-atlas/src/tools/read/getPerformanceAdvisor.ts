@@ -38,37 +38,43 @@ const GetPerformanceAdvisorOutputSchema = {
     schemaSuggestions: z.array(z.unknown()).optional(),
 };
 
+const GetPerformanceAdvisorArgsShape = {
+    projectId: AtlasArgs.projectId().describe(
+        "Atlas project ID to get performance advisor recommendations. The project ID is a hexadecimal identifier of 24 characters. If the user has only specified the name, use the `atlas-list-projects` tool to retrieve the user's projects with their ids."
+    ),
+    clusterName: AtlasArgs.clusterName().describe("Atlas cluster name to get performance advisor recommendations"),
+    operations: z
+        .array(PerformanceAdvisorOperationType)
+        .default(PerformanceAdvisorOperationType.options)
+        .describe("Operations to get performance advisor recommendations"),
+    since: z
+        .string()
+        .datetime()
+        .describe(
+            "Date to get slow query logs since. Must be a string in ISO 8601 format. Only relevant for the slowQueryLogs operation."
+        )
+        .optional(),
+    namespaces: z
+        .array(z.string())
+        .describe("Namespaces to get slow query logs. Only relevant for the slowQueryLogs operation.")
+        .optional(),
+};
+
 export class GetPerformanceAdvisorTool extends AtlasToolBase {
     static toolName = "atlas-get-performance-advisor";
     public description = `Get MongoDB Atlas performance advisor recommendations and suggestions, which includes the operations: suggested indexes, drop index suggestions, schema suggestions, and a sample of the most recent (max ${DEFAULT_SLOW_QUERY_LOGS_LIMIT}) slow query logs`;
     static operationType: OperationType = "read";
-    public argsShape = {
-        projectId: AtlasArgs.projectId().describe(
-            "Atlas project ID to get performance advisor recommendations. The project ID is a hexadecimal identifier of 24 characters. If the user has only specified the name, use the `atlas-list-projects` tool to retrieve the user's projects with their ids."
-        ),
-        clusterName: AtlasArgs.clusterName().describe("Atlas cluster name to get performance advisor recommendations"),
-        operations: z
-            .array(PerformanceAdvisorOperationType)
-            .default(PerformanceAdvisorOperationType.options)
-            .describe("Operations to get performance advisor recommendations"),
-        since: z
-            .string()
-            .datetime()
-            .describe(
-                "Date to get slow query logs since. Must be a string in ISO 8601 format. Only relevant for the slowQueryLogs operation."
-            )
-            .optional(),
-        namespaces: z
-            .array(z.string())
-            .describe("Namespaces to get slow query logs. Only relevant for the slowQueryLogs operation.")
-            .optional(),
-    };
-    public override outputSchema = GetPerformanceAdvisorOutputSchema;
+    public argsShape(): typeof GetPerformanceAdvisorArgsShape {
+        return GetPerformanceAdvisorArgsShape;
+    }
+    public override outputSchema(): typeof GetPerformanceAdvisorOutputSchema {
+        return GetPerformanceAdvisorOutputSchema;
+    }
 
     protected async execute(
-        { projectId, clusterName, operations, since, namespaces }: ToolArgs<typeof this.argsShape>,
+        { projectId, clusterName, operations, since, namespaces }: ToolArgs<ReturnType<typeof this.argsShape>>,
         { request }: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const [suggestedIndexesResult, dropIndexSuggestionsResult, slowQueryLogsResult, schemaSuggestionsResult] =
             await Promise.allSettled([
                 operations.includes("suggestedIndexes")
@@ -177,7 +183,7 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
 
     protected override handleError(
         error: unknown,
-        args: ToolArgs<typeof this.argsShape>
+        args: ToolArgs<ReturnType<typeof this.argsShape>>
     ): Promise<CallToolResult> | CallToolResult {
         if (error instanceof ApiClientError) {
             return super.handleError(error, args);
@@ -195,7 +201,7 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
     }
 
     protected override async resolveTelemetryMetadata(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         { result }: { result: CallToolResult }
     ): Promise<PerfAdvisorToolMetadata> {
         return {

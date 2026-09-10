@@ -224,6 +224,7 @@ describe("configOverrides", () => {
                         "allowRequestOverrides",
                         "dryRun",
                         "httpResponseType",
+                        "externallyManagedSessions",
                         "healthCheckHost",
                         "healthCheckPort",
                         "monitoringServerHost",

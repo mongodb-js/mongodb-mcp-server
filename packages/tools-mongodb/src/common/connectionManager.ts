@@ -18,7 +18,7 @@ import {
 } from "./connectionInfo.js";
 import type { ServerMetadata } from "@mongodb-js/mcp-types";
 
-export type { ConnectionStringInfo, ConnectionStringAuthType, AtlasClusterConnectionInfo } from "./connectionInfo.js";
+export type { ConnectionStringInfo, AtlasClusterConnectionInfo } from "./connectionInfo.js";
 
 export interface ConnectionSettings extends Omit<MongoshConnectionInfo, "driverOptions"> {
     /**

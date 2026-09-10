@@ -577,27 +577,57 @@ describeWithMongoDB(
                 integration.mcpServer().userConfig.disabledTools = [];
             });
 
+            // No configuration lets export run a write stage, so the rejection
+            // reason must not vary with the write-related settings.
+            const writeConfigs: { name: string; apply: () => void }[] = [
+                { name: "write operations are allowed", apply: (): void => {} },
+                {
+                    name: "in readOnly mode",
+                    apply: (): void => {
+                        integration.mcpServer().userConfig.readOnly = true;
+                    },
+                },
+                {
+                    name: "when write operations are disabled",
+                    apply: (): void => {
+                        integration.mcpServer().userConfig.disabledTools = ["create", "update", "delete"];
+                    },
+                },
+            ];
+
             for (const stage of [{ $out: "outpeople" }, { $merge: "outpeople" }]) {
                 const operator = Object.keys(stage)[0];
 
-                it(`rejects aggregate targets using ${operator} in readOnly mode`, async function () {
-                    integration.mcpServer().userConfig.readOnly = true;
-                    const response = await integration.mcpClient().callTool({
-                        name: "export",
-                        arguments: {
-                            connectionId,
-                            database: integration.randomDbName(),
-                            collection: "foo",
-                            exportTitle: `Export with ${operator}`,
-                            exportTarget: [{ name: "aggregate", arguments: { pipeline: [stage] } }],
-                        },
-                    });
-                    const content = getResponseContent(response.content);
-                    expect(content).toContain("In readOnly mode you can not run pipelines with $out or $merge stages.");
-                });
+                for (const { name, apply } of writeConfigs) {
+                    it(`rejects aggregate targets using ${operator} ${name}`, async function () {
+                        apply();
+                        const response = await integration.mcpClient().callTool({
+                            name: "export",
+                            arguments: {
+                                connectionId,
+                                database: integration.randomDbName(),
+                                collection: "foo",
+                                exportTitle: `Export with ${operator}`,
+                                exportTarget: [{ name: "aggregate", arguments: { pipeline: [stage] } }],
+                            },
+                        });
+                        const content = getResponseContent(response.content);
+                        expect(content).toContain(
+                            "The export tool can not run pipelines with $out or $merge stages. Use the aggregate tool to run a pipeline that writes to a collection."
+                        );
 
-                it(`rejects aggregate targets using ${operator} when write operations are disabled`, async function () {
-                    integration.mcpServer().userConfig.disabledTools = ["create", "update", "delete"];
+                        // The rejection happens before the pipeline runs, so the
+                        // targeted collection must not have been created.
+                        const collections = await integration
+                            .mongoClient()
+                            .db(integration.randomDbName())
+                            .listCollections({ name: "outpeople" })
+                            .toArray();
+                        expect(collections).toHaveLength(0);
+                    });
+                }
+
+                it(`rejects aggregate targets using ${operator} that are not the last stage`, async function () {
                     const response = await integration.mcpClient().callTool({
                         name: "export",
                         arguments: {
@@ -605,15 +635,47 @@ describeWithMongoDB(
                             database: integration.randomDbName(),
                             collection: "foo",
                             exportTitle: `Export with ${operator}`,
-                            exportTarget: [{ name: "aggregate", arguments: { pipeline: [stage] } }],
+                            exportTarget: [
+                                { name: "aggregate", arguments: { pipeline: [stage, { $match: { age: 5 } }] } },
+                            ],
                         },
                     });
                     const content = getResponseContent(response.content);
-                    expect(content).toContain(
-                        "When 'create', 'update', or 'delete' operations are disabled, you can not run pipelines with $out or $merge stages."
-                    );
+                    expect(content).toContain("The export tool can not run pipelines with $out or $merge stages.");
                 });
             }
+
+            it("allows aggregate targets without write stages", async function () {
+                const response = await integration.mcpClient().callTool({
+                    name: "export",
+                    arguments: {
+                        connectionId,
+                        database: integration.randomDbName(),
+                        collection: "foo",
+                        exportTitle: "Export without write stages",
+                        exportTarget: [
+                            { name: "aggregate", arguments: { pipeline: [{ $match: { age: { $gt: 8 } } }] } },
+                        ],
+                    },
+                });
+                const content = response.content as CallToolResult["content"];
+                expect(contentWithResourceURILink(content)).toBeDefined();
+            });
+
+            it("allows find targets while write stages are forbidden", async function () {
+                const response = await integration.mcpClient().callTool({
+                    name: "export",
+                    arguments: {
+                        connectionId,
+                        database: integration.randomDbName(),
+                        collection: "foo",
+                        exportTitle: "Export find target",
+                        exportTarget: [{ name: "find", arguments: { filter: {} } }],
+                    },
+                });
+                const content = response.content as CallToolResult["content"];
+                expect(contentWithResourceURILink(content)).toBeDefined();
+            });
         });
     },
     {

@@ -51,7 +51,7 @@ describe("CreateProjectTool", () => {
         });
 
     it("requires projectName and orgId, rejecting missing values", () => {
-        const schema = z.object(tool.argsShape);
+        const schema = z.object(tool.argsShape());
         const validOrgId = "66c5c66592100e05467ebfad";
 
         expect(schema.safeParse({}).success).toBe(false);

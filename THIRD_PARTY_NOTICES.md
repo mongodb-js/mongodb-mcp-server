@@ -1,5 +1,5 @@
 The following third-party software is used by and included in **MongoDB MCP Server**.
-This document was automatically generated on Tue Sep 08 2026.
+This document was automatically generated on Thu Sep 10 2026.
 
 ## List of dependencies
 
@@ -55,9 +55,6 @@ Package|Version|License
 **[@bramus/specificity](#2684a31ce76380dafc3cd88787d6d70c84ae2302ea6d50c7d8a7a7c27d8cec25)**|2.4.2|MIT
 **[@cfworker/json-schema](#a3ff56de9158fb479a4eb73317fba1e4f9d7390f67a36393cdceb9d107db81fd)**|4.1.1|MIT
 **[@colors/colors](#fb1a7d95a4047d824ec8eec6a2c0da6c6d292dfe64036c5b1cba35f77f97e43d)**|1.5.0|MIT
-**[@emnapi/core](#d06cd837465b44136cde883391695d146883f3c0ecb1fef94e31e8ba87c879a7)**|1.11.1|MIT
-**[@emnapi/runtime](#5892ff373dcf1e73c8f7e6ea4a9625180f7192c935a4d3fef79774079166bb6c)**|1.11.1|MIT
-**[@emnapi/wasi-threads](#bd41e926abf4d23e39c07b7d6e30ef3d54c02e0e02de39714ec1f04f228eb66c)**|1.2.2|MIT
 **[@exodus/bytes](#1c33a4f08f5f611bc0b2cd10fe90bad60b09944af0e1275ee91b337804eb2259)**|1.15.1|MIT
 **[@grpc/grpc-js](#448faf6a7518cfd1722031c22877ed8ac93da66aa978188b9b17d45822f6f364)**|1.14.4|Apache-2.0
 **[@grpc/proto-loader](#b0050dfd7e2b33e7ce8c60c187526aab92262b66bf92a039d191cde2dbe4ca44)**|0.7.15|Apache-2.0
@@ -96,7 +93,6 @@ Package|Version|License
 **[@modelcontextprotocol/node](#cc861036891c18ad086aa94af4eba3bc964013b4ab9cc7829dd2e9bcc7d587d6)**|2.0.0|MIT
 **[@modelcontextprotocol/sdk](#a4720b30fbdd1e940ca2aa74b23353b04aa2315130be8c1fe23ae414d8fd2e55)**|1.29.0|MIT
 **[@modelcontextprotocol/server](#39f69d3701b8a25a805f8bbb7f809396d80933647053d7a83e0dfbe342a71652)**|2.0.0|MIT
-**[@napi-rs/wasm-runtime](#b5897c9d711b568d5e211697428b2c7062f5575a54b14201fc9129d022eed37f)**|1.1.6|MIT
 **[@next/env](#200844def36b6607d878d111c9594e37692975ebb2bc6cbcf0e516ca0a1b34d2)**|14.2.35|MIT
 **[@noble/hashes](#8b95304023ea3287736d5679c3b081fa373ce071824b6343bb56c0751754da9e)**|1.8.0|MIT
 **[@opentelemetry/api](#78185a135ba748dc3c4764cf3f8bc9f1362c2de788184eb429e25fdbb6e4755a)**|1.9.0|Apache-2.0
@@ -124,22 +120,6 @@ Package|Version|License
 **[@protobufjs/path](#c09274e296946685df687dc9aae556904087be12addf80b08ad8c6ba3a72941a)**|1.1.2|BSD-3-Clause
 **[@protobufjs/pool](#ce165d6d460f3b698a11d4627e379d8f4db484da50b10518313e8e8544ae5544)**|1.1.0|BSD-3-Clause
 **[@protobufjs/utf8](#14ba8520769c7ba0aa9ed546ee3d710ce15b3ea4faa3c3962b2c21920ba01162)**|1.1.1|BSD-3-Clause
-**[@rolldown/binding-android-arm64](#2164357aa2b11484c7f8923f67bb96a22188281fce397ab706944ae83f35c638)**|1.1.5|MIT
-**[@rolldown/binding-darwin-arm64](#ecc5f73fa9f55570dff322866a08b5f78547eefb73ae96363db03629ecea05cc)**|1.1.5|MIT
-**[@rolldown/binding-darwin-x64](#b537774182909e3689bbcc8c6d3dfe18191d7a986b7fd2322db9ac0f0c3a9207)**|1.1.5|MIT
-**[@rolldown/binding-freebsd-x64](#eea06820abf491910665f2a693e286731b48097afb64a55ef66a50c35438d8da)**|1.1.5|MIT
-**[@rolldown/binding-linux-arm-gnueabihf](#ed09b09467d60bf71354d4c90338cb0cd43f6907d5894cbcf9de4bc66e1ae0e4)**|1.1.5|MIT
-**[@rolldown/binding-linux-arm64-gnu](#74208bae73cf3a1d34ce01736807a0d839b1314218bc16196a3dac6c96646936)**|1.1.5|MIT
-**[@rolldown/binding-linux-arm64-musl](#410528961594f9245c87324f4fefadf436ee9561a7e6c4c1042218dc97b6dc62)**|1.1.5|MIT
-**[@rolldown/binding-linux-ppc64-gnu](#1a057085c05c7380679f6b2427e2788c3186924c60e2e5896a6d716614098753)**|1.1.5|MIT
-**[@rolldown/binding-linux-s390x-gnu](#d834d738144b4c9111b2918a646ea1567b9b1b255030792d0ba6924b934c32fa)**|1.1.5|MIT
-**[@rolldown/binding-linux-x64-gnu](#bb0c8acf9e2cda0768137651702839e6a07c4d60a338ffa94a1cb95fbdf5a380)**|1.1.5|MIT
-**[@rolldown/binding-linux-x64-musl](#7ebb3005b10eb49b089a377066f0f98f17842148c62360422468fba7e078512e)**|1.1.5|MIT
-**[@rolldown/binding-openharmony-arm64](#9e7d76705b2dc46e1ba3056d3ffcd2a17fcd0836c6cc3e81d1f9b0d33af0a429)**|1.1.5|MIT
-**[@rolldown/binding-wasm32-wasi](#0096d64bf632000cad7f007cc21bbe64ad8a606ec6371a0cfb837f5b4e9ba024)**|1.1.5|MIT
-**[@rolldown/binding-win32-arm64-msvc](#78d76b83e580760e49d32e535d4b460558bd2013f1b721dd8ebcd0a173a2cf2f)**|1.1.5|MIT
-**[@rolldown/binding-win32-x64-msvc](#a6906ed8224202ce4dc13be6b1f13f13ea624bdcb96c8501122d926edfc45bba)**|1.1.5|MIT
-**[@rolldown/pluginutils](#3f649c36a41c36c4899524f29fa51a6c1ad95f0777f9059c8e99e326fa96b3e1)**|1.0.1|MIT
 **[@simple-git/args-pathspec](#3943dcba9d9e6999a5e74725cdbb11a82b5fedeaa7eb34a40bce4d7c886cee1c)**|1.0.3|MIT
 **[@simple-git/argv-parser](#7989fe84b605834592a1afe21c2f131d6ccd2b5860fcda3f58c0284575ac2c14)**|1.1.1|MIT
 **[@smithy/abort-controller](#290b53ba6663e435953e6033bae74287f208f6bd16bc6e2d4a7ca581b3ce2007)**|4.2.11|Apache-2.0
@@ -187,7 +167,6 @@ Package|Version|License
 **[@smithy/uuid](#6fb5f2722612f4fb79cdd6d2464b654f9bd645a13d3eacaefc80cd40bf52dc07)**|1.1.2|Apache-2.0
 **[@standard-schema/spec](#9bfb5ac2eb33aa4c5906cda756fe918bdccd69a071a6714d0ed2fe1e4571dde8)**|1.1.0|MIT
 **[@tootallnate/quickjs-emscripten](#dda6dbabe98503ac1af20979be1778d7a1c8f355b85377124a909567193c2cd3)**|0.23.0|MIT
-**[@tybys/wasm-util](#fd4727690e744798f8272cf94319dfa96066f460283844fe841eb1a48761b71d)**|0.10.3|MIT
 **[@types/chai](#fee6bcdc2771c9aca5f8f3b92799529fb1aa14917ad38b9cf06a7cd3334471f8)**|5.2.3|MIT
 **[@types/deep-eql](#1a2f07d7379e3c7ac47aa4da0656a8f08f715dd59882716256f3bcc2e8535ca3)**|4.0.2|MIT
 **[@types/docker-modem](#03b8eabbb8d8dbec9a32c717544945fa0901674a7851613dd278ee05f5f14f4a)**|3.0.6|MIT
@@ -394,8 +373,6 @@ Package|Version|License
 **[forwarded](#2d7f4275b09b041fd821b7672ebae7c9ccad3c87f3f37b6bd91306973c02b9a3)**|0.2.0|MIT
 **[fresh](#f40feff15332333f77ef3844d2ab9af4f31ddb4da37a99a2dbf7dfd255c314a5)**|2.0.0|MIT
 **[fs-constants](#9961a9f7535cded379a7696ad6d002a62d4826a3a8c2ffb5624383b942c879e5)**|1.0.0|MIT
-**[fsevents](#a34585cd8b76d4ba4f447e5c586af4bde7dd4c52c4a77b8b3bca702073a000ca)**|2.3.2|MIT
-**[fsevents](#6dbcd7937292cf95f50060d84e939399761f0f5c7b72bdc227c8db455a0fe7c8)**|2.3.3|MIT
 **[function-bind](#83de3b394293d96fb3fea968392a9d9ffb8b461f6c173bbb76a5bc51db5bec52)**|1.1.2|MIT
 **[function.prototype.name](#775c04e76594f9c73207c02d86d212b6054f2dc54ad9b970b65c43c176213ddf)**|1.1.8|MIT
 **[functions-have-names](#e47bfb8af99536984c43eccff65479505a133c528be9e5e73fa43c03b31749bf)**|1.2.3|MIT
@@ -1026,21 +1003,6 @@ License tags: MIT
 License tags: MIT
 
 
-<a id="d06cd837465b44136cde883391695d146883f3c0ecb1fef94e31e8ba87c879a7"></a>
-### [@emnapi/core](https://www.npmjs.com/package/@emnapi/core) (version 1.11.1)
-License tags: MIT
-
-
-<a id="5892ff373dcf1e73c8f7e6ea4a9625180f7192c935a4d3fef79774079166bb6c"></a>
-### [@emnapi/runtime](https://www.npmjs.com/package/@emnapi/runtime) (version 1.11.1)
-License tags: MIT
-
-
-<a id="bd41e926abf4d23e39c07b7d6e30ef3d54c02e0e02de39714ec1f04f228eb66c"></a>
-### [@emnapi/wasi-threads](https://www.npmjs.com/package/@emnapi/wasi-threads) (version 1.2.2)
-License tags: MIT
-
-
 <a id="1c33a4f08f5f611bc0b2cd10fe90bad60b09944af0e1275ee91b337804eb2259"></a>
 ### [@exodus/bytes](https://www.npmjs.com/package/@exodus/bytes) (version 1.15.1)
 License tags: MIT
@@ -1231,11 +1193,6 @@ License tags: MIT
 License tags: MIT
 
 
-<a id="b5897c9d711b568d5e211697428b2c7062f5575a54b14201fc9129d022eed37f"></a>
-### [@napi-rs/wasm-runtime](https://www.npmjs.com/package/@napi-rs/wasm-runtime) (version 1.1.6)
-License tags: MIT
-
-
 <a id="200844def36b6607d878d111c9594e37692975ebb2bc6cbcf0e516ca0a1b34d2"></a>
 ### [@next/env](https://www.npmjs.com/package/@next/env) (version 14.2.35)
 License tags: MIT
@@ -1369,86 +1326,6 @@ License tags: BSD-3-Clause
 <a id="14ba8520769c7ba0aa9ed546ee3d710ce15b3ea4faa3c3962b2c21920ba01162"></a>
 ### [@protobufjs/utf8](https://www.npmjs.com/package/@protobufjs/utf8) (version 1.1.1)
 License tags: BSD-3-Clause
-
-
-<a id="2164357aa2b11484c7f8923f67bb96a22188281fce397ab706944ae83f35c638"></a>
-### [@rolldown/binding-android-arm64](https://www.npmjs.com/package/@rolldown/binding-android-arm64) (version 1.1.5)
-License tags: MIT
-
-
-<a id="ecc5f73fa9f55570dff322866a08b5f78547eefb73ae96363db03629ecea05cc"></a>
-### [@rolldown/binding-darwin-arm64](https://www.npmjs.com/package/@rolldown/binding-darwin-arm64) (version 1.1.5)
-License tags: MIT
-
-
-<a id="b537774182909e3689bbcc8c6d3dfe18191d7a986b7fd2322db9ac0f0c3a9207"></a>
-### [@rolldown/binding-darwin-x64](https://www.npmjs.com/package/@rolldown/binding-darwin-x64) (version 1.1.5)
-License tags: MIT
-
-
-<a id="eea06820abf491910665f2a693e286731b48097afb64a55ef66a50c35438d8da"></a>
-### [@rolldown/binding-freebsd-x64](https://www.npmjs.com/package/@rolldown/binding-freebsd-x64) (version 1.1.5)
-License tags: MIT
-
-
-<a id="ed09b09467d60bf71354d4c90338cb0cd43f6907d5894cbcf9de4bc66e1ae0e4"></a>
-### [@rolldown/binding-linux-arm-gnueabihf](https://www.npmjs.com/package/@rolldown/binding-linux-arm-gnueabihf) (version 1.1.5)
-License tags: MIT
-
-
-<a id="74208bae73cf3a1d34ce01736807a0d839b1314218bc16196a3dac6c96646936"></a>
-### [@rolldown/binding-linux-arm64-gnu](https://www.npmjs.com/package/@rolldown/binding-linux-arm64-gnu) (version 1.1.5)
-License tags: MIT
-
-
-<a id="410528961594f9245c87324f4fefadf436ee9561a7e6c4c1042218dc97b6dc62"></a>
-### [@rolldown/binding-linux-arm64-musl](https://www.npmjs.com/package/@rolldown/binding-linux-arm64-musl) (version 1.1.5)
-License tags: MIT
-
-
-<a id="1a057085c05c7380679f6b2427e2788c3186924c60e2e5896a6d716614098753"></a>
-### [@rolldown/binding-linux-ppc64-gnu](https://www.npmjs.com/package/@rolldown/binding-linux-ppc64-gnu) (version 1.1.5)
-License tags: MIT
-
-
-<a id="d834d738144b4c9111b2918a646ea1567b9b1b255030792d0ba6924b934c32fa"></a>
-### [@rolldown/binding-linux-s390x-gnu](https://www.npmjs.com/package/@rolldown/binding-linux-s390x-gnu) (version 1.1.5)
-License tags: MIT
-
-
-<a id="bb0c8acf9e2cda0768137651702839e6a07c4d60a338ffa94a1cb95fbdf5a380"></a>
-### [@rolldown/binding-linux-x64-gnu](https://www.npmjs.com/package/@rolldown/binding-linux-x64-gnu) (version 1.1.5)
-License tags: MIT
-
-
-<a id="7ebb3005b10eb49b089a377066f0f98f17842148c62360422468fba7e078512e"></a>
-### [@rolldown/binding-linux-x64-musl](https://www.npmjs.com/package/@rolldown/binding-linux-x64-musl) (version 1.1.5)
-License tags: MIT
-
-
-<a id="9e7d76705b2dc46e1ba3056d3ffcd2a17fcd0836c6cc3e81d1f9b0d33af0a429"></a>
-### [@rolldown/binding-openharmony-arm64](https://www.npmjs.com/package/@rolldown/binding-openharmony-arm64) (version 1.1.5)
-License tags: MIT
-
-
-<a id="0096d64bf632000cad7f007cc21bbe64ad8a606ec6371a0cfb837f5b4e9ba024"></a>
-### [@rolldown/binding-wasm32-wasi](https://www.npmjs.com/package/@rolldown/binding-wasm32-wasi) (version 1.1.5)
-License tags: MIT
-
-
-<a id="78d76b83e580760e49d32e535d4b460558bd2013f1b721dd8ebcd0a173a2cf2f"></a>
-### [@rolldown/binding-win32-arm64-msvc](https://www.npmjs.com/package/@rolldown/binding-win32-arm64-msvc) (version 1.1.5)
-License tags: MIT
-
-
-<a id="a6906ed8224202ce4dc13be6b1f13f13ea624bdcb96c8501122d926edfc45bba"></a>
-### [@rolldown/binding-win32-x64-msvc](https://www.npmjs.com/package/@rolldown/binding-win32-x64-msvc) (version 1.1.5)
-License tags: MIT
-
-
-<a id="3f649c36a41c36c4899524f29fa51a6c1ad95f0777f9059c8e99e326fa96b3e1"></a>
-### [@rolldown/pluginutils](https://www.npmjs.com/package/@rolldown/pluginutils) (version 1.0.1)
-License tags: MIT
 
 
 <a id="3943dcba9d9e6999a5e74725cdbb11a82b5fedeaa7eb34a40bce4d7c886cee1c"></a>
@@ -1683,11 +1560,6 @@ License tags: MIT
 
 <a id="dda6dbabe98503ac1af20979be1778d7a1c8f355b85377124a909567193c2cd3"></a>
 ### [@tootallnate/quickjs-emscripten](https://www.npmjs.com/package/@tootallnate/quickjs-emscripten) (version 0.23.0)
-License tags: MIT
-
-
-<a id="fd4727690e744798f8272cf94319dfa96066f460283844fe841eb1a48761b71d"></a>
-### [@tybys/wasm-util](https://www.npmjs.com/package/@tybys/wasm-util) (version 0.10.3)
 License tags: MIT
 
 
@@ -2787,16 +2659,6 @@ License tags: MIT
 
 <a id="9961a9f7535cded379a7696ad6d002a62d4826a3a8c2ffb5624383b942c879e5"></a>
 ### [fs-constants](https://www.npmjs.com/package/fs-constants) (version 1.0.0)
-License tags: MIT
-
-
-<a id="a34585cd8b76d4ba4f447e5c586af4bde7dd4c52c4a77b8b3bca702073a000ca"></a>
-### [fsevents](https://www.npmjs.com/package/fsevents) (version 2.3.2)
-License tags: MIT
-
-
-<a id="6dbcd7937292cf95f50060d84e939399761f0f5c7b72bdc227c8db455a0fe7c8"></a>
-### [fsevents](https://www.npmjs.com/package/fsevents) (version 2.3.3)
 License tags: MIT
 
 

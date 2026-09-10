@@ -27,15 +27,17 @@ export class InspectClusterTool extends AtlasToolBase {
     static toolName = "atlas-inspect-cluster";
     public description = "Inspect metadata of a MongoDB Atlas cluster";
     static operationType: OperationType = "read";
-    public argsShape = {
-        ...InspectClusterArgs,
-    };
-    public override outputSchema = InspectClusterOutputSchema;
+    public argsShape(): typeof InspectClusterArgs {
+        return InspectClusterArgs;
+    }
+    public override outputSchema(): typeof InspectClusterOutputSchema {
+        return InspectClusterOutputSchema;
+    }
 
     protected async execute(
-        { projectId, clusterName }: ToolArgs<typeof this.argsShape>,
+        { projectId, clusterName }: ToolArgs<ReturnType<typeof this.argsShape>>,
         { request }: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const cluster = await inspectCluster(this.server.apiClient, projectId, clusterName, request);
 
         return this.formatOutput(cluster);

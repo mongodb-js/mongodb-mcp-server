@@ -12,19 +12,25 @@ const ConnectDeploymentOutputSchema = {
     connectionId: z.string().optional(),
 };
 
+const ConnectDeploymentArgsShape = {
+    deploymentName: CommonArgs.asciiOnlyString().describe("Name of the deployment to connect to"),
+};
+
 export class ConnectDeploymentTool extends AtlasLocalToolBase {
     static toolName = "atlas-local-connect-deployment";
     public description =
         "Connect to a MongoDB Atlas Local deployment and get back a connectionId to pass to the other MongoDB tools";
     static operationType: OperationType = "connect";
-    public argsShape = {
-        deploymentName: CommonArgs.asciiOnlyString().describe("Name of the deployment to connect to"),
-    };
+    public argsShape(): typeof ConnectDeploymentArgsShape {
+        return ConnectDeploymentArgsShape;
+    }
 
-    public override outputSchema = ConnectDeploymentOutputSchema;
+    public override outputSchema(): typeof ConnectDeploymentOutputSchema {
+        return ConnectDeploymentOutputSchema;
+    }
 
     protected async executeWithAtlasLocalClient(
-        { deploymentName }: ToolArgs<typeof this.argsShape>,
+        { deploymentName }: ToolArgs<ReturnType<typeof this.argsShape>>,
         { client, context }: { client: Client; context: ToolExecutionContext }
     ): Promise<ToolResult<typeof ConnectDeploymentOutputSchema> & Pick<CallToolResult, "_meta">> {
         let connectionString: string;
@@ -79,7 +85,7 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
     }
 
     protected override async resolveTelemetryMetadata(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         { result }: { result: CallToolResult }
     ): Promise<ConnectionMetadata> {
         const connectionId = (result.structuredContent as { connectionId?: string } | undefined)?.connectionId;

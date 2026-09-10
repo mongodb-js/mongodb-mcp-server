@@ -51,8 +51,12 @@ export class ConnectClusterTool extends AtlasToolBase {
     public description =
         "Connect to MongoDB Atlas cluster and get back a connectionId to pass to the other MongoDB tools. Each call establishes a new, independent connection — multiple connections can be active at the same time.";
     static operationType: OperationType = "connect";
-    public argsShape = ConnectClusterArgs;
-    public override outputSchema = ConnectClusterOutputSchema;
+    public argsShape(): typeof ConnectClusterArgs {
+        return ConnectClusterArgs;
+    }
+    public override outputSchema(): typeof ConnectClusterOutputSchema {
+        return ConnectClusterOutputSchema;
+    }
 
     private async prepareClusterConnection(
         projectId: string,
@@ -217,9 +221,9 @@ export class ConnectClusterTool extends AtlasToolBase {
     }
 
     protected async execute(
-        { projectId, clusterName, connectionType }: ToolArgs<typeof this.argsShape>,
+        { projectId, clusterName, connectionType }: ToolArgs<ReturnType<typeof this.argsShape>>,
         { request }: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const ipAccessListUpdated =
             (await ensureCurrentIpInAccessList(this.server.apiClient, projectId, request)) === "added";
 
@@ -387,7 +391,7 @@ export class ConnectClusterTool extends AtlasToolBase {
     }
 
     protected override async resolveTelemetryMetadata(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         { result }: { result: ToolResult<typeof ConnectClusterOutputSchema> }
     ): Promise<ConnectionMetadata> {
         const parentMetadata = await super.resolveTelemetryMetadata(args, { result });

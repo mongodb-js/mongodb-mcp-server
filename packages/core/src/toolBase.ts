@@ -148,6 +148,10 @@ export type ToolServerParam<TServer extends ToolServer = ToolServer> = {
  * import { ToolBase, type ToolClass, type ToolCategory, type OperationType, type ToolServer } from "@mongodb-js/mcp-core";
  * import { z } from "zod";
  *
+ * const MyCustomToolArgsShape = {
+ *   query: z.string().describe("The query parameter"),
+ * };
+ *
  * class MyCustomTool extends ToolBase {
  *   // Required static properties for ToolClass conformance
  *   static toolName = "my-custom-tool";
@@ -156,9 +160,9 @@ export type ToolServerParam<TServer extends ToolServer = ToolServer> = {
  *
  *   // Required abstract properties
  *   public description = "My custom tool description";
- *   public argsShape = {
- *     query: z.string().describe("The query parameter"),
- *   };
+ *   public argsShape(): typeof MyCustomToolArgsShape {
+ *     return MyCustomToolArgsShape;
+ *   }
  *
  *   // Required abstract method: implement the tool's logic
  *   protected async execute(args) {
@@ -219,7 +223,7 @@ export type AnyToolClass = Omit<ToolClass<any, any>, "new"> & {
  * To create a custom tool, you must:
  * 1. Extend the `ToolBase` class
  * 2. Define static properties: `toolName`, `category`, and `operationType`
- * 3. Implement required abstract members: `description`, `argsShape`,
+ * 3. Implement required abstract members: `description`, `argsShape()`,
  *    `execute()`, `resolveTelemetryMetadata()`
  *
  * @example Basic Custom Tool
@@ -227,6 +231,10 @@ export type AnyToolClass = Omit<ToolClass<any, any>, "new"> & {
  * import { StreamableHttpRunner, UserConfigSchema } from "mongodb-mcp-server"
  * import { ToolBase, type ToolClass, type ToolCategory, type OperationType } from "@mongodb-js/mcp-core";
  * import { z } from "zod";
+ *
+ * const MyCustomToolArgsShape = {
+ *   query: z.string().describe("The query parameter"),
+ * };
  *
  * class MyCustomTool extends ToolBase {
  *   // Required static properties for ToolClass conformance
@@ -236,9 +244,9 @@ export type AnyToolClass = Omit<ToolClass<any, any>, "new"> & {
  *
  *   // Required abstract properties
  *   public description = "My custom tool description";
- *   public argsShape = {
- *     query: z.string().describe("The query parameter"),
- *   };
+ *   public argsShape(): typeof MyCustomToolArgsShape {
+ *     return MyCustomToolArgsShape;
+ *   }
  *
  *   // Required abstract method: implement the tool's logic
  *   protected async execute(args) {
@@ -339,32 +347,45 @@ export abstract class ToolBase<
     public abstract description: string;
 
     /**
-     * Zod schema defining the tool's arguments.
+     * Returns the Zod schema defining the tool's arguments.
      *
-     * Use an empty object `{}` if the tool takes no arguments.
+     * Must return a stable, module-level object (defined outside the class) so
+     * that every instance of this tool shares the same schema object rather
+     * than rebuilding it on each construction. Return an empty object `{}` if
+     * the tool takes no arguments.
      *
      * @example
      * ```typescript
-     * public argsShape = {
+     * const MyToolArgsShape = {
      *   query: z.string().describe("The search query"),
      *   limit: z.number().optional().describe("Maximum results to return"),
      * };
+     *
+     * public argsShape(): typeof MyToolArgsShape {
+     *   return MyToolArgsShape;
+     * }
      * ```
      */
-    public abstract argsShape: ZodRawShape;
+    public abstract argsShape(): ZodRawShape;
 
     /**
      * Optional Zod schema defining the tool's structured output.
      *
      * This schema is registered with the MCP server and used to validate
-     * `structuredContent` in the tool's response.
+     * `structuredContent` in the tool's response. Must return a stable,
+     * module-level object (defined outside the class) so that every instance
+     * of this tool shares the same schema object.
      *
      * @example
      * ```typescript
-     * protected outputSchema = {
+     * const MyToolOutputSchema = {
      *   items: z.array(z.object({ name: z.string(), count: z.number() })),
      *   totalCount: z.number(),
      * };
+     *
+     * protected outputSchema(): typeof MyToolOutputSchema {
+     *   return MyToolOutputSchema;
+     * }
      *
      * protected async execute(): Promise<CallToolResult> {
      *   const items = await this.fetchItems();
@@ -375,7 +396,7 @@ export abstract class ToolBase<
      * }
      * ```
      */
-    public outputSchema?: ZodRawShape;
+    public outputSchema?(): ZodRawShape;
 
     /**
      * Normalizes the raw arguments of a tool call before they are validated against `argsShape`.
@@ -498,13 +519,13 @@ export abstract class ToolBase<
      * ```
      */
     protected abstract execute(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         context: ToolExecutionContext
     ): Promise<CallToolResult | InputRequiredResult>;
 
     /** This is used internally by the server to invoke the tool. It can also be run manually to call the tool directly. */
     public async invoke(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         context: ToolExecutionContext
     ): Promise<CallToolResult | InputRequiredResult> {
         const startTime: number = Date.now();
@@ -620,7 +641,7 @@ export abstract class ToolBase<
      * ```
      */
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    protected getConfirmationMessage(args: ToolArgs<typeof this.argsShape>): string {
+    protected getConfirmationMessage(args: ToolArgs<ReturnType<typeof this.argsShape>>): string {
         return `You are about to execute the \`${this.name}\` tool which requires additional confirmation. Would you like to proceed?`;
     }
 
@@ -679,83 +700,6 @@ export abstract class ToolBase<
         this.operationType = operationType;
     }
 
-    /**
-     * Schemas are request-invariant, so they are built once per concrete tool
-     * class and config variant, then shared across every request. Both caches
-     * are keyed by the concrete constructor; the input cache is additionally
-     * keyed by `schemaVariantKey()` to separate config-dependent variants.
-     */
-    private static readonly sharedInputSchemas = new WeakMap<
-        object,
-        Map<string, { shape: ZodRawShape; schema: z.ZodType }>
-    >();
-    private static readonly sharedOutputSchemas = new WeakMap<object, { shape: ZodRawShape; schema: z.ZodType }>();
-
-    /**
-     * Identifies config-dependent variations of a tool's `argsShape`. Tools that
-     * vary their shape by config override this so each variant is cached and
-     * shared separately. The default reports no variation.
-     */
-    protected schemaVariantKey(): string {
-        return "";
-    }
-
-    /**
-     * Returns the shared strict input schema for this tool's config variant,
-     * building it once. Also redirects this instance's `argsShape` to the shared
-     * shape so its own per-instance graph becomes collectible.
-     */
-    private resolveSharedInputSchema(): z.ZodType {
-        const ctor = this.constructor;
-        let byVariant = ToolBase.sharedInputSchemas.get(ctor);
-        if (!byVariant) {
-            byVariant = new Map();
-            ToolBase.sharedInputSchemas.set(ctor, byVariant);
-        }
-        const key = this.schemaVariantKey();
-        let entry = byVariant.get(key);
-        if (!entry) {
-            // Wrap the raw shape in a strict object so the SDK rejects unrecognized
-            // argument keys instead of silently stripping them (see MCP-602). Only the
-            // top-level object is strict; nested schemas keep their own behavior.
-            entry = { shape: this.argsShape, schema: z.object(this.argsShape).strict() };
-            byVariant.set(key, entry);
-        }
-        this.redirectToSharedShape("argsShape", entry.shape);
-        return entry.schema;
-    }
-
-    /**
-     * Points a class-field schema property at the shared shape so the instance's
-     * own graph becomes collectible. Getter-based tools recompute their shape
-     * transiently and hold nothing to release, so they are left untouched.
-     */
-    private redirectToSharedShape(property: "argsShape" | "outputSchema", shape: ZodRawShape): void {
-        const descriptor = Object.getOwnPropertyDescriptor(this, property);
-        if (descriptor && "value" in descriptor && descriptor.writable) {
-            this[property] = shape;
-        }
-    }
-
-    /**
-     * Returns the shared output schema for this tool, building it once. Output
-     * schemas do not vary by config. Redirects this instance's `outputSchema` to
-     * the shared shape so its own per-instance graph becomes collectible.
-     */
-    private resolveSharedOutputSchema(): z.ZodType | undefined {
-        if (!this.outputSchema) {
-            return undefined;
-        }
-        const ctor = this.constructor;
-        let entry = ToolBase.sharedOutputSchemas.get(ctor);
-        if (!entry) {
-            entry = { shape: this.outputSchema, schema: z.object(this.outputSchema) };
-            ToolBase.sharedOutputSchemas.set(ctor, entry);
-        }
-        this.redirectToSharedShape("outputSchema", entry.shape);
-        return entry.schema;
-    }
-
     public register(): boolean {
         if (!this.verifyAllowed()) {
             return false;
@@ -778,7 +722,7 @@ export abstract class ToolBase<
                         _meta?: Record<string, unknown>;
                     },
                     cb: (
-                        args: ToolArgs<ZodRawShape>,
+                        args: ToolArgs<ReturnType<typeof this.argsShape>>,
                         ctx: ServerContext
                     ) => Promise<CallToolResult | InputRequiredResult>
                 ) => RegisteredTool
@@ -786,8 +730,11 @@ export abstract class ToolBase<
                 /* eslint-enable @typescript-eslint/no-unnecessary-type-assertion */ this.name,
                 {
                     description: this.description,
-                    inputSchema: this.resolveSharedInputSchema(),
-                    outputSchema: this.resolveSharedOutputSchema(),
+                    // Wrap the raw shape in a strict object so the SDK rejects unrecognized
+                    // argument keys instead of silently stripping them (see MCP-602). Only the
+                    // top-level object is strict; nested schemas keep their own behavior.
+                    inputSchema: ToolBase.cachedInputSchema(this.argsShape()),
+                    outputSchema: ToolBase.cachedOutputSchema(this.outputSchema?.()),
                     annotations: this.annotations,
                     _meta: this.toolMeta,
                 },
@@ -800,6 +747,28 @@ export abstract class ToolBase<
             );
 
         return true;
+    }
+
+    // Caches so that we always pass the same instances to the MCP SDK
+    private static inputSchemaCache = new WeakMap<ZodRawShape, z.ZodObject<ZodRawShape>>();
+    private static outputSchemaCache = new WeakMap<ZodRawShape, z.ZodObject<ZodRawShape>>();
+    private static cachedInputSchema(inputShape: ZodRawShape): z.ZodObject<ZodRawShape> {
+        if (!this.inputSchemaCache.has(inputShape)) {
+            this.inputSchemaCache.set(inputShape, z.object(inputShape).strict());
+        }
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        return this.inputSchemaCache.get(inputShape)!;
+    }
+
+    private static cachedOutputSchema(outputShape: ZodRawShape | undefined): z.ZodObject<ZodRawShape> | undefined {
+        if (!outputShape) {
+            return undefined;
+        }
+        if (!this.outputSchemaCache.has(outputShape)) {
+            this.outputSchemaCache.set(outputShape, z.object(outputShape).strict());
+        }
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        return this.outputSchemaCache.get(outputShape)!;
     }
 
     public isEnabled(): boolean {
@@ -890,7 +859,7 @@ export abstract class ToolBase<
     protected handleError(
         error: unknown,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        args: z.infer<z.ZodObject<typeof this.argsShape>>
+        args: z.infer<z.ZodObject<ReturnType<typeof this.argsShape>>>
     ): Promise<CallToolResult> | CallToolResult {
         const rawMessage = error instanceof Error ? error.message : String(error);
         const safeMessage = this.server.keychain.redact(rawMessage);
@@ -930,7 +899,7 @@ export abstract class ToolBase<
      * ```
      */
     protected abstract resolveTelemetryMetadata(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         { result }: { result: CallToolResult }
     ): TelemetryToolMetadata | Promise<TelemetryToolMetadata>;
 
@@ -943,7 +912,7 @@ export abstract class ToolBase<
      * @param args - The arguments passed to the tool
      */
     private emitToolEvent(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         { startTime, result }: { startTime: number; result: CallToolResult }
     ): void {
         if (!this.server.telemetry.isTelemetryEnabled()) {

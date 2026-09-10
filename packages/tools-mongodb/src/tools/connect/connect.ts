@@ -8,6 +8,19 @@ const ConnectOutputSchema = {
     connectionId: z.string(),
 };
 
+const ConnectArgsShape = {
+    connectionString: z.string().describe("MongoDB connection string (in the mongodb:// or mongodb+srv:// format)"),
+    connectionName: z
+        .string()
+        .refine((value) => value !== PRECONFIGURED_CONNECTION_ID, {
+            message: `"${PRECONFIGURED_CONNECTION_ID}" is a reserved connection name`,
+        })
+        .optional()
+        .describe(
+            'Optional short label for the connection (stored slugified with a short suffix, e.g. "staging" becomes staging-<suffix>). Shown in connection listings; helpful for telling multiple connections apart.'
+        ),
+};
+
 export class ConnectTool extends MongoDBToolBase {
     static toolName = "connect";
     public override description = `Connect to a MongoDB instance and get back a connectionId to pass to the other MongoDB tools. Each call establishes a new, independent connection — multiple connections can be active at the same time.${
@@ -16,27 +29,20 @@ export class ConnectTool extends MongoDBToolBase {
             : ""
     }`;
 
-    public override argsShape = {
-        connectionString: z.string().describe("MongoDB connection string (in the mongodb:// or mongodb+srv:// format)"),
-        connectionName: z
-            .string()
-            .refine((value) => value !== PRECONFIGURED_CONNECTION_ID, {
-                message: `"${PRECONFIGURED_CONNECTION_ID}" is a reserved connection name`,
-            })
-            .optional()
-            .describe(
-                'Optional short label for the connection (stored slugified with a short suffix, e.g. "staging" becomes staging-<suffix>). Shown in connection listings; helpful for telling multiple connections apart.'
-            ),
-    };
+    public override argsShape(): typeof ConnectArgsShape {
+        return ConnectArgsShape;
+    }
 
     static operationType: OperationType = "connect";
 
-    public override outputSchema = ConnectOutputSchema;
+    public override outputSchema(): typeof ConnectOutputSchema {
+        return ConnectOutputSchema;
+    }
 
     protected override async execute(
-        { connectionString, connectionName }: ToolArgs<typeof this.argsShape>,
+        { connectionString, connectionName }: ToolArgs<ReturnType<typeof this.argsShape>>,
         { request }: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const entry = await this.server.connectionRegistry.connect({
             settings: { connectionString },
             name: connectionName,
@@ -55,10 +61,11 @@ export class ConnectTool extends MongoDBToolBase {
     }
 
     protected override async resolveTelemetryMetadata(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         { result }: { result: CallToolResult }
     ): Promise<ConnectionMetadata> {
-        const connectionId = (result.structuredContent as ToolOutput<typeof ConnectOutputSchema>).connectionId;
+        const connectionId = (result.structuredContent as ToolOutput<ReturnType<typeof this.outputSchema>>)
+            .connectionId;
         return {
             ...(connectionId && { connection_id: connectionId }),
             ...this.getConnectionInfoMetadata(await this.peekConnection(connectionId)),

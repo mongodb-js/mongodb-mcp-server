@@ -104,6 +104,111 @@ const BuildOutputSchema = {
     resource: BuildResource.describe("Which build step completed"),
 };
 
+const StreamsBuildArgsShape = {
+    projectId: AtlasArgs.projectId().describe(
+        "Atlas project ID. Use atlas-list-projects to find project IDs if not available."
+    ),
+    resource: BuildResource.describe(
+        "What to create. Start with 'workspace', then 'connection', then 'processor'. " +
+            "Use 'privatelink' only if connections need private networking."
+    ),
+    workspaceName: StreamsArgs.workspaceName()
+        .optional()
+        .describe(
+            "Workspace name. Required for workspace, connection, and processor resources. " +
+                "Not required for privatelink (which is project-level). " +
+                "For 'workspace': the name to create. For others: the existing workspace to add to. " +
+                "Use `atlas-streams-discover` with action 'list-workspaces' to see existing workspaces."
+        ),
+
+    // Workspace fields
+    cloudProvider: AtlasArgs.cloudProvider().optional().describe("Cloud provider. Required when resource='workspace'."),
+    region: AtlasArgs.region()
+        .optional()
+        .describe(
+            "Cloud region. Required when resource='workspace'. " +
+                "Use Atlas region names: AWS examples: 'VIRGINIA_USA', 'OREGON_USA', 'DUBLIN_IRL'. " +
+                "Azure examples: 'eastus2', 'westeurope'. GCP examples: 'US_CENTRAL1', 'EUROPE_WEST1'."
+        ),
+    tier: z
+        .enum(["SP2", "SP5", "SP10", "SP30", "SP50"])
+        .optional()
+        .describe("Processing tier. Default: SP10. Only for resource='workspace'."),
+    includeSampleData: z
+        .boolean()
+        .optional()
+        .describe(
+            "Include the sample_stream_solar connection for testing. Default: true. Only for resource='workspace'."
+        ),
+
+    // Connection fields
+    connectionName: StreamsArgs.connectionName()
+        .optional()
+        .describe("Connection name. Required when resource='connection'."),
+    connectionType: ConnectionType.optional().describe(
+        "Connection type. Required when resource='connection'. " +
+            "Kafka: needs bootstrapServers, authentication, and security config. Use authentication.mechanism='AWS_MSK_IAM' with authentication.aws.roleArn for MSK IAM authentication. " +
+            "Cluster: needs clusterName and dbRoleToExecute. " +
+            "S3: needs aws.roleArn (must be registered via Atlas Cloud Provider Access). " +
+            "Https: needs url. " +
+            "AWSKinesisDataStreams: needs aws.roleArn (must be registered via Atlas Cloud Provider Access). " +
+            "AWSLambda: needs aws.roleArn (must be registered via Atlas Cloud Provider Access). " +
+            "SchemaRegistry: needs provider, schemaRegistryUrls, and authentication config. " +
+            "Sample: provides sample data for testing (no config needed)."
+    ),
+    connectionConfig: ConnectionConfig.optional().describe(
+        "Type-specific connection configuration. Only for resource='connection'. " +
+            "Omit entirely for connectionType='Sample' (no config needed). " +
+            "You may pass a partial config — the tool uses elicitation to collect missing required fields directly from the user."
+    ),
+
+    // Processor fields
+    processorName: StreamsArgs.processorName()
+        .optional()
+        .describe("Processor name. Required when resource='processor'."),
+    pipeline: z
+        .array(z.record(z.string(), z.unknown()))
+        .optional()
+        .describe(
+            "Pipeline stages for the stream processor. Required when resource='processor'. " +
+                "Must start with a $source stage and end with a terminal stage ($merge, $emit, $https, or $externalFunction). " +
+                "Use $merge to write to Atlas cluster collections: {$merge: {into: {connectionName, db, coll}}}. " +
+                "Use $emit to write to Kafka or Kinesis sinks: {$emit: {connectionName, topic}}. $emit only works with Kafka/Kinesis connections — do NOT use $emit with Https connections. " +
+                "Use $https to POST data to an Https connection: {$https: {connectionName}}. " +
+                "Use $externalFunction for Lambda: {$externalFunction: {connectionName, functionName, execution: 'async', as: 'result'}}. Lambda does NOT use $emit — use $externalFunction with execution='async' as a terminal stage or execution='sync' for mid-pipeline enrichment. " +
+                "By default $https.onError is 'dlq', which requires a DLQ (see dlq parameter). Set {$https: {connectionName, onError: 'ignore'}} to skip DLQ. " +
+                "For Kafka $emit with Schema Registry: {$emit: {connectionName, topic, schemaRegistry: {connectionName: '<sr-connection>', valueSchema: {type: 'avro', schema: {<avro-schema>}, options: {subjectNameStrategy: 'TopicNameStrategy', autoRegisterSchemas: true}}}}}. " +
+                "Note: valueSchema.type must be lowercase 'avro'. valueSchema.schema (Avro schema definition) is always required even with autoRegisterSchemas. " +
+                "Kafka/Kinesis $source must include a 'topic'/'stream' field. " +
+                "$$NOW, $$ROOT, and $$CURRENT are not available in streaming request. " +
+                "Connections referenced in $source/$merge/$emit/$https must already exist in the workspace."
+        ),
+    dlq: z
+        .object({
+            connectionName: z.string().describe("Atlas connection name for DLQ output"),
+            db: z.string().describe("Database name for DLQ collection"),
+            coll: z.string().describe("Collection name for DLQ documents"),
+        })
+        .optional()
+        .describe(
+            "Dead letter queue configuration. Only for resource='processor'. " +
+                "Only include when the user explicitly requests a DLQ, or when the pipeline uses $https with default onError='dlq'. " +
+                "The DLQ connection must already exist in the workspace."
+        ),
+    autoStart: z
+        .boolean()
+        .optional()
+        .describe(
+            "Start the processor immediately after creation. Default: false. Only for resource='processor'. " +
+                "Omit unless the user explicitly asks to start the processor right away."
+        ),
+
+    // PrivateLink fields
+    privateLinkConfig: PrivateLinkConfig.optional().describe(
+        "PrivateLink configuration including provider and provider-specific fields. Required when resource='privatelink'."
+    ),
+};
+
 export class StreamsBuildTool extends StreamsToolBase {
     static toolName = "atlas-streams-build";
     static operationType: OperationType = "create";
@@ -117,117 +222,16 @@ export class StreamsBuildTool extends StreamsToolBase {
         "Use resource='privatelink' to set up private networking. " +
         "Typical workflow: create workspace → add connections → deploy processor.";
 
-    public argsShape = {
-        projectId: AtlasArgs.projectId().describe(
-            "Atlas project ID. Use atlas-list-projects to find project IDs if not available."
-        ),
-        resource: BuildResource.describe(
-            "What to create. Start with 'workspace', then 'connection', then 'processor'. " +
-                "Use 'privatelink' only if connections need private networking."
-        ),
-        workspaceName: StreamsArgs.workspaceName()
-            .optional()
-            .describe(
-                "Workspace name. Required for workspace, connection, and processor resources. " +
-                    "Not required for privatelink (which is project-level). " +
-                    "For 'workspace': the name to create. For others: the existing workspace to add to. " +
-                    "Use `atlas-streams-discover` with action 'list-workspaces' to see existing workspaces."
-            ),
+    public argsShape(): typeof StreamsBuildArgsShape {
+        return StreamsBuildArgsShape;
+    }
 
-        // Workspace fields
-        cloudProvider: AtlasArgs.cloudProvider()
-            .optional()
-            .describe("Cloud provider. Required when resource='workspace'."),
-        region: AtlasArgs.region()
-            .optional()
-            .describe(
-                "Cloud region. Required when resource='workspace'. " +
-                    "Use Atlas region names: AWS examples: 'VIRGINIA_USA', 'OREGON_USA', 'DUBLIN_IRL'. " +
-                    "Azure examples: 'eastus2', 'westeurope'. GCP examples: 'US_CENTRAL1', 'EUROPE_WEST1'."
-            ),
-        tier: z
-            .enum(["SP2", "SP5", "SP10", "SP30", "SP50"])
-            .optional()
-            .describe("Processing tier. Default: SP10. Only for resource='workspace'."),
-        includeSampleData: z
-            .boolean()
-            .optional()
-            .describe(
-                "Include the sample_stream_solar connection for testing. Default: true. Only for resource='workspace'."
-            ),
-
-        // Connection fields
-        connectionName: StreamsArgs.connectionName()
-            .optional()
-            .describe("Connection name. Required when resource='connection'."),
-        connectionType: ConnectionType.optional().describe(
-            "Connection type. Required when resource='connection'. " +
-                "Kafka: needs bootstrapServers, authentication, and security config. Use authentication.mechanism='AWS_MSK_IAM' with authentication.aws.roleArn for MSK IAM authentication. " +
-                "Cluster: needs clusterName and dbRoleToExecute. " +
-                "S3: needs aws.roleArn (must be registered via Atlas Cloud Provider Access). " +
-                "Https: needs url. " +
-                "AWSKinesisDataStreams: needs aws.roleArn (must be registered via Atlas Cloud Provider Access). " +
-                "AWSLambda: needs aws.roleArn (must be registered via Atlas Cloud Provider Access). " +
-                "SchemaRegistry: needs provider, schemaRegistryUrls, and authentication config. " +
-                "Sample: provides sample data for testing (no config needed)."
-        ),
-        connectionConfig: ConnectionConfig.optional().describe(
-            "Type-specific connection configuration. Only for resource='connection'. " +
-                "Omit entirely for connectionType='Sample' (no config needed). " +
-                "You may pass a partial config — the tool uses elicitation to collect missing required fields directly from the user."
-        ),
-
-        // Processor fields
-        processorName: StreamsArgs.processorName()
-            .optional()
-            .describe("Processor name. Required when resource='processor'."),
-        pipeline: z
-            .array(z.record(z.string(), z.unknown()))
-            .optional()
-            .describe(
-                "Pipeline stages for the stream processor. Required when resource='processor'. " +
-                    "Must start with a $source stage and end with a terminal stage ($merge, $emit, $https, or $externalFunction). " +
-                    "Use $merge to write to Atlas cluster collections: {$merge: {into: {connectionName, db, coll}}}. " +
-                    "Use $emit to write to Kafka or Kinesis sinks: {$emit: {connectionName, topic}}. $emit only works with Kafka/Kinesis connections — do NOT use $emit with Https connections. " +
-                    "Use $https to POST data to an Https connection: {$https: {connectionName}}. " +
-                    "Use $externalFunction for Lambda: {$externalFunction: {connectionName, functionName, execution: 'async', as: 'result'}}. Lambda does NOT use $emit — use $externalFunction with execution='async' as a terminal stage or execution='sync' for mid-pipeline enrichment. " +
-                    "By default $https.onError is 'dlq', which requires a DLQ (see dlq parameter). Set {$https: {connectionName, onError: 'ignore'}} to skip DLQ. " +
-                    "For Kafka $emit with Schema Registry: {$emit: {connectionName, topic, schemaRegistry: {connectionName: '<sr-connection>', valueSchema: {type: 'avro', schema: {<avro-schema>}, options: {subjectNameStrategy: 'TopicNameStrategy', autoRegisterSchemas: true}}}}}. " +
-                    "Note: valueSchema.type must be lowercase 'avro'. valueSchema.schema (Avro schema definition) is always required even with autoRegisterSchemas. " +
-                    "Kafka/Kinesis $source must include a 'topic'/'stream' field. " +
-                    "$$NOW, $$ROOT, and $$CURRENT are not available in streaming request. " +
-                    "Connections referenced in $source/$merge/$emit/$https must already exist in the workspace."
-            ),
-        dlq: z
-            .object({
-                connectionName: z.string().describe("Atlas connection name for DLQ output"),
-                db: z.string().describe("Database name for DLQ collection"),
-                coll: z.string().describe("Collection name for DLQ documents"),
-            })
-            .optional()
-            .describe(
-                "Dead letter queue configuration. Only for resource='processor'. " +
-                    "Only include when the user explicitly requests a DLQ, or when the pipeline uses $https with default onError='dlq'. " +
-                    "The DLQ connection must already exist in the workspace."
-            ),
-        autoStart: z
-            .boolean()
-            .optional()
-            .describe(
-                "Start the processor immediately after creation. Default: false. Only for resource='processor'. " +
-                    "Omit unless the user explicitly asks to start the processor right away."
-            ),
-
-        // PrivateLink fields
-        privateLinkConfig: PrivateLinkConfig.optional().describe(
-            "PrivateLink configuration including provider and provider-specific fields. Required when resource='privatelink'."
-        ),
-    };
-
-    public override outputSchema = BuildOutputSchema;
+    public override outputSchema(): typeof BuildOutputSchema {
+        return BuildOutputSchema;
+    }
 
     protected async execute(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         { request }: ToolExecutionContext
     ): Promise<CallToolResult | InputRequiredResult> {
         switch (args.resource) {
@@ -247,7 +251,7 @@ export class StreamsBuildTool extends StreamsToolBase {
         }
     }
 
-    private requireWorkspaceName(args: ToolArgs<typeof this.argsShape>): string {
+    private requireWorkspaceName(args: ToolArgs<ReturnType<typeof this.argsShape>>): string {
         if (!args.workspaceName) {
             throw new StreamsInvalidArgumentError("workspaceName is required for this resource type.");
         }
@@ -255,7 +259,7 @@ export class StreamsBuildTool extends StreamsToolBase {
     }
 
     private async createWorkspace(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult> {
         const workspaceName = this.requireWorkspaceName(args);
@@ -317,7 +321,7 @@ export class StreamsBuildTool extends StreamsToolBase {
     }
 
     private async createConnection(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult | InputRequiredResult> {
         const workspaceName = this.requireWorkspaceName(args);
@@ -817,7 +821,7 @@ export class StreamsBuildTool extends StreamsToolBase {
     }
 
     private async createProcessor(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult> {
         const workspaceName = this.requireWorkspaceName(args);
@@ -899,7 +903,7 @@ export class StreamsBuildTool extends StreamsToolBase {
     }
 
     private async createPrivateLink(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult> {
         if (!args.privateLinkConfig) {

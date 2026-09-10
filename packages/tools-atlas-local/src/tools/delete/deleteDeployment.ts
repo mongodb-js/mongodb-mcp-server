@@ -11,17 +11,23 @@ const DeleteDeploymentOutputSchema = {
     deploymentName: z.string(),
 };
 
+const DeleteDeploymentArgsShape = {
+    deploymentName: CommonArgs.asciiOnlyString().describe("Name of the deployment to delete"),
+};
+
 export class DeleteDeploymentTool extends AtlasLocalToolBase {
     static toolName = "atlas-local-delete-deployment";
     public description = "Delete a MongoDB Atlas local deployment";
     static operationType: OperationType = "delete";
-    public argsShape = {
-        deploymentName: CommonArgs.asciiOnlyString().describe("Name of the deployment to delete"),
-    };
-    public override outputSchema = DeleteDeploymentOutputSchema;
+    public argsShape(): typeof DeleteDeploymentArgsShape {
+        return DeleteDeploymentArgsShape;
+    }
+    public override outputSchema(): typeof DeleteDeploymentOutputSchema {
+        return DeleteDeploymentOutputSchema;
+    }
 
     protected async executeWithAtlasLocalClient(
-        { deploymentName }: ToolArgs<typeof this.argsShape>,
+        { deploymentName }: ToolArgs<ReturnType<typeof this.argsShape>>,
         { client }: { client: Client; context: ToolExecutionContext }
     ): Promise<CallToolResult> {
         // Lookup telemetry metadata

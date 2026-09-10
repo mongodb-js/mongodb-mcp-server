@@ -214,6 +214,13 @@ const ServerConfigSchema = z.object({
             "How long a session must be idle before it becomes eligible for least-recently-used eviction when the HTTP transport is at its maxSessions cap (only used when transport is 'http'). Swept back to idleTimeoutMs when larger."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    externallyManagedSessions: z
+        .boolean()
+        .default(false)
+        .describe(
+            "When true, the 2025-era HTTP transport accepts a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional, and an implicitly re-initialized session restores the client's previously negotiated capabilities from the session store."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
     maxBytesPerQuery: z.coerce
         .number()
         .default(16_777_216)

@@ -4,58 +4,65 @@ import type { AggregationCursor, FindCursor } from "mongodb";
 import type { CallToolResult } from "@mongodb-js/mcp-types";
 import { type ToolArgs, ToolArgumentValidationError } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
-import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase, type IMongoDBConfig } from "../../mongodbTool.js";
+import {
+    CollOperationArgs,
+    connectionScopedArgsShape,
+    MongoDBToolBase,
+    type IMongoDBConfig,
+} from "../../mongodbTool.js";
 import { FindArgs } from "./find.js";
 import { jsonExportFormat } from "../../common/exportsManager.js";
 import { AggregateArgs } from "./aggregate.js";
 import { EXPORT_TOOL_NAME } from "../../helpers/constants.js";
+import { assertNoWriteStages } from "../../helpers/mqlGuards.js";
+
+const ExportArgsShapeVariants = connectionScopedArgsShape({
+    ...CollOperationArgs,
+    exportTitle: z.string().describe("A short description to uniquely identify the export."),
+    // Note: Although it is not required to wrap the discriminated union in
+    // an array here because we only expect exactly one exportTarget to be
+    // provided here, we unfortunately cannot use the discriminatedUnion as
+    // is because Cursor is unable to construct payload for tool calls where
+    // the input schema contains a discriminated union without such
+    // wrapping. This is a workaround for enabling the tool calls on Cursor.
+    exportTarget: z
+        .array(
+            z.discriminatedUnion("name", [
+                z.object({
+                    name: z.literal("find").describe("The literal name 'find' to represent a find cursor as target."),
+                    arguments: z
+                        .object({
+                            ...FindArgs,
+                            limit: FindArgs.limit.removeDefault(),
+                        })
+                        .describe("The arguments for 'find' operation."),
+                }),
+                z.object({
+                    name: z
+                        .literal("aggregate")
+                        .describe("The literal name 'aggregate' to represent an aggregation cursor as target."),
+                    arguments: z.object(AggregateArgs).describe("The arguments for 'aggregate' operation."),
+                }),
+            ])
+        )
+        .describe("The export target along with its arguments."),
+    jsonExportFormat: jsonExportFormat
+        .default("relaxed")
+        .describe(
+            [
+                "The format to be used when exporting collection data as EJSON with default being relaxed.",
+                "relaxed: A string format that emphasizes readability and interoperability at the expense of type preservation. That is, conversion from relaxed format to BSON can lose type information.",
+                "canonical: A string format that emphasizes type preservation at the expense of readability and interoperability. That is, conversion from canonical to BSON will generally preserve type information except in certain specific cases.",
+            ].join("\n")
+        ),
+});
 
 export class ExportTool extends MongoDBToolBase {
     static toolName = EXPORT_TOOL_NAME;
     public description = "Export a query or aggregation results in the specified EJSON format.";
-    public argsShape = {
-        ...ConnectionIdArgs,
-        ...CollOperationArgs,
-        exportTitle: z.string().describe("A short description to uniquely identify the export."),
-        // Note: Although it is not required to wrap the discriminated union in
-        // an array here because we only expect exactly one exportTarget to be
-        // provided here, we unfortunately cannot use the discriminatedUnion as
-        // is because Cursor is unable to construct payload for tool calls where
-        // the input schema contains a discriminated union without such
-        // wrapping. This is a workaround for enabling the tool calls on Cursor.
-        exportTarget: z
-            .array(
-                z.discriminatedUnion("name", [
-                    z.object({
-                        name: z
-                            .literal("find")
-                            .describe("The literal name 'find' to represent a find cursor as target."),
-                        arguments: z
-                            .object({
-                                ...FindArgs,
-                                limit: FindArgs.limit.removeDefault(),
-                            })
-                            .describe("The arguments for 'find' operation."),
-                    }),
-                    z.object({
-                        name: z
-                            .literal("aggregate")
-                            .describe("The literal name 'aggregate' to represent an aggregation cursor as target."),
-                        arguments: z.object(AggregateArgs).describe("The arguments for 'aggregate' operation."),
-                    }),
-                ])
-            )
-            .describe("The export target along with its arguments."),
-        jsonExportFormat: jsonExportFormat
-            .default("relaxed")
-            .describe(
-                [
-                    "The format to be used when exporting collection data as EJSON with default being relaxed.",
-                    "relaxed: A string format that emphasizes readability and interoperability at the expense of type preservation. That is, conversion from relaxed format to BSON can lose type information.",
-                    "canonical: A string format that emphasizes type preservation at the expense of readability and interoperability. That is, conversion from canonical to BSON will generally preserve type information except in certain specific cases.",
-                ].join("\n")
-            ),
-    };
+    public argsShape(): typeof ExportArgsShapeVariants.preconfigured {
+        return this.selectConnectionScopedArgsShape(ExportArgsShapeVariants);
+    }
     static operationType: OperationType = "read";
 
     protected async execute(
@@ -66,7 +73,7 @@ export class ExportTool extends MongoDBToolBase {
             jsonExportFormat,
             exportTitle,
             exportTarget: target,
-        }: ToolArgs<typeof this.argsShape>,
+        }: ToolArgs<ReturnType<typeof this.argsShape>>,
         { request }: ToolExecutionContext<IMongoDBConfig>
     ): Promise<CallToolResult> {
         const provider = await this.resolveConnection(connectionId);
@@ -91,6 +98,10 @@ export class ExportTool extends MongoDBToolBase {
             });
         } else {
             const { pipeline } = exportTarget.arguments;
+            assertNoWriteStages(
+                pipeline,
+                "The export tool can not run pipelines with $out or $merge stages. Use the aggregate tool to run a pipeline that writes to a collection."
+            );
             this.assertMqlIsAllowed(this.server.config, pipeline);
             cursor = provider.aggregate(database, collection, pipeline, {
                 promoteValues: false,

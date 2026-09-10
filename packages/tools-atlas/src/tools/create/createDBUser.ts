@@ -54,15 +54,17 @@ export class CreateDBUserTool extends AtlasToolBase {
     static toolName = "atlas-create-db-user";
     public description = "Create an MongoDB Atlas database user";
     static operationType: OperationType = "create";
-    public argsShape = {
-        ...CreateDBUserArgs,
-    };
-    public override outputSchema = CreateDBUserOutputSchema;
+    public argsShape(): typeof CreateDBUserArgs {
+        return CreateDBUserArgs;
+    }
+    public override outputSchema(): typeof CreateDBUserOutputSchema {
+        return CreateDBUserOutputSchema;
+    }
 
     protected async execute(
-        { projectId, username, password, roles, clusters }: ToolArgs<typeof this.argsShape>,
+        { projectId, username, password, roles, clusters }: ToolArgs<ReturnType<typeof this.argsShape>>,
         { request }: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const ipAccessListResult = await ensureCurrentIpInAccessList(this.server.apiClient, projectId, request);
         const shouldGeneratePassword = !password;
         if (shouldGeneratePassword) {
@@ -127,7 +129,7 @@ export class CreateDBUserTool extends AtlasToolBase {
         password,
         roles,
         clusters,
-    }: ToolArgs<typeof this.argsShape>): string {
+    }: ToolArgs<ReturnType<typeof this.argsShape>>): string {
         return (
             `You are about to create a database user in Atlas project \`${projectId}\`:\n\n` +
             `**Username**: \`${username}\`\n\n` +

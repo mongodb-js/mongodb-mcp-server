@@ -1,4 +1,9 @@
-import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase, type IMongoDBConfig } from "../../mongodbTool.js";
+import {
+    CollOperationArgs,
+    connectionScopedArgsShape,
+    MongoDBToolBase,
+    type IMongoDBConfig,
+} from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { z } from "zod";
@@ -11,18 +16,24 @@ const CollectionStorageSizeOutputSchema = {
 
 export type CollectionStorageSizeOutput = z.infer<z.ZodObject<typeof CollectionStorageSizeOutputSchema>>;
 
+const CollectionStorageSizeArgsShapeVariants = connectionScopedArgsShape(CollOperationArgs);
+
 export class CollectionStorageSizeTool extends MongoDBToolBase {
     static toolName = "collection-storage-size";
     public description = "Gets the size of the collection";
-    public argsShape = { ...ConnectionIdArgs, ...CollOperationArgs };
-    public override outputSchema = CollectionStorageSizeOutputSchema;
+    public argsShape(): typeof CollectionStorageSizeArgsShapeVariants.preconfigured {
+        return this.selectConnectionScopedArgsShape(CollectionStorageSizeArgsShapeVariants);
+    }
+    public override outputSchema(): typeof CollectionStorageSizeOutputSchema {
+        return CollectionStorageSizeOutputSchema;
+    }
 
     static operationType: OperationType = "metadata";
 
     protected async execute(
-        { connectionId, database, collection }: ToolArgs<typeof this.argsShape>,
+        { connectionId, database, collection }: ToolArgs<ReturnType<typeof this.argsShape>>,
         { request }: ToolExecutionContext<IMongoDBConfig>
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const provider = await this.resolveConnection(connectionId);
         const [{ value }] = (await provider
             .aggregate(
@@ -54,7 +65,10 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
         };
     }
 
-    protected async handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async handleError(
+        error: unknown,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>
+    ): Promise<CallToolResult> {
         if (error instanceof Error && "codeName" in error && error.codeName === "NamespaceNotFound") {
             return {
                 content: [

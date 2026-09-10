@@ -26,6 +26,8 @@ export type RequestAuthInfo = {
  */
 export type RequestAuthState = { mode: "unauthenticated" } | { mode: "authenticated"; state: RequestAuthInfo };
 
+export type McpProtocol = "legacy" | "2026-07-28";
+
 export type TransportRequestContext = {
     headers?: Record<string, string | string[] | undefined>;
     query?: Record<string, string | string[] | undefined>;
@@ -35,6 +37,7 @@ export type TransportRequestContext = {
      * isolated from authenticated clients.
      */
     authInfo?: RequestAuthState;
+    protocol?: McpProtocol;
 };
 
 export interface ITransportRunner {

@@ -18,15 +18,21 @@ const ListDeploymentsOutputSchema = {
     ),
 };
 
+const ListDeploymentsArgsShape = {};
+
 export class ListDeploymentsTool extends AtlasLocalToolBase {
     static toolName = "atlas-local-list-deployments";
     public description = "List MongoDB Atlas local deployments";
     static operationType: OperationType = "read";
-    public argsShape = {};
-    public override outputSchema = ListDeploymentsOutputSchema;
+    public argsShape(): typeof ListDeploymentsArgsShape {
+        return ListDeploymentsArgsShape;
+    }
+    public override outputSchema(): typeof ListDeploymentsOutputSchema {
+        return ListDeploymentsOutputSchema;
+    }
 
     protected async executeWithAtlasLocalClient(
-        _args: ToolArgs<typeof this.argsShape>,
+        _args: ToolArgs<ReturnType<typeof this.argsShape>>,
         { client }: { client: Client; context: ToolExecutionContext }
     ): Promise<CallToolResult> {
         // List the deployments

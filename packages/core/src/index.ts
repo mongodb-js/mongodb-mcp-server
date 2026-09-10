@@ -1,4 +1,6 @@
 export { LoggerBase } from "./logging/loggerBase.js";
+// Export the zod `ToolBase` types against, so consumers use the same instance.
+export { z, type ZodRawShape } from "zod";
 export { RedactingLoggerBase } from "./logging/redactingLoggerBase.js";
 export { NoopLogger } from "./logging/noopLogger.js";
 export { CompositeLogger } from "./logging/compositeLogger.js";

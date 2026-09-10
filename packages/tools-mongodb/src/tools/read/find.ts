@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase, type IMongoDBConfig } from "../../mongodbTool.js";
+import {
+    CollOperationArgs,
+    connectionScopedArgsShape,
+    MongoDBToolBase,
+    type IMongoDBConfig,
+} from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
@@ -37,24 +42,29 @@ export const FindOutputSchema = {
     appliedLimits: z.array(CURSOR_LIMIT_KEYS).describe("The limits applied to the find query"),
 };
 
+const FindArgsShapeVariants = connectionScopedArgsShape({
+    ...CollOperationArgs,
+    ...FindArgs,
+    responseBytesLimit: z
+        .number()
+        .optional()
+        .default(ONE_MB)
+        .describe(
+            "The maximum number of bytes to return in the response. This value is capped by the server's configured maximum and cannot be exceeded."
+        ),
+});
+
 export class FindTool extends MongoDBToolBase {
     static toolName = "find";
     public description = "Run a find query against a MongoDB collection";
-    public argsShape = {
-        ...ConnectionIdArgs,
-        ...CollOperationArgs,
-        ...FindArgs,
-        responseBytesLimit: z
-            .number()
-            .optional()
-            .default(ONE_MB)
-            .describe(
-                "The maximum number of bytes to return in the response. This value is capped by the server's configured maximum and cannot be exceeded."
-            ),
-    };
+    public argsShape(): typeof FindArgsShapeVariants.preconfigured {
+        return this.selectConnectionScopedArgsShape(FindArgsShapeVariants);
+    }
     static operationType: OperationType = "read";
 
-    public override outputSchema = FindOutputSchema;
+    public override outputSchema(): typeof FindOutputSchema {
+        return FindOutputSchema;
+    }
 
     protected async execute(
         {
@@ -66,9 +76,9 @@ export class FindTool extends MongoDBToolBase {
             limit,
             sort,
             responseBytesLimit,
-        }: ToolArgs<typeof this.argsShape>,
+        }: ToolArgs<ReturnType<typeof this.argsShape>>,
         { request }: ToolExecutionContext<IMongoDBConfig>
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         let findCursor: FindCursor<unknown> | undefined = undefined;
         try {
             const provider = await this.resolveConnection(connectionId);

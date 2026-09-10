@@ -40,14 +40,18 @@ export class PauseResumeClusterTool extends AtlasToolBase {
         "Use the atlas-inspect-cluster tool to poll the cluster state for readiness (state: IDLE). " +
         "If the cluster is not paused, resuming it is a no-op.";
 
-    public override outputSchema = PauseResumeClusterOutputSchema;
+    public override outputSchema(): typeof PauseResumeClusterOutputSchema {
+        return PauseResumeClusterOutputSchema;
+    }
 
-    public argsShape = PauseResumeClusterArgsShape;
+    public argsShape(): typeof PauseResumeClusterArgsShape {
+        return PauseResumeClusterArgsShape;
+    }
 
     protected async execute(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         { request }: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const projectId = args.projectId;
         const clusterName = args.clusterName;
         const action = args.action;
@@ -102,7 +106,7 @@ export class PauseResumeClusterTool extends AtlasToolBase {
     }
 
     protected override async resolveTelemetryMetadata(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         context: { result: CallToolResult }
     ): Promise<PauseResumeClusterMetadata> {
         const parentMetadata = await super.resolveTelemetryMetadata(args, context);

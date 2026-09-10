@@ -1,4 +1,9 @@
-import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase, type IMongoDBConfig } from "../../mongodbTool.js";
+import {
+    CollOperationArgs,
+    connectionScopedArgsShape,
+    MongoDBToolBase,
+    type IMongoDBConfig,
+} from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { checkIndexUsage } from "../../helpers/indexCheck.js";
@@ -15,26 +20,31 @@ const DeleteManyOutputSchema = {
 
 export type DeleteManyOutput = z.infer<z.ZodObject<typeof DeleteManyOutputSchema>>;
 
+const DeleteManyArgsShapeVariants = connectionScopedArgsShape({
+    ...CollOperationArgs,
+    filter: zEJSON()
+        .optional()
+        .describe(
+            "The query filter, specifying the deletion criteria. Matches the syntax of the filter argument of db.collection.deleteMany()"
+        ),
+});
+
 export class DeleteManyTool extends MongoDBToolBase {
     static toolName = "delete-many";
     public description = "Removes all documents that match the filter from a MongoDB collection";
-    public argsShape = {
-        ...ConnectionIdArgs,
-        ...CollOperationArgs,
-        filter: zEJSON()
-            .optional()
-            .describe(
-                "The query filter, specifying the deletion criteria. Matches the syntax of the filter argument of db.collection.deleteMany()"
-            ),
-    };
-    public override outputSchema = DeleteManyOutputSchema;
+    public argsShape(): typeof DeleteManyArgsShapeVariants.preconfigured {
+        return this.selectConnectionScopedArgsShape(DeleteManyArgsShapeVariants);
+    }
+    public override outputSchema(): typeof DeleteManyOutputSchema {
+        return DeleteManyOutputSchema;
+    }
     static operationType: OperationType = "delete";
 
     protected async execute(
-        { connectionId, database, collection, filter }: ToolArgs<typeof this.argsShape>,
+        { connectionId, database, collection, filter }: ToolArgs<ReturnType<typeof this.argsShape>>,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         _context: ToolExecutionContext<IMongoDBConfig>
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const provider = await this.resolveConnection(connectionId);
 
         this.assertMqlIsAllowed(this.server.config, filter);
@@ -83,7 +93,11 @@ export class DeleteManyTool extends MongoDBToolBase {
         };
     }
 
-    protected getConfirmationMessage({ database, collection, filter }: ToolArgs<typeof this.argsShape>): string {
+    protected getConfirmationMessage({
+        database,
+        collection,
+        filter,
+    }: ToolArgs<ReturnType<typeof this.argsShape>>): string {
         // The filter is untrusted (model-supplied). It is not rendered inside a markdown code fence
         // because fences/code-spans cannot be escaped with backslashes — a backtick sequence in the
         // payload would break out. Rendering it as escapeMarkdown'd plain text neutralizes backticks too.

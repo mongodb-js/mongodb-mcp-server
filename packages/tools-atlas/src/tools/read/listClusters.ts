@@ -49,15 +49,17 @@ export class ListClustersTool extends AtlasToolBase {
     static toolName = "atlas-list-clusters";
     public description = "List MongoDB Atlas clusters";
     static operationType: OperationType = "read";
-    public argsShape = {
-        ...ListClustersArgs,
-    };
-    public override outputSchema = ListClustersOutputSchema;
+    public argsShape(): typeof ListClustersArgs {
+        return ListClustersArgs;
+    }
+    public override outputSchema(): typeof ListClustersOutputSchema {
+        return ListClustersOutputSchema;
+    }
 
     protected async execute(
-        { projectId }: ToolArgs<typeof this.argsShape>,
+        { projectId }: ToolArgs<ReturnType<typeof this.argsShape>>,
         { request }: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         if (!projectId) {
             const data = await this.server.apiClient.listClusterDetails(undefined, request);
 
