@@ -1108,6 +1108,7 @@ export const UserConfigSchema: z.ZodObject<{
     idleTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     notificationTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     evictionIdleGraceMS: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    externallyManagedSessions: z.ZodDefault<z.ZodBoolean>;
     maxBytesPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxDocumentsPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxTimeMS: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
