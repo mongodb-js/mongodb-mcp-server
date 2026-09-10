@@ -1,6 +1,6 @@
 {
   "name": "@mongodb-js/mcp-integration-tests",
-  "version": "3.0.0-prerelease.3",
+  "version": "3.0.0-prerelease.4",
   "private": true,
   "type": "module",
   "description": "Integration tests for the MongoDB MCP server",

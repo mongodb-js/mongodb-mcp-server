@@ -1,6 +1,6 @@
 {
   "name": "@mongodb-js/mcp-cli",
-  "version": "3.0.0-prerelease.3",
+  "version": "3.0.0-prerelease.4",
   "type": "module",
   "description": "Generic CLI helpers for building MCP servers",
   "license": "Apache-2.0",

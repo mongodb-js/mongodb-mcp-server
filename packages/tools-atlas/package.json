@@ -1,6 +1,6 @@
 {
   "name": "@mongodb-js/mcp-tools-atlas",
-  "version": "3.0.0-prerelease.3",
+  "version": "3.0.0-prerelease.4",
   "type": "module",
   "description": "Atlas tools for MongoDB MCP server",
   "repository": {

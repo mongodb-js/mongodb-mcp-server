@@ -6,12 +6,12 @@
     "url": "https://github.com/mongodb-js/mongodb-mcp-server",
     "source": "github"
   },
-  "version": "3.0.0-prerelease.3",
+  "version": "3.0.0-prerelease.4",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "mongodb-mcp-server",
-      "version": "3.0.0-prerelease.3",
+      "version": "3.0.0-prerelease.4",
       "transport": {
         "type": "stdio"
       },
@@ -126,6 +126,13 @@
           "description": "Folder to store exported data files.",
           "isRequired": false,
           "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_EXTERNALLY_MANAGED_SESSIONS",
+          "description": "When true, the 2025-era HTTP transport accepts a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional, and an implicitly re-initialized session restores the client's previously negotiated capabilities from the session store.",
+          "isRequired": false,
+          "format": "boolean",
           "isSecret": false
         },
         {
@@ -406,13 +413,6 @@
         },
         {
           "type": "named",
-          "name": "--externallyManagedSessions",
-          "description": "When true, the 2025-era HTTP transport accepts a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional.",
-          "isRequired": false,
-          "format": "boolean"
-        },
-        {
-          "type": "named",
           "name": "--exportCleanupIntervalMs",
           "description": "Time in milliseconds between export cleanup cycles that remove expired export files.",
           "isRequired": false,
@@ -430,6 +430,13 @@
           "name": "--exportsPath",
           "description": "Folder to store exported data files.",
           "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--externallyManagedSessions",
+          "description": "When true, the 2025-era HTTP transport accepts a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional, and an implicitly re-initialized session restores the client's previously negotiated capabilities from the session store.",
+          "isRequired": false,
+          "format": "boolean"
         },
         {
           "type": "named",
@@ -611,7 +618,7 @@
     },
     {
       "registryType": "oci",
-      "identifier": "docker.io/mongodb/mongodb-mcp-server:3.0.0-prerelease.3",
+      "identifier": "docker.io/mongodb/mongodb-mcp-server:3.0.0-prerelease.4",
       "transport": {
         "type": "stdio"
       },
@@ -726,6 +733,13 @@
           "description": "Folder to store exported data files.",
           "isRequired": false,
           "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_EXTERNALLY_MANAGED_SESSIONS",
+          "description": "When true, the 2025-era HTTP transport accepts a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional, and an implicitly re-initialized session restores the client's previously negotiated capabilities from the session store.",
+          "isRequired": false,
+          "format": "boolean",
           "isSecret": false
         },
         {
@@ -1006,13 +1020,6 @@
         },
         {
           "type": "named",
-          "name": "--externallyManagedSessions",
-          "description": "When true, the 2025-era HTTP transport accepts a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional.",
-          "isRequired": false,
-          "format": "boolean"
-        },
-        {
-          "type": "named",
           "name": "--exportCleanupIntervalMs",
           "description": "Time in milliseconds between export cleanup cycles that remove expired export files.",
           "isRequired": false,
@@ -1030,6 +1037,13 @@
           "name": "--exportsPath",
           "description": "Folder to store exported data files.",
           "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--externallyManagedSessions",
+          "description": "When true, the 2025-era HTTP transport accepts a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional, and an implicitly re-initialized session restores the client's previously negotiated capabilities from the session store.",
+          "isRequired": false,
+          "format": "boolean"
         },
         {
           "type": "named",
