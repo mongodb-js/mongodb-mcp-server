@@ -266,7 +266,7 @@ export class StreamsManageTool extends StreamsToolBase {
         }
 
         if (args.tier) {
-            const tierOrder = ["SP2", "SP5", "SP10", "SP30", "SP50"];
+            const tierOrder = StreamsTier.options;
             try {
                 const ws = await this.server.apiClient.getStreamWorkspace(
                     {

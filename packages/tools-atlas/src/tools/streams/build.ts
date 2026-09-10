@@ -151,10 +151,7 @@ export class StreamsBuildTool extends StreamsToolBase {
                     "Use Atlas region names: AWS examples: 'VIRGINIA_USA', 'OREGON_USA', 'DUBLIN_IRL'. " +
                     "Azure examples: 'eastus2', 'westeurope'. GCP examples: 'US_CENTRAL1', 'EUROPE_WEST1'."
             ),
-        tier: z
-            .enum(["SP2", "SP5", "SP10", "SP30", "SP50"])
-            .optional()
-            .describe("Processing tier. Default: SP10. Only for resource='workspace'."),
+        tier: StreamsTier.optional().describe("Processing tier. Default: SP10. Only for resource='workspace'."),
         includeSampleData: z
             .boolean()
             .optional()
