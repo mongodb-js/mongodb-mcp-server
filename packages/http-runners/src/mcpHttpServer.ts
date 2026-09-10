@@ -5,6 +5,7 @@ import {
     type McpRequestContext,
 } from "@modelcontextprotocol/server";
 import { toNodeHandler, toWebRequest } from "@modelcontextprotocol/node";
+import type { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
 import express from "express";
 import type {
     ICompositeLogger,
@@ -19,6 +20,7 @@ import {
     JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
     UserFacingError,
     requestIdAttr,
+    SessionStore,
 } from "@mongodb-js/mcp-core";
 import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
 import { LegacyMcpHttpHandler, type LegacyMcpHandler, type LegacySessionOptions } from "./legacyMcpHttpHandler.js";
@@ -113,9 +115,17 @@ export abstract class MCPHttpServer<
         return new LegacyMcpHttpHandler({
             createServer: async (request): Promise<TServer> => this.createServerForRequest(request),
             logger,
-            metrics: this.metrics,
             http,
-            sessionOptions,
+            sessionStore: new SessionStore<NodeStreamableHTTPServerTransport>({
+                options: {
+                    idleTimeoutMS: sessionOptions?.idleTimeoutMS ?? 600_000,
+                    notificationTimeoutMS: sessionOptions?.notificationTimeoutMS ?? 540_000,
+                    maxSessions: sessionOptions?.maxSessions ?? 1000,
+                    evictionIdleGraceMS: sessionOptions?.evictionIdleGraceMS ?? 120_000,
+                },
+                logger,
+                metrics: this.metrics,
+            }),
         });
     }
 
@@ -124,6 +134,9 @@ export abstract class MCPHttpServer<
      * in subclasses to customize per-request server creation.
      */
     protected abstract createServerForRequest(request: TransportRequestContext): Promise<TServer>;
+
+    /** Request middleware hook for `/mcp`, called after body parse + header validation, before routing. */
+    protected registerMiddlewares(): void {}
 
     /**
      * Builds the 2026-07-28 serving entry. One factory backs every modern
@@ -197,6 +210,8 @@ export abstract class MCPHttpServer<
                 next();
             });
         }
+
+        this.registerMiddlewares();
 
         this.app.post(
             "/mcp",

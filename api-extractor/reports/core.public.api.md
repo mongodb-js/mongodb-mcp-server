@@ -526,6 +526,10 @@ export class UserFacingError extends Error {
     constructor(message: string);
 }
 
+export { z }
+
+export { ZodRawShape }
+
 // (No @packageDocumentation comment for this package)
 
 ```

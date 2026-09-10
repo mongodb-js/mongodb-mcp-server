@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import type express from "express";
 import { MCPHttpServer } from "./mcpHttpServer.js";
+import type { LegacyMcpHandler } from "./legacyMcpHttpHandler.js";
 import { RedactingLoggerBase, Keychain } from "@mongodb-js/mcp-core";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 import type {
@@ -148,6 +149,24 @@ describe("MCPHttpServer stateless serving", () => {
         await post("/mcp", MODERN_BODY);
 
         expect(register).toHaveBeenCalledTimes(1);
+    });
+
+    it("runs host middleware from registerMiddlewares() ahead of the /mcp handlers", async () => {
+        class MiddlewareServer extends TestMCPHttpServer {
+            protected override registerMiddlewares(): void {
+                this.app.use((_req, res, next) => {
+                    res.setHeader("x-mcp-middleware", "ran");
+                    next();
+                });
+            }
+        }
+        logger = new InMemoryLogger();
+        server = new MiddlewareServer({ logger });
+        await server.start();
+
+        const res = await post("/mcp", MODERN_BODY);
+
+        expect(res.headers.get("x-mcp-middleware")).toBe("ran");
     });
 
     it("returns a 500 when the server factory throws", async () => {
@@ -306,6 +325,29 @@ describe("MCPHttpServer stateless serving", () => {
             const text = await res.text();
             expect(text).toContain("protocolVersion");
             expect(text).toMatch(/"id":1/);
+        });
+
+        it("uses an overridden legacy handler / injected session store for legacy requests", async () => {
+            const handle = vi
+                .fn()
+                .mockImplementation((req: express.Request, res: express.Response) =>
+                    Promise.resolve(res.status(200).send())
+                );
+            const close = vi.fn().mockResolvedValue(undefined);
+            class CustomLegacyServer extends TestMCPHttpServer {
+                protected override createLegacyHandler(): LegacyMcpHandler {
+                    return { handle, close };
+                }
+            }
+            logger = new InMemoryLogger();
+            server = new CustomLegacyServer({ logger });
+            await server.start();
+
+            // GET /mcp is legacy-only, so it is routed through the overridden handler.
+            const res = await fetch(`${server.serverAddress}/mcp`, { method: "GET" });
+
+            expect(res.status).toBe(200);
+            expect(handle).toHaveBeenCalledTimes(1);
         });
 
         it("answers 2025 session operations (GET/DELETE) without a session id", async () => {
