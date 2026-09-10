@@ -3,6 +3,8 @@
   "version": "3.0.0-prerelease.4",
   "type": "module",
   "description": "Tooling to drive real LLM coding-agent CLIs (codex, claude) interactively through their TUIs for end-to-end tests",
+  "license": "Apache-2.0",
+  "author": "MongoDB <info@mongodb.com>",
   "repository": {
     "url": "https://github.com/mongodb-js/mongodb-mcp-server.git",
     "directory": "packages/harness-tester"
