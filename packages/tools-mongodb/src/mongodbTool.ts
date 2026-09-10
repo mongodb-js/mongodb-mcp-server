@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z, type ZodRawShape } from "zod";
 import type { ToolArgs, InputRequiredResult } from "@mongodb-js/mcp-core";
 import { ToolBase } from "@mongodb-js/mcp-core";
 import type {
@@ -69,10 +69,26 @@ export const ConnectionIdArgs = {
 };
 
 // Shared leaf for the variant advertised when no connection string is configured.
-// Precomputed once so the register()-time swap reuses it instead of rebuilding.
-const connectionIdArgWithoutPreconfigured = z
-    .string()
-    .describe(connectionIdDescription({ hasPreconfiguredConnection: false }));
+// Precomputed once, module-level, so both argsShape() variants can reuse it.
+export const ConnectionIdArgsWithoutPreconfigured = {
+    connectionId: z.string().describe(connectionIdDescription({ hasPreconfiguredConnection: false })),
+};
+
+/**
+ * The two static `argsShape()` variants for a tool that takes a `connectionId`: one
+ * advertising the "preconfigured" handle, one without. `rest` (and every field within it)
+ * is reused by reference in both, so only the `connectionId` leaf differs between them.
+ * Call this once per tool, at module scope, and select between the two variants in the
+ * tool's `argsShape()` via {@link MongoDBToolBase.selectConnectionScopedArgsShape}.
+ */
+export function connectionScopedArgsShape<T extends ZodRawShape>(
+    rest: T
+): { preconfigured: T & typeof ConnectionIdArgs; plain: T & typeof ConnectionIdArgsWithoutPreconfigured } {
+    return {
+        preconfigured: { ...ConnectionIdArgs, ...rest },
+        plain: { ...ConnectionIdArgsWithoutPreconfigured, ...rest },
+    };
+}
 
 export type MongoDBToolServer = ToolServer<MongoDBToolServices>;
 
@@ -217,29 +233,18 @@ export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
     }
 
     /**
-     * The connectionId description varies by whether a connection string is
-     * preconfigured, so cache each variant's shape separately.
+     * Selects the connectionId-scoped argsShape variant matching whether a
+     * connection string is preconfigured for this request, so the "preconfigured"
+     * handle is only mentioned when it actually exists.
      */
-    protected override schemaVariantKey(): string {
-        if ("connectionId" in this.argsShape) {
-            return this.server.config.connectionString ? "preconfigured" : "plain";
-        }
-        return "";
+    protected selectConnectionScopedArgsShape<T extends ZodRawShape>(variants: { preconfigured: T; plain: T }): T {
+        return this.server.config.connectionString ? variants.preconfigured : variants.plain;
     }
 
-    public register(): boolean {
-        // The default connectionId description advertises the "preconfigured"
-        // handle; drop that mention when no connection string is configured.
-        if ("connectionId" in this.argsShape && !this.server.config.connectionString) {
-            this.argsShape = {
-                ...this.argsShape,
-                connectionId: connectionIdArgWithoutPreconfigured,
-            };
-        }
-        return super.register();
-    }
-
-    protected async handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async handleError(
+        error: unknown,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>
+    ): Promise<CallToolResult> {
         if (error instanceof MongoDBError) {
             switch (error.code) {
                 case ErrorCodes.NotConnectedToMongoDB:
@@ -308,7 +313,7 @@ export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
      * @returns The tool metadata
      */
     protected async resolveTelemetryMetadata(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         { result }: { result: CallToolResult }
     ): Promise<ConnectionMetadata> {

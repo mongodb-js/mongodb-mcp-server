@@ -4,7 +4,7 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { Client } from "@modelcontextprotocol/client";
 import {
     MongoDBToolBase,
-    ConnectionIdArgs,
+    connectionScopedArgsShape,
     MCPConnectionStore,
     DeviceId,
     ExportsManager,
@@ -59,12 +59,16 @@ const injectedErrorHandler: ConnectionErrorHandler = (error) => {
     }
 };
 
+const RandomToolArgsShapeVariants = connectionScopedArgsShape({});
+
 class RandomTool extends MongoDBToolBase {
     static toolName = "Random";
     static operationType: OperationType = "read";
     public description = "This is a tool.";
-    public argsShape = { ...ConnectionIdArgs };
-    protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    public argsShape(): typeof RandomToolArgsShapeVariants.preconfigured {
+        return this.selectConnectionScopedArgsShape(RandomToolArgsShapeVariants);
+    }
+    protected async execute(args: ToolArgs<ReturnType<typeof this.argsShape>>): Promise<CallToolResult> {
         await this.resolveConnection(args.connectionId);
         return { content: [{ type: "text", text: "Something" }] };
     }
@@ -74,13 +78,15 @@ class UnusableVoyageTool extends MongoDBToolBase {
     static toolName = "UnusableVoyageTool";
     static operationType: OperationType = "read";
     public description = "This is a Voyage tool.";
-    public argsShape = { ...ConnectionIdArgs };
+    public argsShape(): typeof RandomToolArgsShapeVariants.preconfigured {
+        return this.selectConnectionScopedArgsShape(RandomToolArgsShapeVariants);
+    }
 
     override verifyAllowed(): boolean {
         return false;
     }
 
-    protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute(args: ToolArgs<ReturnType<typeof this.argsShape>>): Promise<CallToolResult> {
         await this.resolveConnection(args.connectionId);
         return { content: [{ type: "text", text: "Something" }] };
     }

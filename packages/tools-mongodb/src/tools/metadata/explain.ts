@@ -1,4 +1,9 @@
-import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase, type IMongoDBConfig } from "../../mongodbTool.js";
+import {
+    CollOperationArgs,
+    connectionScopedArgsShape,
+    MongoDBToolBase,
+    type IMongoDBConfig,
+} from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { formatUntrustedData, ToolArgumentValidationError } from "@mongodb-js/mcp-core";
@@ -18,53 +23,58 @@ const ExplainOutputSchema = {
 
 export type ExplainOutput = z.infer<z.ZodObject<typeof ExplainOutputSchema>>;
 
+const ExplainArgsShapeVariants = connectionScopedArgsShape({
+    ...CollOperationArgs,
+    // Note: Although it is not required to wrap the discriminated union in
+    // an array here because we only expect exactly one method to be
+    // provided here, we unfortunately cannot use the discriminatedUnion as
+    // is because Cursor is unable to construct payload for tool calls where
+    // the input schema contains a discriminated union without such
+    // wrapping. This is a workaround for enabling the tool calls on Cursor.
+    method: z
+        .array(
+            z.discriminatedUnion("name", [
+                z.object({
+                    name: z.literal("aggregate"),
+                    arguments: z.object(AggregateArgs),
+                }),
+                z.object({
+                    name: z.literal("find"),
+                    arguments: z.object(FindArgs),
+                }),
+                z.object({
+                    name: z.literal("count"),
+                    arguments: z.object(CountArgs),
+                }),
+            ])
+        )
+        .describe("The method and its arguments to run"),
+    verbosity: verbosityEnum
+        .optional()
+        .default("queryPlanner")
+        .describe(
+            "The verbosity of the explain plan, defaults to queryPlanner. If the user wants to know how fast is a query in execution time, use executionStats. It supports all verbosities as defined in the MongoDB Driver."
+        ),
+});
+
 export class ExplainTool extends MongoDBToolBase {
     static toolName = "explain";
     public description =
         "Returns statistics describing the execution of the winning plan chosen by the query optimizer for the evaluated method";
 
-    public argsShape = {
-        ...ConnectionIdArgs,
-        ...CollOperationArgs,
-        // Note: Although it is not required to wrap the discriminated union in
-        // an array here because we only expect exactly one method to be
-        // provided here, we unfortunately cannot use the discriminatedUnion as
-        // is because Cursor is unable to construct payload for tool calls where
-        // the input schema contains a discriminated union without such
-        // wrapping. This is a workaround for enabling the tool calls on Cursor.
-        method: z
-            .array(
-                z.discriminatedUnion("name", [
-                    z.object({
-                        name: z.literal("aggregate"),
-                        arguments: z.object(AggregateArgs),
-                    }),
-                    z.object({
-                        name: z.literal("find"),
-                        arguments: z.object(FindArgs),
-                    }),
-                    z.object({
-                        name: z.literal("count"),
-                        arguments: z.object(CountArgs),
-                    }),
-                ])
-            )
-            .describe("The method and its arguments to run"),
-        verbosity: verbosityEnum
-            .optional()
-            .default("queryPlanner")
-            .describe(
-                "The verbosity of the explain plan, defaults to queryPlanner. If the user wants to know how fast is a query in execution time, use executionStats. It supports all verbosities as defined in the MongoDB Driver."
-            ),
-    };
-    public override outputSchema = ExplainOutputSchema;
+    public argsShape(): typeof ExplainArgsShapeVariants.preconfigured {
+        return this.selectConnectionScopedArgsShape(ExplainArgsShapeVariants);
+    }
+    public override outputSchema(): typeof ExplainOutputSchema {
+        return ExplainOutputSchema;
+    }
 
     static operationType: OperationType = "metadata";
 
     protected async execute(
-        { connectionId, database, collection, method: methods, verbosity }: ToolArgs<typeof this.argsShape>,
+        { connectionId, database, collection, method: methods, verbosity }: ToolArgs<ReturnType<typeof this.argsShape>>,
         { request }: ToolExecutionContext<IMongoDBConfig>
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const provider = await this.resolveConnection(connectionId);
         const method = methods[0];
 

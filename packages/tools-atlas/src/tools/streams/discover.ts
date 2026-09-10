@@ -229,6 +229,41 @@ function buildProcessorStructuredContent(
     return structuredContent;
 }
 
+const StreamsDiscoverArgsShape = {
+    projectId: AtlasArgs.projectId().describe(
+        "Atlas project ID. Use atlas-list-projects to find project IDs if not available."
+    ),
+    action: DiscoverAction.describe(
+        "What to look up. Start with 'list-workspaces' to see available workspaces, " +
+            "then use inspect actions for details or 'diagnose-processor' for a health report."
+    ),
+    workspaceName: StreamsArgs.workspaceName()
+        .optional()
+        .describe("Workspace name. Required for all actions except 'list-workspaces' and 'get-networking'."),
+    resourceName: StreamsArgs.resourceName()
+        .optional()
+        .describe(
+            "Connection or processor name. Required for 'inspect-connection', 'inspect-processor', and 'diagnose-processor'."
+        ),
+    responseFormat: ResponseFormat.optional().describe(
+        "Response detail level. 'concise' returns names and states only. " +
+            "'detailed' returns full configuration and stats. " +
+            "Default: 'concise' for list actions, 'detailed' for inspect/diagnose."
+    ),
+    cloudProvider: z
+        .string()
+        .optional()
+        .describe(
+            "Cloud provider (AWS, AZURE, GCP). Only for 'get-networking': returns account details for the specified provider."
+        ),
+    region: z
+        .string()
+        .optional()
+        .describe("Cloud region. Only for 'get-networking': returns account details for the specified region."),
+    limit: z.number().int().min(1).max(100).optional().describe("Max results per page for list actions. Default: 20."),
+    pageNum: z.number().int().min(1).optional().describe("Page number for list actions. Default: 1."),
+};
+
 export class StreamsDiscoverTool extends StreamsToolBase {
     static toolName = "atlas-streams-discover";
     static operationType: OperationType = "read";
@@ -241,48 +276,13 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         "Use 'diagnose-processor' for a combined health report including state, stats, connection health, and recent errors. " +
         "Use 'get-networking' for PrivateLink and account details.";
 
-    public argsShape = {
-        projectId: AtlasArgs.projectId().describe(
-            "Atlas project ID. Use atlas-list-projects to find project IDs if not available."
-        ),
-        action: DiscoverAction.describe(
-            "What to look up. Start with 'list-workspaces' to see available workspaces, " +
-                "then use inspect actions for details or 'diagnose-processor' for a health report."
-        ),
-        workspaceName: StreamsArgs.workspaceName()
-            .optional()
-            .describe("Workspace name. Required for all actions except 'list-workspaces' and 'get-networking'."),
-        resourceName: StreamsArgs.resourceName()
-            .optional()
-            .describe(
-                "Connection or processor name. Required for 'inspect-connection', 'inspect-processor', and 'diagnose-processor'."
-            ),
-        responseFormat: ResponseFormat.optional().describe(
-            "Response detail level. 'concise' returns names and states only. " +
-                "'detailed' returns full configuration and stats. " +
-                "Default: 'concise' for list actions, 'detailed' for inspect/diagnose."
-        ),
-        cloudProvider: z
-            .string()
-            .optional()
-            .describe(
-                "Cloud provider (AWS, AZURE, GCP). Only for 'get-networking': returns account details for the specified provider."
-            ),
-        region: z
-            .string()
-            .optional()
-            .describe("Cloud region. Only for 'get-networking': returns account details for the specified region."),
-        limit: z
-            .number()
-            .int()
-            .min(1)
-            .max(100)
-            .optional()
-            .describe("Max results per page for list actions. Default: 20."),
-        pageNum: z.number().int().min(1).optional().describe("Page number for list actions. Default: 1."),
-    };
+    public argsShape(): typeof StreamsDiscoverArgsShape {
+        return StreamsDiscoverArgsShape;
+    }
 
-    public override outputSchema = DiscoverOutputSchema.shape;
+    public override outputSchema(): typeof DiscoverOutputSchema.shape {
+        return DiscoverOutputSchema.shape;
+    }
 
     protected async execute(
         {
@@ -295,7 +295,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
             region,
             limit,
             pageNum,
-        }: ToolArgs<typeof this.argsShape>,
+        }: ToolArgs<ReturnType<typeof this.argsShape>>,
         { request }: ToolExecutionContext
     ): Promise<CallToolResult> {
         switch (action) {

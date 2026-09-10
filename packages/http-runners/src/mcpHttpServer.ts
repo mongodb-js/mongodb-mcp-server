@@ -116,6 +116,7 @@ export abstract class MCPHttpServer<
             createServer: async (request): Promise<TServer> => this.createServerForRequest(request),
             logger,
             http,
+            externallyManagedSessions: sessionOptions?.externallyManagedSessions ?? false,
             sessionStore: new SessionStore<NodeStreamableHTTPServerTransport>({
                 options: {
                     idleTimeoutMS: sessionOptions?.idleTimeoutMS ?? 600_000,
@@ -161,6 +162,7 @@ export abstract class MCPHttpServer<
                     authInfo: ctx.authInfo
                         ? { mode: "authenticated", state: ctx.authInfo }
                         : { mode: "unauthenticated" },
+                    protocol: "2026-07-28",
                 };
                 const server = await this.createServerForRequest(request);
                 await server.register();

@@ -1,6 +1,6 @@
 {
   "name": "@mongodb-js/mcp-tools-mongodb",
-  "version": "3.0.0-prerelease.3",
+  "version": "3.0.0-prerelease.4",
   "type": "module",
   "description": "MongoDB tools for MongoDB MCP server",
   "repository": {

@@ -703,6 +703,7 @@ export type TelemetryCommonProperties = {
     config_connection_string?: TelemetryBoolSet;
     hosting_mode?: string;
     has_docker?: TelemetryBoolSet;
+    protocol?: McpProtocol;
 } & TelemetryCommonStaticProperties;
 
 // @public (undocumented)
@@ -761,19 +762,19 @@ export abstract class ToolBase<TServer extends ToolServer = ToolServer, TMetrics
     constructor(input: ToolServerParam<TServer>);
     // (undocumented)
     get annotations(): ToolAnnotations;
-    abstract argsShape: ZodRawShape;
+    abstract argsShape(): ZodRawShape;
     readonly category: ToolCategory;
     abstract description: string;
     // (undocumented)
     disable(): void;
     // (undocumented)
     enable(): void;
-    protected abstract execute(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
-    protected getConfirmationMessage(args: ToolArgs<typeof ToolBase.argsShape>): string;
+    protected abstract execute(args: ToolArgs<ReturnType<typeof ToolBase.argsShape>>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
+    protected getConfirmationMessage(args: ToolArgs<ReturnType<typeof ToolBase.argsShape>>): string;
     // (undocumented)
     protected getConnectionInfoMetadata(connectionState?: SupportedConnectionState): ConnectionMetadata;
-    protected handleError(error: unknown, args: z.infer<z.ZodObject<typeof ToolBase.argsShape>>): Promise<CallToolResult> | CallToolResult;
-    invoke(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
+    protected handleError(error: unknown, args: z.infer<z.ZodObject<ReturnType<typeof ToolBase.argsShape>>>): Promise<CallToolResult> | CallToolResult;
+    invoke(args: ToolArgs<ReturnType<typeof ToolBase.argsShape>>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
     // (undocumented)
     isEnabled(): boolean;
     // (undocumented)
@@ -781,15 +782,14 @@ export abstract class ToolBase<TServer extends ToolServer = ToolServer, TMetrics
     readonly name: string;
     normalizeRawArgs(args: Record<string, unknown>): Record<string, unknown>;
     readonly operationType: OperationType;
-    outputSchema?: ZodRawShape;
+    outputSchema?(): ZodRawShape;
     // (undocumented)
     register(): boolean;
     protected requestConfirmation(message: string, context: ToolExecutionContext): boolean | undefined;
     requiresConfirmation(): boolean;
-    protected abstract resolveTelemetryMetadata(args: ToolArgs<typeof ToolBase.argsShape>, input: {
+    protected abstract resolveTelemetryMetadata(args: ToolArgs<ReturnType<typeof ToolBase.argsShape>>, input: {
         result: CallToolResult;
     }): TelemetryToolMetadata_2 | Promise<TelemetryToolMetadata_2>;
-    protected schemaVariantKey(): string;
     protected readonly server: TServer;
     protected get toolMeta(): Record<string, unknown>;
     protected readonly transportRequest?: TransportRequestContext;
@@ -841,6 +841,7 @@ export type TransportRequestContext = {
     headers?: Record<string, string | string[] | undefined>;
     query?: Record<string, string | string[] | undefined>;
     authInfo?: RequestAuthState;
+    protocol?: McpProtocol;
 };
 
 // @public

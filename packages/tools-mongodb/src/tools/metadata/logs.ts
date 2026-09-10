@@ -1,4 +1,4 @@
-import { ConnectionIdArgs, MongoDBToolBase, type IMongoDBConfig } from "../../mongodbTool.js";
+import { connectionScopedArgsShape, MongoDBToolBase, type IMongoDBConfig } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { ToolExecutionContext, OperationType } from "@mongodb-js/mcp-types";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
@@ -12,35 +12,40 @@ const LogsOutputSchema = {
 
 export type LogsOutput = z.infer<z.ZodObject<typeof LogsOutputSchema>>;
 
+const LogsArgsShapeVariants = connectionScopedArgsShape({
+    type: z
+        .enum(["global", "startupWarnings"])
+        .optional()
+        .default("global")
+        .describe(
+            "The type of logs to return. Global returns all recent log entries, while startupWarnings returns only warnings and errors from when the process started."
+        ),
+    limit: z
+        .number()
+        .int()
+        .max(1024)
+        .min(1)
+        .optional()
+        .default(50)
+        .describe("The maximum number of log entries to return."),
+});
+
 export class LogsTool extends MongoDBToolBase {
     static toolName = "mongodb-logs";
     public description = "Returns the most recent logged mongod events";
-    public argsShape = {
-        ...ConnectionIdArgs,
-        type: z
-            .enum(["global", "startupWarnings"])
-            .optional()
-            .default("global")
-            .describe(
-                "The type of logs to return. Global returns all recent log entries, while startupWarnings returns only warnings and errors from when the process started."
-            ),
-        limit: z
-            .number()
-            .int()
-            .max(1024)
-            .min(1)
-            .optional()
-            .default(50)
-            .describe("The maximum number of log entries to return."),
-    };
-    public override outputSchema = LogsOutputSchema;
+    public argsShape(): typeof LogsArgsShapeVariants.preconfigured {
+        return this.selectConnectionScopedArgsShape(LogsArgsShapeVariants);
+    }
+    public override outputSchema(): typeof LogsOutputSchema {
+        return LogsOutputSchema;
+    }
 
     static operationType: OperationType = "metadata";
 
     protected async execute(
-        { connectionId, type, limit }: ToolArgs<typeof this.argsShape>,
+        { connectionId, type, limit }: ToolArgs<ReturnType<typeof this.argsShape>>,
         { request }: ToolExecutionContext<IMongoDBConfig>
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const provider = await this.resolveConnection(connectionId);
 
         const result = await provider.runCommandWithCheck(

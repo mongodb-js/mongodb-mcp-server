@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { AggregationCursor } from "mongodb";
 import type { InputRequiredResult } from "@mongodb-js/mcp-core";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { ConnectionIdArgs, DBOperationArgs, MongoDBToolBase, type IMongoDBConfig } from "../../mongodbTool.js";
+import { connectionScopedArgsShape, DBOperationArgs, MongoDBToolBase, type IMongoDBConfig } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
@@ -34,29 +34,34 @@ export const AggregateArgs = {
         ),
 };
 
+const AggregateDBArgsShapeVariants = connectionScopedArgsShape({
+    ...DBOperationArgs,
+    ...AggregateArgs,
+    responseBytesLimit: z
+        .number()
+        .optional()
+        .default(ONE_MB)
+        .describe(
+            "The maximum number of bytes to return in the response. This value is capped by the server's configured maximum and cannot be exceeded."
+        ),
+});
+
 export class AggregateDBTool extends MongoDBToolBase {
     static toolName = "aggregate-db";
     public description = "Run an aggregation against a MongoDB database";
-    public argsShape = {
-        ...ConnectionIdArgs,
-        ...DBOperationArgs,
-        ...AggregateArgs,
-        responseBytesLimit: z
-            .number()
-            .optional()
-            .default(ONE_MB)
-            .describe(
-                "The maximum number of bytes to return in the response. This value is capped by the server's configured maximum and cannot be exceeded."
-            ),
-    };
+    public argsShape(): typeof AggregateDBArgsShapeVariants.preconfigured {
+        return this.selectConnectionScopedArgsShape(AggregateDBArgsShapeVariants);
+    }
     static operationType: OperationType = "read";
 
-    public override outputSchema = AggregateDBOutputSchema;
+    public override outputSchema(): typeof AggregateDBOutputSchema {
+        return AggregateDBOutputSchema;
+    }
 
     protected async execute(
-        { connectionId, database, pipeline, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
+        { connectionId, database, pipeline, responseBytesLimit }: ToolArgs<ReturnType<typeof this.argsShape>>,
         context: ToolExecutionContext<IMongoDBConfig>
-    ): Promise<ToolResult<typeof this.outputSchema> | InputRequiredResult> {
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>> | InputRequiredResult> {
         const { request } = context;
         let aggregationCursor: AggregationCursor | undefined = undefined;
         try {
