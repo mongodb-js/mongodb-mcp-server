@@ -1,6 +1,6 @@
 {
   "name": "@mongodb-js/mcp-e2e-tests",
-  "version": "3.0.0-prerelease.4",
+  "version": "3.0.0-prerelease.5",
   "private": true,
   "type": "module",
   "description": "End-to-end tests driving the MongoDB MCP server through a real LLM coding agent",

@@ -551,6 +551,7 @@ Package|Version|License
 **[pend](#5280e611ad1ea93993866458fee5ac2505dffaa230bd5f5c52d409d07e22650c)**|1.2.0|MIT
 **[picocolors](#7c5f372425355293c448d7405cb3b0a1fe19402bd0298caae8e341077624f0b7)**|1.1.1|ISC
 **[picomatch](#c78c64a6fc75782d50e698a11df7376076bd26035eb4e2dc8dc6e3f216b85f70)**|4.0.5|MIT
+**[picomatch](#0eb48e249822c101af2ccb1be899a48ebfc1ae80e3ac026a4a819454887bc22d)**|4.0.7|MIT
 **[pify](#fa563a6186184316465656f6e608f9e4989e4c4d5a87195874ab68f6cecb5433)**|2.3.0|MIT
 **[pify](#95369d58f1d1199d1e592e0ce52033ab973f27ab3e49926f7ecd02652c387fe3)**|3.0.0|MIT
 **[pinkie-promise](#93c64c2afc117932e69534a865511191963c97dcc96651a1d0d7ba0ea5754f9a)**|2.0.1|MIT
@@ -3549,6 +3550,11 @@ License tags: ISC
 
 <a id="c78c64a6fc75782d50e698a11df7376076bd26035eb4e2dc8dc6e3f216b85f70"></a>
 ### [picomatch](https://www.npmjs.com/package/picomatch) (version 4.0.5)
+License tags: MIT
+
+
+<a id="0eb48e249822c101af2ccb1be899a48ebfc1ae80e3ac026a4a819454887bc22d"></a>
+### [picomatch](https://www.npmjs.com/package/picomatch) (version 4.0.7)
 License tags: MIT
 
 
