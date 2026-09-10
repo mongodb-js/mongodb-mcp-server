@@ -8,7 +8,7 @@ import {
     StreamsArgs,
     StreamsAutoscaling,
     StreamsTier,
-    StreamsTierValue,
+    type StreamsTierValue,
     toStreamsAutoscaling,
 } from "../../streams/streamsArgs.js";
 import { StreamsInvalidArgumentError } from "../../streams/errors.js";
