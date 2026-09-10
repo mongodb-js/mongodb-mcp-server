@@ -1,4 +1,4 @@
-import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import { CollOperationArgs, connectionScopedArgsShape, MongoDBToolBase } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType } from "@mongodb-js/mcp-types";
 import { escapeMarkdown } from "../../helpers/escapeMarkdown.js";
@@ -12,22 +12,25 @@ const DropCollectionOutputSchema = {
 
 export type DropCollectionOutput = z.infer<z.ZodObject<typeof DropCollectionOutputSchema>>;
 
+const DropCollectionArgsShapeVariants = connectionScopedArgsShape(CollOperationArgs);
+
 export class DropCollectionTool extends MongoDBToolBase {
     static toolName = "drop-collection";
     public description =
         "Removes a collection or view from the database. The method also removes any indexes associated with the dropped collection.";
-    public argsShape = {
-        ...ConnectionIdArgs,
-        ...CollOperationArgs,
-    };
-    public override outputSchema = DropCollectionOutputSchema;
+    public argsShape(): typeof DropCollectionArgsShapeVariants.preconfigured {
+        return this.selectConnectionScopedArgsShape(DropCollectionArgsShapeVariants);
+    }
+    public override outputSchema(): typeof DropCollectionOutputSchema {
+        return DropCollectionOutputSchema;
+    }
     static operationType: OperationType = "delete";
 
     protected async execute({
         connectionId,
         database,
         collection,
-    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+    }: ToolArgs<ReturnType<typeof this.argsShape>>): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const provider = await this.resolveConnection(connectionId);
         const result = await provider.dropCollection(database, collection);
 
@@ -46,7 +49,7 @@ export class DropCollectionTool extends MongoDBToolBase {
         };
     }
 
-    protected getConfirmationMessage({ database, collection }: ToolArgs<typeof this.argsShape>): string {
+    protected getConfirmationMessage({ database, collection }: ToolArgs<ReturnType<typeof this.argsShape>>): string {
         return (
             `You are about to drop the **${escapeMarkdown(collection)}** collection from the **${escapeMarkdown(database)}** database:\n\n` +
             "This operation will permanently remove the collection and all its data, including indexes.\n\n" +

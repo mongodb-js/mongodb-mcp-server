@@ -20,12 +20,16 @@ import { InMemoryTransport } from "@mongodb-js/mcp-core";
 import { TRANSPORT_PAYLOAD_LIMITS } from "@mongodb-js/mcp-core";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 
+const TestToolOneArgsShape = {};
+
 class TestToolOne extends ToolBase {
     static toolName = "test-tool-one";
     public description = "A test tool one for verification tests";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "delete";
-    public argsShape = {};
+    public argsShape(): typeof TestToolOneArgsShape {
+        return TestToolOneArgsShape;
+    }
     protected async execute(): Promise<CallToolResult> {
         return Promise.resolve({
             content: [
@@ -41,12 +45,16 @@ class TestToolOne extends ToolBase {
     }
 }
 
+const TestToolTwoArgsShape = {};
+
 class TestToolTwo extends ToolBase {
     static toolName = "test-tool-two";
     public description = "A test tool two for verification tests";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "delete";
-    public argsShape = {};
+    public argsShape(): typeof TestToolTwoArgsShape {
+        return TestToolTwoArgsShape;
+    }
     protected async execute(): Promise<CallToolResult> {
         return Promise.resolve({
             content: [

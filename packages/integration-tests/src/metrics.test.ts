@@ -145,12 +145,16 @@ describe("/metrics endpoint", () => {
             } satisfies CustomMetrics,
         });
 
+        const CustomToolArgsShape = {};
+
         class CustomTool extends ToolBase<ToolServer<ToolServices<IToolConfig>, CustomMetrics>, CustomMetrics> {
             static toolName = "custom-tool";
             static category: ToolCategory = "mongodb";
             static operationType: OperationType = "read";
             public description = "Custom tool that increments a user-supplied counter";
-            public argsShape = {};
+            public argsShape(): typeof CustomToolArgsShape {
+                return CustomToolArgsShape;
+            }
             protected execute(): Promise<CallToolResult> {
                 this.server.metrics.get("callCount").inc({ tool_name: "custom-tool" });
                 return Promise.resolve({ content: [{ type: "text", text: "ok" }] });

@@ -1,4 +1,4 @@
-import { ConnectionIdArgs, DBOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import { connectionScopedArgsShape, DBOperationArgs, MongoDBToolBase } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType } from "@mongodb-js/mcp-types";
 import { escapeMarkdown } from "../../helpers/escapeMarkdown.js";
@@ -11,17 +11,23 @@ const DropDatabaseOutputSchema = {
 
 export type DropDatabaseOutput = z.infer<z.ZodObject<typeof DropDatabaseOutputSchema>>;
 
+const DropDatabaseArgsShapeVariants = connectionScopedArgsShape(DBOperationArgs);
+
 export class DropDatabaseTool extends MongoDBToolBase {
     static toolName = "drop-database";
     public description = "Removes the specified database, deleting the associated data files";
-    public argsShape = { ...ConnectionIdArgs, ...DBOperationArgs };
-    public override outputSchema = DropDatabaseOutputSchema;
+    public argsShape(): typeof DropDatabaseArgsShapeVariants.preconfigured {
+        return this.selectConnectionScopedArgsShape(DropDatabaseArgsShapeVariants);
+    }
+    public override outputSchema(): typeof DropDatabaseOutputSchema {
+        return DropDatabaseOutputSchema;
+    }
     static operationType: OperationType = "delete";
 
     protected async execute({
         connectionId,
         database,
-    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+    }: ToolArgs<ReturnType<typeof this.argsShape>>): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const provider = await this.resolveConnection(connectionId);
         const result = await provider.dropDatabase(database);
 
@@ -39,7 +45,7 @@ export class DropDatabaseTool extends MongoDBToolBase {
         };
     }
 
-    protected getConfirmationMessage({ database }: ToolArgs<typeof this.argsShape>): string {
+    protected getConfirmationMessage({ database }: ToolArgs<ReturnType<typeof this.argsShape>>): string {
         return (
             `You are about to drop the **${escapeMarkdown(database)}** database:\n\n` +
             "This operation will permanently remove the database and ALL its collections, documents, and indexes.\n\n" +

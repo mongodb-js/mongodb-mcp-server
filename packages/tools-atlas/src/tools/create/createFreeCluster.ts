@@ -10,21 +10,27 @@ const CreateFreeClusterOutputSchema = {
     created: z.boolean().describe("Whether the cluster was created successfully"),
 };
 
+const CreateFreeClusterArgsShape = {
+    projectId: AtlasArgs.projectId().describe("Atlas project ID to create the cluster in"),
+    name: AtlasArgs.clusterName().describe("Name of the cluster"),
+    region: AtlasArgs.region().describe("Region of the cluster").default("US_EAST_1"),
+};
+
 export class CreateFreeClusterTool extends AtlasToolBase {
     static toolName = "atlas-create-free-cluster";
     public description = "Create a free MongoDB Atlas cluster";
     static operationType: OperationType = "create";
-    public argsShape = {
-        projectId: AtlasArgs.projectId().describe("Atlas project ID to create the cluster in"),
-        name: AtlasArgs.clusterName().describe("Name of the cluster"),
-        region: AtlasArgs.region().describe("Region of the cluster").default("US_EAST_1"),
-    };
-    public override outputSchema = CreateFreeClusterOutputSchema;
+    public argsShape(): typeof CreateFreeClusterArgsShape {
+        return CreateFreeClusterArgsShape;
+    }
+    public override outputSchema(): typeof CreateFreeClusterOutputSchema {
+        return CreateFreeClusterOutputSchema;
+    }
 
     protected async execute(
-        { projectId, name, region }: ToolArgs<typeof this.argsShape>,
+        { projectId, name, region }: ToolArgs<ReturnType<typeof this.argsShape>>,
         { request }: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const input = {
             groupId: projectId,
             name,

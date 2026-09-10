@@ -1,3 +1,5 @@
+import type { McpProtocol } from "./transport.js";
+
 export type TelemetryEvents = {
     "events-emitted": [];
     "events-send-failed": [];
@@ -33,6 +35,7 @@ export type TelemetryCommonProperties = {
     config_connection_string?: TelemetryBoolSet;
     hosting_mode?: string;
     has_docker?: TelemetryBoolSet;
+    protocol?: McpProtocol;
 } & TelemetryCommonStaticProperties;
 
 export type TelemetryEvent<T> = {

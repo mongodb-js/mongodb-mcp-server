@@ -49,6 +49,7 @@ const expectedDefaults = {
     idleTimeoutMs: 600000,
     notificationTimeoutMs: 540000,
     evictionIdleGraceMS: 120000,
+    externallyManagedSessions: false,
     httpHeaders: {},
     httpBodyLimit: TRANSPORT_PAYLOAD_LIMITS.http,
     maxDocumentsPerQuery: 100,

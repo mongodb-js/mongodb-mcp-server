@@ -25,15 +25,17 @@ export class InspectAccessListTool extends AtlasToolBase {
     static toolName = "atlas-inspect-access-list";
     public description = "Inspect Ip/CIDR ranges with access to your MongoDB Atlas clusters.";
     static operationType: OperationType = "read";
-    public argsShape = {
-        ...InspectAccessListArgs,
-    };
-    public override outputSchema = InspectAccessListOutputSchema;
+    public argsShape(): typeof InspectAccessListArgs {
+        return InspectAccessListArgs;
+    }
+    public override outputSchema(): typeof InspectAccessListOutputSchema {
+        return InspectAccessListOutputSchema;
+    }
 
     protected async execute(
-        { projectId }: ToolArgs<typeof this.argsShape>,
+        { projectId }: ToolArgs<ReturnType<typeof this.argsShape>>,
         { request }: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const accessList = await this.server.apiClient.listAccessListEntries(
             {
                 params: {

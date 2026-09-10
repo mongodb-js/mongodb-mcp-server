@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z, type ZodRawShape } from "zod";
 import type { ToolArgs, InputRequiredResult } from "@mongodb-js/mcp-core";
 import { ToolBase } from "@mongodb-js/mcp-core";
 import type {
@@ -16,7 +16,7 @@ import type { ConnectionMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "./common/errors.js";
 import type { ConnectionEntry, ConnectionRegistry } from "./common/connectionRegistry.js";
-import { assertNoServerSideJS, isWriteStage, type WriteStageTarget } from "./helpers/mqlGuards.js";
+import { assertNoServerSideJS, assertNoWriteStages, type WriteStageTarget } from "./helpers/mqlGuards.js";
 import { buildWriteStageConfirmationMessage } from "./helpers/writeStageConfirmation.js";
 import { EXPORT_TOOL_NAME } from "./helpers/constants.js";
 import type { AvailableExport, CreateJSONExportParams } from "./common/exportsManager.js";
@@ -69,10 +69,26 @@ export const ConnectionIdArgs = {
 };
 
 // Shared leaf for the variant advertised when no connection string is configured.
-// Precomputed once so the register()-time swap reuses it instead of rebuilding.
-const connectionIdArgWithoutPreconfigured = z
-    .string()
-    .describe(connectionIdDescription({ hasPreconfiguredConnection: false }));
+// Precomputed once, module-level, so both argsShape() variants can reuse it.
+export const ConnectionIdArgsWithoutPreconfigured = {
+    connectionId: z.string().describe(connectionIdDescription({ hasPreconfiguredConnection: false })),
+};
+
+/**
+ * The two static `argsShape()` variants for a tool that takes a `connectionId`: one
+ * advertising the "preconfigured" handle, one without. `rest` (and every field within it)
+ * is reused by reference in both, so only the `connectionId` leaf differs between them.
+ * Call this once per tool, at module scope, and select between the two variants in the
+ * tool's `argsShape()` via {@link MongoDBToolBase.selectConnectionScopedArgsShape}.
+ */
+export function connectionScopedArgsShape<T extends ZodRawShape>(
+    rest: T
+): { preconfigured: T & typeof ConnectionIdArgs; plain: T & typeof ConnectionIdArgsWithoutPreconfigured } {
+    return {
+        preconfigured: { ...ConnectionIdArgs, ...rest },
+        plain: { ...ConnectionIdArgsWithoutPreconfigured, ...rest },
+    };
+}
 
 export type MongoDBToolServer = ToolServer<MongoDBToolServices>;
 
@@ -211,39 +227,24 @@ export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
             }
 
             if (writeStageForbiddenErrorMessage) {
-                for (const stage of value) {
-                    if (isWriteStage(stage)) {
-                        throw new MongoDBError(ErrorCodes.ForbiddenWriteOperation, writeStageForbiddenErrorMessage);
-                    }
-                }
+                assertNoWriteStages(value, writeStageForbiddenErrorMessage);
             }
         }
     }
 
     /**
-     * The connectionId description varies by whether a connection string is
-     * preconfigured, so cache each variant's shape separately.
+     * Selects the connectionId-scoped argsShape variant matching whether a
+     * connection string is preconfigured for this request, so the "preconfigured"
+     * handle is only mentioned when it actually exists.
      */
-    protected override schemaVariantKey(): string {
-        if ("connectionId" in this.argsShape) {
-            return this.server.config.connectionString ? "preconfigured" : "plain";
-        }
-        return "";
+    protected selectConnectionScopedArgsShape<T extends ZodRawShape>(variants: { preconfigured: T; plain: T }): T {
+        return this.server.config.connectionString ? variants.preconfigured : variants.plain;
     }
 
-    public register(): boolean {
-        // The default connectionId description advertises the "preconfigured"
-        // handle; drop that mention when no connection string is configured.
-        if ("connectionId" in this.argsShape && !this.server.config.connectionString) {
-            this.argsShape = {
-                ...this.argsShape,
-                connectionId: connectionIdArgWithoutPreconfigured,
-            };
-        }
-        return super.register();
-    }
-
-    protected async handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async handleError(
+        error: unknown,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>
+    ): Promise<CallToolResult> {
         if (error instanceof MongoDBError) {
             switch (error.code) {
                 case ErrorCodes.NotConnectedToMongoDB:
@@ -312,7 +313,7 @@ export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
      * @returns The tool metadata
      */
     protected async resolveTelemetryMetadata(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         { result }: { result: CallToolResult }
     ): Promise<ConnectionMetadata> {

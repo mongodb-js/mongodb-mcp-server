@@ -77,6 +77,23 @@ export function isWriteStage(stage: Record<string, unknown>): boolean {
     return writeStageOperator(stage) !== undefined;
 }
 
+/**
+ * Throws a {@link MongoDBError} with the given message when any top-level stage
+ * of the pipeline writes to a collection. Only top-level stages are inspected,
+ * matching {@link isWriteStage}.
+ *
+ * The message is supplied by the caller because the reason a write stage is
+ * forbidden differs per call site (read-only mode, disabled write operations, or
+ * a tool that never permits them).
+ */
+export function assertNoWriteStages(pipeline: Record<string, unknown>[], message: string): void {
+    for (const stage of pipeline) {
+        if (isWriteStage(stage)) {
+            throw new MongoDBError(ErrorCodes.ForbiddenWriteOperation, message);
+        }
+    }
+}
+
 /** The collection a write stage targets, along with how it will write to it. */
 export type WriteStageTarget = { namespace: string | undefined } & (
     | { operator: "$out" }

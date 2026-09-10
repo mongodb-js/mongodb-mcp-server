@@ -584,14 +584,18 @@ describe("StreamableHttpRunner", () => {
             confirmRequestReceived = resolve;
         });
 
+        const RandomToolArgsShape = {};
+
         class RandomTool extends ToolBase {
             static toolName = "random-tool";
             public description = "Random tool";
-            public argsShape = {};
+            public argsShape(): typeof RandomToolArgsShape {
+                return RandomToolArgsShape;
+            }
             static category: ToolCategory = "mongodb";
             static operationType: OperationType = "metadata";
             protected execute(
-                _: ToolArgs<typeof this.argsShape>,
+                _: ToolArgs<ReturnType<typeof this.argsShape>>,
                 { request }: ToolExecutionContext
             ): Promise<CallToolResult> {
                 confirmRequestReceived?.(request);

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import { CollOperationArgs, connectionScopedArgsShape, MongoDBToolBase } from "../../mongodbTool.js";
 import { type ToolArgs, formatUntrustedData, type ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType } from "@mongodb-js/mcp-types";
 import { escapeMarkdown } from "../../helpers/escapeMarkdown.js";
@@ -13,23 +13,30 @@ const DropIndexOutputSchema = {
 
 export type DropIndexOutput = z.infer<z.ZodObject<typeof DropIndexOutputSchema>>;
 
+const DropIndexArgsShapeVariants = connectionScopedArgsShape({
+    ...CollOperationArgs,
+    indexName: z.string().nonempty().describe("The name of the index to be dropped."),
+    type: z
+        .enum(["classic", "search"])
+        .describe(
+            "The type of index to be deleted. Use 'classic' for standard indexes and 'search' for atlas search and vector search indexes."
+        ),
+});
+
 export class DropIndexTool extends MongoDBToolBase {
     static toolName = "drop-index";
     public description = "Drop an index for the provided database and collection.";
-    public argsShape = {
-        ...ConnectionIdArgs,
-        ...CollOperationArgs,
-        indexName: z.string().nonempty().describe("The name of the index to be dropped."),
-        type: z
-            .enum(["classic", "search"])
-            .describe(
-                "The type of index to be deleted. Use 'classic' for standard indexes and 'search' for atlas search and vector search indexes."
-            ),
-    };
-    public override outputSchema = DropIndexOutputSchema;
+    public argsShape(): typeof DropIndexArgsShapeVariants.preconfigured {
+        return this.selectConnectionScopedArgsShape(DropIndexArgsShapeVariants);
+    }
+    public override outputSchema(): typeof DropIndexOutputSchema {
+        return DropIndexOutputSchema;
+    }
     static operationType: OperationType = "delete";
 
-    protected async execute(toolArgs: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+    protected async execute(
+        toolArgs: ToolArgs<ReturnType<typeof this.argsShape>>
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const provider = await this.resolveConnection(toolArgs.connectionId);
         switch (toolArgs.type) {
             case "classic":
@@ -41,8 +48,8 @@ export class DropIndexTool extends MongoDBToolBase {
 
     private async dropClassicIndex(
         provider: NodeDriverServiceProvider,
-        { database, collection, indexName }: ToolArgs<typeof this.argsShape>
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+        { database, collection, indexName }: ToolArgs<ReturnType<typeof this.argsShape>>
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const result = await provider.runCommand(database, {
             dropIndexes: collection,
             index: indexName,
@@ -68,8 +75,8 @@ export class DropIndexTool extends MongoDBToolBase {
 
     private async dropSearchIndex(
         provider: NodeDriverServiceProvider,
-        { connectionId, database, collection, indexName }: ToolArgs<typeof this.argsShape>
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+        { connectionId, database, collection, indexName }: ToolArgs<ReturnType<typeof this.argsShape>>
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         await this.assertSearchSupported(connectionId);
         const indexes = await provider.getSearchIndexes(database, collection, indexName);
         if (indexes.length === 0) {
@@ -111,7 +118,7 @@ export class DropIndexTool extends MongoDBToolBase {
         collection,
         indexName,
         type,
-    }: ToolArgs<typeof this.argsShape>): string {
+    }: ToolArgs<ReturnType<typeof this.argsShape>>): string {
         return (
             `You are about to drop the ${type === "search" ? "search index" : "index"} named **${escapeMarkdown(indexName)}** from the **${escapeMarkdown(database)}.${escapeMarkdown(collection)}** namespace:\n\n` +
             "This operation will permanently remove the index and might affect the performance of queries relying on this index.\n\n" +

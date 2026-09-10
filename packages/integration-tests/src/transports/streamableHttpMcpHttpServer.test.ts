@@ -247,10 +247,14 @@ describe("MCPHttpServer (streamable HTTP)", () => {
     });
 
     describe("with createServerForRequest override", () => {
+        const EmptyArgsShape = {};
+
         class ConfigCheckTool extends ToolBase {
             static toolName = "config-check";
             public description = "Check current configuration";
-            public argsShape = {};
+            public argsShape(): typeof EmptyArgsShape {
+                return EmptyArgsShape;
+            }
             static category: ToolCategory = "mongodb";
             static operationType: OperationType = "metadata";
 
@@ -322,7 +326,9 @@ describe("MCPHttpServer (streamable HTTP)", () => {
         class UserTool extends ToolBase {
             static toolName = "user-tool";
             public description = "Available to users";
-            public argsShape = {};
+            public argsShape(): typeof EmptyArgsShape {
+                return EmptyArgsShape;
+            }
             static category: ToolCategory = "mongodb";
             static operationType: OperationType = "metadata";
 
@@ -340,7 +346,9 @@ describe("MCPHttpServer (streamable HTTP)", () => {
         class AdminTool extends ToolBase {
             static toolName = "admin-tool";
             public description = "Available to admins only";
-            public argsShape = {};
+            public argsShape(): typeof EmptyArgsShape {
+                return EmptyArgsShape;
+            }
             static category: ToolCategory = "mongodb";
             static operationType: OperationType = "create";
 

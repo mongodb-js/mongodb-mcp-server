@@ -38,7 +38,7 @@ export abstract class AtlasLocalToolBase extends ToolBase<AtlasLocalToolServer> 
     }
 
     protected async execute(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
 
         _context: ToolExecutionContext
     ): Promise<CallToolResult> {
@@ -98,13 +98,13 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
     }
 
     protected abstract executeWithAtlasLocalClient(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         context: { client: Client; context: ToolExecutionContext }
     ): Promise<CallToolResult>;
 
     protected handleError(
         error: unknown,
-        args: ToolArgs<typeof this.argsShape>
+        args: ToolArgs<ReturnType<typeof this.argsShape>>
     ): Promise<CallToolResult> | CallToolResult {
         // Error Handling for expected Atlas Local errors go here
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -146,7 +146,7 @@ please log a ticket here: https://github.com/mongodb-js/mongodb-mcp-server/issue
     }
 
     protected resolveTelemetryMetadata(
-        _args: ToolArgs<typeof this.argsShape>,
+        _args: ToolArgs<ReturnType<typeof this.argsShape>>,
         { result }: { result: CallToolResult }
     ): ConnectionMetadata | Promise<ConnectionMetadata> {
         const toolMetadata: ConnectionMetadata = {};

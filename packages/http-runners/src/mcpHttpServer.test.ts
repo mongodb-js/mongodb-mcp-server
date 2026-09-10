@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import type express from "express";
 import { MCPHttpServer } from "./mcpHttpServer.js";
+import type { LegacyMcpHandler, LegacySessionOptions } from "./legacyMcpHttpHandler.js";
 import { RedactingLoggerBase, Keychain } from "@mongodb-js/mcp-core";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 import type {
@@ -90,11 +91,12 @@ function makeFakeServer(): BaseServer & { connect: (t: unknown) => Promise<void>
 }
 
 class TestMCPHttpServer extends MCPHttpServer<BaseServer> {
-    constructor({ logger }: { logger: InMemoryLogger }) {
+    constructor({ logger, sessionOptions }: { logger: InMemoryLogger; sessionOptions?: LegacySessionOptions }) {
         super({
             options: { http: httpOptions },
             logger,
             metrics: new MockMetrics(),
+            sessionOptions,
         });
     }
 
@@ -148,6 +150,24 @@ describe("MCPHttpServer stateless serving", () => {
         await post("/mcp", MODERN_BODY);
 
         expect(register).toHaveBeenCalledTimes(1);
+    });
+
+    it("runs host middleware from registerMiddlewares() ahead of the /mcp handlers", async () => {
+        class MiddlewareServer extends TestMCPHttpServer {
+            protected override registerMiddlewares(): void {
+                this.app.use((_req, res, next) => {
+                    res.setHeader("x-mcp-middleware", "ran");
+                    next();
+                });
+            }
+        }
+        logger = new InMemoryLogger();
+        server = new MiddlewareServer({ logger });
+        await server.start();
+
+        const res = await post("/mcp", MODERN_BODY);
+
+        expect(res.headers.get("x-mcp-middleware")).toBe("ran");
     });
 
     it("returns a 500 when the server factory throws", async () => {
@@ -308,6 +328,29 @@ describe("MCPHttpServer stateless serving", () => {
             expect(text).toMatch(/"id":1/);
         });
 
+        it("uses an overridden legacy handler / injected session store for legacy requests", async () => {
+            const handle = vi
+                .fn()
+                .mockImplementation((req: express.Request, res: express.Response) =>
+                    Promise.resolve(res.status(200).send())
+                );
+            const close = vi.fn().mockResolvedValue(undefined);
+            class CustomLegacyServer extends TestMCPHttpServer {
+                protected override createLegacyHandler(): LegacyMcpHandler {
+                    return { handle, close };
+                }
+            }
+            logger = new InMemoryLogger();
+            server = new CustomLegacyServer({ logger });
+            await server.start();
+
+            // GET /mcp is legacy-only, so it is routed through the overridden handler.
+            const res = await fetch(`${server.serverAddress}/mcp`, { method: "GET" });
+
+            expect(res.status).toBe(200);
+            expect(handle).toHaveBeenCalledTimes(1);
+        });
+
         it("answers 2025 session operations (GET/DELETE) without a session id", async () => {
             await startServer();
             // In JSON response mode there is no SSE idle stream, so GET is 405.
@@ -357,6 +400,65 @@ describe("MCPHttpServer stateless serving", () => {
             await expect(initWithSession.json()).resolves.toMatchObject({
                 error: { code: -32005 },
             });
+        });
+
+        it("accepts a client-supplied session id on initialize when externally managed sessions are enabled", async () => {
+            const myLogger = new InMemoryLogger();
+            class ExternalServer extends TestMCPHttpServer {
+                constructor() {
+                    super({
+                        logger: myLogger,
+                        sessionOptions: { externallyManagedSessions: true },
+                    });
+                }
+            }
+            server = new ExternalServer();
+            await server.start();
+
+            const res = await fetch(`${server.serverAddress}/mcp`, {
+                method: "POST",
+                headers: {
+                    "content-type": "application/json",
+                    accept: "application/json, text/event-stream",
+                    "mcp-protocol-version": "2025-11-25",
+                    "mcp-session-id": "external-id",
+                },
+                body: LEGACY_INIT_BODY,
+            });
+
+            expect(res.status).toBe(200);
+            // The client-supplied id is honored, not rejected.
+            expect(res.headers.get("mcp-session-id")).toBe("external-id");
+        });
+
+        it("implicitly re-initializes a missing session for an externally managed session id", async () => {
+            const myLogger = new InMemoryLogger();
+            class ExternalServer extends TestMCPHttpServer {
+                constructor() {
+                    super({
+                        logger: myLogger,
+                        sessionOptions: { externallyManagedSessions: true },
+                    });
+                }
+            }
+            server = new ExternalServer();
+            await server.start();
+
+            // A session-carrying request (non-initialize) whose id is not in the
+            // store. With externally managed sessions enabled the handler attempts
+            // an implicit re-initialization instead of rejecting with 404.
+            const res = await fetch(`${server.serverAddress}/mcp`, {
+                method: "POST",
+                headers: {
+                    "content-type": "application/json",
+                    accept: "application/json, text/event-stream",
+                    "mcp-protocol-version": "2025-11-25",
+                    "mcp-session-id": "external-id",
+                },
+                body: JSON.stringify({ jsonrpc: "2.0", method: "tools/list", id: 4, params: {} }),
+            });
+
+            expect(res.status).toBe(200);
         });
     });
 });

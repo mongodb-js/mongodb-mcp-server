@@ -23,35 +23,33 @@ const CreateAccessListOutputSchema = {
     projectId: z.string(),
 };
 
+// The currentIpAddress arg is omitted on deployments that can't determine the
+// caller's public IP (e.g. the Atlas-hosted MCP server), so models are never
+// offered an option that cannot work there. Both variants share every other
+// field by reference.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const { currentIpAddress: _currentIpAddress, ...CreateAccessListArgsWithoutCurrentIp } = CreateAccessListArgs;
+
 export class CreateAccessListTool extends AtlasToolBase {
     static toolName = "atlas-create-access-list";
     public description = "Allow Ip/CIDR ranges to access your MongoDB Atlas clusters.";
     static operationType: OperationType = "create";
-    // The currentIpAddress arg is omitted on deployments that can't determine the
-    // caller's public IP (e.g. the Atlas-hosted MCP server), so models are never
-    // offered an option that cannot work there. Typed as the full shape because
-    // execute() still receives currentIpAddress as optional either way.
-    public get argsShape(): typeof CreateAccessListArgs {
+    // Typed as the full shape because execute() still receives currentIpAddress as optional either way.
+    public argsShape(): typeof CreateAccessListArgs | typeof CreateAccessListArgsWithoutCurrentIp {
         if (this.server.apiClient?.supportsCurrentIpLookup === false) {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { currentIpAddress, ...rest } = CreateAccessListArgs;
-            return rest as typeof CreateAccessListArgs;
+            return CreateAccessListArgsWithoutCurrentIp;
         }
 
         return CreateAccessListArgs;
     }
-    public override outputSchema = CreateAccessListOutputSchema;
-
-    // argsShape drops currentIpAddress when IP lookup is unsupported, so the two
-    // shapes must be cached and shared separately.
-    protected override schemaVariantKey(): string {
-        return this.server.apiClient?.supportsCurrentIpLookup === false ? "no-current-ip" : "current-ip";
+    public override outputSchema(): typeof CreateAccessListOutputSchema {
+        return CreateAccessListOutputSchema;
     }
 
     protected async execute(
-        { projectId, ipAddresses, cidrBlocks, comment, currentIpAddress }: ToolArgs<typeof this.argsShape>,
+        { projectId, ipAddresses, cidrBlocks, comment, currentIpAddress }: ToolArgs<typeof CreateAccessListArgs>,
         { request }: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         if (!ipAddresses?.length && !cidrBlocks?.length && !currentIpAddress) {
             if (!this.server.apiClient.supportsCurrentIpLookup) {
                 throw new ToolArgumentValidationError("Either ipAddresses or cidrBlocks must be provided.");
@@ -114,7 +112,7 @@ export class CreateAccessListTool extends AtlasToolBase {
         cidrBlocks,
         comment,
         currentIpAddress,
-    }: ToolArgs<typeof this.argsShape>): string {
+    }: ToolArgs<typeof CreateAccessListArgs>): string {
         const accessDescription = [];
         if (ipAddresses?.length) {
             accessDescription.push(`- **IP addresses**: ${ipAddresses.join(", ")}`);

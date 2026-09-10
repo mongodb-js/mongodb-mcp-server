@@ -117,7 +117,7 @@ describe("CreateAccessListTool", () => {
     });
 
     it("includes the currentIpAddress arg when current IP lookup is supported", () => {
-        expect(Object.keys(tool.argsShape)).toContain("currentIpAddress");
+        expect(Object.keys(tool.argsShape())).toContain("currentIpAddress");
     });
 
     describe("when current IP lookup is not supported", () => {
@@ -126,7 +126,7 @@ describe("CreateAccessListTool", () => {
         });
 
         it("omits the currentIpAddress arg", () => {
-            expect(Object.keys(tool.argsShape)).not.toContain("currentIpAddress");
+            expect(Object.keys(tool.argsShape())).not.toContain("currentIpAddress");
         });
 
         it("directs the user to provide explicit IPs when no inputs are provided", async () => {
@@ -148,7 +148,7 @@ describe("CreateAccessListTool", () => {
         });
     });
 
-    describe("shared schema caching by IP-lookup variant", () => {
+    describe("argsShape variant by IP-lookup support", () => {
         type CapturedSchema = { safeParse: (value: unknown) => { success: boolean } };
 
         function registeredInputSchema(t: CreateAccessListTool): CapturedSchema {
@@ -164,20 +164,19 @@ describe("CreateAccessListTool", () => {
             return inputSchema as CapturedSchema;
         }
 
-        it("caches the two variants separately without cross-talk", () => {
+        it("produces distinct shapes for the two variants without cross-talk", () => {
             const withLookup = registeredInputSchema(makeTool({ ...mockApiClient, supportsCurrentIpLookup: true }));
             const withoutLookup = registeredInputSchema(makeTool({ ...mockApiClient, supportsCurrentIpLookup: false }));
 
-            // Distinct shapes must not collapse onto one shared cache entry.
             expect(withLookup).not.toBe(withoutLookup);
             expect(withLookup.safeParse({ projectId, currentIpAddress: true }).success).toBe(true);
             expect(withoutLookup.safeParse({ projectId, currentIpAddress: true }).success).toBe(false);
         });
 
-        it("shares one schema instance across registrations of the same variant", () => {
-            const a = registeredInputSchema(makeTool({ ...mockApiClient, supportsCurrentIpLookup: true }));
-            const b = registeredInputSchema(makeTool({ ...mockApiClient, supportsCurrentIpLookup: true }));
-            expect(a).toBe(b);
+        it("returns the same argsShape object across instances selecting the same variant", () => {
+            const a = makeTool({ ...mockApiClient, supportsCurrentIpLookup: true });
+            const b = makeTool({ ...mockApiClient, supportsCurrentIpLookup: true });
+            expect(a.argsShape()).toBe(b.argsShape());
         });
 
         it("accepts a comment at the 80-character limit and rejects longer ones", () => {

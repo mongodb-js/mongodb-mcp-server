@@ -4,6 +4,8 @@ export {
     type MongoDBToolServices,
     type MongoDBToolServer,
     ConnectionIdArgs,
+    ConnectionIdArgsWithoutPreconfigured,
+    connectionScopedArgsShape,
     DBOperationArgs,
     CollOperationArgs,
 } from "./mongodbTool.js";
