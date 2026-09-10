@@ -21,8 +21,10 @@ type StreamsProcessorWithStats = {
     stats?: Record<string, unknown>;
     options?: {
         dlq?: { connectionName?: string; db?: string; coll?: string };
-        // Atlas returns `autoscaling: null` (and `enabled: null`) when autoscaling is
-        // disabled/cleared; toStreamsAutoscaling normalizes this before structured output.
+        // Raw Atlas response model: the generated client types options.autoscaling as
+        // nullable, but the API omits it when disabled/cleared and never returns a null
+        // `enabled` (only minTier/maxTier may be null). toStreamsAutoscaling normalizes
+        // this to the tool's non-null surface before structured output.
         autoscaling?: {
             enabled?: boolean | null;
             minTier?: StreamsTierValue | null;
