@@ -5,7 +5,7 @@ import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { MCPConnectionManager, type ConnectionManager } from "./connectionManager.js";
 import { MCPConnectionStore, type ConnectionStoreConfig } from "./connectionStore.js";
-import type { ConnectionEntry, ConnectionRegistry } from "./connectionRegistry.js";
+import { ConnectionEntry, type ConnectionRegistry } from "./connectionRegistry.js";
 import { DeviceId } from "../helpers/deviceId.js";
 import { ErrorCodes, MongoDBError } from "./errors.js";
 
@@ -129,6 +129,30 @@ describe("ConnectionEntry with MCPConnectionManager", () => {
 
             // Should use 'unknown' for client name when it was not provided
             expect(connectionString).toContain("--test-device-id--unknown");
+        });
+    });
+
+    describe("lastError", () => {
+        it("should not contain the raw connection string when the connect attempt fails", async () => {
+            const entry = new ConnectionEntry({
+                connectionId: "preconfigured",
+                name: "preconfigured",
+                source: "preconfigured",
+                manager: new MCPConnectionManager({
+                    logger,
+                    deviceId: mockDeviceId,
+                    serverMetadata: { mcpServerName: "MongoDB MCP Server", version: "1.0.0" },
+                    connectionInfo: { transport: "stdio", httpHost: "127.0.0.1" },
+                }),
+            });
+
+            await expect(
+                entry.connect({ connectionString: "mongodb+srv://dbadmin:Real$ecretPass9@" })
+            ).rejects.toThrow();
+
+            expect(entry.lastError).toBeDefined();
+            expect(entry.lastError).not.toContain("Real$ecretPass9");
+            expect(entry.lastError).toContain("<mongodb uri>");
         });
     });
 

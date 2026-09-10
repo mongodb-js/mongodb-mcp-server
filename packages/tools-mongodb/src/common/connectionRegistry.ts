@@ -1,6 +1,6 @@
 import { randomBytes } from "crypto";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import type { LoggerBase } from "@mongodb-js/mcp-core";
+import { Keychain, type LoggerBase } from "@mongodb-js/mcp-core";
 import type { AnyConnectionState, ConnectionManager, ConnectionSettings } from "./connectionManager.js";
 import { ErrorCodes, MongoDBError } from "./errors.js";
 
@@ -166,7 +166,12 @@ export class ConnectionEntry {
             this.lastError = undefined;
             return state;
         } catch (error: unknown) {
-            this.lastError = error instanceof Error ? error.message : String(error);
+            const message = error instanceof Error ? error.message : String(error);
+            // The driver/arg-parser error can embed the connection string verbatim (e.g. a
+            // malformed URI), which may contain credentials. lastError is read back later by
+            // list-connections, so it has to be redacted here at the point of capture, not
+            // only where the response for this call happens to be built.
+            this.lastError = Keychain.root.redact(message);
             throw error;
         }
     }
