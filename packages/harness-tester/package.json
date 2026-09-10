@@ -1,16 +1,25 @@
 {
   "name": "@mongodb-js/harness-tester",
   "version": "3.0.0-prerelease.2",
-  "private": true,
   "type": "module",
   "description": "Tooling to drive real LLM coding-agent CLIs (codex, claude) interactively through their TUIs for end-to-end tests",
+  "repository": {
+    "url": "https://github.com/mongodb-js/mongodb-mcp-server.git",
+    "directory": "packages/harness-tester"
+  },
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     }
   },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
+    "build": "tsc --build tsconfig.build.json",
     "check": "tsc --noEmit --project tsconfig.json"
   },
   "dependencies": {
@@ -20,5 +29,8 @@
   "devDependencies": {
     "@types/node": "^25.6.0",
     "typescript": "^5.9.2"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
