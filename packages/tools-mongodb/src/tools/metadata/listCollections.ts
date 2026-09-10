@@ -1,4 +1,4 @@
-import { ConnectionIdArgs, DBOperationArgs, MongoDBToolBase, type IMongoDBConfig } from "../../mongodbTool.js";
+import { connectionScopedArgsShape, DBOperationArgs, MongoDBToolBase, type IMongoDBConfig } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
@@ -15,18 +15,24 @@ const ListCollectionsOutputSchema = {
 
 export type ListCollectionsOutput = z.infer<z.ZodObject<typeof ListCollectionsOutputSchema>>;
 
+const ListCollectionsArgsShapeVariants = connectionScopedArgsShape(DBOperationArgs);
+
 export class ListCollectionsTool extends MongoDBToolBase {
     static toolName = "list-collections";
     public description = "List all collections for a given database";
-    public argsShape = { ...ConnectionIdArgs, ...DBOperationArgs };
-    public override outputSchema = ListCollectionsOutputSchema;
+    public argsShape(): typeof ListCollectionsArgsShapeVariants.preconfigured {
+        return this.selectConnectionScopedArgsShape(ListCollectionsArgsShapeVariants);
+    }
+    public override outputSchema(): typeof ListCollectionsOutputSchema {
+        return ListCollectionsOutputSchema;
+    }
 
     static operationType: OperationType = "metadata";
 
     protected async execute(
-        { connectionId, database }: ToolArgs<typeof this.argsShape>,
+        { connectionId, database }: ToolArgs<ReturnType<typeof this.argsShape>>,
         { request }: ToolExecutionContext<IMongoDBConfig>
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const provider = await this.resolveConnection(connectionId);
         const collections = (await provider.listCollections(database, {}, { signal: request.signal })).map((col) => ({
             name: col.name as string,

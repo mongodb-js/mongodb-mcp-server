@@ -212,8 +212,12 @@ export class CreateClusterTool extends AtlasToolBase {
         "Note to LLM: Omit instance size unless specified by the user. " +
         "If provider and regions are not already known, ask for the provider and desired locations together. " +
         "Use atlas-get-regions to resolve natural-language locations or uncertain region codes before calling this tool.";
-    public override outputSchema = CreateClusterOutputSchema;
-    public argsShape = CreateClusterArgsShape;
+    public override outputSchema(): typeof CreateClusterOutputSchema {
+        return CreateClusterOutputSchema;
+    }
+    public argsShape(): typeof CreateClusterArgsShape {
+        return CreateClusterArgsShape;
+    }
 
     /** Accepts the `region` argument that `regions` replaced, mapping it to a single-region cluster. */
     public override normalizeRawArgs(args: Record<string, unknown>): Record<string, unknown> {
@@ -226,9 +230,9 @@ export class CreateClusterTool extends AtlasToolBase {
     }
 
     protected async execute(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         { request }: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const { projectId, clusterName, provider, regions, clusterType, terminationProtectionEnabled } = args;
 
         if (clusterType === "SHARDED" && (args.instanceSize === "M10" || args.instanceSize === "M20")) {
@@ -343,7 +347,7 @@ export class CreateClusterTool extends AtlasToolBase {
         }
     }
 
-    protected override handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): CallToolResult {
+    protected override handleError(error: unknown, args: ToolArgs<ReturnType<typeof this.argsShape>>): CallToolResult {
         if (error instanceof CreateClusterError) {
             return {
                 content: [{ type: "text", text: error.message }],
@@ -354,7 +358,7 @@ export class CreateClusterTool extends AtlasToolBase {
     }
 
     protected override async resolveTelemetryMetadata(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         context: { result: CallToolResult }
     ): Promise<CreateClusterMetadata> {
         const parentMetadata = await super.resolveTelemetryMetadata(args, context);

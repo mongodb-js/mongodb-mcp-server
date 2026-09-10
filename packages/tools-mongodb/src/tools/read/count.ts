@@ -1,4 +1,4 @@
-import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import { CollOperationArgs, connectionScopedArgsShape, MongoDBToolBase } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import type { IMongoDBConfig } from "../../mongodbTool.js";
@@ -18,24 +18,29 @@ const CountOutputSchema = {
     count: z.number().describe("The number of documents in the collection"),
 };
 
+const CountArgsShapeVariants = connectionScopedArgsShape({
+    ...CollOperationArgs,
+    ...CountArgs,
+});
+
 export class CountTool extends MongoDBToolBase {
     static toolName = "count";
     public description =
         "Gets the number of documents in a MongoDB collection using db.collection.count() and query as an optional filter parameter";
-    public argsShape = {
-        ...ConnectionIdArgs,
-        ...CollOperationArgs,
-        ...CountArgs,
-    };
+    public argsShape(): typeof CountArgsShapeVariants.preconfigured {
+        return this.selectConnectionScopedArgsShape(CountArgsShapeVariants);
+    }
 
     static operationType: OperationType = "read";
 
-    public override outputSchema = CountOutputSchema;
+    public override outputSchema(): typeof CountOutputSchema {
+        return CountOutputSchema;
+    }
 
     protected async execute(
-        { connectionId, database, collection, query }: ToolArgs<typeof this.argsShape>,
+        { connectionId, database, collection, query }: ToolArgs<ReturnType<typeof this.argsShape>>,
         { request }: ToolExecutionContext<IMongoDBConfig>
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const provider = await this.resolveConnection(connectionId);
 
         this.assertMqlIsAllowed(this.server.config, query);

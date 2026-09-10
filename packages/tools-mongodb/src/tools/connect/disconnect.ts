@@ -8,23 +8,29 @@ const DisconnectOutputSchema = {
     outcome: z.enum(["removed", "disconnected"]),
 };
 
+const DisconnectArgsShape = {
+    connectionId: z.string().describe("The connectionId to disconnect."),
+};
+
 export class DisconnectTool extends MongoDBToolBase {
     static toolName = "disconnect";
     public override description = this.server.config.connectionString
         ? 'Close a MongoDB connection and revoke its connectionId. Disconnecting the "preconfigured" connection only closes it — it reconnects automatically on next use because the server configuration still declares it.'
         : "Close a MongoDB connection and revoke its connectionId.";
 
-    public override argsShape = {
-        connectionId: z.string().describe("The connectionId to disconnect."),
-    };
+    public override argsShape(): typeof DisconnectArgsShape {
+        return DisconnectArgsShape;
+    }
 
     static operationType: OperationType = "connect";
 
-    public override outputSchema = DisconnectOutputSchema;
+    public override outputSchema(): typeof DisconnectOutputSchema {
+        return DisconnectOutputSchema;
+    }
 
     protected override async execute({
         connectionId,
-    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+    }: ToolArgs<ReturnType<typeof this.argsShape>>): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         await this.server.connectionRegistry.disconnect(connectionId);
 
         if (connectionId === PRECONFIGURED_CONNECTION_ID) {

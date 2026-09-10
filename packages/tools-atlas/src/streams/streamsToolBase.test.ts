@@ -13,17 +13,21 @@ import { Keychain } from "@mongodb-js/mcp-core";
 import type { IAtlasConfig } from "@mongodb-js/mcp-tools-atlas";
 import type { AtlasToolServer } from "../atlasTool.js";
 
+const TestStreamsToolArgsShape = {
+    projectId: z.string().describe("project id"),
+    workspaceName: z.string().optional().describe("workspace name"),
+    resourceName: z.string().optional().describe("resource name"),
+    action: z.string().optional().describe("action"),
+};
+
 class TestStreamsTool extends StreamsToolBase {
     static toolName = "test-streams-tool";
     static operationType: OperationType = "read";
 
     public description = "A test streams tool";
-    public argsShape = {
-        projectId: z.string().describe("project id"),
-        workspaceName: z.string().optional().describe("workspace name"),
-        resourceName: z.string().optional().describe("resource name"),
-        action: z.string().optional().describe("action"),
-    };
+    public argsShape(): typeof TestStreamsToolArgsShape {
+        return TestStreamsToolArgsShape;
+    }
 
     protected execute(): Promise<CallToolResult> {
         return Promise.resolve({ content: [{ type: "text", text: "ok" }] });
@@ -37,7 +41,7 @@ class TestStreamsTool extends StreamsToolBase {
     // Expose protected methods for testing
     public testHandleError(
         error: unknown,
-        args: ToolArgs<typeof this.argsShape>
+        args: ToolArgs<ReturnType<typeof this.argsShape>>
     ): Promise<CallToolResult> | CallToolResult {
         return this.handleError(error, args);
     }
@@ -47,7 +51,7 @@ class TestStreamsTool extends StreamsToolBase {
     }
 
     public testResolveTelemetryMetadata(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         result: CallToolResult
     ): TelemetryToolMetadata | Promise<TelemetryToolMetadata> {
         return this.resolveTelemetryMetadata(args, { result });

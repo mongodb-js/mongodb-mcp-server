@@ -28,15 +28,17 @@ export class ListOrganizationsTool extends AtlasToolBase {
     static toolName = "atlas-list-orgs";
     public description = "List MongoDB Atlas organizations";
     static operationType: OperationType = "read";
-    public argsShape = {
-        ...ListOrganizationsArgs,
-    };
-    public override outputSchema = ListOrganizationsOutputSchema;
+    public argsShape(): typeof ListOrganizationsArgs {
+        return ListOrganizationsArgs;
+    }
+    public override outputSchema(): typeof ListOrganizationsOutputSchema {
+        return ListOrganizationsOutputSchema;
+    }
 
     protected async execute(
-        { limit, pageNum, includeCount }: ToolArgs<typeof this.argsShape>,
+        { limit, pageNum, includeCount }: ToolArgs<ReturnType<typeof this.argsShape>>,
         { request }: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const data = await this.server.apiClient.listOrgs(
             {
                 params: {

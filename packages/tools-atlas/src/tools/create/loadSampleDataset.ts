@@ -41,15 +41,17 @@ export class LoadSampleDatasetTool extends AtlasToolBase {
         "`jobId` and initial state. To check progress, call this tool again with `jobId` " +
         "(sample dataset loads typically take 1–5 minutes). State can be WORKING, COMPLETED, or FAILED.";
     static operationType: OperationType = "create";
-    public argsShape = {
-        ...LoadSampleDatasetArgs,
-    };
-    public override outputSchema = LoadSampleDatasetOutputSchema;
+    public argsShape(): typeof LoadSampleDatasetArgs {
+        return LoadSampleDatasetArgs;
+    }
+    public override outputSchema(): typeof LoadSampleDatasetOutputSchema {
+        return LoadSampleDatasetOutputSchema;
+    }
 
     protected async execute(
-        { projectId, clusterName, jobId }: ToolArgs<typeof this.argsShape>,
+        { projectId, clusterName, jobId }: ToolArgs<ReturnType<typeof this.argsShape>>,
         { request }: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         let status: SampleDatasetStatus;
         let headerText: string;
         if (jobId !== undefined && clusterName === undefined) {
