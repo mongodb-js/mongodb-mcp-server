@@ -350,6 +350,7 @@ describe("ToolBase", () => {
             });
 
             expect(metadata).toEqual({ project_id: "test-project-id", cluster_name: "test-cluster" });
+            expect(metadata).not.toHaveProperty("cluster_id");
         });
 
         it("should return empty metadata when no connection state is provided", () => {

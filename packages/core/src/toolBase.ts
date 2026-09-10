@@ -973,7 +973,9 @@ export abstract class ToolBase<
         if (entry.atlasCluster) {
             metadata.project_id = entry.atlasCluster.projectId;
             metadata.cluster_name = entry.atlasCluster.clusterName;
-            metadata.cluster_id = entry.atlasCluster.clusterId;
+            if (entry.atlasCluster.clusterId !== undefined) {
+                metadata.cluster_id = entry.atlasCluster.clusterId;
+            }
         }
 
         return metadata;
