@@ -112,6 +112,7 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
             authInfo: (req as express.Request & { auth?: RequestAuthInfo }).auth
                 ? { mode: "authenticated", state: (req as express.Request & { auth: RequestAuthInfo }).auth }
                 : { mode: "unauthenticated" },
+            protocol: "legacy",
         };
     }
 
