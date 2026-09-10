@@ -25,7 +25,6 @@ const defaultTestConfig: UserConfig = {
 };
 
 const ATLAS_INFO: AtlasClusterConnectionInfo = {
-    username: "user1",
     projectId: "proj1",
     clusterName: "cluster1",
     clusterId: "cluster1-id",
@@ -137,7 +136,7 @@ describe("ConnectClusterTool", () => {
 
             const connectionId = result.structuredContent?.connectionId;
             const entry = await connectionRegistry.peek(connectionId);
-            expect(entry?.state.connectedAtlasCluster).toMatchObject({
+            expect(entry?.atlasCluster).toMatchObject({
                 projectId: "proj1",
                 clusterName: "cluster1",
                 clusterId: "cluster1-id",

@@ -43,6 +43,9 @@ const ConnectClusterOutputSchema = {
 
 export type ConnectClusterOutput = z.infer<z.ZodObject<typeof ConnectClusterOutputSchema>>;
 
+/** The temporary database user minted for a connection; deleted when the connection is revoked. */
+type TemporaryDatabaseUser = { projectId: string; username: string };
+
 export class ConnectClusterTool extends AtlasToolBase {
     static toolName = "atlas-connect-cluster";
     public description =
@@ -60,7 +63,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         clusterName: string,
         connectionType: "standard" | "private" | "privateEndpoint" | undefined = "standard",
         request: ToolRequest<IAtlasConfig>
-    ): Promise<{ connectionString: string; atlas: AtlasClusterConnectionInfo }> {
+    ): Promise<{ connectionString: string; atlas: AtlasClusterConnectionInfo; temporaryUser: TemporaryDatabaseUser }> {
         const cluster = await inspectCluster(this.server.apiClient, projectId, clusterName, request);
 
         if (cluster.clusterId === undefined) {
@@ -112,7 +115,6 @@ export class ConnectClusterTool extends AtlasToolBase {
         });
 
         const connectedAtlasCluster: AtlasClusterConnectionInfo = {
-            username,
             projectId,
             clusterName,
             clusterId: cluster.clusterId,
@@ -127,19 +129,20 @@ export class ConnectClusterTool extends AtlasToolBase {
         this.server.keychain.register(username, "user");
         this.server.keychain.register(password, "password");
 
-        return { connectionString: cn.toString(), atlas: connectedAtlasCluster };
+        return {
+            connectionString: cn.toString(),
+            atlas: connectedAtlasCluster,
+            temporaryUser: { projectId, username },
+        };
     }
 
-    private async deleteTemporaryUser(atlas: AtlasClusterConnectionInfo): Promise<void> {
-        if (!atlas.username) {
-            return;
-        }
+    private async deleteTemporaryUser({ projectId, username }: TemporaryDatabaseUser): Promise<void> {
         await this.server.apiClient
             .deleteDatabaseUser({
                 params: {
                     path: {
-                        groupId: atlas.projectId,
-                        username: atlas.username,
+                        groupId: projectId,
+                        username,
                         databaseName: "admin",
                     },
                 },
@@ -175,7 +178,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             try {
                 lastError = undefined;
 
-                await entry.connect({ connectionString, atlas });
+                await entry.connect({ connectionString });
                 break;
             } catch (err: unknown) {
                 const error = err instanceof Error ? err : new Error(String(err));
@@ -232,11 +235,11 @@ export class ConnectClusterTool extends AtlasToolBase {
             await this.server.connectionRegistry.find(
                 (candidate) =>
                     (candidate.state.tag === "connected" || candidate.state.tag === "connecting") &&
-                    candidate.state.connectedAtlasCluster?.projectId === projectId &&
-                    candidate.state.connectedAtlasCluster?.clusterName === clusterName
+                    candidate.atlasCluster?.projectId === projectId &&
+                    candidate.atlasCluster?.clusterName === clusterName
             )
         )[0];
-        let atlas = entry?.state.connectedAtlasCluster;
+        let atlas = entry?.atlasCluster;
         const createdTemporaryUser = !entry;
 
         if (!entry) {
@@ -254,7 +257,8 @@ export class ConnectClusterTool extends AtlasToolBase {
             entry = await this.server.connectionRegistry.createEntry({
                 name: atlasClusterSlug(projectName, clusterName),
                 clientName: request.clientInfo?.name,
-                onRevoke: (): Promise<void> => this.deleteTemporaryUser(prepared.atlas),
+                onRevoke: (): Promise<void> => this.deleteTemporaryUser(prepared.temporaryUser),
+                atlasCluster: prepared.atlas,
             });
 
             // try to connect for about 5 minutes asynchronously
@@ -395,7 +399,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         const connectionMetadata = {
             ...(connectionId && { connection_id: connectionId }),
             ...this.getConnectionInfoMetadata(
-                connectionId ? (await this.server.connectionRegistry.peek(connectionId))?.state : undefined
+                connectionId ? await this.server.connectionRegistry.peek(connectionId) : undefined
             ),
         };
         if (connectionMetadata && connectionMetadata.project_id !== undefined) {

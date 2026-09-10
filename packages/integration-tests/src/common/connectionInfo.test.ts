@@ -5,7 +5,6 @@ import {
     getConnectionStringInfo,
     type ConnectionStringAuthType,
 } from "@mongodb-js/mcp-tools-mongodb";
-import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
 import type { UserConfig } from "@mongodb-js/mcp-cli";
 
 describe("connectionInfo", () => {
@@ -214,14 +213,6 @@ describe("connectionInfo", () => {
     });
 
     describe("getConnectionStringInfo", () => {
-        const atlasClusterInfo: AtlasClusterConnectionInfo = {
-            username: "testuser",
-            projectId: "project123",
-            clusterName: "TestCluster",
-            clusterId: "cluster123",
-            instanceType: "FREE",
-        };
-
         it("should return both authType and hostType for a standard connection string", () => {
             const connectionString = "mongodb://localhost:27017";
             const config = {} as UserConfig;
@@ -250,7 +241,7 @@ describe("connectionInfo", () => {
             const connectionString = "mongodb://localhost:27017";
             const config = {} as UserConfig;
 
-            const result = getConnectionStringInfo(connectionString, config, atlasClusterInfo);
+            const result = getConnectionStringInfo(connectionString, config, "atlas");
 
             expect(result).toEqual({
                 authType: "scram",
@@ -258,15 +249,11 @@ describe("connectionInfo", () => {
             });
         });
 
-        it("should override hostType to atlas for a coordinates-only atlasInfo", () => {
+        it("should override hostType with the supplied host type", () => {
             const connectionString = "mongodb://localhost:27017";
             const config = {} as UserConfig;
 
-            const result = getConnectionStringInfo(connectionString, config, {
-                projectId: "test-project-id",
-                clusterName: "test-cluster",
-                clusterId: "test-cluster-id",
-            });
+            const result = getConnectionStringInfo(connectionString, config, "atlas");
 
             expect(result).toEqual({
                 authType: "scram",
@@ -338,7 +325,7 @@ describe("connectionInfo", () => {
             const connectionString = "mongodb://private-endpoint.example.com:27017";
             const config = {} as UserConfig;
 
-            const result = getConnectionStringInfo(connectionString, config, atlasClusterInfo);
+            const result = getConnectionStringInfo(connectionString, config, "atlas");
 
             expect(result).toEqual({
                 authType: "scram",

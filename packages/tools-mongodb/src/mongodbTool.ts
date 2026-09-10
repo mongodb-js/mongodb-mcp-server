@@ -320,7 +320,7 @@ export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
         const { connectionId } = args as { connectionId?: string };
         return {
             ...(connectionId && { connection_id: connectionId }),
-            ...this.getConnectionInfoMetadata((await this.peekConnection(connectionId))?.state),
+            ...this.getConnectionInfoMetadata(await this.peekConnection(connectionId)),
         };
     }
 }

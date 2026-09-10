@@ -203,8 +203,7 @@ export interface ApiClientOptions {
 export type AtlasClusterConnectionInfo = {
     projectId: string;
     clusterName: string;
-    clusterId: string;
-    username?: string;
+    clusterId?: string;
     instanceType?: "FREE" | "FLEX" | "DEDICATED";
 };
 
@@ -348,15 +347,12 @@ export type ConnectionMetadata = AtlasMetadata & AtlasLocalToolMetadata & {
 
 // @public (undocumented)
 export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"> {
-    // (undocumented)
-    atlas?: AtlasClusterConnectionInfo;
     driverOptions?: ConnectionInfo["driverOptions"];
+    hostType?: ConnectionStringHostType;
 }
 
 // @public (undocumented)
 export interface ConnectionState {
-    // (undocumented)
-    connectedAtlasCluster?: AtlasClusterConnectionInfo;
     // (undocumented)
     connectionStringInfo?: ConnectionStringInfo;
     // (undocumented)
@@ -368,10 +364,7 @@ export class ConnectionStateConnected implements ConnectionState {
     constructor(input: {
         serviceProvider: NodeDriverServiceProvider;
         connectionStringInfo?: ConnectionStringInfo;
-        connectedAtlasCluster?: AtlasClusterConnectionInfo;
     });
-    // (undocumented)
-    connectedAtlasCluster?: AtlasClusterConnectionInfo;
     // (undocumented)
     connectionStringInfo?: ConnectionStringInfo;
     // (undocumented)
@@ -771,8 +764,10 @@ export abstract class ToolBase<TServer extends ToolServer = ToolServer, TMetrics
     enable(): void;
     protected abstract execute(args: ToolArgs<ReturnType<typeof ToolBase.argsShape>>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
     protected getConfirmationMessage(args: ToolArgs<ReturnType<typeof ToolBase.argsShape>>): string;
-    // (undocumented)
-    protected getConnectionInfoMetadata(connectionState?: SupportedConnectionState): ConnectionMetadata;
+    protected getConnectionInfoMetadata(entry?: {
+        state: SupportedConnectionState;
+        atlasCluster?: AtlasClusterConnectionInfo;
+    }): ConnectionMetadata;
     protected handleError(error: unknown, args: z.infer<z.ZodObject<ReturnType<typeof ToolBase.argsShape>>>): Promise<CallToolResult> | CallToolResult;
     invoke(args: ToolArgs<ReturnType<typeof ToolBase.argsShape>>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
     // (undocumented)
