@@ -134,9 +134,6 @@ describe("ConnectionEntry with MCPConnectionManager", () => {
 
     describe("lastError", () => {
         it("should not contain the raw connection string when the connect attempt fails", async () => {
-            // No mock needed here: a connection string with credentials but no host
-            // fails inside @mongosh/arg-parser before the driver is ever called, and
-            // the real arg-parser embeds the string verbatim in the thrown error.
             const entry = new ConnectionEntry({
                 connectionId: "preconfigured",
                 name: "preconfigured",
