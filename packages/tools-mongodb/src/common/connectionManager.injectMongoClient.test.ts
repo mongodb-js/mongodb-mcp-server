@@ -25,8 +25,6 @@ describe("MCPConnectionManager.connect with an injected mongoClient", () => {
 
     beforeEach(() => {
         MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({});
-        // The auto-mocked class instance returned by `new` is a plain object.
-        vi.mocked(MockNodeDriverServiceProvider.prototype).connect = vi.fn();
     });
 
     it("wraps a provided mongoClient directly, bypassing NodeDriverServiceProvider.connect (devtools-connect)", async () => {
