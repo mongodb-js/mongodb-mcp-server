@@ -489,17 +489,7 @@ describe("ToolBase", () => {
 
         function createToolWithApps(previewFeatures: PreviewFeature[]): TestTool {
             mockConfig.previewFeatures = previewFeatures;
-            return new TestTool({
-                name: TestTool.toolName,
-                category: TestTool.category,
-                operationType: TestTool.operationType,
-                session: mockSession,
-                telemetry: mockAtlasTelemetry,
-                elicitation: mockElicitation,
-                uiRegistry: new UIRegistry(),
-                appRegistry: mockAppRegistry,
-                metrics: mockMetrics,
-            });
+            return new TestTool({ server: { ...mockServer, appRegistry: mockAppRegistry } });
         }
 
         it("should include ui.resourceUri when mcpApps is enabled and an app is registered for the tool", () => {

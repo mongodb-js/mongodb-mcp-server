@@ -418,5 +418,4 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
             );
         }
     }
-    }
 }

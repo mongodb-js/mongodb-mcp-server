@@ -119,7 +119,7 @@ describe("executionStatsToTreeData", () => {
                 executionStages: classicExecutionStages,
             },
             ok: 1,
-        } as Stage);
+        } as unknown as Stage);
 
         expect(plan.namespace).toBe("db.coll");
         expect(plan.nReturned).toBe(3);

@@ -62,11 +62,7 @@ export type ToolServer<
     readonly metrics: IMetrics<TMetricsDefinitions>;
     /** UI registry for tools that embed interactive widget content. */
     readonly uiRegistry?: IUIRegistry;
-    /**
-     * Registry of MCP Apps (ext-apps) widgets, used to advertise a tool's
-     * `ui://` resource via `_meta.ui.resourceUri` when the `mcpApps` preview
-     * feature is enabled.
-     */
+    /** Registry of MCP Apps (ext-apps) widgets, advertised via tool `_meta.ui.resourceUri` and served as `ui://` resources. */
     readonly appRegistry?: IAppRegistry;
     /** The SDK McpServer this tool is registered against. */
     readonly mcpServer: McpServer;

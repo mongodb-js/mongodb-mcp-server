@@ -1,4 +1,4 @@
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, type Plugin, type UserConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { viteSingleFile } from "vite-plugin-singlefile";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
@@ -194,6 +194,9 @@ export const ${exportName} = ${JSON.stringify(html)};
                 const loaderEntries = generatedTools
                     .map((toolName) => {
                         const moduleName = set.discovered.toolToModuleMap[toolName];
+                        if (!moduleName) {
+                            throw new Error(`No module discovered for tool "${toolName}"`);
+                        }
                         return `    "${toolName}": async () => {
         const mod = await import("./${set.generatedSubdir}/${toolName}.js");
         return mod.${set.exportName(moduleName)};
@@ -264,36 +267,38 @@ function resolveBuildInput(): Record<string, string> {
     return Object.fromEntries(allEntries.map((e) => [e.entryKey, resolve(entriesDir, e.entryFileName)]));
 }
 
-export default defineConfig(() => ({
-    root: entriesDir,
-    plugins: [
-        generateHtmlEntries(),
-        nodePolyfills({
-            include: ["buffer", "stream"],
-            globals: {
-                Buffer: true,
+export default defineConfig(
+    (): UserConfig => ({
+        root: entriesDir,
+        plugins: [
+            generateHtmlEntries(),
+            nodePolyfills({
+                include: ["buffer", "stream"],
+                globals: {
+                    Buffer: true,
+                },
+            }),
+            react(),
+            viteSingleFile({
+                removeViteModuleLoader: true,
+            }),
+            generateUIModule(),
+        ],
+        build: {
+            outDir: resolve(configDir, "dist/ui"),
+            // The generate:ui script owns cleaning; per-entry builds accumulate.
+            emptyOutDir: false,
+            rollupOptions: {
+                input: resolveBuildInput(),
             },
-        }),
-        react(),
-        viteSingleFile({
-            removeViteModuleLoader: true,
-        }),
-        generateUIModule(),
-    ],
-    build: {
-        outDir: resolve(configDir, "dist/ui"),
-        // The generate:ui script owns cleaning; per-entry builds accumulate.
-        emptyOutDir: false,
-        rollupOptions: {
-            input: resolveBuildInput(),
+            assetsInlineLimit: 100000000,
+            sourcemap: false,
+            minify: "esbuild",
         },
-        assetsInlineLimit: 100000000,
-        sourcemap: false,
-        minify: "esbuild",
-    },
-    resolve: {
-        alias: {
-            "@ui": resolve(configDir, "src"),
+        resolve: {
+            alias: {
+                "@ui": resolve(configDir, "src"),
+            },
         },
-    },
-}));
+    })
+);
