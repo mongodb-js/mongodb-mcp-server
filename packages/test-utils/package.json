@@ -20,7 +20,7 @@
     "mongodb-runner": "^6.7.6",
     "testcontainers": "^12.1.0",
     "mongodb-connection-string-url": "^7.0.1",
-    "vitest": "^4.1.11"
+    "vitest": "^5.0.0"
   },
   "devDependencies": {
     "@mongodb-js/mcp-types": "workspace:*",

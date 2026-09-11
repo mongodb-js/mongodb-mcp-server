@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@microsoft/tui-test": "0.1.0-beta.2",
-    "vitest": "^4.1.5"
+    "vitest": "^5.0.0"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
