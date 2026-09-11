@@ -1,6 +1,7 @@
 import { EventEmitter } from "events";
-import { MongoServerError } from "mongodb";
+import { MongoServerError, type MongoClient } from "mongodb";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
+import { ConnectionString } from "mongodb-connection-string-url";
 import {
     generateConnectionInfoFromCliArgs,
     type CliOptions,
@@ -34,6 +35,15 @@ export interface ConnectionSettings extends Omit<MongoshConnectionInfo, "driverO
      * private or mesh address is still classified as Atlas.
      */
     hostType?: ConnectionStringHostType;
+    /**
+     * A pre-connected {@link MongoClient} to wrap instead of building one via
+     * devtools-connect. When set, the manager skips the devtools-connect path
+     * (which builds a per-connection proxy Agent and merges the system CA
+     * bundle) and wraps the provided client directly. Callers that dial a
+     * plain connection requiring no proxy/OIDC (e.g. a manual X.509 data-plane
+     * connect) use this to avoid that per-connection overhead.
+     */
+    mongoClient?: MongoClient;
 }
 
 export type ConnectionTag = "connected" | "connecting" | "disconnected" | "errored";
@@ -440,16 +450,26 @@ export class MCPConnectionManager extends ConnectionManager {
                 settings.hostType
             );
 
-            serviceProvider = NodeDriverServiceProvider.connect(
-                mongoshConnectionInfo.connectionString,
-                {
-                    productDocsLink: "https://github.com/mongodb-js/mongodb-mcp-server/",
-                    productName: "MongoDB MCP",
-                    ...mongoshConnectionInfo.driverOptions,
-                },
-                undefined,
-                this.bus
-            );
+            const clientOptions = {
+                productDocsLink: "https://github.com/mongodb-js/mongodb-mcp-server/",
+                productName: "MongoDB MCP",
+                ...mongoshConnectionInfo.driverOptions,
+            };
+            serviceProvider = settings.mongoClient
+                ? Promise.resolve(
+                      new NodeDriverServiceProvider(
+                          settings.mongoClient,
+                          this.bus,
+                          clientOptions,
+                          new ConnectionString(mongoshConnectionInfo.connectionString)
+                      )
+                  )
+                : NodeDriverServiceProvider.connect(
+                      mongoshConnectionInfo.connectionString,
+                      clientOptions,
+                      undefined,
+                      this.bus
+                  );
         } catch (error: unknown) {
             const errorReason = error instanceof Error ? error.message : `${error as string}`;
             this.changeState("connection-error", {
