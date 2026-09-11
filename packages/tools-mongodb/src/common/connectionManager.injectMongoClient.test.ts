@@ -14,7 +14,7 @@ describe("MCPConnectionManager.connect with an injected mongoClient", () => {
     const deviceId = vi.mocked(DeviceId.create(new CompositeLogger()));
 
     function buildManager(): MCPConnectionManager {
-        deviceId.get = vi.fn().mockReturnValue("test-device-id");
+        deviceId.get = vi.fn().mockResolvedValue("test-device-id");
         return new MCPConnectionManager({
             logger,
             deviceId,
@@ -53,5 +53,16 @@ describe("MCPConnectionManager.connect with an injected mongoClient", () => {
         await manager.connect({ connectionString: "mongodb://localhost:27017" });
 
         expect(MockNodeDriverServiceProvider.connect).toHaveBeenCalled();
+    });
+
+    it("rejects an injected mongoClient for an OIDC connection (the OIDC flow is not started)", async () => {
+        const manager = buildManager();
+
+        await expect(
+            manager.connect({
+                connectionString: "mongodb://localhost:27017?authMechanism=MONGODB-OIDC",
+                mongoClient: {} as MongoClient,
+            })
+        ).rejects.toThrow(/Cannot inject a MongoClient for an OIDC connection/);
     });
 });

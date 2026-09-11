@@ -16,6 +16,7 @@ import { EventEmitter } from 'events';
 import express from 'express';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
+import type { MongoClient } from 'mongodb';
 import { Gauge } from 'prom-client';
 import { Histogram } from 'prom-client';
 import type http from 'http';
@@ -442,6 +443,7 @@ export interface ConnectionManagerEvents {
 export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"> {
     driverOptions?: ConnectionInfo["driverOptions"];
     hostType?: ConnectionStringHostType;
+    mongoClient?: MongoClient;
 }
 
 // @public (undocumented)

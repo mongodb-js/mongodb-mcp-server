@@ -13,6 +13,7 @@ import type { ElicitRequestFormParams } from '@modelcontextprotocol/server';
 import { EventEmitter } from 'events';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
+import type { MongoClient } from 'mongodb';
 import { Gauge } from 'prom-client';
 import { Histogram } from 'prom-client';
 import { InputRequiredResult } from '@modelcontextprotocol/server';
@@ -349,6 +350,7 @@ export type ConnectionMetadata = AtlasMetadata & AtlasLocalToolMetadata & {
 export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"> {
     driverOptions?: ConnectionInfo["driverOptions"];
     hostType?: ConnectionStringHostType;
+    mongoClient?: MongoClient;
 }
 
 // @public (undocumented)

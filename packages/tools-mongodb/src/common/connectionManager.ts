@@ -450,6 +450,13 @@ export class MCPConnectionManager extends ConnectionManager {
                 settings.hostType
             );
 
+            if (settings.mongoClient && connectionStringInfo.authType.startsWith("oidc")) {
+                throw new Error(
+                    "Cannot inject a MongoClient for an OIDC connection: the OIDC plugin flow is not " +
+                        "started when connect() skips NodeDriverServiceProvider.connect()."
+                );
+            }
+
             const clientOptions = {
                 productDocsLink: "https://github.com/mongodb-js/mongodb-mcp-server/",
                 productName: "MongoDB MCP",
