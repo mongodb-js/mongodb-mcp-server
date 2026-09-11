@@ -1,6 +1,6 @@
 {
   "name": "@mongodb-js/mcp-ui",
-  "version": "3.0.0-prerelease.4",
+  "version": "3.0.0-prerelease.5",
   "type": "module",
   "description": "UI components and registry for MongoDB MCP server",
   "repository": {
