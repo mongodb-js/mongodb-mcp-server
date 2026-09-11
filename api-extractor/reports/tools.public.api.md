@@ -15,6 +15,7 @@ import type { ElicitRequestFormParams } from '@modelcontextprotocol/server';
 import { EventEmitter } from 'events';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
+import type { MongoClient } from 'mongodb';
 import { InputRequiredResult } from '@modelcontextprotocol/server';
 import type { InputResponses } from '@modelcontextprotocol/server';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/server';
@@ -732,6 +733,7 @@ export interface ConnectionSettings extends Omit<ConnectionInfo_2, "driverOption
     // (undocumented)
     atlas?: AtlasClusterConnectionInfo;
     driverOptions?: ConnectionInfo_2["driverOptions"];
+    mongoClient?: MongoClient;
 }
 
 // @public (undocumented)

@@ -25,6 +25,7 @@ import type { InputResponses } from '@modelcontextprotocol/server';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/server';
 import { McpHttpHandler } from '@modelcontextprotocol/server';
 import { McpServer } from '@modelcontextprotocol/server';
+import { MongoClient } from 'mongodb';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import type { ReadResourceCallback } from '@modelcontextprotocol/server';
 import { Registry } from 'prom-client';
@@ -243,7 +244,7 @@ export class AtlasTelemetry implements ITelemetry {
     // (undocumented)
     protected readonly serverMetadata: ServerMetadata;
     // (undocumented)
-    protected setup(): Promise<void>;
+    setup(): Promise<void>;
     setupPromise: Promise<[string, boolean]> | undefined;
 }
 
@@ -442,6 +443,7 @@ export interface ConnectionManagerEvents {
 export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"> {
     driverOptions?: ConnectionInfo["driverOptions"];
     hostType?: ConnectionStringHostType;
+    mongoClient?: MongoClient;
 }
 
 // @public (undocumented)

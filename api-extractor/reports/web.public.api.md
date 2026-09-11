@@ -19,6 +19,7 @@ import { InputRequiredResult } from '@modelcontextprotocol/server';
 import type { InputResponses } from '@modelcontextprotocol/server';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/server';
 import type { McpServer } from '@modelcontextprotocol/server';
+import { MongoClient } from 'mongodb';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import type { RequestMeta } from '@modelcontextprotocol/server';
 import { Secret } from 'mongodb-redact';
@@ -349,6 +350,7 @@ export type ConnectionMetadata = AtlasMetadata & AtlasLocalToolMetadata & {
 export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"> {
     driverOptions?: ConnectionInfo["driverOptions"];
     hostType?: ConnectionStringHostType;
+    mongoClient?: MongoClient;
 }
 
 // @public (undocumented)
@@ -675,7 +677,7 @@ export class Telemetry implements ITelemetry {
     // (undocumented)
     protected readonly serverMetadata: ServerMetadata;
     // (undocumented)
-    protected setup(): Promise<void>;
+    setup(): Promise<void>;
     setupPromise: Promise<[string, boolean]> | undefined;
 }
 
