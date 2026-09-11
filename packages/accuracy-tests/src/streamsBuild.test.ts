@@ -72,6 +72,8 @@ const optionalConnectionParams = {
 const optionalProcessorParams = {
     autoStart: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
     dlq: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
+    processorTier: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
+    autoscaling: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
 };
 
 describeAccuracyTests(
@@ -555,6 +557,27 @@ describeAccuracyTests(
                         processorName: "live-etl",
                         pipeline: Matcher.anyValue,
                         autoStart: true,
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: `Create processor 'autoscale-orders' in workspace '${workspaceName}' at SP10 with autoscaling between SP5 and SP30. Use the existing 'events' source and 'output' sink.`,
+            systemPrompt: projectContext,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-build",
+                    parameters: {
+                        ...optionalProcessorParams,
+                        projectId,
+                        resource: "processor",
+                        workspaceName,
+                        processorName: "autoscale-orders",
+                        pipeline: Matcher.anyValue,
+                        processorTier: "SP10",
+                        autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" },
                     },
                 },
             ],

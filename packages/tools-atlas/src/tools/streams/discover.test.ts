@@ -486,8 +486,23 @@ describe("StreamsDiscoverTool", () => {
         it("should return processor list when processors exist", async () => {
             mockApiClient.getStreamProcessors!.mockResolvedValue({
                 results: [
-                    { name: "proc1", state: "STARTED", tier: "SP10" },
-                    { name: "proc2", state: "STOPPED", tier: "SP30" },
+                    {
+                        name: "proc1",
+                        state: "STARTED",
+                        tier: "SP10",
+                        effectiveTier: "SP30",
+                        // Atlas responses echo a read-only HAL `links` inside StreamsAutoscaling;
+                        // assert toStreamsAutoscaling strips it before structured output.
+                        options: {
+                            autoscaling: {
+                                enabled: true,
+                                minTier: "SP5",
+                                maxTier: "SP30",
+                                links: [{ href: "https://example.com", rel: "self" }],
+                            },
+                        },
+                    },
+                    { name: "proc2", state: "STOPPED", tier: "SP30", effectiveTier: "SP30" },
                 ],
             });
 
@@ -501,8 +516,14 @@ describe("StreamsDiscoverTool", () => {
             expect(text).toContain("2 processor(s)");
             expect(result.structuredContent).toEqual({
                 processors: [
-                    { name: "proc1", state: "STARTED", tier: "SP10" },
-                    { name: "proc2", state: "STOPPED", tier: "SP30" },
+                    {
+                        name: "proc1",
+                        state: "STARTED",
+                        tier: "SP10",
+                        effectiveTier: "SP30",
+                        autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" },
+                    },
+                    { name: "proc2", state: "STOPPED", tier: "SP30", effectiveTier: "SP30" },
                 ],
             });
         });
@@ -531,6 +552,17 @@ describe("StreamsDiscoverTool", () => {
                 name: "proc1",
                 state: "STARTED",
                 tier: "SP10",
+                effectiveTier: "SP30",
+                // Atlas responses echo a read-only HAL `links` inside StreamsAutoscaling;
+                // assert toStreamsAutoscaling strips it before structured output.
+                options: {
+                    autoscaling: {
+                        enabled: true,
+                        minTier: "SP5",
+                        maxTier: "SP30",
+                        links: [{ href: "https://example.com", rel: "self" }],
+                    },
+                },
                 pipeline: [{ $source: { connectionName: "kafka-in" } }],
             });
 
@@ -547,6 +579,8 @@ describe("StreamsDiscoverTool", () => {
             expect(result.structuredContent).toEqual({
                 processorState: "STARTED",
                 tier: "SP10",
+                effectiveTier: "SP30",
+                autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" },
                 pipeline: [{ $source: { connectionName: "kafka-in" } }],
             });
         });

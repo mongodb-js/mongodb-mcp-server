@@ -479,6 +479,43 @@ describeAccuracyTests(
             ],
             mockedTools,
         },
+        {
+            prompt: `Enable autoscaling for processor '${processorName}' in workspace '${workspaceName}' with minimum SP5, maximum SP30, and baseline SP10`,
+            systemPrompt: projectContext,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-manage",
+                    parameters: {
+                        projectId,
+                        action: "modify-processor",
+                        workspaceName,
+                        resourceName: processorName,
+                        tier: "SP10",
+                        autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" },
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: `Start processor '${processorName}' in workspace '${workspaceName}' with autoscaling enabled between SP5 and SP30`,
+            systemPrompt: projectContext,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-manage",
+                    parameters: {
+                        projectId,
+                        action: "start-processor",
+                        workspaceName,
+                        resourceName: processorName,
+                        autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" },
+                    },
+                },
+            ],
+            mockedTools,
+        },
         // Ambiguous: "debug the processor" — informal phrasing that should map to manage's diagnostic actions or discover's diagnose
         {
             prompt: `Debug the 'etl' processor in workspace '${workspaceName}' — it seems to be processing slowly`,

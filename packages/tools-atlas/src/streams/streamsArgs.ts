@@ -4,6 +4,12 @@ import { AtlasArgs } from "../args.js";
 const ALLOWED_STREAMS_NAME_REGEX = /^[a-zA-Z0-9_-]+$/;
 const ALLOWED_STREAMS_NAME_ERROR = "Name can only contain ASCII letters, numbers, hyphens, and underscores";
 
+export const StreamsTier = z.enum(["SP2", "SP5", "SP10", "SP30", "SP50"]);
+
+export type StreamsTierValue = z.infer<typeof StreamsTier>;
+
+const DBRoleType = z.enum(["BUILT_IN", "CUSTOM"]).default("BUILT_IN");
+
 /** Typed schema for connectionConfig — all fields optional to support elicitation of partial configs. */
 export const ConnectionConfig = z
     .object({
@@ -47,7 +53,7 @@ export const ConnectionConfig = z
         dbRoleToExecute: z
             .object({
                 role: z.string().optional(),
-                type: z.enum(["BUILT_IN", "CUSTOM"]).optional(),
+                type: DBRoleType.optional(),
             })
             .optional()
             .describe("Database role. Defaults to {role: 'readWriteAnyDatabase', type: 'BUILT_IN'}."),
@@ -161,6 +167,48 @@ export const PrivateLinkConfig = z
             .describe("GCP Private Service Connect attachment URIs. Required for GCP CONFLUENT."),
     })
     .passthrough();
+
+export const StreamsAutoscaling = z.object({
+    enabled: z
+        .boolean()
+        .optional()
+        .describe("Enable autoscaling. Explicit false disables autoscaling and clears its configuration."),
+    minTier: StreamsTier.nullable()
+        .optional()
+        .describe("Autoscaling floor. Null resets the floor to the workspace default tier."),
+    maxTier: StreamsTier.nullable()
+        .optional()
+        .describe("Autoscaling ceiling. Null resets the ceiling to the workspace maximum tier."),
+});
+
+type StreamsAutoscalingValue = z.infer<typeof StreamsAutoscaling>;
+
+/**
+ * Normalizes an Atlas `StreamsAutoscaling` response for tool structured output.
+ * Atlas omits `autoscaling` when disabled/cleared (the generated client schema still
+ * types it nullable), and `enabled` is always a boolean on reads; the object may also
+ * carry a read-only `links` array. This projects only the declared fields
+ * (enabled/minTier/maxTier) and maps null/cleared to `undefined` (omitted), so the
+ * tool's non-null `StreamsAutoscaling` surface never carries null or undeclared keys.
+ */
+export function toStreamsAutoscaling(
+    data:
+        | {
+              enabled?: boolean | null;
+              minTier?: z.infer<typeof StreamsTier> | null;
+              maxTier?: z.infer<typeof StreamsTier> | null;
+          }
+        | null
+        | undefined
+): StreamsAutoscalingValue | undefined {
+    if (data === undefined) return undefined;
+    if (data === null) return undefined;
+    return {
+        ...(data.enabled !== undefined && data.enabled !== null && { enabled: data.enabled }),
+        ...(data.minTier !== undefined && { minTier: data.minTier }),
+        ...(data.maxTier !== undefined && { maxTier: data.maxTier }),
+    };
+}
 
 export const StreamsArgs = {
     workspaceName: (): z.ZodString =>
