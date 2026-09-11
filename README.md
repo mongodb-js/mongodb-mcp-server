@@ -918,11 +918,11 @@ installed at the OS level are picked up automatically.
 
 ## 🚀Deploy on Public Clouds
 
-You can deploy the MongoDB MCP Server to your preferred cloud provider using the deployment assets under `deploy/`. Each guide explains the prerequisites, configuration, and automation scripts that streamline the rollout.
+You can deploy the MongoDB MCP Server to your preferred cloud provider using the deployment assets under `packages/mongodb-mcp-server/deploy/`. Each guide explains the prerequisites, configuration, and automation scripts that streamline the rollout.
 
 ### Azure
 
-For detailed Azure instructions, see [deploy/azure/README.md](deploy/azure/README.md).
+For detailed Azure instructions, see [packages/mongodb-mcp-server/deploy/azure/README.md](packages/mongodb-mcp-server/deploy/azure/README.md).
 
 ## 🤝Contributing
 
