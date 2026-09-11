@@ -1,15 +1,31 @@
 import { MCPHttpServer, StreamableHttpRunner } from "@mongodb-js/mcp-http-runners";
 import type { LegacySessionOptions } from "@mongodb-js/mcp-http-runners";
 import type { HttpServerOptions } from "@mongodb-js/mcp-types";
-import type { TransportRequestContext } from "@mongodb-js/mcp-types";
+import type { TransportRequestContext, ConnectionScopePolicy } from "@mongodb-js/mcp-types";
 import type { CliServer } from "./cliServer.js";
-import { createServerFromConfig, closeSharedServices, type SharedServerServices } from "./createServerServices.js";
+import {
+    createServerFromConfig,
+    closeSharedServices,
+    connectionScopeByClientNameHeader,
+    type SharedServerServices,
+} from "./createServerServices.js";
 import { applyConfigOverrides } from "./config/configOverrides.js";
 
 export type CliMcpHttpServerOptions = {
     http: HttpServerOptions;
     /** Session lifecycle tunables for the 2025-era HTTP transport (cap / timeouts / eviction). */
     sessionOptions?: LegacySessionOptions;
+    /**
+     * Controls connection isolation for each request — which live connections
+     * it can see and use. It must be keyed on whatever distinguishes the
+     * callers (e.g. the verified end-user principal for a multi-user OIDC
+     * deployment, or the OAuth client id for service-account / M2M tokens) for
+     * per-caller isolation with no shared state. See
+     * {@link connectionScopeByClientNameHeader} for the CLI's own
+     * unauthenticated labeling, and `MCP_SERVER_LIBRARY.md` for a per-user
+     * example to copy.
+     */
+    connectionScope: ConnectionScopePolicy;
 };
 
 /**
@@ -20,6 +36,7 @@ export type CliMcpHttpServerOptions = {
  */
 export class CliMcpHttpServer extends MCPHttpServer<CliServer> {
     private readonly sharedServices: SharedServerServices;
+    private readonly connectionScope: ConnectionScopePolicy;
 
     constructor({
         sharedServices,
@@ -28,6 +45,9 @@ export class CliMcpHttpServer extends MCPHttpServer<CliServer> {
         sharedServices: SharedServerServices;
         options: CliMcpHttpServerOptions;
     }) {
+        // `connectionScope` is required by type (`CliMcpHttpServerOptions`),
+        // so no runtime check is needed here; HTTP requests that reach the
+        // server always carry one.
         super({
             options,
             logger: sharedServices.logger,
@@ -35,12 +55,20 @@ export class CliMcpHttpServer extends MCPHttpServer<CliServer> {
             sessionOptions: options.sessionOptions,
         });
         this.sharedServices = sharedServices;
+        this.connectionScope = options.connectionScope;
     }
 
     protected override async createServerForRequest(request: TransportRequestContext): Promise<CliServer> {
         const config = applyConfigOverrides({ baseConfig: this.sharedServices.config, request });
 
-        return Promise.resolve(createServerFromConfig({ config, sharedServices: this.sharedServices, request }));
+        return Promise.resolve(
+            createServerFromConfig({
+                config,
+                sharedServices: this.sharedServices,
+                request,
+                connectionScope: this.connectionScope,
+            })
+        );
     }
 
     /** Stops the HTTP server and releases app-level services. */
@@ -62,11 +90,12 @@ export function createHttpTransportRunnerFromConfig(sharedServices: SharedServer
                 port: config.httpPort,
                 responseType: config.httpResponseType,
                 headers: config.httpHeaders,
-                // The CLI runner is unauthenticated by default; embedders who
-                // want enforced authenticated mode construct the HTTP server
-                // with authMode: "authenticated" themselves.
-                authMode: "unauthenticated",
             },
+            // The CLI's own runner is a local, unauthenticated deployment:
+            // clients opt into cross-request connection state with the
+            // self-asserted name header. Hosts serving authenticated traffic
+            // construct CliMcpHttpServer with their own policy.
+            connectionScope: connectionScopeByClientNameHeader,
             sessionOptions: {
                 maxSessions: config.maxSessions,
                 idleTimeoutMS: config.idleTimeoutMs,

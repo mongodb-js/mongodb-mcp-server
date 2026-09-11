@@ -140,7 +140,6 @@ function createConfigOverrideRunner(baseConfig: UserConfig): Promise<{
                 host: baseConfig.httpHost,
                 port: baseConfig.httpPort,
                 responseType: baseConfig.httpResponseType,
-                authMode: "unauthenticated",
             },
         },
         logger,

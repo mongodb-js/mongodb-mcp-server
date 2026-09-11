@@ -155,13 +155,14 @@ export abstract class MCPHttpServer<
                     query: ctx.requestInfo?.url
                         ? Object.fromEntries(new URL(ctx.requestInfo.url).searchParams)
                         : undefined,
-                    // The explicit auth state of this request, normalized from the
-                    // SDK's pass-through authInfo (hosts supply it via `req.auth`
-                    // through the node adapter, or directly). "Unauthenticated" when
-                    // no identity was injected.
-                    authInfo: ctx.authInfo
-                        ? { mode: "authenticated", state: ctx.authInfo }
-                        : { mode: "unauthenticated" },
+                    // The verified identity of this request, carried through from
+                    // the SDK's pass-through authInfo (hosts supply it via `req.auth`
+                    // through the node adapter, or directly). Absent when the host
+                    // injected none. The server never authenticates on its own: hosts
+                    // that require verified identity enforce it in their own
+                    // middleware (see registerMiddlewares), uniformly for the modern
+                    // and legacy paths.
+                    authInfo: ctx.authInfo,
                     protocol: "2026-07-28",
                 };
                 const server = await this.createServerForRequest(request);
@@ -171,28 +172,7 @@ export abstract class MCPHttpServer<
             { legacy: "reject" }
         );
 
-        if (this.httpOptions.authMode !== "authenticated") {
-            return handler;
-        }
-
-        // Authenticated mode, enforced at handler creation: every request must
-        // carry verified identity (host-supplied authInfo). Requests without it
-        // are rejected with 401 before the SDK sees them.
-        return {
-            ...handler,
-            fetch: async (request, options): Promise<Response> => {
-                if (!options?.authInfo) {
-                    return new Response(JSON.stringify({ error: "Unauthorized: authenticated request required" }), {
-                        status: 401,
-                        headers: {
-                            "content-type": "application/json",
-                            "www-authenticate": "Bearer",
-                        },
-                    });
-                }
-                return handler.fetch(request, options);
-            },
-        };
+        return handler;
     }
 
     // eslint-disable-next-line @typescript-eslint/require-await -- Required for override signature

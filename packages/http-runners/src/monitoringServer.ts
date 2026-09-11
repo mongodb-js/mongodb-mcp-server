@@ -31,7 +31,7 @@ export class MonitoringServer<
         super({
             options: {
                 logContext: "monitoringServer",
-                http: { port: options.http.port, host: options.http.host, authMode: "unauthenticated" },
+                http: { port: options.http.port, host: options.http.host },
             },
             logger,
         });

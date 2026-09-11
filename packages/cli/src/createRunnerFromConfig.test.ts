@@ -29,7 +29,11 @@ vi.mock("@mongodb-js/mcp-tools-mongodb", async (importOriginal) => {
     return {
         ...actual,
         DeviceId: {
-            create: vi.fn().mockReturnValue({}),
+            create: vi.fn().mockReturnValue({
+                // Must not collide with the global crypto: createServerServices
+                // uses globalThis.crypto.randomUUID() for ephemeral scopes.
+                get: vi.fn((fn: () => string) => Promise.resolve(fn())),
+            }),
         },
         MCPConnectionManager: vi.fn().mockImplementation(function MockMCPConnectionManager() {
             return {};
@@ -81,6 +85,7 @@ import {
     createSharedServicesFromConfig,
     createServerFromConfig,
     CliMcpHttpServer,
+    connectionScopeByClientNameHeader,
     type SharedServerServices,
 } from "./createRunnerFromConfig.js";
 import { createExportsManagerFromConfig } from "./createExportsManagerFromConfig.js";
@@ -88,6 +93,32 @@ import { createApiClientFromConfig } from "./createApiClientFromConfig.js";
 import { createTelemetryFromConfig } from "./createTelemetryFromConfig.js";
 import { createMonitoringServerFromConfig } from "./createMonitoringServerFromConfig.js";
 import { CliServer } from "./cliServer.js";
+
+// Example connection-scope policies. The library ships only the seam
+// (connectionScope is required, and `undefined` → ephemeral); the per-user and
+// per-client policies are the embedder's decision, so these are local fixtures
+// that exercise the seam's fail-closed behavior rather than public API.
+
+/** Per verified user via the OIDC `sub` claim (fail-closed: no `sub` → ephemeral). */
+function userPrincipalScope(request: TransportRequestContext): string | undefined {
+    if (!request.authInfo) {
+        return undefined;
+    }
+    const { clientId, extra } = request.authInfo;
+    const sub = extra?.sub;
+    if (typeof sub !== "string" || !sub.trim()) {
+        return undefined;
+    }
+    return `user:${clientId}\u001f${sub}`;
+}
+
+/** Per OAuth client application (application-level isolation; M2M only). */
+function clientIdScope(request: TransportRequestContext): string | undefined {
+    if (!request.authInfo) {
+        return undefined;
+    }
+    return `client:${request.authInfo.clientId}`;
+}
 
 describe("createSharedServicesFromConfig", () => {
     const serverMetadata = {
@@ -325,8 +356,8 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
                     port: config.httpPort,
                     responseType: config.httpResponseType,
                     headers: config.httpHeaders,
-                    authMode: "unauthenticated",
                 },
+                connectionScope: connectionScopeByClientNameHeader,
             },
         });
 
@@ -375,8 +406,8 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
                     port: config.httpPort,
                     responseType: config.httpResponseType,
                     headers: config.httpHeaders,
-                    authMode: "unauthenticated",
                 },
+                connectionScope: connectionScopeByClientNameHeader,
             },
         });
 
@@ -418,7 +449,10 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
         expect(await regGlobal.get(created.connectionId)).toBeUndefined();
     });
 
-    it("scopes connections by verified authInfo.clientId, ignoring spoofable headers", async () => {
+    it("a per-user connection-scope policy isolates users within one shared OAuth client", async () => {
+        // Regression test: clientId identifies the OAuth client application,
+        // not the end user. Two users authenticated through the same shared
+        // client registration must not see each other's connections.
         const config = UserConfigSchema.parse({
             transport: "http",
             telemetry: "disabled",
@@ -433,8 +467,8 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
                     port: config.httpPort,
                     responseType: config.httpResponseType,
                     headers: config.httpHeaders,
-                    authMode: "unauthenticated",
                 },
+                connectionScope: userPrincipalScope,
             },
         });
 
@@ -444,28 +478,169 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
             }
         ).createServerForRequest.bind(mcpHttpServer);
 
-        // Authenticated requests scope by the verified clientId. Two requests
-        // from the same verified client share a scope even if they send
-        // different (spoofable) client-name headers.
+        const sharedClient = "shared-org-gateway";
+        const alice1 = await hook({
+            headers: {},
+            query: {},
+            authInfo: { token: "t", clientId: sharedClient, scopes: [], extra: { sub: "alice" } },
+        });
+        const alice2 = await hook({
+            headers: {},
+            query: {},
+            authInfo: { token: "t", clientId: sharedClient, scopes: [], extra: { sub: "alice" } },
+        });
+        // Bob authenticates through the SAME OAuth client as alice.
+        const bob = await hook({
+            headers: {},
+            query: {},
+            authInfo: { token: "t", clientId: sharedClient, scopes: [], extra: { sub: "bob" } },
+        });
+        // The same subject under a DIFFERENT client is also a different scope.
+        const otherClientAlice = await hook({
+            headers: {},
+            query: {},
+            authInfo: { token: "t", clientId: "other-client", scopes: [], extra: { sub: "alice" } },
+        });
+
+        const regAlice1 = (alice1 as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+        const regAlice2 = (alice2 as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+        const regBob = (bob as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+        const regOtherAlice = (otherClientAlice as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+
+        // Same user, same client → the connection survives across her requests.
+        const created = await regAlice1.createEntry({ name: "alice-conn" });
+        expect(await regAlice2.get(created.connectionId)).toBe(created);
+
+        // A different user behind the same OAuth client cannot see it...
+        expect(await regBob.get(created.connectionId)).toBeUndefined();
+        // ...and neither can the same subject under a different client.
+        expect(await regOtherAlice.get(created.connectionId)).toBeUndefined();
+    });
+
+    it("a per-user scope policy fails closed: requests without a usable sub claim get ephemeral, isolated scopes", async () => {
+        const config = UserConfigSchema.parse({
+            transport: "http",
+            telemetry: "disabled",
+        });
+
+        const sharedServices = await makeSharedServerServices(config);
+        const mcpHttpServer = new CliMcpHttpServer({
+            sharedServices,
+            options: {
+                http: {
+                    host: config.httpHost,
+                    port: config.httpPort,
+                    responseType: config.httpResponseType,
+                    headers: config.httpHeaders,
+                },
+                connectionScope: userPrincipalScope,
+            },
+        });
+
+        const hook = (
+            mcpHttpServer as unknown as {
+                createServerForRequest: (request: TransportRequestContext) => Promise<unknown>;
+            }
+        ).createServerForRequest.bind(mcpHttpServer);
+
+        const scopedUser = await hook({
+            headers: {},
+            query: {},
+            authInfo: { token: "t", clientId: "client-1", scopes: [], extra: { sub: "alice" } },
+        });
+        // Non-string claims do not qualify as a principal...
+        const numericSub = await hook({
+            headers: {},
+            query: {},
+            authInfo: { token: "t", clientId: "client-1", scopes: [], extra: { sub: 42 } },
+        });
+        // ...and neither does a missing claim.
+        const noPrincipal1 = await hook({
+            headers: {},
+            query: {},
+            authInfo: { token: "t", clientId: "client-1", scopes: [] },
+        });
+        const noPrincipal2 = await hook({
+            headers: {},
+            query: {},
+            authInfo: { token: "t", clientId: "client-1", scopes: [] },
+        });
+
+        const regUser = (scopedUser as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+        const regNumericSub = (numericSub as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+        const regNoPrincipal1 = (noPrincipal1 as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+        const regNoPrincipal2 = (noPrincipal2 as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+
+        // No silent sharing: a request without a usable `sub` gets an
+        // ephemeral scope — it cannot see the scoped user's entries...
+        const byUser = await regUser.createEntry({ name: "user-conn" });
+        expect(await regNoPrincipal1.get(byUser.connectionId)).toBeUndefined();
+        expect(await regNumericSub.get(byUser.connectionId)).toBeUndefined();
+
+        // ...and two principal-less requests do NOT fall back into one shared
+        // clientId namespace (the pre-fix behavior); each is ephemeral and
+        // isolated even from the other.
+        const ephemeral1 = await regNoPrincipal1.createEntry({ name: "ephemeral-conn" });
+        expect(await regNoPrincipal2.get(ephemeral1.connectionId)).toBeUndefined();
+        expect(await regNumericSub.get(ephemeral1.connectionId)).toBeUndefined();
+    });
+
+    it("a per-client connection-scope policy keys on the verified clientId, ignoring spoofable headers", async () => {
+        // Application-level scope: only safe when tokens represent the client
+        // application itself (M2M / client credentials) or when per-user
+        // isolation is explicitly not wanted.
+        const config = UserConfigSchema.parse({
+            transport: "http",
+            telemetry: "disabled",
+        });
+
+        const sharedServices = await makeSharedServerServices(config);
+        const mcpHttpServer = new CliMcpHttpServer({
+            sharedServices,
+            options: {
+                http: {
+                    host: config.httpHost,
+                    port: config.httpPort,
+                    responseType: config.httpResponseType,
+                    headers: config.httpHeaders,
+                },
+                connectionScope: clientIdScope,
+            },
+        });
+
+        const hook = (
+            mcpHttpServer as unknown as {
+                createServerForRequest: (request: TransportRequestContext) => Promise<unknown>;
+            }
+        ).createServerForRequest.bind(mcpHttpServer);
+
+        // Two requests from the same verified client share a scope even if
+        // they send different (spoofable) client-name headers.
         const authedA1 = await hook({
             headers: { "x-mcp-client-name": "spoofed" },
             query: {},
-            authInfo: { mode: "authenticated", state: { token: "t", clientId: "verified-client-1", scopes: [] } },
+            authInfo: { token: "t", clientId: "verified-client-1", scopes: [] },
         });
         const authedA2 = await hook({
             headers: { "x-mcp-client-name": "other-spoof" },
             query: {},
-            authInfo: { mode: "authenticated", state: { token: "t", clientId: "verified-client-1", scopes: [] } },
+            authInfo: { token: "t", clientId: "verified-client-1", scopes: [] },
         });
         const authedB = await hook({
             headers: { "x-mcp-client-name": "spoofed" },
             query: {},
-            authInfo: { mode: "authenticated", state: { token: "t", clientId: "verified-client-2", scopes: [] } },
+            authInfo: { token: "t", clientId: "verified-client-2", scopes: [] },
         });
+        // Unauthenticated requests get ephemeral scopes under this policy —
+        // the header is ignored, only verified identity keys the scope.
+        const unauthed1 = await hook({ headers: { "x-mcp-client-name": "spoofed" }, query: {} });
+        const unauthed2 = await hook({ headers: { "x-mcp-client-name": "spoofed" }, query: {} });
 
         const regA1 = (authedA1 as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
         const regA2 = (authedA2 as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
         const regB = (authedB as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+        const regUnauthed1 = (unauthed1 as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+        const regUnauthed2 = (unauthed2 as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
 
         // Same verified clientId → the same connection is visible across requests,
         // regardless of the (client-controlled) name headers.
@@ -474,5 +649,77 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
 
         // A different verified client cannot see it, even sending the same header.
         expect(await regB.get(created.connectionId)).toBeUndefined();
+
+        // Unauthenticated requests are ephemeral and isolated — even from each other.
+        expect(await regUnauthed1.get(created.connectionId)).toBeUndefined();
+        const anonymous = await regUnauthed1.createEntry({ name: "anon-conn" });
+        expect(await regUnauthed2.get(anonymous.connectionId)).toBeUndefined();
+    });
+
+    it("a per-client scope is the embedder's choice — the seam does not protect a misapplied app-level policy", async () => {
+        // Documents the hazard: the library ships only the seam (connectionScope
+        // is required; `undefined` → ephemeral). If a consumer deliberately
+        // ships a clientId-scope for a multi-user deployment, two users of one
+        // shared client WILL share connections — there is no guard. That's why
+        // per-user isolation is the embedder's responsibility to get right.
+        const config = UserConfigSchema.parse({
+            transport: "http",
+            telemetry: "disabled",
+        });
+
+        const sharedServices = await makeSharedServerServices(config);
+        const mcpHttpServer = new CliMcpHttpServer({
+            sharedServices,
+            options: {
+                http: {
+                    host: config.httpHost,
+                    port: config.httpPort,
+                    responseType: config.httpResponseType,
+                    headers: config.httpHeaders,
+                },
+                connectionScope: clientIdScope,
+            },
+        });
+
+        const hook = (
+            mcpHttpServer as unknown as {
+                createServerForRequest: (request: TransportRequestContext) => Promise<unknown>;
+            }
+        ).createServerForRequest.bind(mcpHttpServer);
+
+        const alice = await hook({
+            headers: {},
+            query: {},
+            authInfo: { token: "t", clientId: "shared-org-gateway", scopes: [], extra: { sub: "alice" } },
+        });
+        const bob = await hook({
+            headers: {},
+            query: {},
+            authInfo: { token: "t", clientId: "shared-org-gateway", scopes: [], extra: { sub: "bob" } },
+        });
+
+        const regAlice = (alice as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+        const regBob = (bob as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+        const created = await regAlice.createEntry({ name: "alice-conn" });
+        // Under a clientId scope, bob can see alice's connection — the leak.
+        expect(await regBob.get(created.connectionId)).toBe(created);
+    });
+
+    it("fails closed when an HTTP request is served without a connectionScope policy", async () => {
+        const config = UserConfigSchema.parse({
+            transport: "http",
+            telemetry: "disabled",
+        });
+
+        const sharedServices = await makeSharedServerServices(config);
+        // Direct callers (not via CliMcpHttpServer) supplying a `request` must
+        // supply a policy — no implicit default is applied.
+        expect(() =>
+            createServerFromConfig({
+                config,
+                sharedServices,
+                request: { headers: {}, query: {} },
+            })
+        ).toThrow(/no connectionScope policy was set/);
     });
 });

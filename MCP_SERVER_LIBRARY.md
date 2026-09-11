@@ -78,7 +78,7 @@ There are three main approaches:
 1. **`runMcpCli` (recommended for CLIs)**: one call that parses config, runs handlers, creates the server and infrastructure, and starts stdio or HTTP transport — the same flow the official binary uses.
 2. **`createSharedServicesFromConfig` + `createRunnerFromConfig` + `startRunner`**: split the same flow so you can replace individual dependencies (logger, API client, telemetry, monitoring server) via `create*FromConfig` factories, or create just the server (`createServerFromConfig`) and wire a custom runner.
    - `createSharedServicesFromConfig({ config, serverMetadata, tools, resources, logger })` builds the app-level infrastructure shared by every request-scoped server (`metrics`, `monitoringServer`, `keychain`, `deviceId`, `connectionStore`, `connectionRegistry`, `apiClient`, `exportsManager`, `telemetry`, `atlasLocalClient`, `config`, `tools`, `resources`).
-   - `createServerFromConfig({ config, sharedServices, request })` builds one **request-scoped** `CliServer` from a resolved config. `request` (an optional `TransportRequestContext`) is present for HTTP — the server then gets an isolated, client-scoped connection registry view and carries `transportRequest` through to tool/resource constructors. It returns `CliServer` directly.
+   - `createServerFromConfig({ config, sharedServices, request, connectionScope })` builds one **request-scoped** `CliServer` from a resolved config. `request` (an optional `TransportRequestContext`) is present for HTTP — the server then gets an isolated connection registry view keyed by the `connectionScope` policy and carries `transportRequest` through to tool/resource constructors. It returns `CliServer` directly.
    - `createRunnerFromConfig` calls `createSharedServicesFromConfig` internally and returns only the configured transport runner (`CliStdioRunner`/`StdioRunner` for stdio, `StreamableHttpRunner` for HTTP). `createHttpTransportRunnerFromConfig(sharedServices)` wires HTTP with the CLI's `CliMcpHttpServer`.
    - `startRunner({ transportRunner, logger, onExit })` starts the runner and manages the server lifecycle (signal handlers, graceful shutdown).
 3. **Override `MCPHttpServer.createServerForRequest`**: when hosting over HTTP and you need per-request customization, subclass `MCPHttpServer` and override `createServerForRequest(request: TransportRequestContext): Promise<TServer>` (return a request-scoped `CliServer` via `createServerFromConfig`). In v3 this hook lives on `MCPHttpServer`, **not** on `StreamableHttpRunner`.
@@ -263,10 +263,10 @@ class PermissionsMCPHttpServer extends MCPHttpServer<CliServer> {
           bodyLimit: baseConfig.httpBodyLimit,
           headers: baseConfig.httpHeaders,
           responseType: baseConfig.httpResponseType,
-          // Every deployment's auth posture is explicit. "authenticated"
-          // requires a verified identity per request (injected by the host);
-          // "unauthenticated" carries whatever the host provides.
-          authMode: "unauthenticated",
+          // The server never authenticates on its own: hosts that require
+          // verified identity enforce it in middleware (registerMiddlewares),
+          // which runs before protocol dispatch for both modern and legacy
+          // traffic, and inject it as `req.auth`.
         },
       },
       logger,
@@ -296,9 +296,12 @@ class PermissionsMCPHttpServer extends MCPHttpServer<CliServer> {
       (op) => !permissions.allowedOperations.includes(op)
     );
 
-    // The effective (possibly request-overridden) config for this request. The
-    // server gets an isolated, client-scoped connection registry view derived
-    // from the request (auth clientId or the x-mcp-client-name header).
+    // The effective (possibly request-overridden) config for this request.
+    // The server gets an isolated connection registry view keyed by the
+    // connectionScope policy. This example scopes per verified user: the host's
+    // token verifier must attach the OIDC `sub` claim via `AuthInfo.extra`;
+    // a request without `sub` returns `undefined`, which is an ephemeral,
+    // per-request scope (fail closed — it never silently shares).
     return createServerFromConfig({
       config: {
         ...baseConfig,
@@ -308,6 +311,10 @@ class PermissionsMCPHttpServer extends MCPHttpServer<CliServer> {
       },
       sharedServices: this.sharedServices,
       request,
+      connectionScope: (req) =>
+        req.authInfo?.extra?.sub != null
+          ? `user:${req.authInfo.clientId}:${req.authInfo.extra.sub}`
+          : undefined,
     });
   }
 }
@@ -431,27 +438,27 @@ const standard = [...MongoDBTools, ...AtlasTools, ...AtlasLocalTools];
 
 ### `@mongodb-js/mcp-http-runners`
 
-| Symbol                                                 | Description                                                                                                                                                                                                                                                                                                         |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `StreamableHttpRunner` / `StreamableHttpRunnerOptions` | HTTP transport runner                                                                                                                                                                                                                                                                                               |
-| `MCPHttpServer` / `MCPHttpServerOptions`               | HTTP server; override abstract `createServerForRequest(request: TransportRequestContext): Promise<TServer>`, and optionally `registerMiddlewares()` for host middleware. `options.http.authMode` is required (`"authenticated"` \| `"unauthenticated"`); `sessionOptions` is for the legacy 2025-era lifecycle only |
-| `MonitoringServer` / `MonitoringServerOptions`         | Optional `/metrics` monitoring server                                                                                                                                                                                                                                                                               |
-| `ExpressBasedHttpServer`                               | Base class for Express-based HTTP servers                                                                                                                                                                                                                                                                           |
+| Symbol                                                 | Description                                                                                                                                                                                                                                                                                                  |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `StreamableHttpRunner` / `StreamableHttpRunnerOptions` | HTTP transport runner                                                                                                                                                                                                                                                                                        |
+| `MCPHttpServer` / `MCPHttpServerOptions`               | HTTP server; override abstract `createServerForRequest(request: TransportRequestContext): Promise<TServer>`, and optionally `registerMiddlewares()` for host middleware (including auth enforcement — the server never authenticates on its own). `sessionOptions` is for the legacy 2025-era lifecycle only |
+| `MonitoringServer` / `MonitoringServerOptions`         | Optional `/metrics` monitoring server                                                                                                                                                                                                                                                                        |
+| `ExpressBasedHttpServer`                               | Base class for Express-based HTTP servers                                                                                                                                                                                                                                                                    |
 
 ### Other packages
 
-| Package                             | Symbols                                                                                                                                                                                                                                                                                                                                |
-| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@mongodb-js/mcp-tools-mongodb`     | `MongoDBTools`, `MongoDBToolBase`, `MongoDBToolServer`, `MongoDBToolServices`, `MCPConnectionManager`, `ConnectionManager`, `MCPConnectionStore`, `ErrorCodes`, `MongoDBError`, exports manager & connection types                                                                                                                     |
-| `@mongodb-js/mcp-tools-atlas`       | `AtlasTools`, `AtlasToolBase`                                                                                                                                                                                                                                                                                                          |
-| `@mongodb-js/mcp-tools-atlas-local` | `AtlasLocalTools`, `createAtlasLocalClient`                                                                                                                                                                                                                                                                                            |
-| `@mongodb-js/mcp-tools-assistant`   | `AssistantTools`                                                                                                                                                                                                                                                                                                                       |
-| `@mongodb-js/mcp-atlas-api-client`  | `ApiClient`, `ClientCredentialsAuthProvider`                                                                                                                                                                                                                                                                                           |
-| `@mongodb-js/mcp-atlas-telemetry`   | `AtlasTelemetry` (`create({ logger, deviceId, apiClient, keychain, enabled, serverMetadata })`), `TelemetryConfig`, `TelemetryBaseEvent`, `TelemetryCommonProperties`                                                                                                                                                                  |
-| `@mongodb-js/mcp-logging`           | `ConsoleLogger`, `DiskLogger`, `McpLogger`                                                                                                                                                                                                                                                                                             |
-| `@mongodb-js/mcp-metrics`           | `PrometheusMetrics`, `createDefaultMetrics`                                                                                                                                                                                                                                                                                            |
-| `@mongodb-js/mcp-ui`                | `UIRegistry`                                                                                                                                                                                                                                                                                                                           |
-| `@mongodb-js/mcp-types`             | `ServerMetadata`, `TransportRequestContext`, `RequestAuthState`, `RequestAuthInfo`, `ToolCategory`, `OperationType`, `UserConfig`, `IMetrics`, `DefaultMetricDefinitions`, `ITransportRunner`, `BaseServer`, `ToolServer`, `ToolServices`, `ToolRequest`, `ToolExecutionContext`, `ResourceServices`, `ResourceServerArg`, `IRedactor` |
+| Package                             | Symbols                                                                                                                                                                                                                                                                                                                                     |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@mongodb-js/mcp-tools-mongodb`     | `MongoDBTools`, `MongoDBToolBase`, `MongoDBToolServer`, `MongoDBToolServices`, `MCPConnectionManager`, `ConnectionManager`, `MCPConnectionStore`, `ErrorCodes`, `MongoDBError`, exports manager & connection types                                                                                                                          |
+| `@mongodb-js/mcp-tools-atlas`       | `AtlasTools`, `AtlasToolBase`                                                                                                                                                                                                                                                                                                               |
+| `@mongodb-js/mcp-tools-atlas-local` | `AtlasLocalTools`, `createAtlasLocalClient`                                                                                                                                                                                                                                                                                                 |
+| `@mongodb-js/mcp-tools-assistant`   | `AssistantTools`                                                                                                                                                                                                                                                                                                                            |
+| `@mongodb-js/mcp-atlas-api-client`  | `ApiClient`, `ClientCredentialsAuthProvider`                                                                                                                                                                                                                                                                                                |
+| `@mongodb-js/mcp-atlas-telemetry`   | `AtlasTelemetry` (`create({ logger, deviceId, apiClient, keychain, enabled, serverMetadata })`), `TelemetryConfig`, `TelemetryBaseEvent`, `TelemetryCommonProperties`                                                                                                                                                                       |
+| `@mongodb-js/mcp-logging`           | `ConsoleLogger`, `DiskLogger`, `McpLogger`                                                                                                                                                                                                                                                                                                  |
+| `@mongodb-js/mcp-metrics`           | `PrometheusMetrics`, `createDefaultMetrics`                                                                                                                                                                                                                                                                                                 |
+| `@mongodb-js/mcp-ui`                | `UIRegistry`                                                                                                                                                                                                                                                                                                                                |
+| `@mongodb-js/mcp-types`             | `ServerMetadata`, `TransportRequestContext`, `ConnectionScopePolicy`, `RequestAuthInfo`, `ToolCategory`, `OperationType`, `UserConfig`, `IMetrics`, `DefaultMetricDefinitions`, `ITransportRunner`, `BaseServer`, `ToolServer`, `ToolServices`, `ToolRequest`, `ToolExecutionContext`, `ResourceServices`, `ResourceServerArg`, `IRedactor` |
 
 ## Advanced Topics
 
@@ -478,6 +485,8 @@ await runner.start();
 **HTTP:** `StreamableHttpRunner` attaches a `MCPHttpServer` to the transport. The runners `start()` the server and `close()` it; per-request server creation happens in `MCPHttpServer.createServerForRequest`. Optionally add a `MonitoringServer` for Prometheus metrics. See [Use Case 2](#use-case-2-request-scoped-configuration) for a full wiring example.
 
 **CLI default (request-scoped servers):** the CLI's `createHttpTransportRunnerFromConfig` wires a `CliMcpHttpServer` that creates a **fresh request-scoped `CliServer` per HTTP request** via `createServerFromConfig`, applying request-level config overrides (`applyConfigOverrides`) on each request — so concurrent HTTP requests are isolated (separate servers, request-scoped connection registry views, telemetry). App-level infrastructure (metrics, device id, shared connection store, API client, exports, telemetry, Atlas Local client) is built once by `createSharedServicesFromConfig` and shared. Stdio builds a single server (one client per connection).
+
+**Connection scoping (required for HTTP):** `CliMcpHttpServer` requires an explicit `connectionScope` policy — this is the knob that controls connection isolation. `connectionScope` is a `(request: TransportRequestContext) => string | undefined` function; `undefined` means an ephemeral, per-request scope (no shared state). It must be keyed on whatever distinguishes the callers. The only policy the library itself ships is `connectionScopeByClientNameHeader` (self-asserted `x-mcp-client-name` label for unauthenticated local use, used by the CLI's own runner — never an authorization boundary). For authenticated deployments the embedder supplies the policy. `clientId` identifies the OAuth client _application_, not the end user — so keying solely on `clientId` lets every user of one shared client registration share connections. It should be keyed on the verified end-user principal (the OIDC `sub` claim, which the token verifier attaches to `AuthInfo.extra`), returning a scope for the user and `undefined` otherwise, e.g. `req.authInfo?.extra?.sub != null ? \`user:${req.authInfo.clientId}:${req.authInfo.extra.sub}\` : undefined`. Keying by `clientId` is only appropriate for M2M/client-credentials tokens (where`clientId` _is_ the principal) or single-user-per-client deployments.
 
 ### Configuration and request overrides
 

@@ -16,6 +16,7 @@ export {
     type SharedServerServices,
     type CreateServerServicesOptions,
     CLIENT_SCOPE_HEADER,
+    connectionScopeByClientNameHeader,
     CliMcpHttpServer,
     CliStdioRunner,
     createHttpTransportRunnerFromConfig,

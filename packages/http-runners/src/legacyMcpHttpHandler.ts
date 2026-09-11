@@ -136,12 +136,9 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
         return {
             headers: req.headers,
             query: req.query as Record<string, string | string[] | undefined>,
-            // The explicit auth state of this request. Legacy serving does not
-            // normalize authInfo itself; hosts supply it via `req.auth` when
-            // using authenticated mode.
-            authInfo: (req as express.Request & { auth?: RequestAuthInfo }).auth
-                ? { mode: "authenticated", state: (req as express.Request & { auth: RequestAuthInfo }).auth }
-                : { mode: "unauthenticated" },
+            // The verified identity of this request, if the host injected it
+            // via `req.auth`. Absent when the host supplied none.
+            authInfo: (req as express.Request & { auth?: RequestAuthInfo }).auth,
             protocol: "legacy",
         };
     }

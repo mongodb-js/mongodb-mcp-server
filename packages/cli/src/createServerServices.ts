@@ -1,7 +1,13 @@
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import { Elicitation, Keychain, McpServer, LogId } from "@mongodb-js/mcp-core";
-import type { IMetrics, IDeviceId, ServerMetadata, TransportRequestContext } from "@mongodb-js/mcp-types";
+import type {
+    IMetrics,
+    IDeviceId,
+    ServerMetadata,
+    TransportRequestContext,
+    ConnectionScopePolicy,
+} from "@mongodb-js/mcp-types";
 import type { Client as AtlasLocalClient } from "@mongodb-js/atlas-local";
 import type { ResourceRegistry, ToolRegistry } from "./cliServer.js";
 import { CliServer } from "./cliServer.js";
@@ -176,11 +182,9 @@ export async function createSharedServicesFromConfig(
 
 /**
  * The HTTP header a client may send to identify itself for connection
- * scoping (multi-tenant HTTP deployments). When present, connections the
- * client creates are scoped to this value: they survive across that client's
- * requests (same scope) but are invisible to other clients (different scope).
- * Clients that don't send it share the global registry, matching the
- * pre-Phase-3 behavior.
+ * scoping in unauthenticated deployments (see
+ * {@link connectionScopeByClientNameHeader}). Self-asserted and never an
+ * authorization boundary.
  *
  * Deliberately outside the `x-mongodb-mcp-` prefix used by request config
  * overrides (see applyConfigOverrides), so it is never mistaken for one.
@@ -188,21 +192,14 @@ export async function createSharedServicesFromConfig(
 export const CLIENT_SCOPE_HEADER = "x-mcp-client-name";
 
 /**
- * Derives a connection scope from the request. Precedence:
- *  1. `authInfo.state.clientId` — the verified identity (auth mode): stable,
- *     cannot be forged by the client, so each authenticated client gets its
- *     own isolated namespace.
- *  2. the `x-mcp-client-name` header — opt-in label for unauthenticated
- *     deployments (see {@link CLIENT_SCOPE_HEADER}).
- *  3. none — the caller falls back to an ephemeral scope.
+ * Opt-in labeling for unauthenticated deployments (e.g. the CLI's own HTTP
+ * runner): scopes by the self-asserted {@link CLIENT_SCOPE_HEADER} header.
+ * The label is client-controlled and must not be used as an authorization
+ * boundary; requests without it get an ephemeral scope.
  */
-function clientScopeFromRequest(request?: TransportRequestContext): string | undefined {
-    if (request?.authInfo?.mode === "authenticated") {
-        return request.authInfo.state.clientId;
-    }
-    const header = request?.headers?.[CLIENT_SCOPE_HEADER];
-    const name = (typeof header === "string" && header.trim()) || undefined;
-    return name;
+export function connectionScopeByClientNameHeader(request: TransportRequestContext): string | undefined {
+    const header = request.headers?.[CLIENT_SCOPE_HEADER];
+    return (typeof header === "string" && header.trim()) || undefined;
 }
 
 /** A fresh, unguessable scope for a request whose client did not identify itself. */
@@ -218,22 +215,30 @@ function ephemeralClientScope(): string {
  * every heavy dependency comes from {@link SharedServerServices}.
  *
  * When `request` is present (HTTP), the server's connection registry is an
- * isolated scoped+owned view over the shared store: a client that identifies
- * itself (`x-mongodb-mcp-client-name`) gets a stable scope — its connections
- * survive across its requests while staying invisible to other clients — and
- * an anonymous request gets an ephemeral scope (no cross-request state, and
- * it can never see identified clients' connections). Without a request
- * (stdio/dry-run, a single client per process) the app-level registry is
- * used as-is.
+ * isolated scoped+owned view over the shared store, keyed by the
+ * `connectionScope` policy: connections in a scope survive across requests
+ * resolving to that scope while staying invisible to every other scope, and a
+ * request the policy declines to key (`undefined`) gets an ephemeral scope —
+ * no cross-request state, and it can never see scoped connections. Without a
+ * request (stdio/dry-run, a single client per process) the app-level registry
+ * is used as-is.
  */
 export function createServerFromConfig({
     config,
     sharedServices,
     request,
+    connectionScope,
 }: {
     config: UserConfig;
     sharedServices: SharedServerServices;
     request?: TransportRequestContext;
+    /**
+     * Decides which connection scope HTTP requests get (see
+     * {@link ConnectionScopePolicy}) and is required for HTTP — see
+     * {@link CliMcpHttpServer}. It is optional here only so non-HTTP callers
+     * (stdio, dry-run) that never supply a `request` do not have to set it.
+     */
+    connectionScope?: ConnectionScopePolicy;
 }): CliServer {
     const {
         serverMetadata,
@@ -250,9 +255,20 @@ export function createServerFromConfig({
         atlasLocalClient,
     } = sharedServices;
 
-    // HTTP: every request gets an isolated view (identified → stable scope,
-    // anonymous → ephemeral scope). Non-HTTP (no request): the shared registry.
-    const scope = request ? (clientScopeFromRequest(request) ?? ephemeralClientScope()) : undefined;
+    // HTTP: every request must be scoped — fail closed rather than default to
+    // some policy the caller didn't choose (an implicit default is exactly how
+    // users end up sharing connections). A policy that returns `undefined`
+    // yields an ephemeral scope with no cross-request state. Non-HTTP (no
+    // request): the shared registry.
+    let scope: string | undefined;
+    if (request) {
+        if (!connectionScope) {
+            throw new Error(
+                "createServerFromConfig: an HTTP request was provided but no connectionScope policy was set."
+            );
+        }
+        scope = connectionScope(request) ?? ephemeralClientScope();
+    }
     const requestConnectionRegistry =
         scope !== undefined ? connectionStore.view({ scope, owned: true }) : connectionRegistry;
 

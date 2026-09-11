@@ -56,7 +56,6 @@ const httpOptions: HttpServerOptions = {
     host: "127.0.0.1",
     port: 0,
     responseType: "json",
-    authMode: "unauthenticated",
 };
 
 /** A 2026-07-28 request carrying the per-request `_meta` envelope claim. */
@@ -188,7 +187,7 @@ describe("MCPHttpServer stateless serving", () => {
         expect(body.error?.message).toBe("Internal server error");
     });
 
-    it("carries an explicit unauthenticated auth state when no identity is injected", async () => {
+    it("carries no authInfo when no identity is injected", async () => {
         const seen = vi.fn();
         class StateTrackingServer extends TestMCPHttpServer {
             protected override createServerForRequest(request: TransportRequestContext): Promise<BaseServer> {
@@ -202,8 +201,8 @@ describe("MCPHttpServer stateless serving", () => {
 
         const res = await post("/mcp", MODERN_BODY);
         expect(res.status).toBe(200);
-        // No identity injected → the request is explicitly unauthenticated.
-        expect(seen).toHaveBeenCalledWith({ mode: "unauthenticated" });
+        // No identity injected → authInfo is absent (the host did not verify one).
+        expect(seen).toHaveBeenCalledWith(undefined);
     });
 
     it("normalizes an injected req.auth identity into the authenticated auth state", async () => {
@@ -237,17 +236,58 @@ describe("MCPHttpServer stateless serving", () => {
 
         const res = await post("/mcp", MODERN_BODY, { authorization: "Bearer good-token" });
         expect(res.status).toBe(200);
+        expect(seen).toHaveBeenCalledWith({ token: "tok", clientId: "verified-client-1", scopes: [] });
+    });
+
+    it("carries the host-supplied extra claims (per-user principal) through to the request auth state", async () => {
+        const seen = vi.fn();
+        class ExtraCarryingServer extends MCPHttpServer<BaseServer> {
+            constructor() {
+                super({
+                    options: { http: httpOptions },
+                    logger: new InMemoryLogger(),
+                    metrics: new MockMetrics(),
+                });
+            }
+            protected override createServerForRequest(request: TransportRequestContext): Promise<BaseServer> {
+                seen(request.authInfo);
+                return Promise.resolve(makeFakeServer());
+            }
+        }
+        server = new ExtraCarryingServer() as unknown as TestMCPHttpServer;
+        // The host's token verifier attaches the user subject via the SDK's
+        // AuthInfo.extra; per-user connection scoping depends on it surviving.
+        const app = (server as unknown as { app: express.Express }).app;
+        app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
+            (req as express.Request & { auth?: unknown }).auth = {
+                token: "tok",
+                clientId: "shared-org-gateway",
+                scopes: [],
+                extra: { sub: "alice" },
+            };
+            next();
+        });
+        await server.start();
+
+        const res = await post("/mcp", MODERN_BODY, { authorization: "Bearer good-token" });
+        expect(res.status).toBe(200);
         expect(seen).toHaveBeenCalledWith({
-            mode: "authenticated",
-            state: { token: "tok", clientId: "verified-client-1", scopes: [] },
+            token: "tok",
+            clientId: "shared-org-gateway",
+            scopes: [],
+            extra: { sub: "alice" },
         });
     });
 
-    describe("authenticated mode (authMode: 'authenticated')", () => {
-        class AuthedModeServer extends MCPHttpServer<BaseServer> {
+    describe("host-enforced authentication", () => {
+        // The library never authenticates on its own: a host that requires
+        // verified identity rejects identity-less requests in its own
+        // middleware, which runs before protocol dispatch — covering the
+        // modern AND legacy paths uniformly.
+        class AuthRequiringServer extends MCPHttpServer<BaseServer> {
             constructor({ onRequest }: { onRequest?: (request: TransportRequestContext) => void } = {}) {
                 super({
-                    options: { http: { ...httpOptions, authMode: "authenticated" } },
+                    options: { http: httpOptions },
                     logger: new InMemoryLogger(),
                     metrics: new MockMetrics(),
                 });
@@ -258,38 +298,64 @@ describe("MCPHttpServer stateless serving", () => {
                 this.onRequest?.(request);
                 return Promise.resolve(makeFakeServer());
             }
+            public requireAuth(): void {
+                const app = (this as unknown as { app: express.Express }).app;
+                app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+                    if (req.headers.authorization !== "Bearer good-token") {
+                        res.status(401).json({ error: "Unauthorized" });
+                        return;
+                    }
+                    (req as express.Request & { auth?: unknown }).auth = {
+                        token: "tok",
+                        clientId: "verified-client-1",
+                        scopes: [],
+                    };
+                    next();
+                });
+            }
         }
 
-        it("rejects requests without verified identity with 401", async () => {
-            server = new AuthedModeServer() as unknown as TestMCPHttpServer;
+        it("rejects requests without verified identity with 401, on both protocol paths", async () => {
+            server = new AuthRequiringServer() as unknown as TestMCPHttpServer;
+            (server as unknown as AuthRequiringServer).requireAuth();
             await server.start();
 
-            const res = await post("/mcp", MODERN_BODY);
-            expect(res.status).toBe(401);
+            // Modern (2026-07-28) request.
+            expect((await post("/mcp", MODERN_BODY)).status).toBe(401);
+
+            // Legacy (2025-era) request — same middleware rejects it before
+            // protocol dispatch.
+            const legacyRes = await fetch(`${server.serverAddress}/mcp`, {
+                method: "POST",
+                headers: {
+                    "content-type": "application/json",
+                    accept: "application/json, text/event-stream",
+                },
+                body: JSON.stringify({
+                    jsonrpc: "2.0",
+                    method: "initialize",
+                    id: 1,
+                    params: {
+                        protocolVersion: "2025-11-25",
+                        capabilities: {},
+                        clientInfo: { name: "t", version: "1" },
+                    },
+                }),
+            });
+            expect(legacyRes.status).toBe(401);
         });
 
         it("serves verified requests with an always-authenticated authInfo", async () => {
             const seen = vi.fn();
-            server = new AuthedModeServer({ onRequest: seen }) as unknown as TestMCPHttpServer;
-            const app = (server as unknown as { app: express.Express }).app;
-            app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
-                (req as express.Request & { auth?: unknown }).auth = {
-                    token: "tok",
-                    clientId: "verified-client-1",
-                    scopes: [],
-                };
-                next();
-            });
+            server = new AuthRequiringServer({ onRequest: seen }) as unknown as TestMCPHttpServer;
+            (server as unknown as AuthRequiringServer).requireAuth();
             await server.start();
 
             const res = await post("/mcp", MODERN_BODY, { authorization: "Bearer good-token" });
             expect(res.status).toBe(200);
             expect(seen).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    authInfo: {
-                        mode: "authenticated",
-                        state: { token: "tok", clientId: "verified-client-1", scopes: [] },
-                    },
+                    authInfo: { token: "tok", clientId: "verified-client-1", scopes: [] },
                 })
             );
         });
