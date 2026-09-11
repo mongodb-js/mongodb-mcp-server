@@ -16,7 +16,6 @@ import { EventEmitter } from 'events';
 import express from 'express';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
-import type { MongoClient } from 'mongodb';
 import { Gauge } from 'prom-client';
 import { Histogram } from 'prom-client';
 import type http from 'http';
@@ -26,6 +25,7 @@ import type { InputResponses } from '@modelcontextprotocol/server';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/server';
 import { McpHttpHandler } from '@modelcontextprotocol/server';
 import { McpServer } from '@modelcontextprotocol/server';
+import { MongoClient } from 'mongodb';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import type { ReadResourceCallback } from '@modelcontextprotocol/server';
 import { Registry } from 'prom-client';
@@ -244,7 +244,7 @@ export class AtlasTelemetry implements ITelemetry {
     // (undocumented)
     protected readonly serverMetadata: ServerMetadata;
     // (undocumented)
-    protected setup(): Promise<void>;
+    setup(): Promise<void>;
     setupPromise: Promise<[string, boolean]> | undefined;
 }
 
