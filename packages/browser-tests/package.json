@@ -1,6 +1,6 @@
 {
   "name": "@mongodb-js/mcp-browser-tests",
-  "version": "3.0.0-prerelease.4",
+  "version": "3.0.0-prerelease.5",
   "private": true,
   "type": "module",
   "scripts": {

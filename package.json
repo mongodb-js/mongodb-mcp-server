@@ -78,5 +78,5 @@
   "engines": {
     "node": "^20.19.0 || ^22.13.0 || >= 24.0.0"
   },
-  "version": "3.0.0-prerelease.4"
+  "version": "3.0.0-prerelease.5"
 }
