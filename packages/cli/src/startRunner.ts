@@ -1,5 +1,4 @@
-import { LogId } from "@mongodb-js/mcp-core";
-import type { StdioRunner } from "@mongodb-js/mcp-core";
+import { LogId, StdioRunner } from "@mongodb-js/mcp-core";
 import type { StreamableHttpRunner } from "@mongodb-js/mcp-http-runners";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { OnExit } from "./types.js";
@@ -47,6 +46,9 @@ export async function startRunner({ transportRunner, logger, onExit }: StartRunn
     process.on("SIGABRT", () => void shutdown());
     process.on("SIGTERM", () => void shutdown());
     process.on("SIGQUIT", () => void shutdown());
+    if (transportRunner instanceof StdioRunner) {
+        process.stdin.once("end", () => void shutdown());
+    }
 
     try {
         await transportRunner.start();
