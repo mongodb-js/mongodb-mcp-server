@@ -219,11 +219,33 @@ export const Explain = (): ReactElement => {
         }
     }, [result]);
 
+    /** Message from a failed tool call (`isError: true`), if the host sent one. */
+    const errorText = useMemo((): string | null => {
+        if (result?.isError !== true) {
+            return null;
+        }
+        const text = (result.content ?? [])
+            .flatMap((block) => (block.type === "text" ? [block.text] : []))
+            .join("\n")
+            .trim();
+        return text.length > 0 ? text : "The explain tool returned an error.";
+    }, [result]);
+
     let body: ReactElement;
     if (error) {
         body = (
             <div role="alert" style={panelStyle(theme)}>
                 <strong>Failed to connect to the host:</strong> {error.message}
+            </div>
+        );
+    } else if (errorText !== null) {
+        body = (
+            <div role="alert" style={panelStyle(theme)}>
+                <p style={{ marginTop: 0 }}>
+                    <strong>Explain failed.</strong>
+                </p>
+                <p style={{ color: theme.secondaryTextColor, whiteSpace: "pre-wrap" }}>{errorText}</p>
+                {data ? <RawExplain data={data} theme={theme} /> : null}
             </div>
         );
     } else if (!data?.explainResult) {

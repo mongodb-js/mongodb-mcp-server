@@ -175,6 +175,42 @@ describe("Explain", () => {
         });
     });
 
+    it("shows an error panel when the tool reports a failure", async () => {
+        render(<Explain />);
+
+        act(() => {
+            mocks.fakeApp.ontoolresult?.({
+                content: [{ type: "text", text: "boom: collection does not exist" }],
+                isError: true,
+            });
+        });
+
+        await waitFor(() => {
+            expect(screen.getByRole("alert")).toHaveTextContent("boom: collection does not exist");
+        });
+        expect(screen.getByRole("alert")).toHaveTextContent(/Explain failed/);
+        expect(screen.queryByTestId("explain-waiting")).not.toBeInTheDocument();
+    });
+
+    it("shows an error panel (not the tree) when isError accompanies structured content", async () => {
+        render(<Explain />);
+
+        act(() => {
+            mocks.fakeApp.ontoolresult?.({
+                content: [{ type: "text", text: "execution failed" }],
+                isError: true,
+                structuredContent: { explainResult: classicExplainResult, method: "find", verbosity: "executionStats" },
+            });
+        });
+
+        await waitFor(() => {
+            expect(screen.getByRole("alert")).toHaveTextContent("execution failed");
+        });
+        expect(screen.queryByTestId("explain-tree")).not.toBeInTheDocument();
+        // the raw result is still inspectable
+        expect(screen.getByTestId("explain-raw-output")).toBeInTheDocument();
+    });
+
     it("reacts to host theme changes", async () => {
         render(<Explain />);
 
