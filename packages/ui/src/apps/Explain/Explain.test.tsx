@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => {
     return {
         fakeApp: {
             ontoolresult: undefined as ((params: unknown) => void) | undefined,
+            ontoolcancelled: undefined as (() => void) | undefined,
             onhostcontextchanged: undefined as ((ctx: { theme?: string }) => void) | undefined,
             getHostContext: (): { theme: string } => ({ theme: mocks.theme }),
         },
@@ -84,6 +85,7 @@ describe("Explain", () => {
         mocks.theme = "light";
         mocks.error = undefined;
         mocks.fakeApp.ontoolresult = undefined;
+        mocks.fakeApp.ontoolcancelled = undefined;
         mocks.fakeApp.onhostcontextchanged = undefined;
     });
 
@@ -209,6 +211,19 @@ describe("Explain", () => {
         expect(screen.queryByTestId("explain-tree")).not.toBeInTheDocument();
         // the raw result is still inspectable
         expect(screen.getByTestId("explain-raw-output")).toBeInTheDocument();
+    });
+
+    it("shows a cancelled state when the host cancels the tool call", async () => {
+        render(<Explain />);
+
+        act(() => {
+            mocks.fakeApp.ontoolcancelled?.();
+        });
+
+        await waitFor(() => {
+            expect(screen.getByRole("alert")).toHaveTextContent(/Explain was cancelled/);
+        });
+        expect(screen.queryByTestId("explain-waiting")).not.toBeInTheDocument();
     });
 
     it("reacts to host theme changes", async () => {

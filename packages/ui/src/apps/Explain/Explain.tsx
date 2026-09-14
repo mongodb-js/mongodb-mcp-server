@@ -180,6 +180,9 @@ const RawOutputView: React.FunctionComponent<{ data: unknown; theme: ExplainThem
 
 export const Explain = (): ReactElement => {
     const [result, setResult] = useState<ToolResult | null>(null);
+    // Set when the host reports `ui/notifications/tool-cancelled`; a later
+    // tool result (if one arrives anyway) clears it.
+    const [cancelled, setCancelled] = useState(false);
     const [darkMode, setDarkMode] = useState(false);
     const [view, setView] = useState<"tree" | "raw">("tree");
 
@@ -188,7 +191,11 @@ export const Explain = (): ReactElement => {
         capabilities: {},
         onAppCreated: (appInstance) => {
             appInstance.ontoolresult = (params): void => {
+                setCancelled(false);
                 setResult(params);
+            };
+            appInstance.ontoolcancelled = (): void => {
+                setCancelled(true);
             };
             appInstance.onhostcontextchanged = (ctx): void => {
                 if (ctx?.theme) {
@@ -236,6 +243,12 @@ export const Explain = (): ReactElement => {
         body = (
             <div role="alert" style={panelStyle(theme)}>
                 <strong>Failed to connect to the host:</strong> {error.message}
+            </div>
+        );
+    } else if (cancelled && !result) {
+        body = (
+            <div role="alert" style={panelStyle(theme)}>
+                <strong>Explain was cancelled.</strong> The host cancelled this tool call before a result arrived.
             </div>
         );
     } else if (errorText !== null) {
