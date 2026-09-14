@@ -12,8 +12,10 @@ export {
     closeSharedServices,
     CLIENT_SCOPE_HEADER,
     connectionScopeByClientNameHeader,
+    connectionScopeBySessionId,
     connectionScopeFromConfig,
     GLOBAL_CONNECTION_SCOPE,
+    SESSION_ID_HEADER,
 } from "./createServerServices.js";
 export type { SharedServerServices, CreateServerServicesOptions } from "./createServerServices.js";
 export { CliMcpHttpServer, createHttpTransportRunnerFromConfig } from "./cliMcpHttpServer.js";

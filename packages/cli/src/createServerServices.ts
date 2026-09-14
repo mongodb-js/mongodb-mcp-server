@@ -210,15 +210,41 @@ export function connectionScopeByClientNameHeader(request: TransportRequestConte
 export const GLOBAL_CONNECTION_SCOPE = "global";
 
 /**
+ * The `mcp-session-id` header. On the sessionful (legacy) path the server
+ * issues this id; on the sessionless (desktop 2026-07-28) path a client may
+ * supply one. In both cases requests that share a session id resolve to the
+ * same connection scope, so connections persist across a session's requests.
+ */
+export const SESSION_ID_HEADER = "mcp-session-id";
+
+/** Guards against an absurdly large session id being used as a scope key. */
+const MAX_SESSION_ID_LENGTH = 512;
+
+/**
+ * Scope keyed on the client's `mcp-session-id`: requests carrying the same id
+ * (whether a server-issued legacy session id or a client-supplied one on the
+ * sessionless path) share connections, enabling cross-request persistence. A
+ * request without a usable id gets an ephemeral, isolated scope. The id is a
+ * capability token — unguessable when server-issued, self-asserted otherwise —
+ * so possession of it is what grants access to the scope's connections.
+ */
+export function connectionScopeBySessionId(request: TransportRequestContext): string | undefined {
+    const header = request.headers?.[SESSION_ID_HEADER];
+    if (typeof header !== "string") {
+        return undefined;
+    }
+    const id = header.trim();
+    return id && id.length <= MAX_SESSION_ID_LENGTH ? id : undefined;
+}
+
+/**
  * Derives the CLI runner's connection-scope policy from the user config — the
  * `connectionScope` option restored from v2.x:
- *  - `"session"` (default): v2.x behavior — each MCP session gets its own
- *    isolated, ephemeral scope (its own connections plus the shared
- *    preconfigured one, reaped when the session ends). Requests return
- *    `undefined`, so the environment gets a per-session scope on the legacy
- *    sessionful path and a per-request ephemeral scope on the sessionless
- *    path. No header-based cross-session sharing by default: if you want that
- *    (v3-only), pass {@link connectionScopeByClientNameHeader} explicitly.
+ *  - `"session"` (default): connection scope keyed on the client's
+ *    `mcp-session-id` — requests that carry the same session id share a scope
+ *    (persisting their connections across requests), on both the sessionful
+ *    legacy path and the stateless 2026-07-28 path; requests without one get
+ *    an ephemeral, isolated scope.
  *  - `"global"`: every request shares one scope ({@link GLOBAL_CONNECTION_SCOPE}),
  *    so connections are visible to all clients and survive session rotation.
  */
@@ -226,7 +252,7 @@ export function connectionScopeFromConfig(config: UserConfig): ConnectionScopePo
     if (config.connectionScope === "global") {
         return () => GLOBAL_CONNECTION_SCOPE;
     }
-    return () => undefined;
+    return connectionScopeBySessionId;
 }
 
 /** A fresh, unguessable scope for a request whose client did not identify itself. */
