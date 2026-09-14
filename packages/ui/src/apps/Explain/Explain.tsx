@@ -345,13 +345,19 @@ export const Explain = (): ReactElement => {
                 fontFamily: theme.fontFamily,
                 backgroundColor: theme.backgroundColor,
                 color: theme.textColor,
-                minHeight: "100vh",
+                // Content-driven height: the widget reports its size to the
+                // host (auto-resize), so a 100vh minimum would make the frame
+                // grow-only — it could never shrink back after a tall state.
+                minHeight: 160,
                 padding: spacing[400],
                 boxSizing: "border-box",
             }}
         >
-            {/* Local reset: the shared HTML template has no global styles */}
-            <style>{"body { margin: 0; }"}</style>
+            {/* Local reset: the shared HTML template has no global styles. The
+                body background paints the whole canvas (CSS propagates it to
+                the viewport) so hosts that keep a taller frame than our content
+                still show the themed background. */}
+            <style>{`body { margin: 0; background: ${theme.backgroundColor}; }`}</style>
             {body}
         </main>
     );
