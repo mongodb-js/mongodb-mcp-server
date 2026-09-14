@@ -194,6 +194,25 @@ describe("Explain", () => {
         expect(expandedCard.contains(screen.getByTestId("explain-stage-details"))).toBe(false);
     });
 
+    it("raises the focused stage card above a sibling's open details pane", async () => {
+        render(<Explain />);
+
+        sendToolResult(classicExplainResult, "executionStats");
+
+        // open the FETCH card's details pane, which extends over the cards below
+        fireEvent.click(await screen.findByRole("button", { name: /FETCH/ }));
+        await waitFor(() => {
+            expect(screen.getByTestId("explain-stage-details")).toBeInTheDocument();
+        });
+
+        const ixscanCard = screen.getByRole("button", { name: /IXSCAN/ });
+        fireEvent.focusIn(ixscanCard);
+        await waitFor(() => {
+            // wrapper > card > button; the wrapper carries the stacking order
+            expect(ixscanCard.parentElement?.parentElement).toHaveStyle({ zIndex: "3" });
+        });
+    });
+
     it("shows the planner-only fallback for queryPlanner results", async () => {
         render(<Explain />);
 

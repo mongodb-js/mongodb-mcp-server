@@ -99,6 +99,7 @@ const TreeOutline: React.FunctionComponent<{ node: ExplainTreeNodeData }> = ({ n
 export const ExplainTree: React.FunctionComponent<ExplainTreeProps> = ({ executionStats, darkMode, scale }) => {
     const theme = getTheme(darkMode);
     const [detailsOpen, setDetailsOpen] = useState<string | null>(null);
+    const [focused, setFocused] = useState<string | null>(null);
 
     const root = useMemo(() => executionStatsToTreeData(executionStats), [executionStats]);
 
@@ -122,9 +123,16 @@ export const ExplainTree: React.FunctionComponent<ExplainTreeProps> = ({ executi
                     const key = getNodeKey(node);
                     return (
                         <div
+                            onFocus={() => setFocused(key)}
+                            onBlur={() => {
+                                setFocused((current) => (current === key ? null : current));
+                            }}
                             style={{
                                 position: "relative",
-                                zIndex: detailsOpen === key ? 2 : 1,
+                                // A sibling's open details pane extends into this
+                                // card's space; keep the focused card above it so
+                                // focus is never obscured (WCAG 2.4.11).
+                                zIndex: focused === key ? 3 : detailsOpen === key ? 2 : 1,
                             }}
                         >
                             <ExplainTreeStage
