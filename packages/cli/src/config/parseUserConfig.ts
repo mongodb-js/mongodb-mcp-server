@@ -203,5 +203,17 @@ function getWarnings(config: Partial<UserConfig>, cliArguments: string[]): strin
         );
     }
 
+    // `connectionScope` is deprecated (the MCP protocol is moving to sessionless).
+    // Warn when it is set explicitly via the CLI or the environment; the default
+    // (and the eventual removed default) is "global".
+    if (
+        cliArguments.find((argument: string) => /^--connectionScope(?:=|$)/.test(argument)) ||
+        process.env.MDB_MCP_CONNECTION_SCOPE
+    ) {
+        warnings.push(
+            "Warning: The --connectionScope / MDB_MCP_CONNECTION_SCOPE option is deprecated: the MCP protocol is moving to sessionless, so it will soon be removed and the connection scope will default to 'global'. For shared-server use cases, use the Atlas-Managed MCP server or build an authenticated library using the @mongodb-js/mcp-cli package."
+        );
+    }
+
     return warnings;
 }

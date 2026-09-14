@@ -186,11 +186,17 @@ const ServerConfigSchema = z.object({
             "Maximum number of MongoDB connections a single scope (an MCP session by default, see connectionScope) can hold open. When exceeded, the scope's least-recently-used connection is closed and its connectionId revoked. The preconfigured connection does not count towards the limit."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    /**
+     * @deprecated The MCP protocol is moving to sessionless, so this option will
+     * soon be removed and the connection scope will default to "global". For
+     * shared-server use cases, use the Atlas-Managed MCP server or build an
+     * authenticated library using the `@mongodb-js/mcp-cli` package.
+     */
     connectionScope: z
         .enum(["session", "global"])
         .default("session")
         .describe(
-            "Visibility scope for MongoDB connections created at runtime. With 'session' (the default), each MCP session only sees the connections it created (plus the shared 'preconfigured' one) and they are closed when the session ends — recommended when the HTTP transport is exposed to multiple clients without authentication. With 'global', connections are shared across all sessions and survive session rotation."
+            "Visibility scope for MongoDB connections created at runtime. With 'session' (the default), each MCP session only sees the connections it created (plus the shared 'preconfigured' one) and they are closed when the session ends. With 'global', connections are shared across all sessions and survive session rotation. Deprecated: the MCP protocol is moving to sessionless, so this option will soon be removed and the connection scope will default to 'global'. For shared-server use cases, use the Atlas-Managed MCP server or build an authenticated library using the @mongodb-js/mcp-cli package."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
     maxSessions: z.coerce

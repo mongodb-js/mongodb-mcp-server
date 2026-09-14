@@ -198,6 +198,32 @@ describe("config", () => {
     describe("cli parsing", () => {
         useClearEnvironment("MDB_MCP_");
 
+        it("warns when --connectionScope is used (deprecated option)", () => {
+            const { warnings } = parseUserConfig({ args: ["--connectionScope", "global"] });
+            expect(warnings).toHaveLength(1);
+            expect(warnings[0]).toContain("--connectionScope");
+            expect(warnings[0]).toContain("deprecated");
+            expect(warnings[0]).toContain("sessionless");
+            expect(warnings[0]).toContain("Atlas-Managed MCP server");
+        });
+
+        it("warns when MDB_MCP_CONNECTION_SCOPE env var is set (deprecated option)", () => {
+            const { setVariable, clearVariables } = createEnvironment();
+            setVariable("MDB_MCP_CONNECTION_SCOPE", "global");
+            try {
+                const { warnings } = parseUserConfig({ args: [] });
+                expect(warnings).toHaveLength(1);
+                expect(warnings[0]).toContain("deprecated");
+            } finally {
+                clearVariables();
+            }
+        });
+
+        it("does not warn for connectionScope when it is not set", () => {
+            const { warnings } = parseUserConfig({ args: [] });
+            expect(warnings).toHaveLength(0);
+        });
+
         it("should not try to parse a multiple-host urls", () => {
             const { parsed: actual } = parseUserConfig({
                 args: ["--connectionString", "mongodb://user:password@host1,host2,host3/"],
