@@ -205,17 +205,20 @@ export function connectionScopeByClientNameHeader(request: TransportRequestConte
 /**
  * The scope key every request resolves to under `connectionScope: "global"`:
  * one namespace shared by all clients, surviving session rotation — the
- * pre-v3 `connectionScope: "global"` behavior.
+ * v2.x `connectionScope: "global"` behavior.
  */
 export const GLOBAL_CONNECTION_SCOPE = "global";
 
 /**
  * Derives the CLI runner's connection-scope policy from the user config — the
  * `connectionScope` option restored from v2.x:
- *  - `"session"` (default): per-session isolation; clients may additionally
- *    opt into cross-session state via the self-asserted
- *    {@link CLIENT_SCOPE_HEADER} header; requests without it get an ephemeral
- *    scope reaped when their session ends.
+ *  - `"session"` (default): v2.x behavior — each MCP session gets its own
+ *    isolated, ephemeral scope (its own connections plus the shared
+ *    preconfigured one, reaped when the session ends). Requests return
+ *    `undefined`, so the environment gets a per-session scope on the legacy
+ *    sessionful path and a per-request ephemeral scope on the sessionless
+ *    path. No header-based cross-session sharing by default: if you want that
+ *    (v3-only), pass {@link connectionScopeByClientNameHeader} explicitly.
  *  - `"global"`: every request shares one scope ({@link GLOBAL_CONNECTION_SCOPE}),
  *    so connections are visible to all clients and survive session rotation.
  */
@@ -223,7 +226,7 @@ export function connectionScopeFromConfig(config: UserConfig): ConnectionScopePo
     if (config.connectionScope === "global") {
         return () => GLOBAL_CONNECTION_SCOPE;
     }
-    return connectionScopeByClientNameHeader;
+    return () => undefined;
 }
 
 /** A fresh, unguessable scope for a request whose client did not identify itself. */

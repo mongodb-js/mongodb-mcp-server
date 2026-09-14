@@ -822,15 +822,19 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
             expect(await named.connectionRegistry.get(created.connectionId)).toBe(created);
         });
 
-        it("'session' maps to the client-name header policy (headerless → ephemeral)", () => {
+        it("'session' yields an ephemeral scope — no header-based cross-session sharing (v2.x behavior)", () => {
             const config = UserConfigSchema.parse({
                 transport: "http",
                 telemetry: "disabled",
                 connectionScope: "session",
             });
 
+            // v2.x "session": the policy keys nothing, so every request resolves
+            // to an ephemeral, isolated scope — even a self-asserted name header
+            // does not opt into shared state (header scoping is a v3-only,
+            // explicit opt-in via connectionScopeByClientNameHeader).
             const policy = connectionScopeFromConfig(config);
-            expect(policy({ headers: { [CLIENT_SCOPE_HEADER]: "alice" }, query: {} })).toBe("alice");
+            expect(policy({ headers: { [CLIENT_SCOPE_HEADER]: "alice" }, query: {} })).toBeUndefined();
             expect(policy({ headers: {}, query: {} })).toBeUndefined();
         });
     });
