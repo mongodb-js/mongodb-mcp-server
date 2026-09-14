@@ -107,13 +107,20 @@ function userPrincipalScope(request: TransportRequestContext): string | undefine
         return undefined;
     }
     const { clientId, extra } = request.authInfo;
-    const sub = extra?.sub;
-    if (typeof sub !== "string" || !sub.trim()) {
+    // Normalize the principal once: a non-string or blank (after trim) `sub` is
+    // not a usable subject. Reuse the trimmed value for the scope key so we do
+    // not run `.trim()` on the claim in multiple places.
+    const rawSub = extra?.sub;
+    if (typeof rawSub !== "string") {
+        return undefined;
+    }
+    const sub = rawSub.trim();
+    if (!sub) {
         return undefined;
     }
     // JSON-encode the tuple so it is injective regardless of the claim values
     // (e.g. sub containing a delimiter or a quote cannot collide).
-    return `user:${JSON.stringify([clientId, sub.trim()])}`;
+    return `user:${JSON.stringify([clientId, sub])}`;
 }
 
 /** Per OAuth client application (application-level isolation; M2M only). */

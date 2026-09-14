@@ -280,13 +280,18 @@ class PermissionsMCPHttpServer extends MCPHttpServer<CliServer> {
   ): Promise<CliServer> {
     // Use the host-verified identity, not a client-controlled header: the host's
     // token verifier attaches the OIDC `sub` claim to `AuthInfo.extra` (via
-    // `req.auth`). Reject the request when there is no usable subject.
-    const sub = request.authInfo?.extra?.sub;
-    if (typeof sub !== "string" || !sub.trim()) {
+    // `req.auth`). Normalize the principal once — reject a missing, non-string
+    // or blank subject, then reuse the trimmed value everywhere below.
+    const rawSub = request.authInfo?.extra?.sub;
+    if (typeof rawSub !== "string") {
+      throw new Error("User authentication required: no verified sub claim");
+    }
+    const sub = rawSub.trim();
+    if (!sub) {
       throw new Error("User authentication required: no verified sub claim");
     }
 
-    const permissions = await getUserPermissions(sub.trim());
+    const permissions = await getUserPermissions(sub);
     const allOperations = [
       "read",
       "metadata",
@@ -315,15 +320,19 @@ class PermissionsMCPHttpServer extends MCPHttpServer<CliServer> {
       sharedServices: this.sharedServices,
       request,
       // Per-user scope, keyed on the verified principal. Fail closed: a
-      // non-string or empty `sub` is not a usable principal, so return undefined
+      // non-string or blank `sub` is not a usable principal, so return undefined
       // (ephemeral). JSON-encode the tuple so it is injective regardless of the
       // claim values (a `sub` containing a delimiter or quote cannot collide).
       connectionScope: (req) => {
-        const sub = req.authInfo?.extra?.sub;
-        if (typeof sub !== "string" || !sub.trim()) {
+        const rawSub = req.authInfo?.extra?.sub;
+        if (typeof rawSub !== "string") {
           return undefined;
         }
-        return `user:${JSON.stringify([req.authInfo.clientId, sub.trim()])}`;
+        const sub = rawSub.trim();
+        if (!sub) {
+          return undefined;
+        }
+        return `user:${JSON.stringify([req.authInfo.clientId, sub])}`;
       },
     });
   }
@@ -501,9 +510,11 @@ await runner.start();
 `clientId` identifies the OAuth client _application_, not the end user — so keying solely on `clientId` lets every user of one shared client registration share connections. It should be keyed on the verified end-user principal (the OIDC `sub` claim, which the token verifier attaches to `AuthInfo.extra`), fail-closing (returning `undefined`, i.e. ephemeral) when there is no usable subject, and JSON-encoding the tuple so claim values cannot collide:
 
 ```ts
-const sub = req.authInfo?.extra?.sub;
-if (typeof sub !== "string" || !sub.trim()) return undefined;
-return `user:${JSON.stringify([req.authInfo.clientId, sub.trim()])}`;
+const rawSub = req.authInfo?.extra?.sub;
+if (typeof rawSub !== "string") return undefined;
+const sub = rawSub.trim(); // normalize once
+if (!sub) return undefined; // reject blank
+return `user:${JSON.stringify([req.authInfo.clientId, sub])}`;
 ```
 
 Keying by `clientId` is only appropriate for M2M/client-credentials tokens (where `clientId` _is_ the principal) or single-user-per-client deployments.
