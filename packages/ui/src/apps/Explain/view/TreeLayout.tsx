@@ -190,13 +190,13 @@ function TreeLayout<T, X>({
     }, [data, getNodeSize, verticalSpacing, horizontalSpacing]);
 
     return (
-        <div
-            {...divProps}
-            role="group"
-            aria-label="Explain plan tree (visual)"
-            tabIndex={0}
-            style={{ overflowX: "auto" }}
-        >
+        // No overflow on this container: `overflow-x: auto` would compute
+        // overflow-y to `auto` as well (CSS computed-value rule), turning the
+        // tree into its own scroll region — an open details pane would then
+        // scroll the canvas inside its own box instead of scrolling the page,
+        // clipping the tree. Overflowing the document is deliberate; the
+        // diagram itself is inherently two-dimensional (SC 1.4.10 exception).
+        <div {...divProps} role="group" aria-label="Explain plan tree (visual)">
             <div
                 style={{
                     // CSS transforms have no effect on the CSS layout (only on the

@@ -311,6 +311,25 @@ export const ExplainTreeStage: React.FunctionComponent<ExplainTreeStageProps> = 
     onToggleDetailsClick = (): void => {},
     theme,
 }) => {
+    const detailsRef = React.useRef<HTMLDivElement | null>(null);
+
+    // Opening a pane can extend past the tree canvas (the cards are absolutely
+    // positioned, so they do not grow it); bring the pane into view. "nearest"
+    // only scrolls when it is actually out of view, and reduced-motion users
+    // get an instant jump.
+    React.useEffect(() => {
+        if (!detailsOpen) {
+            return;
+        }
+        const pane = detailsRef.current;
+        if (!pane || typeof pane.scrollIntoView !== "function") {
+            return;
+        }
+        const reduceMotion =
+            typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        pane.scrollIntoView({ block: "nearest", behavior: reduceMotion ? "auto" : "smooth" });
+    }, [detailsOpen]);
+
     if (isShard) {
         return <ShardView name={name} theme={theme} />;
     }
@@ -363,6 +382,7 @@ export const ExplainTreeStage: React.FunctionComponent<ExplainTreeStageProps> = 
                 cannot inflate the button's accessible name (WCAG 4.1.2). */}
             {detailsOpen && (
                 <div
+                    ref={detailsRef}
                     style={{
                         marginTop: spacing[400],
                         overflow: "hidden",

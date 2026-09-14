@@ -225,6 +225,37 @@ describe("Explain", () => {
         }
     });
 
+    it("scrolls an opened details pane into view", async () => {
+        // happy-dom does not implement scrolling; stub it and restore whatever
+        // was there before.
+        const original = Object.getOwnPropertyDescriptor(Element.prototype, "scrollIntoView");
+        const scrollIntoView = vi.fn();
+        Object.defineProperty(Element.prototype, "scrollIntoView", {
+            value: scrollIntoView,
+            configurable: true,
+            writable: true,
+        });
+
+        try {
+            render(<Explain />);
+            sendToolResult(classicExplainResult, "executionStats");
+
+            fireEvent.click(await screen.findByRole("button", { name: /FETCH/ }));
+            await waitFor(() => {
+                expect(screen.getByTestId("explain-stage-details")).toBeInTheDocument();
+            });
+
+            // the pane can extend past the fixed tree canvas
+            expect(scrollIntoView).toHaveBeenCalledWith({ block: "nearest", behavior: "smooth" });
+        } finally {
+            if (original) {
+                Object.defineProperty(Element.prototype, "scrollIntoView", original);
+            } else {
+                delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+            }
+        }
+    });
+
     it("shows the planner-only fallback for queryPlanner results", async () => {
         render(<Explain />);
 
