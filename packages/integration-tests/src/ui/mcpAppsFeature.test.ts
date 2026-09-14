@@ -6,6 +6,10 @@ interface ToolMeta {
     ui?: { resourceUri?: string };
 }
 
+interface ResourceMeta {
+    ui?: { prefersBorder?: boolean };
+}
+
 describeWithMongoDB(
     "mcpApps feature with feature disabled (default)",
     (integration) => {
@@ -52,6 +56,8 @@ describeWithMongoDB(
             const appResource = resources.find((r) => r.uri === "ui://explain");
             expectDefined(appResource);
             expect(appResource.mimeType).toBe("text/html;profile=mcp-app");
+            // The spec lets hosts read resource metadata from the list entry...
+            expect((appResource._meta as ResourceMeta | undefined)?.ui?.prefersBorder).toBe(true);
 
             const result = await integration.mcpClient().readResource({ uri: "ui://explain" });
             expect(result.contents).toHaveLength(1);
@@ -59,6 +65,8 @@ describeWithMongoDB(
             const content = result.contents[0];
             expectDefined(content);
             expect(content.mimeType).toBe("text/html;profile=mcp-app");
+            // ...and prefers the read content item, so both must carry it.
+            expect((content._meta as ResourceMeta | undefined)?.ui?.prefersBorder).toBe(true);
             if (!("text" in content)) {
                 throw new Error("expected text resource content");
             }

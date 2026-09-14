@@ -412,7 +412,17 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
                         throw new Error(`No MCP App registered for tool "${toolName}"`);
                     }
                     return {
-                        contents: [{ uri: uri.href, mimeType: MCP_APPS_RESOURCE_MIME_TYPE, text: html }],
+                        contents: [
+                            {
+                                uri: uri.href,
+                                mimeType: MCP_APPS_RESOURCE_MIME_TYPE,
+                                text: html,
+                                // Spec: hosts read resource _meta from the read
+                                // content item, with the resources/list entry as
+                                // fallback — declare it on both.
+                                _meta: { ui: { prefersBorder: true } },
+                            },
+                        ],
                     };
                 }
             );
