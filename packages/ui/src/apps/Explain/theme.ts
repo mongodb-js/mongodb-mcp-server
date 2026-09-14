@@ -61,6 +61,8 @@ export interface ExplainTheme {
     clockCurrentArcColor: string;
     segmentedSelectedBackgroundColor: string;
     segmentedSelectedTextColor: string;
+    /** Scrollbar thumb for the scrollable JSON panes (track stays transparent). */
+    scrollbarThumbColor: string;
     /** Font stack for the widget chrome. */
     fontFamily: string;
 }
@@ -98,6 +100,7 @@ const viaLightTheme: ExplainTheme = {
     clockCurrentArcColor: css(color.blue["400"]),
     segmentedSelectedBackgroundColor: css(color.light.background["inverse-primary"]),
     segmentedSelectedTextColor: css(color.light.text["inverse-primary"]),
+    scrollbarThumbColor: css(color.neutral["400"]),
     fontFamily: "system-ui, -apple-system, sans-serif",
 };
 
@@ -123,6 +126,7 @@ const viaDarkTheme: ExplainTheme = {
     clockCurrentArcColor: css(color.blue["200"]),
     segmentedSelectedBackgroundColor: css(color.dark.background["inverse-primary"]),
     segmentedSelectedTextColor: css(color.dark.text["inverse-primary"]),
+    scrollbarThumbColor: css(color.neutral["400"]),
     fontFamily: "system-ui, -apple-system, sans-serif",
 };
 

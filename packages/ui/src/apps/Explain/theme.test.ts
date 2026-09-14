@@ -67,6 +67,7 @@ const structurePairs: Array<[keyof ExplainTheme, keyof ExplainTheme]> = [
     ["clockFaceColor", "clockBackgroundColor"],
     ["clockPreviousArcColor", "clockBackgroundColor"],
     ["clockCurrentArcColor", "clockBackgroundColor"],
+    ["scrollbarThumbColor", "backgroundColor"],
 ];
 
 describe("Explain theme contrast", () => {

@@ -356,8 +356,21 @@ export const Explain = (): ReactElement => {
             {/* Local reset: the shared HTML template has no global styles. The
                 body background paints the whole canvas (CSS propagates it to
                 the viewport) so hosts that keep a taller frame than our content
-                still show the themed background. */}
-            <style>{`body { margin: 0; background: ${theme.backgroundColor}; }`}</style>
+                still show the themed background. The scrollbar rules keep the
+                native scrollbar from painting over the rounded corners of the
+                scrollable panes: transparent track, inset rounded thumb. */}
+            <style>{`
+                body { margin: 0; background: ${theme.backgroundColor}; }
+                * { scrollbar-width: thin; scrollbar-color: ${theme.scrollbarThumbColor} transparent; }
+                ::-webkit-scrollbar { width: 10px; height: 10px; }
+                ::-webkit-scrollbar-track { background: transparent; }
+                ::-webkit-scrollbar-thumb {
+                    background: ${theme.scrollbarThumbColor};
+                    border-radius: 999px;
+                    border: 3px solid transparent;
+                    background-clip: padding-box;
+                }
+            `}</style>
             {body}
         </main>
     );
