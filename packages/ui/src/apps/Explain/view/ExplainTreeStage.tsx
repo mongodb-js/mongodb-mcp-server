@@ -294,35 +294,6 @@ const StageView: React.FunctionComponent<Omit<ExplainTreeStageProps, "isShard">>
                     <Highlights highlights={props.highlights}></Highlights>
                 </div>
             )}
-
-            {props.detailsOpen && (
-                <div
-                    style={{
-                        marginTop: spacing[400],
-                        overflow: "hidden",
-                        border: `1px solid ${props.theme.detailsBorderColor}`,
-                        borderRadius: spacing[200],
-                        backgroundColor: props.theme.detailsBackgroundColor,
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <pre
-                        data-testid="explain-stage-details"
-                        style={{
-                            margin: 0,
-                            padding: spacing[200],
-                            maxHeight: 15 * 18,
-                            overflow: "auto",
-                            fontSize: 11,
-                            lineHeight: "18px",
-                            whiteSpace: "pre-wrap",
-                            wordBreak: "break-word",
-                        }}
-                    >
-                        {JSON.stringify(props.details, null, " ") || "{}"}
-                    </pre>
-                </div>
-            )}
         </>
     );
 };
@@ -346,16 +317,6 @@ export const ExplainTreeStage: React.FunctionComponent<ExplainTreeStageProps> = 
 
     return (
         <div
-            data-testid="explain-stage"
-            role="button"
-            tabIndex={0}
-            onClick={onToggleDetailsClick}
-            onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    onToggleDetailsClick();
-                }
-            }}
             style={{
                 position: "absolute",
                 width: defaultCardWidth,
@@ -365,25 +326,70 @@ export const ExplainTreeStage: React.FunctionComponent<ExplainTreeStageProps> = 
                 color: theme.textColor,
                 border: `1px solid ${theme.cardBorderColor}`,
                 boxShadow: detailsOpen ? "0 2px 10px rgba(0, 30, 43, 0.35)" : "none",
-                cursor: "pointer",
                 boxSizing: "border-box",
                 fontSize: 12,
             }}
         >
-            <div style={{ position: "relative" }}>
-                <StageView
-                    name={name}
-                    nReturned={nReturned}
-                    highlights={highlights}
-                    curStageExecTimeMS={curStageExecTimeMS}
-                    prevStageExecTimeMS={prevStageExecTimeMS}
-                    totalExecTimeMS={totalExecTimeMS}
-                    onToggleDetailsClick={onToggleDetailsClick}
-                    detailsOpen={detailsOpen}
-                    details={details}
-                    theme={theme}
-                />
+            <div
+                data-testid="explain-stage"
+                role="button"
+                tabIndex={0}
+                aria-expanded={detailsOpen}
+                onClick={onToggleDetailsClick}
+                onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onToggleDetailsClick();
+                    }
+                }}
+                style={{ cursor: "pointer" }}
+            >
+                <div style={{ position: "relative" }}>
+                    <StageView
+                        name={name}
+                        nReturned={nReturned}
+                        highlights={highlights}
+                        curStageExecTimeMS={curStageExecTimeMS}
+                        prevStageExecTimeMS={prevStageExecTimeMS}
+                        totalExecTimeMS={totalExecTimeMS}
+                        onToggleDetailsClick={onToggleDetailsClick}
+                        detailsOpen={detailsOpen}
+                        details={details}
+                        theme={theme}
+                    />
+                </div>
             </div>
+            {/* Rendered outside the card's button element so the JSON payload
+                cannot inflate the button's accessible name (WCAG 4.1.2). */}
+            {detailsOpen && (
+                <div
+                    style={{
+                        marginTop: spacing[400],
+                        overflow: "hidden",
+                        border: `1px solid ${theme.detailsBorderColor}`,
+                        borderRadius: spacing[200],
+                        backgroundColor: theme.detailsBackgroundColor,
+                    }}
+                >
+                    <pre
+                        data-testid="explain-stage-details"
+                        tabIndex={0}
+                        aria-label={`Stage details: ${name}`}
+                        style={{
+                            margin: 0,
+                            padding: spacing[200],
+                            maxHeight: 15 * 18,
+                            overflow: "auto",
+                            fontSize: 11,
+                            lineHeight: "18px",
+                            whiteSpace: "pre-wrap",
+                            wordBreak: "break-word",
+                        }}
+                    >
+                        {JSON.stringify(details, null, " ") || "{}"}
+                    </pre>
+                </div>
+            )}
         </div>
     );
 };

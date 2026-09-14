@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-import { render, screen, waitFor, act, cleanup, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, act, cleanup, fireEvent, within } from "@testing-library/react";
 
 /**
  * Mock the ext-apps host bridge: captures the handlers the widget registers in
@@ -113,9 +113,11 @@ describe("Explain", () => {
             expect(screen.getByTestId("explain-tree")).toBeInTheDocument();
         });
 
-        // stage cards
-        expect(screen.getByText("FETCH")).toBeInTheDocument();
-        expect(screen.getByText("IXSCAN")).toBeInTheDocument();
+        // stage cards (scoped to the visual tree; the sr-only text outline
+        // contains the same stage names)
+        const tree = within(screen.getByTestId("explain-tree"));
+        expect(tree.getByText("FETCH")).toBeInTheDocument();
+        expect(tree.getByText("IXSCAN")).toBeInTheDocument();
 
         // summary bar
         const summary = screen.getByTestId("explain-summary");
@@ -125,6 +127,45 @@ describe("Explain", () => {
         // index highlight on the IXSCAN card
         expect(screen.getByText("Index Name:")).toBeInTheDocument();
         expect(screen.getByText("a_1")).toBeInTheDocument();
+    });
+
+    it("exposes the tree's parent/child structure as a text outline", async () => {
+        render(<Explain />);
+
+        sendToolResult(classicExplainResult, "executionStats");
+
+        await waitFor(() => {
+            expect(screen.getByTestId("explain-tree")).toBeInTheDocument();
+        });
+
+        const outline = screen.getByRole("group", { name: "Explain plan tree (text outline)" });
+        const items = within(outline).getAllByRole("listitem");
+        expect(items).toHaveLength(2);
+        // nesting: the IXSCAN item is a descendant of the FETCH item (the
+        // hierarchy the absolutely-positioned cards cannot convey)
+        expect(items[0]).toHaveTextContent("FETCH");
+        expect(items[0]).toHaveTextContent("IXSCAN");
+        expect(items[1]).toHaveTextContent("IXSCAN");
+        expect(items[1]).not.toHaveTextContent("FETCH");
+    });
+
+    it("marks the stage card's expanded state and keeps the details outside its button", async () => {
+        render(<Explain />);
+
+        sendToolResult(classicExplainResult, "executionStats");
+
+        const card = await screen.findByRole("button", { name: /FETCH/ });
+        expect(card).toHaveAttribute("aria-expanded", "false");
+
+        fireEvent.click(card);
+
+        await waitFor(() => {
+            expect(screen.getByTestId("explain-stage-details")).toBeInTheDocument();
+        });
+        const expandedCard = screen.getByRole("button", { name: /FETCH/ });
+        expect(expandedCard).toHaveAttribute("aria-expanded", "true");
+        // the JSON pane is not part of the button's accessible name
+        expect(expandedCard.contains(screen.getByTestId("explain-stage-details"))).toBe(false);
     });
 
     it("shows the planner-only fallback for queryPlanner results", async () => {

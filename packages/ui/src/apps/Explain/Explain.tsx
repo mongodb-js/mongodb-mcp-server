@@ -24,6 +24,8 @@ const RawExplain: React.FunctionComponent<{ data: unknown; theme: ExplainTheme }
         <summary style={{ cursor: "pointer", color: theme.secondaryTextColor }}>Raw explain output</summary>
         <pre
             data-testid="explain-raw-output"
+            tabIndex={0}
+            aria-label="Raw explain output"
             style={{
                 maxHeight: 320,
                 overflow: "auto",

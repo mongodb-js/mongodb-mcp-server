@@ -186,7 +186,13 @@ function TreeLayout<T, X>({
     }, [data, getNodeSize, verticalSpacing, horizontalSpacing]);
 
     return (
-        <div {...divProps}>
+        <div
+            {...divProps}
+            role="group"
+            aria-label="Explain plan tree (visual)"
+            tabIndex={0}
+            style={{ overflowX: "auto" }}
+        >
             <div
                 style={{
                     // CSS transforms have no effect on the CSS layout (only on the

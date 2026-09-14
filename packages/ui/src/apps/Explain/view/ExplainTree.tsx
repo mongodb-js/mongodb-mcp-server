@@ -70,6 +70,32 @@ const getLinkWidth = (
 
 const getNodeKey = (node: ExplainTreeNodeData): string => node.id;
 
+const srOnlyStyle: React.CSSProperties = {
+    position: "absolute",
+    width: 1,
+    height: 1,
+    margin: -1,
+    padding: 0,
+    overflow: "hidden",
+    clip: "rect(0 0 0 0)",
+    whiteSpace: "nowrap",
+    border: 0,
+};
+
+/** Visually hidden text outline of the tree, mirroring its parent/child structure. */
+const TreeOutline: React.FunctionComponent<{ node: ExplainTreeNodeData }> = ({ node }) => (
+    <li>
+        {node.name}
+        {node.children.length > 0 && (
+            <ul style={{ margin: 0 }}>
+                {node.children.map((child) => (
+                    <TreeOutline key={child.id} node={child} />
+                ))}
+            </ul>
+        )}
+    </li>
+);
+
 export const ExplainTree: React.FunctionComponent<ExplainTreeProps> = ({ executionStats, darkMode, scale }) => {
     const theme = getTheme(darkMode);
     const [detailsOpen, setDetailsOpen] = useState<string | null>(null);
@@ -79,39 +105,49 @@ export const ExplainTree: React.FunctionComponent<ExplainTreeProps> = ({ executi
     if (!root) return null;
 
     return (
-        <TreeLayout<ExplainTreeNodeData, LinkWidthMetadata>
-            data-testid="explain-tree"
-            data={root}
-            getNodeSize={getNodeSize}
-            getNodeKey={getNodeKey}
-            linkColor={theme.linkColor}
-            arrowColor={theme.arrowColor}
-            getLinkWidth={getLinkWidth}
-            horizontalSpacing={TREE_HORIZONTAL_SPACING}
-            verticalSpacing={TREE_VERTICAL_SPACING}
-            scale={scale}
-        >
-            {(node) => {
-                const key = getNodeKey(node);
-                return (
-                    <div
-                        style={{
-                            position: "relative",
-                            zIndex: detailsOpen === key ? 2 : 1,
-                        }}
-                    >
-                        <ExplainTreeStage
-                            detailsOpen={detailsOpen === key}
-                            onToggleDetailsClick={() => {
-                                setDetailsOpen(detailsOpen === key ? null : key);
+        <>
+            <TreeLayout<ExplainTreeNodeData, LinkWidthMetadata>
+                data-testid="explain-tree"
+                data={root}
+                getNodeSize={getNodeSize}
+                getNodeKey={getNodeKey}
+                linkColor={theme.linkColor}
+                arrowColor={theme.arrowColor}
+                getLinkWidth={getLinkWidth}
+                horizontalSpacing={TREE_HORIZONTAL_SPACING}
+                verticalSpacing={TREE_VERTICAL_SPACING}
+                scale={scale}
+            >
+                {(node) => {
+                    const key = getNodeKey(node);
+                    return (
+                        <div
+                            style={{
+                                position: "relative",
+                                zIndex: detailsOpen === key ? 2 : 1,
                             }}
-                            {...node}
-                            totalExecTimeMS={root.curStageExecTimeMS}
-                            theme={theme}
-                        ></ExplainTreeStage>
-                    </div>
-                );
-            }}
-        </TreeLayout>
+                        >
+                            <ExplainTreeStage
+                                detailsOpen={detailsOpen === key}
+                                onToggleDetailsClick={() => {
+                                    setDetailsOpen(detailsOpen === key ? null : key);
+                                }}
+                                {...node}
+                                totalExecTimeMS={root.curStageExecTimeMS}
+                                theme={theme}
+                            ></ExplainTreeStage>
+                        </div>
+                    );
+                }}
+            </TreeLayout>
+            {/* The absolutely-positioned cards convey hierarchy visually only;
+                this hidden outline makes the parent/child structure available
+                to assistive tech (WCAG 1.3.1). */}
+            <div style={srOnlyStyle} role="group" aria-label="Explain plan tree (text outline)">
+                <ul style={{ margin: 0 }}>
+                    <TreeOutline node={root} />
+                </ul>
+            </div>
+        </>
     );
 };
