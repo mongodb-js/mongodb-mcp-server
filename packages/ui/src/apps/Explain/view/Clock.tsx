@@ -88,7 +88,16 @@ export const Clock: React.FunctionComponent<ClockProps> = ({
                 curStageExecTimeMS - prevStageExecTimeMS
             } ms). The rest is the time taken by preceding stages.`}
         >
-            <svg width={CLOCK_SIZE} height={CLOCK_SIZE} style={{ position: "absolute", top: 0, left: 0 }}>
+            {/* The viewBox is padded beyond the 50x50 face so the elapsed-time
+                arcs (radius 27.5) are not clipped — matching the Compass
+                original's viewBox="-3 -3 56 56". */}
+            <svg
+                data-testid="explain-clock"
+                viewBox="-3 -3 56 56"
+                width={CLOCK_SIZE}
+                height={CLOCK_SIZE}
+                style={{ position: "absolute", top: 0, left: 0 }}
+            >
                 {/* clock face + border (Compass: face fill is the background
                     color — white in light mode; border/ticks use the face color) */}
                 <circle

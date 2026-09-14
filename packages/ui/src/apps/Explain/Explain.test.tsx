@@ -213,6 +213,18 @@ describe("Explain", () => {
         });
     });
 
+    it("renders the clock with the viewBox that keeps its arcs unclipped", async () => {
+        render(<Explain />);
+
+        sendToolResult(classicExplainResult, "executionStats");
+
+        // one clock per (non-shard) stage card
+        const clocks = await screen.findAllByTestId("explain-clock");
+        for (const clock of clocks) {
+            expect(clock).toHaveAttribute("viewBox", "-3 -3 56 56");
+        }
+    });
+
     it("shows the planner-only fallback for queryPlanner results", async () => {
         render(<Explain />);
 

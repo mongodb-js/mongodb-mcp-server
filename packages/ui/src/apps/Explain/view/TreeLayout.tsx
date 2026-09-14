@@ -110,7 +110,11 @@ function LinkPath<T>({
                     strokeWidth: shardLinkStrokeWidth,
                 },
                 {
-                    pathDef: `M ${linkEndX} ${elbowY - shardLinkStrokeWidth / 2} V ${elbowY + elbowY}`,
+                    // Deviation from the Compass original (which ended this
+                    // segment at `elbowY + elbowY`, overshooting the target
+                    // card top by a full parent-card height — a bug its
+                    // single-child shard geometry happened to conceal).
+                    pathDef: `M ${linkEndX} ${elbowY - shardLinkStrokeWidth / 2} V ${linkEndY}`,
                     strokeWidth: shardLinkStrokeWidth,
                 },
             ],

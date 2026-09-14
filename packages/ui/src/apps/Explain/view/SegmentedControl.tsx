@@ -50,6 +50,8 @@ export const SegmentedControl: React.FunctionComponent<SegmentedControlProps> = 
                             alignItems: "center",
                             gap: spacing[100],
                             padding: `${spacing[100]}px ${spacing[200]}px`,
+                            // WCAG 2.5.8 target size minimum (24x24)
+                            minHeight: 24,
                             border: "none",
                             borderRadius: spacing[200] - 2,
                             cursor: "pointer",

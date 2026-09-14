@@ -1,5 +1,15 @@
 import { describe, it, expect } from "vitest";
+import { MCP_APPS_RESOURCE_MIME_TYPE } from "@mongodb-js/mcp-types";
+import { RESOURCE_MIME_TYPE } from "@modelcontextprotocol/ext-apps";
 import { AppRegistry } from "./appRegistry.js";
+
+describe("MCP Apps constants", () => {
+    it("pins the declared resource MIME type to the SDK's", () => {
+        // packages/types hand-declares the constant (it must not depend on the
+        // SDK); this keeps the declaration honest.
+        expect(MCP_APPS_RESOURCE_MIME_TYPE).toBe(RESOURCE_MIME_TYPE);
+    });
+});
 
 describe("AppRegistry", () => {
     describe("has()", () => {

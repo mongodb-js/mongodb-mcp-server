@@ -144,7 +144,15 @@ const PlannerOnlyFallback: React.FunctionComponent<{ plan: ExplainPlan; verbosit
 );
 
 const TreeIcon = (): ReactElement => (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2">
+    <svg
+        aria-hidden="true"
+        width="14"
+        height="14"
+        viewBox="0 0 14 14"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.2"
+    >
         <rect x="5" y="1" width="4" height="3" rx="0.5" />
         <rect x="1" y="10" width="4" height="3" rx="0.5" />
         <rect x="9" y="10" width="4" height="3" rx="0.5" />
@@ -154,6 +162,7 @@ const TreeIcon = (): ReactElement => (
 
 const BracesIcon = (): ReactElement => (
     <svg
+        aria-hidden="true"
         width="14"
         height="14"
         viewBox="0 0 14 14"
