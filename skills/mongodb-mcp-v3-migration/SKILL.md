@@ -170,9 +170,9 @@ To also apply per-request config overrides or control connection isolation, subc
 +   if (typeof sub !== "string" || !sub.trim()) {
 +     return undefined;
 +   }
-+   // Use an unambiguous per-user delimiter so a claim value containing the
-+   // separator cannot collide with a different principal.
-+   return `user:${request.authInfo.clientId}\u001f${sub.trim()}`;
++   // JSON-encode the tuple so it is injective regardless of the claim values
++   // (a sub containing a delimiter or quote cannot collide).
++   return `user:${JSON.stringify([request.authInfo.clientId, sub.trim()])}`;
 + };
 
 + class MyMCPHttpServer extends MCPHttpServer<CliServer> {

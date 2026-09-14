@@ -113,7 +113,9 @@ function userPrincipalScope(request: TransportRequestContext): string | undefine
     if (typeof sub !== "string" || !sub.trim()) {
         return undefined;
     }
-    return `user:${clientId}\u001f${sub}`;
+    // JSON-encode the tuple so it is injective regardless of the claim values
+    // (e.g. sub containing a delimiter or a quote cannot collide).
+    return `user:${JSON.stringify([clientId, sub.trim()])}`;
 }
 
 /** Per OAuth client application (application-level isolation; M2M only). */

@@ -313,14 +313,14 @@ class PermissionsMCPHttpServer extends MCPHttpServer<CliServer> {
       request,
       // Per-user scope, keyed on the verified principal. Fail closed: a
       // non-string or empty `sub` is not a usable principal, so return undefined
-      // (ephemeral). Use an unambiguous delimiter (e.g. `\u001f`) so a claim value
-      // containing the separator cannot collide with a different principal.
+      // (ephemeral). JSON-encode the tuple so it is injective regardless of the
+      // claim values (a `sub` containing a delimiter or quote cannot collide).
       connectionScope: (req) => {
         const sub = req.authInfo?.extra?.sub;
         if (typeof sub !== "string" || !sub.trim()) {
           return undefined;
         }
-        return `user:${req.authInfo.clientId}\u001f${sub.trim()}`;
+        return `user:${JSON.stringify([req.authInfo.clientId, sub.trim()])}`;
       },
     });
   }
@@ -495,12 +495,12 @@ await runner.start();
 
 **Connection scoping (required for HTTP):** `CliMcpHttpServer` requires an explicit `connectionScope` policy — this is the knob that controls connection isolation. `connectionScope` is a `(request: TransportRequestContext) => string | undefined` function; `undefined` means an ephemeral, per-request scope (no shared state, reaped when the request-scoped server closes). It must be keyed on whatever distinguishes the callers. The library ships `connectionScopeByClientNameHeader` (self-asserted `x-mcp-client-name` label for unauthenticated local use — never an authorization boundary). The CLI's own runner derives its policy from the `connectionScope` config option: `"session"` (default) keys on the client's `mcp-session-id`, falling back to the shared scope on the sessionless 2026-07-28 path when no id is present; `"global"` shares one scope across all clients. For authenticated deployments the embedder supplies the policy.
 
-`clientId` identifies the OAuth client _application_, not the end user — so keying solely on `clientId` lets every user of one shared client registration share connections. It should be keyed on the verified end-user principal (the OIDC `sub` claim, which the token verifier attaches to `AuthInfo.extra`), fail-closing (returning `undefined`, i.e. ephemeral) when there is no usable subject and using an unambiguous delimiter so claim values cannot collide:
+`clientId` identifies the OAuth client _application_, not the end user — so keying solely on `clientId` lets every user of one shared client registration share connections. It should be keyed on the verified end-user principal (the OIDC `sub` claim, which the token verifier attaches to `AuthInfo.extra`), fail-closing (returning `undefined`, i.e. ephemeral) when there is no usable subject, and JSON-encoding the tuple so claim values cannot collide:
 
 ```ts
 const sub = req.authInfo?.extra?.sub;
 if (typeof sub !== "string" || !sub.trim()) return undefined;
-return `user:${req.authInfo.clientId}\u001f${sub.trim()}`;
+return `user:${JSON.stringify([req.authInfo.clientId, sub.trim()])}`;
 ```
 
 Keying by `clientId` is only appropriate for M2M/client-credentials tokens (where `clientId` _is_ the principal) or single-user-per-client deployments.
