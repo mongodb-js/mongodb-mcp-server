@@ -196,7 +196,7 @@ const ServerConfigSchema = z.object({
         .enum(["session", "global"])
         .default("session")
         .describe(
-            "Visibility scope for MongoDB connections created at runtime. With 'session' (the default), each MCP session only sees the connections it created (plus the shared 'preconfigured' one) and they are closed when the session ends. With 'global', connections are shared across all sessions and survive session rotation. Deprecated: the MCP protocol is moving to sessionless, so this option will soon be removed and the connection scope will default to 'global'. For shared-server use cases, use the Atlas-Managed MCP server or build an authenticated library using the @mongodb-js/mcp-cli package."
+            "Visibility scope for MongoDB connections created at runtime. With 'session' (the default), each MCP session only sees the connections it created (plus the shared 'preconfigured' one) and they are closed when the session ends. With 'global', connections are shared across all sessions and survive session rotation. Deprecated: the MCP protocol is moving to sessionless, so this option will soon be removed and the connection scope will default to 'global'. For shared-server use cases, use the Atlas-Managed MCP server or build an authenticated library using the @mongodb-js/mcp-cli package. Note: on the sessionless (2026-07-28) HTTP path, a request without an mcp-session-id falls back to the shared ('global') scope so it can still persist connections across requests; the legacy sessionful path always carries a server-issued session."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
     maxSessions: z.coerce

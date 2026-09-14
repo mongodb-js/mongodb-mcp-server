@@ -165,8 +165,14 @@ To also apply per-request config overrides or control connection isolation, subc
 -   }
 - }
 + const connectionScope = (request: TransportRequestContext): string | undefined => {
++   // Fail closed: a missing / non-string / empty sub is not a usable principal.
 +   const sub = request.authInfo?.extra?.sub;
-+   return typeof sub === "string" ? `user:${request.authInfo.clientId}:${sub}` : undefined;
++   if (typeof sub !== "string" || !sub.trim()) {
++     return undefined;
++   }
++   // Use an unambiguous per-user delimiter so a claim value containing the
++   // separator cannot collide with a different principal.
++   return `user:${request.authInfo.clientId}\u001f${sub.trim()}`;
 + };
 
 + class MyMCPHttpServer extends MCPHttpServer<CliServer> {

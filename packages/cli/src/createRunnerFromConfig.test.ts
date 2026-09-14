@@ -88,11 +88,10 @@ import {
     createServerFromConfig,
     CliMcpHttpServer,
     connectionScopeByClientNameHeader,
-    connectionScopeFromConfig,
     CLIENT_SCOPE_HEADER,
-    SESSION_ID_HEADER,
     type SharedServerServices,
 } from "./createRunnerFromConfig.js";
+import { connectionScopeFromConfig, GLOBAL_CONNECTION_SCOPE, SESSION_ID_HEADER } from "./createServerServices.js";
 import { createExportsManagerFromConfig } from "./createExportsManagerFromConfig.js";
 import { createApiClientFromConfig } from "./createApiClientFromConfig.js";
 import { createTelemetryFromConfig } from "./createTelemetryFromConfig.js";
@@ -823,23 +822,33 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
             expect(await named.connectionRegistry.get(created.connectionId)).toBe(created);
         });
 
-        it("'session' keys on mcp-session-id; without one it is ephemeral", () => {
+        it("'session' keys on mcp-session-id; without one the sessionless path falls back to global", () => {
             const config = UserConfigSchema.parse({
                 transport: "http",
                 telemetry: "disabled",
                 connectionScope: "session",
             });
 
-            // v2.x "session": requests carrying an mcp-session-id resolve to that
-            // id as their scope; a request without one (or with an oversized one)
-            // is ephemeral. The x-mcp-client-name header is NOT used here.
             const policy = connectionScopeFromConfig(config);
-            expect(policy({ headers: { [SESSION_ID_HEADER]: "sess-1" }, query: {} })).toBe("sess-1");
-            expect(policy({ headers: { [CLIENT_SCOPE_HEADER]: "alice" }, query: {} })).toBeUndefined();
-            expect(policy({ headers: {}, query: {} })).toBeUndefined();
-            // Oversized / non-string ids fail closed.
-            expect(policy({ headers: { [SESSION_ID_HEADER]: "x".repeat(600) }, query: {} })).toBeUndefined();
-            expect(policy({ headers: { [SESSION_ID_HEADER]: ["a", "b"] }, query: {} })).toBeUndefined();
+            // A request carrying an mcp-session-id resolves to that id.
+            expect(policy({ headers: { [SESSION_ID_HEADER]: "sess-1" }, query: {}, protocol: "2026-07-28" })).toBe(
+                "sess-1"
+            );
+            // The x-mcp-client-name header is NOT used here.
+            expect(policy({ headers: { [CLIENT_SCOPE_HEADER]: "alice" }, query: {}, protocol: "2026-07-28" })).toBe(
+                GLOBAL_CONNECTION_SCOPE
+            );
+            // Sessionless request without an id → shared (global) scope.
+            expect(policy({ headers: {}, query: {}, protocol: "2026-07-28" })).toBe(GLOBAL_CONNECTION_SCOPE);
+            // Legacy sessionful request without an id → ephemeral (undefined).
+            expect(policy({ headers: {}, query: {}, protocol: "legacy" })).toBeUndefined();
+            // Oversized / non-string ids fail closed (no session id, so global on sessionless).
+            expect(
+                policy({ headers: { [SESSION_ID_HEADER]: "x".repeat(600) }, query: {}, protocol: "2026-07-28" })
+            ).toBe(GLOBAL_CONNECTION_SCOPE);
+            expect(policy({ headers: { [SESSION_ID_HEADER]: ["a", "b"] }, query: {}, protocol: "2026-07-28" })).toBe(
+                GLOBAL_CONNECTION_SCOPE
+            );
         });
 
         it("stateless requests sharing an mcp-session-id see each other's connections", async () => {
@@ -854,6 +863,7 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
             const req = (id?: string): TransportRequestContext => ({
                 headers: id ? { [SESSION_ID_HEADER]: id } : {},
                 query: {},
+                protocol: "2026-07-28",
             });
 
             const a1 = createServerFromConfig({
@@ -874,15 +884,23 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
                 request: req("sess-2"),
                 connectionScope: policy,
             });
-            const anon = createServerFromConfig({ config, sharedServices, request: req(), connectionScope: policy });
+            const anon1 = createServerFromConfig({ config, sharedServices, request: req(), connectionScope: policy });
+            const anon2 = createServerFromConfig({ config, sharedServices, request: req(), connectionScope: policy });
 
             // Same session id → visible across requests (sessionless persistence).
             const created = await a1.connectionRegistry.createEntry({ name: "sess-conn" });
             expect(await a2.connectionRegistry.get(created.connectionId)).toBe(created);
 
-            // Different (or absent) session id → isolated.
+            // Different session id → isolated.
             expect(await b.connectionRegistry.get(created.connectionId)).toBeUndefined();
-            expect(await anon.connectionRegistry.get(created.connectionId)).toBeUndefined();
+
+            // No session id → falls back to the shared (global) scope, so two
+            // anonymous sessionless requests share connections.
+            expect(await anon1.connectionRegistry.get(created.connectionId)).toBeUndefined();
+            const shared = await anon1.connectionRegistry.createEntry({ name: "anon-conn" });
+            expect(await anon2.connectionRegistry.get(shared.connectionId)).toBe(shared);
+            // ...but a session-keyed request cannot see the anonymous ones.
+            expect(await a1.connectionRegistry.get(shared.connectionId)).toBeUndefined();
         });
     });
 });

@@ -224,9 +224,11 @@ const MAX_SESSION_ID_LENGTH = 512;
  * Scope keyed on the client's `mcp-session-id`: requests carrying the same id
  * (whether a server-issued legacy session id or a client-supplied one on the
  * sessionless path) share connections, enabling cross-request persistence. A
- * request without a usable id gets an ephemeral, isolated scope. The id is a
- * capability token — unguessable when server-issued, self-asserted otherwise —
- * so possession of it is what grants access to the scope's connections.
+ * request without a usable id returns `undefined` (the caller decides the
+ * fallback — {@link connectionScopeFromConfig} shares the global scope on the
+ * sessionless path, ephemeral otherwise). The id is a capability token —
+ * unguessable when server-issued, self-asserted otherwise — so possession of it
+ * is what grants access to the scope's connections.
  */
 export function connectionScopeBySessionId(request: TransportRequestContext): string | undefined {
     const header = request.headers?.[SESSION_ID_HEADER];
@@ -242,9 +244,11 @@ export function connectionScopeBySessionId(request: TransportRequestContext): st
  * `connectionScope` option restored from v2.x:
  *  - `"session"` (default): connection scope keyed on the client's
  *    `mcp-session-id` — requests that carry the same session id share a scope
- *    (persisting their connections across requests), on both the sessionful
- *    legacy path and the stateless 2026-07-28 path; requests without one get
- *    an ephemeral, isolated scope.
+ *    (persisting their connections across requests). When a request has no
+ *    usable session id, the sessionless 2026-07-28 path falls back to the
+ *    shared scope ({@link GLOBAL_CONNECTION_SCOPE}) so anonymous clients can
+ *    still persist connections across requests, while the sessionful legacy
+ *    path (which always has a server-issued session) stays ephemeral.
  *  - `"global"`: every request shares one scope ({@link GLOBAL_CONNECTION_SCOPE}),
  *    so connections are visible to all clients and survive session rotation.
  */
@@ -252,7 +256,14 @@ export function connectionScopeFromConfig(config: UserConfig): ConnectionScopePo
     if (config.connectionScope === "global") {
         return () => GLOBAL_CONNECTION_SCOPE;
     }
-    return connectionScopeBySessionId;
+    return (request) => {
+        const id = connectionScopeBySessionId(request);
+        // No usable session id. On the sessionless (2026-07-28) path this server
+        // has no session machinery, so share the global scope so anonymous
+        // clients can still persist connections. The legacy sessionful path
+        // always has a server-issued session; leave it ephemeral (undefined).
+        return id ?? (request.protocol === "2026-07-28" ? GLOBAL_CONNECTION_SCOPE : undefined);
+    };
 }
 
 /** A fresh, unguessable scope for a request whose client did not identify itself. */

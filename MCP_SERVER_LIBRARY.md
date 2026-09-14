@@ -311,10 +311,17 @@ class PermissionsMCPHttpServer extends MCPHttpServer<CliServer> {
       },
       sharedServices: this.sharedServices,
       request,
-      connectionScope: (req) =>
-        req.authInfo?.extra?.sub != null
-          ? `user:${req.authInfo.clientId}:${req.authInfo.extra.sub}`
-          : undefined,
+      // Per-user scope, keyed on the verified principal. Fail closed: a
+      // non-string or empty `sub` is not a usable principal, so return undefined
+      // (ephemeral). Use an unambiguous delimiter (e.g. `\u001f`) so a claim value
+      // containing the separator cannot collide with a different principal.
+      connectionScope: (req) => {
+        const sub = req.authInfo?.extra?.sub;
+        if (typeof sub !== "string" || !sub.trim()) {
+          return undefined;
+        }
+        return `user:${req.authInfo.clientId}\u001f${sub.trim()}`;
+      },
     });
   }
 }
@@ -486,14 +493,14 @@ await runner.start();
 
 **CLI default (request-scoped servers):** the CLI's `createHttpTransportRunnerFromConfig` wires a `CliMcpHttpServer` that creates a **fresh request-scoped `CliServer` per HTTP request** via `createServerFromConfig`, applying request-level config overrides (`applyConfigOverrides`) on each request — so concurrent HTTP requests are isolated (separate servers, request-scoped connection registry views, telemetry). App-level infrastructure (metrics, device id, shared connection store, API client, exports, telemetry, Atlas Local client) is built once by `createSharedServicesFromConfig` and shared. Stdio builds a single server (one client per connection).
 
-**Connection scoping (required for HTTP):** `CliMcpHttpServer` requires an explicit `connectionScope` policy — this is the knob that controls connection isolation. `connectionScope` is a `(request: TransportRequestContext) => string | undefined` function; `undefined` means an ephemeral, per-request scope (no shared state, reaped when the request-scoped server closes). It must be keyed on whatever distinguishes the callers. The library ships `connectionScopeByClientNameHeader` (self-asserted `x-mcp-client-name` label for unauthenticated local use — never an authorization boundary), `connectionScopeBySessionId` (keys on the `mcp-session-id` header — v2.x session-scoped behavior adapted to the stateless path), and `connectionScopeFromConfig(config)`, which maps the `connectionScope` config option to a policy: `"session"` (default) is `connectionScopeBySessionId` — requests carrying an `mcp-session-id` share a scope (persisting connections across a session's requests) and requests without one get an ephemeral scope; `"global"` shares one scope (`GLOBAL_CONNECTION_SCOPE`) across all clients. The CLI's own runner uses `connectionScopeFromConfig`. For authenticated deployments the embedder supplies the policy.
+**Connection scoping (required for HTTP):** `CliMcpHttpServer` requires an explicit `connectionScope` policy — this is the knob that controls connection isolation. `connectionScope` is a `(request: TransportRequestContext) => string | undefined` function; `undefined` means an ephemeral, per-request scope (no shared state, reaped when the request-scoped server closes). It must be keyed on whatever distinguishes the callers. The library ships `connectionScopeByClientNameHeader` (self-asserted `x-mcp-client-name` label for unauthenticated local use — never an authorization boundary). The CLI's own runner derives its policy from the `connectionScope` config option: `"session"` (default) keys on the client's `mcp-session-id`, falling back to the shared scope on the sessionless 2026-07-28 path when no id is present; `"global"` shares one scope across all clients. For authenticated deployments the embedder supplies the policy.
 
-`clientId` identifies the OAuth client _application_, not the end user — so keying solely on `clientId` lets every user of one shared client registration share connections. It should be keyed on the verified end-user principal (the OIDC `sub` claim, which the token verifier attaches to `AuthInfo.extra`), returning a scope for the user and `undefined` otherwise:
+`clientId` identifies the OAuth client _application_, not the end user — so keying solely on `clientId` lets every user of one shared client registration share connections. It should be keyed on the verified end-user principal (the OIDC `sub` claim, which the token verifier attaches to `AuthInfo.extra`), fail-closing (returning `undefined`, i.e. ephemeral) when there is no usable subject and using an unambiguous delimiter so claim values cannot collide:
 
 ```ts
-req.authInfo?.extra?.sub != null
-  ? `user:${req.authInfo.clientId}:${req.authInfo.extra.sub}`
-  : undefined;
+const sub = req.authInfo?.extra?.sub;
+if (typeof sub !== "string" || !sub.trim()) return undefined;
+return `user:${req.authInfo.clientId}\u001f${sub.trim()}`;
 ```
 
 Keying by `clientId` is only appropriate for M2M/client-credentials tokens (where `clientId` _is_ the principal) or single-user-per-client deployments.
