@@ -165,13 +165,9 @@ To also apply per-request config overrides or control connection isolation, subc
 -   }
 - }
 + const connectionScope = (request: TransportRequestContext): string | undefined => {
-+   // Fail closed: a missing / non-string / blank sub is not a usable principal.
-+   const rawSub = request.authInfo?.extra?.sub;
-+   if (typeof rawSub !== "string") {
-+     return undefined;
-+   }
-+   const sub = rawSub.trim(); // normalize once
-+   if (!sub) {
++   // Fail closed: a missing / non-string / empty sub is not a usable principal.
++   const sub = request.authInfo?.extra?.sub;
++   if (typeof sub !== "string" || sub === "") {
 +     return undefined;
 +   }
 +   // JSON-encode the tuple so it is injective regardless of the claim values

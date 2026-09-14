@@ -280,14 +280,10 @@ class PermissionsMCPHttpServer extends MCPHttpServer<CliServer> {
   ): Promise<CliServer> {
     // Use the host-verified identity, not a client-controlled header: the host's
     // token verifier attaches the OIDC `sub` claim to `AuthInfo.extra` (via
-    // `req.auth`). Normalize the principal once — reject a missing, non-string
-    // or blank subject, then reuse the trimmed value everywhere below.
-    const rawSub = request.authInfo?.extra?.sub;
-    if (typeof rawSub !== "string") {
-      throw new Error("User authentication required: no verified sub claim");
-    }
-    const sub = rawSub.trim();
-    if (!sub) {
+    // `req.auth`). Use the claim verbatim — reject a missing or non-string
+    // subject; do not trim it.
+    const sub = request.authInfo?.extra?.sub;
+    if (typeof sub !== "string" || sub === "") {
       throw new Error("User authentication required: no verified sub claim");
     }
 
@@ -324,12 +320,8 @@ class PermissionsMCPHttpServer extends MCPHttpServer<CliServer> {
       // (ephemeral). JSON-encode the tuple so it is injective regardless of the
       // claim values (a `sub` containing a delimiter or quote cannot collide).
       connectionScope: (req) => {
-        const rawSub = req.authInfo?.extra?.sub;
-        if (typeof rawSub !== "string") {
-          return undefined;
-        }
-        const sub = rawSub.trim();
-        if (!sub) {
+        const sub = req.authInfo?.extra?.sub;
+        if (typeof sub !== "string" || sub === "") {
           return undefined;
         }
         return `user:${JSON.stringify([req.authInfo.clientId, sub])}`;
@@ -510,10 +502,8 @@ await runner.start();
 `clientId` identifies the OAuth client _application_, not the end user — so keying solely on `clientId` lets every user of one shared client registration share connections. It should be keyed on the verified end-user principal (the OIDC `sub` claim, which the token verifier attaches to `AuthInfo.extra`), fail-closing (returning `undefined`, i.e. ephemeral) when there is no usable subject, and JSON-encoding the tuple so claim values cannot collide:
 
 ```ts
-const rawSub = req.authInfo?.extra?.sub;
-if (typeof rawSub !== "string") return undefined;
-const sub = rawSub.trim(); // normalize once
-if (!sub) return undefined; // reject blank
+const sub = req.authInfo?.extra?.sub;
+if (typeof sub !== "string" || sub === "") return undefined;
 return `user:${JSON.stringify([req.authInfo.clientId, sub])}`;
 ```
 
