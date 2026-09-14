@@ -12,6 +12,14 @@ type ToolResult = CallToolResult;
 
 const APP_INFO = { name: "mongodb-mcp-explain", version: "0.0.0-poc" } as const;
 
+/**
+ * OS-level colour-scheme preference, used until the host reports its theme.
+ * Hosts may omit `hostContext.theme`; without this the widget would render
+ * light on a dark host (and vice versa).
+ */
+const prefersDarkColorScheme = (): boolean =>
+    typeof window.matchMedia === "function" && window.matchMedia("(prefers-color-scheme: dark)").matches;
+
 const panelStyle = (theme: ExplainTheme): React.CSSProperties => ({
     border: `1px solid ${theme.cardBorderColor}`,
     borderRadius: spacing[200],
@@ -185,7 +193,7 @@ export const Explain = (): ReactElement => {
     // Set when the host reports `ui/notifications/tool-cancelled`; a later
     // tool result (if one arrives anyway) clears it.
     const [cancelled, setCancelled] = useState(false);
-    const [darkMode, setDarkMode] = useState(false);
+    const [darkMode, setDarkMode] = useState(prefersDarkColorScheme);
     const [view, setView] = useState<"tree" | "raw">("tree");
 
     const { app, error } = useApp({

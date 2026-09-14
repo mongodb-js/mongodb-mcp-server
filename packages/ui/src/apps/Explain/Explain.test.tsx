@@ -5,18 +5,30 @@ import { render, screen, waitFor, act, cleanup, fireEvent, within } from "@testi
  * Mock the ext-apps host bridge: captures the handlers the widget registers in
  * `onAppCreated` so tests can deliver tool results / host context manually.
  */
-const mocks = vi.hoisted(() => {
-    return {
+interface ExplainMocks {
+    fakeApp: {
+        ontoolresult: ((params: unknown) => void) | undefined;
+        ontoolcancelled: (() => void) | undefined;
+        onhostcontextchanged: ((ctx: { theme?: string }) => void) | undefined;
+        getHostContext: () => { theme?: string };
+    };
+    /** `undefined` models a host that provides no theme in its context. */
+    theme: string | undefined;
+    error: Error | undefined;
+}
+
+const mocks = vi.hoisted(
+    (): ExplainMocks => ({
         fakeApp: {
-            ontoolresult: undefined as ((params: unknown) => void) | undefined,
-            ontoolcancelled: undefined as (() => void) | undefined,
-            onhostcontextchanged: undefined as ((ctx: { theme?: string }) => void) | undefined,
-            getHostContext: (): { theme: string } => ({ theme: mocks.theme }),
+            ontoolresult: undefined,
+            ontoolcancelled: undefined,
+            onhostcontextchanged: undefined,
+            getHostContext: (): { theme?: string } => (mocks.theme ? { theme: mocks.theme } : {}),
         },
         theme: "light",
-        error: undefined as Error | undefined,
-    };
-});
+        error: undefined,
+    })
+);
 
 vi.mock("@modelcontextprotocol/ext-apps/react", () => ({
     useApp: (options: { onAppCreated?: (app: typeof mocks.fakeApp) => void }): { app: unknown; error?: Error } => {
@@ -90,7 +102,18 @@ describe("Explain", () => {
     });
 
     afterEach(() => {
+        vi.unstubAllGlobals();
         cleanup();
+    });
+
+    it("falls back to the OS colour scheme when the host provides no theme", async () => {
+        mocks.theme = undefined;
+        vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true }));
+        render(<Explain />);
+
+        await waitFor(() => {
+            expect(screen.getByTestId("explain-app")).toHaveStyle({ backgroundColor: "rgb(0, 30, 43)" });
+        });
     });
 
     it("shows a waiting state before a tool result arrives", () => {
