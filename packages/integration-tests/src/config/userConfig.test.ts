@@ -45,6 +45,7 @@ const expectedDefaults = {
     mcpClientLogLevel: "debug",
     loggers: ["disk", "mcp"],
     maxActiveConnections: 10,
+    connectionScope: "session",
     maxSessions: 1000,
     idleTimeoutMs: 600000,
     notificationTimeoutMs: 540000,

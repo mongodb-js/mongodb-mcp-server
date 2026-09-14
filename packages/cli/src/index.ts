@@ -17,6 +17,8 @@ export {
     type CreateServerServicesOptions,
     CLIENT_SCOPE_HEADER,
     connectionScopeByClientNameHeader,
+    connectionScopeFromConfig,
+    GLOBAL_CONNECTION_SCOPE,
     CliMcpHttpServer,
     CliStdioRunner,
     createHttpTransportRunnerFromConfig,

@@ -63,9 +63,9 @@ const { createdServers } = vi.hoisted(() => ({
 vi.mock("./cliServer.js", () => ({
     CliServer: class MockCliServer {
         public config: unknown;
-        public connectionRegistry: unknown;
+        public connectionRegistry: { close(): Promise<void> };
         public mcpServer = { server: {} };
-        constructor(options: { config: unknown; connectionRegistry: unknown }) {
+        constructor(options: { config: unknown; connectionRegistry: { close(): Promise<void> } }) {
             this.config = options.config;
             this.connectionRegistry = options.connectionRegistry;
             createdServers.push({ id: createdServers.length, ...options });
@@ -73,8 +73,10 @@ vi.mock("./cliServer.js", () => ({
         connect(): Promise<void> {
             return Promise.resolve();
         }
+        // Mirrors the real CliServer.close(): the registry view is closed with
+        // the server (owned views reap their connections, unowned ones no-op).
         close(): Promise<void> {
-            return Promise.resolve();
+            return this.connectionRegistry.close();
         }
     },
 }));
@@ -86,6 +88,8 @@ import {
     createServerFromConfig,
     CliMcpHttpServer,
     connectionScopeByClientNameHeader,
+    connectionScopeFromConfig,
+    CLIENT_SCOPE_HEADER,
     type SharedServerServices,
 } from "./createRunnerFromConfig.js";
 import { createExportsManagerFromConfig } from "./createExportsManagerFromConfig.js";
@@ -721,5 +725,113 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
                 request: { headers: {}, query: {} },
             })
         ).toThrow(/no connectionScope policy was set/);
+    });
+
+    it("ephemeral (anonymous) connections are reaped when the request-scoped server closes", async () => {
+        // v2.x `connectionScope: "session"` behavior: a session's connections
+        // die with it — the legacy sessionful path closes the server when the
+        // session ends.
+        const config = UserConfigSchema.parse({
+            transport: "http",
+            telemetry: "disabled",
+        });
+
+        const sharedServices = await makeSharedServerServices(config);
+        const server = createServerFromConfig({
+            config,
+            sharedServices,
+            request: { headers: {}, query: {} },
+            connectionScope: connectionScopeByClientNameHeader,
+        });
+
+        const created = await server.connectionRegistry.createEntry({ name: "session-conn" });
+        // The app-level view sees the entry while the session is alive.
+        expect(await sharedServices.connectionRegistry.get(created.connectionId)).toBe(created);
+
+        await server.close();
+
+        // After the session ends, the ephemeral scope's entries are revoked —
+        // unreachable even from the unbound app-level view.
+        expect(await sharedServices.connectionRegistry.get(created.connectionId)).toBeUndefined();
+        expect(await server.connectionRegistry.get(created.connectionId)).toBeUndefined();
+    });
+
+    it("stable-scope connections survive the request-scoped server closing", async () => {
+        // Header-keyed (and auth-keyed) scopes are shared across requests, so
+        // closing one request's server must not reap them.
+        const config = UserConfigSchema.parse({
+            transport: "http",
+            telemetry: "disabled",
+        });
+
+        const sharedServices = await makeSharedServerServices(config);
+        const request: TransportRequestContext = { headers: { [CLIENT_SCOPE_HEADER]: "alice" }, query: {} };
+        const server = createServerFromConfig({
+            config,
+            sharedServices,
+            request,
+            connectionScope: connectionScopeByClientNameHeader,
+        });
+
+        const created = await server.connectionRegistry.createEntry({ name: "alice-conn" });
+        await server.close();
+
+        const nextRequest = createServerFromConfig({
+            config,
+            sharedServices,
+            request,
+            connectionScope: connectionScopeByClientNameHeader,
+        });
+        expect(await nextRequest.connectionRegistry.get(created.connectionId)).toBe(created);
+    });
+
+    describe("connectionScope config (v2.x semantics)", () => {
+        it("defaults to 'session'", () => {
+            expect(UserConfigSchema.parse({}).connectionScope).toBe("session");
+        });
+
+        it("'global' shares one scope across all clients and survives session close", async () => {
+            const config = UserConfigSchema.parse({
+                transport: "http",
+                telemetry: "disabled",
+                connectionScope: "global",
+            });
+
+            const sharedServices = await makeSharedServerServices(config);
+            const policy = connectionScopeFromConfig(config);
+
+            const anon = createServerFromConfig({
+                config,
+                sharedServices,
+                request: { headers: {}, query: {} },
+                connectionScope: policy,
+            });
+            const named = createServerFromConfig({
+                config,
+                sharedServices,
+                request: { headers: { [CLIENT_SCOPE_HEADER]: "alice" }, query: {} },
+                connectionScope: policy,
+            });
+
+            // Every request — named or anonymous — lands in the one global scope.
+            const created = await anon.connectionRegistry.createEntry({ name: "shared-conn" });
+            expect(await named.connectionRegistry.get(created.connectionId)).toBe(created);
+
+            // Session rotation does not reap global connections.
+            await anon.close();
+            expect(await named.connectionRegistry.get(created.connectionId)).toBe(created);
+        });
+
+        it("'session' maps to the client-name header policy (headerless → ephemeral)", () => {
+            const config = UserConfigSchema.parse({
+                transport: "http",
+                telemetry: "disabled",
+                connectionScope: "session",
+            });
+
+            const policy = connectionScopeFromConfig(config);
+            expect(policy({ headers: { [CLIENT_SCOPE_HEADER]: "alice" }, query: {} })).toBe("alice");
+            expect(policy({ headers: {}, query: {} })).toBeUndefined();
+        });
     });
 });

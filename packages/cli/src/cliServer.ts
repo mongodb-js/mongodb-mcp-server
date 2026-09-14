@@ -296,9 +296,13 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
     private closed = false;
 
     /**
-     * Closes the request-scoped McpServer. App-level services (telemetry,
-     * connections, exports, API client) are untouched — they live once per
-     * process and are closed by the runner on shutdown.
+     * Closes the request-scoped McpServer, then the connection registry view:
+     * an owned view (an ephemeral, per-session scope) reaps its connections
+     * here — on the legacy sessionful path that is when the session ends —
+     * while unowned views (the shared app-level registry, stable named scopes)
+     * no-op so their connections survive. Other app-level services (telemetry,
+     * exports, API client) are untouched — they live once per process and are
+     * closed by the runner on shutdown.
      */
     async close(): Promise<void> {
         if (this.closed) {
@@ -306,6 +310,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
         }
         this.closed = true;
         await this.mcpServer.close();
+        await this.connectionRegistry.close().catch(() => undefined);
     }
 
     public sendResourceListChanged(): void {

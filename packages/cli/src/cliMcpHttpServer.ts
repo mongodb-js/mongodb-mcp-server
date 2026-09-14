@@ -6,7 +6,7 @@ import type { CliServer } from "./cliServer.js";
 import {
     createServerFromConfig,
     closeSharedServices,
-    connectionScopeByClientNameHeader,
+    connectionScopeFromConfig,
     type SharedServerServices,
 } from "./createServerServices.js";
 import { applyConfigOverrides } from "./config/configOverrides.js";
@@ -91,11 +91,13 @@ export function createHttpTransportRunnerFromConfig(sharedServices: SharedServer
                 responseType: config.httpResponseType,
                 headers: config.httpHeaders,
             },
-            // The CLI's own runner is a local, unauthenticated deployment:
-            // clients opt into cross-request connection state with the
-            // self-asserted name header. Hosts serving authenticated traffic
-            // construct CliMcpHttpServer with their own policy.
-            connectionScope: connectionScopeByClientNameHeader,
+            // The CLI's own runner is a local, unauthenticated deployment: the
+            // policy comes from the `connectionScope` config option — "session"
+            // (default) isolates per session, with opt-in cross-request state
+            // via the self-asserted name header; "global" shares one scope
+            // across all clients. Hosts serving authenticated traffic construct
+            // CliMcpHttpServer with their own policy.
+            connectionScope: connectionScopeFromConfig(config),
             sessionOptions: {
                 maxSessions: config.maxSessions,
                 idleTimeoutMS: config.idleTimeoutMs,

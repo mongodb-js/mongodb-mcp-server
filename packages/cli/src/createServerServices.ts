@@ -202,6 +202,30 @@ export function connectionScopeByClientNameHeader(request: TransportRequestConte
     return (typeof header === "string" && header.trim()) || undefined;
 }
 
+/**
+ * The scope key every request resolves to under `connectionScope: "global"`:
+ * one namespace shared by all clients, surviving session rotation — the
+ * pre-v3 `connectionScope: "global"` behavior.
+ */
+export const GLOBAL_CONNECTION_SCOPE = "global";
+
+/**
+ * Derives the CLI runner's connection-scope policy from the user config — the
+ * `connectionScope` option restored from v2.x:
+ *  - `"session"` (default): per-session isolation; clients may additionally
+ *    opt into cross-session state via the self-asserted
+ *    {@link CLIENT_SCOPE_HEADER} header; requests without it get an ephemeral
+ *    scope reaped when their session ends.
+ *  - `"global"`: every request shares one scope ({@link GLOBAL_CONNECTION_SCOPE}),
+ *    so connections are visible to all clients and survive session rotation.
+ */
+export function connectionScopeFromConfig(config: UserConfig): ConnectionScopePolicy {
+    if (config.connectionScope === "global") {
+        return () => GLOBAL_CONNECTION_SCOPE;
+    }
+    return connectionScopeByClientNameHeader;
+}
+
 /** A fresh, unguessable scope for a request whose client did not identify itself. */
 function ephemeralClientScope(): string {
     return `anon:${globalThis.crypto.randomUUID()}`;
@@ -215,13 +239,14 @@ function ephemeralClientScope(): string {
  * every heavy dependency comes from {@link SharedServerServices}.
  *
  * When `request` is present (HTTP), the server's connection registry is an
- * isolated scoped+owned view over the shared store, keyed by the
+ * isolated scoped view over the shared store, keyed by the
  * `connectionScope` policy: connections in a scope survive across requests
  * resolving to that scope while staying invisible to every other scope, and a
  * request the policy declines to key (`undefined`) gets an ephemeral scope —
- * no cross-request state, and it can never see scoped connections. Without a
- * request (stdio/dry-run, a single client per process) the app-level registry
- * is used as-is.
+ * no cross-request state, it can never see scoped connections, and its
+ * connections are reaped when the request-scoped server closes (on the legacy
+ * sessionful path: when the session ends). Without a request (stdio/dry-run,
+ * a single client per process) the app-level registry is used as-is.
  */
 export function createServerFromConfig({
     config,
@@ -260,17 +285,27 @@ export function createServerFromConfig({
     // users end up sharing connections). A policy that returns `undefined`
     // yields an ephemeral scope with no cross-request state. Non-HTTP (no
     // request): the shared registry.
-    let scope: string | undefined;
+    //
+    // `owned` decides what happens when the request-scoped server closes (for
+    // the legacy sessionful path: when the session ends). An ephemeral scope
+    // dies with its session, so its view is owned and `close()` reaps its
+    // connections (the v2.x `connectionScope: "session"` behavior). A stable
+    // scope key (a named client, a verified principal, the global scope) is
+    // meant to survive the request/session that created the view, so its view
+    // is unowned and `close()` leaves the connections alone.
+    let requestConnectionRegistry: ConnectionRegistry = connectionRegistry;
     if (request) {
         if (!connectionScope) {
             throw new Error(
                 "createServerFromConfig: an HTTP request was provided but no connectionScope policy was set."
             );
         }
-        scope = connectionScope(request) ?? ephemeralClientScope();
+        const scope = connectionScope(request);
+        requestConnectionRegistry =
+            scope !== undefined
+                ? connectionStore.view({ scope, owned: false })
+                : connectionStore.view({ scope: ephemeralClientScope(), owned: true });
     }
-    const requestConnectionRegistry =
-        scope !== undefined ? connectionStore.view({ scope, owned: true }) : connectionRegistry;
 
     const mcpServer = new McpServer({
         name: serverMetadata.mcpServerName,
