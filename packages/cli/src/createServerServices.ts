@@ -181,28 +181,6 @@ export async function createSharedServicesFromConfig(
 }
 
 /**
- * The HTTP header a client may send to identify itself for connection
- * scoping in unauthenticated deployments (see
- * {@link connectionScopeByClientNameHeader}). Self-asserted and never an
- * authorization boundary.
- *
- * Deliberately outside the `x-mongodb-mcp-` prefix used by request config
- * overrides (see applyConfigOverrides), so it is never mistaken for one.
- */
-export const CLIENT_SCOPE_HEADER = "x-mcp-client-name";
-
-/**
- * Opt-in labeling for unauthenticated deployments (e.g. the CLI's own HTTP
- * runner): scopes by the self-asserted {@link CLIENT_SCOPE_HEADER} header.
- * The label is client-controlled and must not be used as an authorization
- * boundary; requests without it get an ephemeral scope.
- */
-export function connectionScopeByClientNameHeader(request: TransportRequestContext): string | undefined {
-    const header = request.headers?.[CLIENT_SCOPE_HEADER];
-    return (typeof header === "string" && header.trim()) || undefined;
-}
-
-/**
  * The scope key every request resolves to under `connectionScope: "global"`:
  * one namespace shared by all clients, surviving session rotation — the
  * v2.x `connectionScope: "global"` behavior.

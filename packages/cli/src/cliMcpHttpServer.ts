@@ -20,10 +20,9 @@ export type CliMcpHttpServerOptions = {
      * it can see and use. It must be keyed on whatever distinguishes the
      * callers (e.g. the verified end-user principal for a multi-user OIDC
      * deployment, or the OAuth client id for service-account / M2M tokens) for
-     * per-caller isolation with no shared state. See
-     * {@link connectionScopeByClientNameHeader} for the CLI's own
-     * unauthenticated labeling, and `MCP_SERVER_LIBRARY.md` for a per-user
-     * example to copy.
+     * per-caller isolation with no shared state. The CLI's own runner derives a
+     * policy from the `connectionScope` config option via {@link connectionScopeFromConfig};
+     * see `MCP_SERVER_LIBRARY.md` for a per-user example to copy.
      */
     connectionScope: ConnectionScopePolicy;
 };
