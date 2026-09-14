@@ -61,9 +61,22 @@ export interface ExplainTheme {
     clockCurrentArcColor: string;
     segmentedSelectedBackgroundColor: string;
     segmentedSelectedTextColor: string;
+    /** Font stack for the widget chrome. */
+    fontFamily: string;
 }
 
-export const lightTheme: ExplainTheme = {
+/**
+ * Host-provided CSS custom property with a Via fallback.
+ *
+ * Hosts may provide any subset of the MCP Apps style variables
+ * (McpUiStyleVariableKey); `useHostStyles` applies them to the document, so
+ * these references adopt host values where present while the Via palette (and
+ * its WCAG floors) covers every other case. Roles without a clear host
+ * counterpart (the tree's link/arrow/clock language) stay pure Via.
+ */
+const hostVar = (name: string, fallback: string): string => `var(${name}, ${fallback})`;
+
+const viaLightTheme: ExplainTheme = {
     backgroundColor: css(color.light.background.primary),
     textColor: css(color.light.text.primary),
     secondaryTextColor: css(color.light.text.secondary),
@@ -85,9 +98,10 @@ export const lightTheme: ExplainTheme = {
     clockCurrentArcColor: css(color.blue["400"]),
     segmentedSelectedBackgroundColor: css(color.light.background["inverse-primary"]),
     segmentedSelectedTextColor: css(color.light.text["inverse-primary"]),
+    fontFamily: "system-ui, -apple-system, sans-serif",
 };
 
-export const darkTheme: ExplainTheme = {
+const viaDarkTheme: ExplainTheme = {
     backgroundColor: css(color.dark.background.primary),
     textColor: css(color.dark.text.primary),
     secondaryTextColor: css(color.dark.text.secondary),
@@ -109,6 +123,26 @@ export const darkTheme: ExplainTheme = {
     clockCurrentArcColor: css(color.blue["200"]),
     segmentedSelectedBackgroundColor: css(color.dark.background["inverse-primary"]),
     segmentedSelectedTextColor: css(color.dark.text["inverse-primary"]),
+    fontFamily: "system-ui, -apple-system, sans-serif",
+};
+
+export const lightTheme: ExplainTheme = {
+    ...viaLightTheme,
+    backgroundColor: hostVar("--color-background-primary", viaLightTheme.backgroundColor),
+    textColor: hostVar("--color-text-primary", viaLightTheme.textColor),
+    secondaryTextColor: hostVar("--color-text-secondary", viaLightTheme.secondaryTextColor),
+    cardBackgroundColor: hostVar("--color-background-primary", viaLightTheme.cardBackgroundColor),
+    fontFamily: hostVar("--font-sans", viaLightTheme.fontFamily),
+};
+
+export const darkTheme: ExplainTheme = {
+    ...viaDarkTheme,
+    backgroundColor: hostVar("--color-background-primary", viaDarkTheme.backgroundColor),
+    textColor: hostVar("--color-text-primary", viaDarkTheme.textColor),
+    secondaryTextColor: hostVar("--color-text-secondary", viaDarkTheme.secondaryTextColor),
+    // Dark cards are elevated above the page; light cards share the page colour.
+    cardBackgroundColor: hostVar("--color-background-secondary", viaDarkTheme.cardBackgroundColor),
+    fontFamily: hostVar("--font-sans", viaDarkTheme.fontFamily),
 };
 
 export const getTheme = (darkMode: boolean): ExplainTheme => (darkMode ? darkTheme : lightTheme);

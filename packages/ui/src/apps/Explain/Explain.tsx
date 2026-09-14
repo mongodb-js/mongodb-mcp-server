@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, type ReactElement } from "react";
-import { useApp } from "@modelcontextprotocol/ext-apps/react";
+import { useApp, useHostStyles } from "@modelcontextprotocol/ext-apps/react";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { ExplainOutput } from "@mongodb-js/mcp-tools-mongodb";
 import { ExplainPlan, type Stage } from "./logic/ExplainPlan.js";
@@ -215,6 +215,12 @@ export const Explain = (): ReactElement => {
         },
     });
 
+    // Apply the host's style variables (and fonts) to the document; the theme
+    // roles that reference them via var() adopt host values where provided.
+    // The hook applies the initial context passed here (it does not read the
+    // initialize result itself) plus live host-context-changed updates.
+    useHostStyles(app, app?.getHostContext() ?? null);
+
     useEffect(() => {
         const hostTheme = app?.getHostContext()?.theme;
         if (hostTheme) {
@@ -318,8 +324,9 @@ export const Explain = (): ReactElement => {
     return (
         <main
             data-testid="explain-app"
+            data-theme={darkMode ? "dark" : "light"}
             style={{
-                fontFamily: "system-ui, -apple-system, sans-serif",
+                fontFamily: theme.fontFamily,
                 backgroundColor: theme.backgroundColor,
                 color: theme.textColor,
                 minHeight: "100vh",

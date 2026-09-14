@@ -11,6 +11,16 @@ import { darkTheme, lightTheme, type ExplainTheme } from "./theme.js";
  * structure layer at 1.18:1.
  */
 
+/**
+ * Theme roles that reference host style variables use `var(--x, <fallback>)`;
+ * the fallback (the Via palette) is what renders when the host provides no
+ * variables, so that is what the contrast floors are asserted against.
+ */
+const resolveFallback = (value: string): string => {
+    const match = /^var\([^,]+,\s*(.+)\)$/.exec(value);
+    return match?.[1] ?? value;
+};
+
 const parseRgb = (value: string): [number, number, number] => {
     const match = /rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/.exec(value);
     if (!match) {
@@ -63,18 +73,29 @@ describe("Explain theme contrast", () => {
     for (const [name, theme] of themes) {
         describe(name, () => {
             it.each(textPairs)("%s on %s meets 4.5:1", (foreground, background) => {
-                const ratio = contrastRatio(theme[foreground], theme[background]);
+                const ratio = contrastRatio(resolveFallback(theme[foreground]), resolveFallback(theme[background]));
                 expect(ratio, `${name}: ${foreground} on ${background} = ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(
                     4.5
                 );
             });
 
             it.each(structurePairs)("%s on %s meets 3:1", (foreground, background) => {
-                const ratio = contrastRatio(theme[foreground], theme[background]);
+                const ratio = contrastRatio(resolveFallback(theme[foreground]), resolveFallback(theme[background]));
                 expect(ratio, `${name}: ${foreground} on ${background} = ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(
                     3
                 );
             });
         });
     }
+
+    it("adopts host style variables for the foundational roles, with Via fallbacks", () => {
+        for (const theme of [lightTheme, darkTheme]) {
+            expect(theme.backgroundColor).toMatch(/^var\(--color-background-primary, /);
+            expect(theme.textColor).toMatch(/^var\(--color-text-primary, /);
+            expect(theme.secondaryTextColor).toMatch(/^var\(--color-text-secondary, /);
+            expect(theme.fontFamily).toMatch(/^var\(--font-sans, /);
+        }
+        expect(lightTheme.cardBackgroundColor).toMatch(/^var\(--color-background-primary, /);
+        expect(darkTheme.cardBackgroundColor).toMatch(/^var\(--color-background-secondary, /);
+    });
 });

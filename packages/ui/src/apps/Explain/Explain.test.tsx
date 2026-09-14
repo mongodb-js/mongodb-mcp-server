@@ -35,6 +35,9 @@ vi.mock("@modelcontextprotocol/ext-apps/react", () => ({
         options.onAppCreated?.(mocks.fakeApp);
         return { app: mocks.fakeApp, error: mocks.error };
     },
+    // Host style variables are applied to the document by the real hook; the
+    // theme's var() references are asserted directly in theme.test.ts.
+    useHostStyles: (): void => undefined,
 }));
 
 import { Explain } from "./Explain.js";
@@ -112,7 +115,7 @@ describe("Explain", () => {
         render(<Explain />);
 
         await waitFor(() => {
-            expect(screen.getByTestId("explain-app")).toHaveStyle({ backgroundColor: "rgb(0, 30, 43)" });
+            expect(screen.getByTestId("explain-app")).toHaveAttribute("data-theme", "dark");
         });
     });
 
@@ -236,8 +239,9 @@ describe("Explain", () => {
         render(<Explain />);
 
         await waitFor(() => {
-            // Via tokens express colors as rgb() strings
-            expect(screen.getByTestId("explain-app")).toHaveStyle({ backgroundColor: "rgb(0, 30, 43)" });
+            // Colour values are CSS variables with Via fallbacks (asserted in
+            // theme.test.ts); the selected theme is observable here.
+            expect(screen.getByTestId("explain-app")).toHaveAttribute("data-theme", "dark");
         });
     });
 
@@ -294,7 +298,7 @@ describe("Explain", () => {
         render(<Explain />);
 
         await waitFor(() => {
-            expect(screen.getByTestId("explain-app")).toHaveStyle({ backgroundColor: "rgb(255, 255, 255)" });
+            expect(screen.getByTestId("explain-app")).toHaveAttribute("data-theme", "light");
         });
 
         act(() => {
@@ -302,7 +306,7 @@ describe("Explain", () => {
         });
 
         await waitFor(() => {
-            expect(screen.getByTestId("explain-app")).toHaveStyle({ backgroundColor: "rgb(0, 30, 43)" });
+            expect(screen.getByTestId("explain-app")).toHaveAttribute("data-theme", "dark");
         });
     });
 });
