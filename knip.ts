@@ -99,9 +99,8 @@ const config: KnipConfig = {
             // Required for knip --strict; normal knip reports as redundant (vitest plugin overlap)
             entry: ["src/test-setup.ts"],
             ignore: [
-                "src/build/mount.tsx", // Build-only UI mount script, not part of the published package graph
                 "src/components/**", // React components built via vite.ui.config.ts, excluded from tsc build
-                "src/apps/**", // MCP Apps widgets built via vite.ui.config.ts (imported via import.meta.glob), excluded from tsc build
+                "src/apps/**", // MCP Apps widgets built via vite.ui.config.ts (per-entry mounts), excluded from tsc build
                 "vite.ui.config.ts", // Vite config for bundling UI assets; imports are not traced when ignored
             ],
             ignoreDependencies: [

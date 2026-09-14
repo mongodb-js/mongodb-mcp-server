@@ -6,7 +6,6 @@
     "src/**/*.test.ts",
     "src/**/*.test.tsx",
     "vitest.config.ts",
-    "vite.ui.config.ts",
-    "src/build/mount.tsx"
+    "vite.ui.config.ts"
   ]
 }
