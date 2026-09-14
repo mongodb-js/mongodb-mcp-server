@@ -281,6 +281,14 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
         this.mcpServer.server.onclose = (): void => {
             const closeTime = Date.now();
             this.emitServerTelemetryEvent("stop", Date.now() - closeTime);
+            // Reap the request-scoped connection registry view when the underlying
+            // McpServer closes. This covers the modern stateless (2026-07-28)
+            // path, where the SDK closes each per-request McpServer and never
+            // calls {@link CliServer.close}: an owned (ephemeral) view has its
+            // connections revoked, while an unowned (stable / shared) view no-ops
+            // so its connections survive. Idempotent, so the legacy path (which
+            // closes via {@link CliServer.close} → mcpServer.close()) is fine.
+            void this.connectionRegistry.close().catch(() => undefined);
         };
 
         this.mcpServer.server.onerror = (error: Error): void => {

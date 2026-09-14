@@ -92,10 +92,11 @@ export function createHttpTransportRunnerFromConfig(sharedServices: SharedServer
             },
             // The CLI's own runner is a local, unauthenticated deployment: the
             // policy comes from the `connectionScope` config option — "session"
-            // (default) isolates per session, with opt-in cross-request state
-            // via the self-asserted name header; "global" shares one scope
-            // across all clients. Hosts serving authenticated traffic construct
-            // CliMcpHttpServer with their own policy.
+            // (default) keys on the client's mcp-session-id (falling back to the
+            // shared scope on the sessionless 2026-07-28 path when no id is
+            // present); "global" shares one scope across all clients. Hosts
+            // serving authenticated traffic construct CliMcpHttpServer with
+            // their own policy.
             connectionScope: connectionScopeFromConfig(config),
             sessionOptions: {
                 maxSessions: config.maxSessions,

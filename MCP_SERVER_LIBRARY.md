@@ -78,7 +78,7 @@ There are three main approaches:
 1. **`runMcpCli` (recommended for CLIs)**: one call that parses config, runs handlers, creates the server and infrastructure, and starts stdio or HTTP transport — the same flow the official binary uses.
 2. **`createSharedServicesFromConfig` + `createRunnerFromConfig` + `startRunner`**: split the same flow so you can replace individual dependencies (logger, API client, telemetry, monitoring server) via `create*FromConfig` factories, or create just the server (`createServerFromConfig`) and wire a custom runner.
    - `createSharedServicesFromConfig({ config, serverMetadata, tools, resources, logger })` builds the app-level infrastructure shared by every request-scoped server (`metrics`, `monitoringServer`, `keychain`, `deviceId`, `connectionStore`, `connectionRegistry`, `apiClient`, `exportsManager`, `telemetry`, `atlasLocalClient`, `config`, `tools`, `resources`).
-   - `createServerFromConfig({ config, sharedServices, request, connectionScope })` builds one **request-scoped** `CliServer` from a resolved config. `request` (an optional `TransportRequestContext`) is present for HTTP — the server then gets an isolated connection registry view keyed by the `connectionScope` policy and carries `transportRequest` through to tool/resource constructors. It returns `CliServer` directly.
+   - `createServerFromConfig({ config, sharedServices, request, connectionScope })` builds one **request-scoped** `CliServer` from a resolved config. `request` (an optional `TransportRequestContext`) is present for HTTP — the server then gets an isolated connection registry view keyed by the `connectionScope` policy and carries `transportRequest` through to tool/resource constructors. `connectionScope` is **required whenever `request` is supplied**: `createServerFromConfig` throws if an HTTP request arrives without a policy (fail closed, no implicit default). It returns `CliServer` directly.
    - `createRunnerFromConfig` calls `createSharedServicesFromConfig` internally and returns only the configured transport runner (`CliStdioRunner`/`StdioRunner` for stdio, `StreamableHttpRunner` for HTTP). `createHttpTransportRunnerFromConfig(sharedServices)` wires HTTP with the CLI's `CliMcpHttpServer`.
    - `startRunner({ transportRunner, logger, onExit })` starts the runner and manages the server lifecycle (signal handlers, graceful shutdown).
 3. **Override `MCPHttpServer.createServerForRequest`**: when hosting over HTTP and you need per-request customization, subclass `MCPHttpServer` and override `createServerForRequest(request: TransportRequestContext): Promise<TServer>` (return a request-scoped `CliServer` via `createServerFromConfig`). In v3 this hook lives on `MCPHttpServer`, **not** on `StreamableHttpRunner`.
@@ -278,12 +278,15 @@ class PermissionsMCPHttpServer extends MCPHttpServer<CliServer> {
   protected override async createServerForRequest(
     request: TransportRequestContext
   ): Promise<CliServer> {
-    const userId = request?.headers?.["x-user-id"];
-    if (typeof userId !== "string") {
-      throw new Error("User authentication required: x-user-id header missing");
+    // Use the host-verified identity, not a client-controlled header: the host's
+    // token verifier attaches the OIDC `sub` claim to `AuthInfo.extra` (via
+    // `req.auth`). Reject the request when there is no usable subject.
+    const sub = request.authInfo?.extra?.sub;
+    if (typeof sub !== "string" || !sub.trim()) {
+      throw new Error("User authentication required: no verified sub claim");
     }
 
-    const permissions = await getUserPermissions(userId);
+    const permissions = await getUserPermissions(sub.trim());
     const allOperations = [
       "read",
       "metadata",

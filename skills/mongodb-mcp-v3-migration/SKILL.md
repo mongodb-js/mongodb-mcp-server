@@ -385,9 +385,12 @@ const apiClient = createApiClientFromConfig({ config, serverMetadata, logger });
 | ad-hoc logger from config       | `createLoggerFromConfig`                                          |
 
 Full stack alternative: build app-level services once with
-`createSharedServicesFromConfig`, then `createServerFromConfig({ config, sharedServices, request })`
-returns a **request-scoped `CliServer` directly** (the logger is provided as input; the
-heavy services come from `sharedServices`). `createRunnerFromConfig` calls
+`createSharedServicesFromConfig`, then `createServerFromConfig` returns a
+**request-scoped `CliServer` directly** (the logger is provided as input; the
+heavy services come from `sharedServices`). For HTTP, pass both `request` and a
+`connectionScope` policy — it is required whenever `request` is present and
+`createServerFromConfig` throws without it (fail closed). For stdio, omit `request`
+(or pass only the config). `createRunnerFromConfig` calls
 `createSharedServicesFromConfig` internally and returns only the configured transport
 runner; `closeSharedServices(sharedServices)` releases app-level services on shutdown.
 
