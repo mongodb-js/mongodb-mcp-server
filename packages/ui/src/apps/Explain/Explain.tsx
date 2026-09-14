@@ -180,9 +180,17 @@ const BracesIcon = (): ReactElement => (
 const RawOutputView: React.FunctionComponent<{ data: unknown; theme: ExplainTheme }> = ({ data, theme }) => (
     <pre
         data-testid="explain-raw-view"
+        tabIndex={0}
+        aria-label="Raw explain output"
         style={{
             margin: 0,
             padding: spacing[400],
+            // Cap the height (matching RawExplain): without it a large explain
+            // payload grows the host frame to the whole JSON's height — the
+            // widget reports content size via size-changed, so an uncapped
+            // view means an arbitrarily tall app.
+            maxHeight: 320,
+            overflow: "auto",
             fontSize: 11,
             lineHeight: "16px",
             border: `1px solid ${theme.detailsBorderColor}`,
@@ -190,7 +198,6 @@ const RawOutputView: React.FunctionComponent<{ data: unknown; theme: ExplainThem
             backgroundColor: theme.detailsBackgroundColor,
             whiteSpace: "pre-wrap",
             wordBreak: "break-word",
-            overflow: "auto",
         }}
     >
         {JSON.stringify(data, null, 2)}

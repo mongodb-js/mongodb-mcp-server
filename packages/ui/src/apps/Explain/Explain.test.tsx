@@ -258,6 +258,10 @@ describe("Explain", () => {
         });
         expect(screen.queryByTestId("explain-tree")).not.toBeInTheDocument();
         expect(screen.getByTestId("explain-raw-view")).toHaveTextContent('"FETCH"');
+        // capped so a large payload scrolls inside the widget instead of
+        // growing the host frame (see the size-changed contract)
+        expect(screen.getByTestId("explain-raw-view")).toHaveStyle({ maxHeight: "320px" });
+        expect(screen.getByTestId("explain-raw-view")).toHaveAttribute("aria-label", "Raw explain output");
 
         fireEvent.click(screen.getByRole("button", { name: /Visual Tree/ }));
         await waitFor(() => {
