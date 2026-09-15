@@ -1,6 +1,6 @@
 import { randomBytes } from "crypto";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { Keychain, type LoggerBase } from "@mongodb-js/mcp-core";
+import type { Keychain, LoggerBase } from "@mongodb-js/mcp-core";
 import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
 import type { AnyConnectionState, ConnectionManager, ConnectionSettings } from "./connectionManager.js";
 import { ErrorCodes, MongoDBError } from "./errors.js";
@@ -122,6 +122,8 @@ type ConnectionEntryOptions = {
     manager: ConnectionManager;
     onRevoke?: () => Promise<void>;
     atlasCluster?: AtlasClusterConnectionInfo;
+    /** The immutable redaction keychain used to scrub connection strings from captured errors. Required. */
+    keychain: Keychain;
 };
 
 /**
@@ -156,14 +158,16 @@ export class ConnectionEntry {
     private onRevoke?: () => Promise<void>;
 
     private readonly manager: ConnectionManager;
+    private readonly keychain: Keychain;
 
-    constructor({ connectionId, name, source, manager, onRevoke, atlasCluster }: ConnectionEntryOptions) {
+    constructor({ connectionId, name, source, manager, onRevoke, atlasCluster, keychain }: ConnectionEntryOptions) {
         this.connectionId = connectionId;
         this.name = name;
         this.source = source;
         this.manager = manager;
         this.onRevoke = onRevoke;
         this.atlasCluster = atlasCluster;
+        this.keychain = keychain;
     }
 
     get state(): AnyConnectionState {
@@ -196,7 +200,7 @@ export class ConnectionEntry {
             // malformed URI), which may contain credentials. lastError is read back later by
             // list-connections, so it has to be redacted here at the point of capture, not
             // only where the response for this call happens to be built.
-            this.lastError = Keychain.root.redact(message);
+            this.lastError = this.keychain.redact(message);
             throw error;
         }
     }

@@ -1,5 +1,5 @@
-import { Keychain } from "@mongodb-js/mcp-core";
 import { parseUserConfig } from "./config/parseUserConfig.js";
+import { createKeychainFromConfig } from "./config/createKeychainFromConfig.js";
 import { createLoggerFromConfig } from "./createLoggerFromConfig.js";
 import { createRunnerFromConfig } from "./createRunnerFromConfig.js";
 import { startRunner } from "./startRunner.js";
@@ -76,6 +76,7 @@ export async function runMcpCli({
                 consoleLogger,
                 onExit,
                 serverMetadata,
+                keychain: createKeychainFromConfig(config),
             });
             if (handled) {
                 return;
@@ -83,8 +84,11 @@ export async function runMcpCli({
         }
     }
 
-    // Create logger, then the transport runner (stdio or HTTP based on config)
-    const logger = await createLoggerFromConfig({ config, keychain: Keychain.root });
+    // Create the immutable redaction keychain once (from config secrets), then
+    // the logger and transport runner with it. No code registers secrets on the
+    // keychain after this point.
+    const keychain = createKeychainFromConfig(config);
+    const logger = await createLoggerFromConfig({ config, keychain });
 
     try {
         const transportRunner = await createRunnerFromConfig({
@@ -93,6 +97,7 @@ export async function runMcpCli({
             tools,
             resources,
             logger,
+            keychain,
         });
 
         // Start the transport runner

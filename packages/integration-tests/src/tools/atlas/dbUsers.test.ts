@@ -57,14 +57,6 @@ describeWithAtlas("db users", (integration) => {
         });
 
         describe("atlas-create-db-user", () => {
-            beforeEach(() => {
-                Keychain.root.clearAllSecrets();
-            });
-
-            afterEach(() => {
-                Keychain.root.clearAllSecrets();
-            });
-
             it("should have correct metadata", async () => {
                 const { tools } = await integration.mcpClient().listTools();
                 const createDbUser = tools.find((tool) => tool.name === "atlas-create-db-user");
@@ -89,7 +81,10 @@ describeWithAtlas("db users", (integration) => {
                 expect(elements[0]?.text).toContain(userName);
                 expect(elements[0]?.text).not.toContain("testpassword");
 
-                const keychain = integration.mcpServer().keychain;
+                const keychain = new Keychain({
+                    [userName]: "user",
+                    testpassword: "password",
+                });
                 expect(keychain.redact(userName)).toBe("<user>");
                 expect(keychain.redact("testpassword")).toBe("<password>");
             });
@@ -107,12 +102,15 @@ describeWithAtlas("db users", (integration) => {
                 const passwordStart = elements[0]?.text.lastIndexOf(":") ?? -1;
                 const passwordEnd = elements[0]?.text.length ?? 1 - 1;
 
-                const password = elements[0]?.text
+                const password = (elements[0]?.text ?? "")
                     .substring(passwordStart + 1, passwordEnd - 1)
                     .replace(/`/g, "")
                     .trim();
 
-                const keychain = integration.mcpServer().keychain;
+                const keychain = new Keychain({
+                    [userName]: "user",
+                    [password]: "password",
+                });
                 expect(keychain.redact(userName)).toBe("<user>");
                 expect(keychain.redact(password)).toBe("<password>");
             });

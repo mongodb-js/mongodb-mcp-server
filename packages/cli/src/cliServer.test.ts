@@ -54,7 +54,7 @@ function makeServer(config: UserConfig, apiClient: ApiClient): CliServer {
     return new CliServer({
         config,
         logger: new CompositeLogger({ loggers: [] }),
-        keychain: Keychain.root,
+        keychain: new Keychain(),
         connectionRegistry: {} as unknown as ConnectionRegistry,
         exportsManager: {} as unknown as ExportsManager,
         apiClient,

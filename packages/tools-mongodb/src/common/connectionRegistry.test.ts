@@ -5,7 +5,7 @@ import { summarizeConnection } from "./connectionSummary.js";
 import { FakeConnectionManager } from "./mocks/connectionManager.js";
 import { ConnectionManager, type ConnectionStateConnecting, type AnyConnectionState } from "./connectionManager.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { CompositeLogger } from "@mongodb-js/mcp-core";
+import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import { DeviceId } from "../helpers/deviceId.js";
 import { ErrorCodes, MongoDBError } from "./errors.js";
 
@@ -60,6 +60,7 @@ describe("ConnectionRegistry", () => {
             options: defaultTestConfig,
             logger: new CompositeLogger(),
             deviceId: DeviceId.create(new CompositeLogger()),
+            keychain: new Keychain(),
             ...overrides,
         });
     }

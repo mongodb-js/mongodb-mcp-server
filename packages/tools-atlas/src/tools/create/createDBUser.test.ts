@@ -26,7 +26,6 @@ vi.mock("../../helpers/generatePassword.js", () => ({
 describe("CreateDBUserTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
     let keychain: Keychain;
-    let registerSpy: ReturnType<typeof vi.spyOn>;
     let tool: CreateDBUserTool;
 
     const baseArgs = {
@@ -37,7 +36,6 @@ describe("CreateDBUserTool", () => {
 
     beforeEach(() => {
         keychain = new Keychain();
-        registerSpy = vi.spyOn(keychain, "register");
         mockApiClient = {
             createDatabaseUser: vi.fn().mockResolvedValue({}),
         };
@@ -83,8 +81,9 @@ describe("CreateDBUserTool", () => {
         const result = await exec({ ...baseArgs, password: "user-password" });
 
         expect((result.content[0] as { text: string }).text).toBe('User "test-user" created successfully.');
-        expect(registerSpy).toHaveBeenCalledWith("test-user", "user");
-        expect(registerSpy).toHaveBeenCalledWith("user-password", "password");
+        // The keychain is immutable and set once at construction; a created DB
+        // user's password is only delivered to the caller (in content), never
+        // registered on the keychain.
         expect(result.structuredContent).toEqual({
             username: baseArgs.username,
         });
@@ -94,7 +93,8 @@ describe("CreateDBUserTool", () => {
         const result = await exec();
 
         expect((result.content[0] as { text: string }).text).toContain("with password: `generated-password`");
-        expect(registerSpy).toHaveBeenCalledWith("generated-password", "password");
+        // The generated password is delivered to the caller (in structuredContent),
+        // not registered on the immutable keychain.
         expect(result.structuredContent).toEqual({
             username: baseArgs.username,
             password: "generated-password",

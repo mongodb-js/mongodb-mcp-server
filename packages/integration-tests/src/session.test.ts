@@ -45,6 +45,7 @@ describe("CliServer construction (individually-injected services)", () => {
             options: defaultTestConfig,
             logger,
             deviceId: DeviceId.create(logger),
+            keychain,
         }).view();
         const apiClient = createTestApiClient({
             baseUrl: defaultTestConfig.apiBaseUrl,

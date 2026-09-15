@@ -2,7 +2,7 @@ import type { Mocked, MockedFunction } from "vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MongoServerError } from "mongodb";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { CompositeLogger } from "@mongodb-js/mcp-core";
+import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import { MCPConnectionManager, type ConnectionManager } from "./connectionManager.js";
 import { MCPConnectionStore, type ConnectionStoreConfig } from "./connectionStore.js";
 import { ConnectionEntry, type ConnectionRegistry } from "./connectionRegistry.js";
@@ -43,6 +43,7 @@ describe("ConnectionEntry with MCPConnectionManager", () => {
             options: defaultTestConfig,
             logger,
             deviceId: mockDeviceId,
+            keychain: new Keychain(),
         }).view();
 
         MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({});
@@ -165,6 +166,7 @@ describe("ConnectionEntry with MCPConnectionManager", () => {
                     serverMetadata: { mcpServerName: "MongoDB MCP Server", version: "1.0.0" },
                     connectionInfo: { transport: "stdio", httpHost: "127.0.0.1" },
                 }),
+                keychain: new Keychain(),
             });
 
             await expect(

@@ -128,7 +128,7 @@ import {
 } from "@mongodb-js/mcp-cli";
 import { MongoDBTools } from "@mongodb-js/mcp-tools-mongodb";
 import { Resources } from "@mongodb-js/mcp-cli";
-import { Keychain } from "@mongodb-js/mcp-core";
+import { createKeychainFromConfig } from "@mongodb-js/mcp-cli";
 import type { ServerMetadata } from "@mongodb-js/mcp-types";
 
 const { parsed: config } = parseUserConfig({
@@ -143,7 +143,7 @@ const serverMetadata: ServerMetadata = {
 
 const logger = await createLoggerFromConfig({
   config,
-  keychain: Keychain.root,
+  keychain: createKeychainFromConfig(config),
 });
 const transportRunner = await createRunnerFromConfig({
   config: {
@@ -176,9 +176,9 @@ import {
   createLoggerFromConfig,
   createApiClientFromConfig,
 } from "@mongodb-js/mcp-cli";
-import { Keychain } from "@mongodb-js/mcp-core";
+import { createKeychainFromConfig } from "@mongodb-js/mcp-cli";
 
-const keychain = Keychain.root;
+const keychain = createKeychainFromConfig(config);
 const logger = await createLoggerFromConfig({ config, keychain });
 const apiClient = createApiClientFromConfig({ config, serverMetadata, logger });
 ```
@@ -207,7 +207,7 @@ import {
   type CliServer,
   type SharedServerServices,
 } from "@mongodb-js/mcp-cli";
-import { Keychain } from "@mongodb-js/mcp-core";
+import { createKeychainFromConfig } from "@mongodb-js/mcp-cli";
 import { MongoDBTools } from "@mongodb-js/mcp-tools-mongodb";
 import type {
   TransportRequestContext,
@@ -237,7 +237,7 @@ const serverMetadata: ServerMetadata = {
 
 // App-level services, built once per process and shared by every server
 const { parsed: baseConfig } = parseUserConfig({ args: process.argv.slice(2) });
-const keychain = Keychain.root;
+const keychain = createKeychainFromConfig(baseConfig);
 const logger = await createLoggerFromConfig({ config: baseConfig, keychain });
 const sharedServices: SharedServerServices =
   await createSharedServicesFromConfig({
@@ -442,7 +442,7 @@ const standard = [...MongoDBTools, ...AtlasTools, ...AtlasLocalTools];
 | `StdioRunner({ logger })`                                                             | Abstract stdio transport runner (`serveStdio`; override `createServer()` to return a registered `McpServer`)                                                  |
 | `InMemoryTransport`                                                                   | In-memory transport for tests                                                                                                                                 |
 | `SessionStore`, `createDefaultSessionStore`                                           | **Deprecated** legacy 2025-era HTTP session store                                                                                                             |
-| `Keychain`, `registerGlobalSecretToRedact`                                            | Secret storage/redaction (the `IRedactor` type lives in `@mongodb-js/mcp-types`); `Keychain.redact(value)` replaces the removed `allSecrets` field            |
+| `Keychain`                                                                           | Immutable secret storage/redaction (the `IRedactor` type lives in `@mongodb-js/mcp-types`); constructor takes the config secrets and `Keychain.redact(value)` replaces the removed `allSecrets` field. A keychain is built once from config (`createKeychainFromConfig`) and never grows afterward            |
 | `Elicitation`                                                                         | Multi-round-trip confirmation/input (`confirmationRequired`/`readConfirmation`/`inputRequired`/`readInput`)                                                   |
 | `NoopLogger`, `NoopTelemetry`, `LoggerBase`, `RedactingLoggerBase`, `CompositeLogger` | Logging/telemetry primitives                                                                                                                                  |
 | `McpServer` (re-export)                                                               | `@modelcontextprotocol/server`                                                                                                                                |

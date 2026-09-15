@@ -109,8 +109,8 @@ describe("MongoDBTool implementations", () => {
         const logger = new CompositeLogger();
         const exportsManager = ExportsManager.init({ options: userConfig, logger: logger });
         deviceId = DeviceId.create(logger);
-        const connectionRegistry = new MCPConnectionStore({ options: userConfig, logger, deviceId }).view();
         const keychain = new Keychain();
+        const connectionRegistry = new MCPConnectionStore({ options: userConfig, logger, deviceId, keychain }).view();
         const apiClient = createTestApiClient({
             baseUrl: userConfig.apiBaseUrl,
             serverMetadata: { mcpServerName: "test", version: "1" },

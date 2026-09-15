@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { NoopLogger, type CompositeLogger } from "@mongodb-js/mcp-core";
+import { Keychain, NoopLogger, type CompositeLogger } from "@mongodb-js/mcp-core";
 import { StdioRunner } from "@mongodb-js/mcp-core";
 import type * as McpCore from "@mongodb-js/mcp-core";
 import type { ConnectionRegistry } from "@mongodb-js/mcp-tools-mongodb";
@@ -147,6 +147,7 @@ describe("createSharedServicesFromConfig", () => {
             tools: [],
             resources: [],
             logger,
+            keychain: new Keychain(),
         });
 
         expect(createMonitoringServerFromConfig).toHaveBeenCalledWith(expect.objectContaining({ config }));
@@ -184,6 +185,7 @@ describe("createServerFromConfig (request-scoped server)", () => {
             tools: [],
             resources: [],
             logger,
+            keychain: new Keychain(),
         });
     }
 
@@ -283,6 +285,7 @@ describe("createRunnerFromConfig", () => {
             tools: [],
             resources: [],
             logger,
+            keychain: new Keychain(),
         });
 
         expect(runner).toBeInstanceOf(StdioRunner);
@@ -300,6 +303,7 @@ describe("createRunnerFromConfig", () => {
             tools: [],
             resources: [],
             logger,
+            keychain: new Keychain(),
         });
 
         expect(runner).toBeInstanceOf(StreamableHttpRunner);
@@ -327,6 +331,7 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
             tools: [],
             resources: [],
             logger,
+            keychain: new Keychain(),
         });
     }
 

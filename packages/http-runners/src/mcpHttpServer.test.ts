@@ -35,7 +35,7 @@ class InMemoryLogger extends RedactingLoggerBase implements ICompositeLogger {
     public attributes: Record<string, string> = {};
 
     constructor() {
-        super({ keychain: Keychain.root });
+        super({ keychain: new Keychain() });
     }
 
     protected logCore(level: LogLevel, payload: LogPayload): void {
