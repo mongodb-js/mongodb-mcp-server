@@ -292,6 +292,7 @@ export class ConnectionEntry {
     constructor(input: ConnectionEntryOptions);
     // (undocumented)
     assertSearchSupported(logger: LoggerBase): Promise<void>;
+    get atlasCluster(): AtlasClusterConnectionInfo | undefined;
     // (undocumented)
     close(): Promise<void>;
     // (undocumented)
@@ -356,6 +357,8 @@ export abstract class ConnectionManager {
     readonly events: Pick<EventEmitter<ConnectionManagerEvents>, "on" | "off" | "once">;
     // (undocumented)
     protected readonly _events: EventEmitter<ConnectionManagerEvents>;
+    protected resolveAtlasCluster(settings: ConnectionSettings): AtlasClusterConnectionInfo | undefined;
+    setAtlasClusterSource(source: () => AtlasClusterConnectionInfo | undefined): void;
     // (undocumented)
     setClientName(clientName: string): void;
 }
@@ -397,7 +400,7 @@ export interface ConnectionRegistry {
 
 // @public (undocumented)
 export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"> {
-    // (undocumented)
+    // @deprecated (undocumented)
     atlas?: AtlasClusterConnectionInfo;
     // (undocumented)
     driverOptions?: ConnectionInfo["driverOptions"];
@@ -408,7 +411,7 @@ export type ConnectionSource = "explicit" | "preconfigured";
 
 // @public (undocumented)
 export interface ConnectionState {
-    // (undocumented)
+    // @deprecated (undocumented)
     connectedAtlasCluster?: AtlasClusterConnectionInfo;
     // (undocumented)
     connectionStringInfo?: ConnectionStringInfo;
@@ -486,6 +489,7 @@ export type CreateConnectionEntryOptions = {
     name: string;
     clientName?: string;
     onRevoke?: () => Promise<void>;
+    atlasCluster?: AtlasClusterConnectionInfo;
 };
 
 // @public (undocumented)
@@ -496,6 +500,7 @@ export type CreateConnectionOptions = {
     settings: ConnectionSettings;
     name?: string;
     clientName?: string;
+    atlasCluster?: AtlasClusterConnectionInfo;
 };
 
 // @public

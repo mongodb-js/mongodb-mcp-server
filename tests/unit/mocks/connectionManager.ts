@@ -39,7 +39,7 @@ export class FakeConnectionManager extends ConnectionManager {
                 new ConnectionStateConnected(
                     this.serviceProvider ?? ({ fake: true } as unknown as NodeDriverServiceProvider),
                     { authType: "scram", hostType: "unknown" },
-                    settings.atlas
+                    this.resolveAtlasCluster(settings)
                 )
             )
         );

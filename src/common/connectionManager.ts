@@ -18,6 +18,12 @@ export type { ConnectionStringInfo, ConnectionStringAuthType, AtlasClusterConnec
 
 export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"> {
     driverOptions?: ConnectionInfo["driverOptions"];
+    /**
+     * @deprecated Pass the cluster as `atlasCluster` when creating the
+     * connection entry instead. Still honored: an entry without a cluster of
+     * its own adopts this value, and a manager dialed directly reports it on
+     * its state.
+     */
     atlas?: AtlasClusterConnectionInfo;
 }
 
@@ -27,6 +33,10 @@ export type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
 export interface ConnectionState {
     tag: ConnectionTag;
     connectionStringInfo?: ConnectionStringInfo;
+    /**
+     * @deprecated Read `ConnectionEntry.atlasCluster` instead; this mirrors it
+     * for the entry that owns the manager.
+     */
     connectedAtlasCluster?: AtlasClusterConnectionInfo;
 }
 
@@ -194,6 +204,7 @@ export interface ConnectionManagerEvents {
 
 export abstract class ConnectionManager {
     public clientName: string;
+    private atlasClusterSource?: () => AtlasClusterConnectionInfo | undefined;
     protected readonly _events: EventEmitter<ConnectionManagerEvents>;
     readonly events: Pick<EventEmitter<ConnectionManagerEvents>, "on" | "off" | "once">;
     private state: AnyConnectionState;
@@ -221,6 +232,20 @@ export abstract class ConnectionManager {
 
     setClientName(clientName: string): void {
         this.clientName = clientName;
+    }
+
+    /**
+     * Lets the owning {@link ConnectionEntry} supply the Atlas cluster that
+     * every emitted state mirrors as `connectedAtlasCluster`, so the entry is
+     * the single owner of that information.
+     */
+    setAtlasClusterSource(source: () => AtlasClusterConnectionInfo | undefined): void {
+        this.atlasClusterSource = source;
+    }
+
+    /** The cluster to report on emitted states: the entry's, else the deprecated `settings.atlas`. */
+    protected resolveAtlasCluster(settings: ConnectionSettings): AtlasClusterConnectionInfo | undefined {
+        return this.atlasClusterSource?.() ?? settings.atlas;
     }
 
     abstract connect(settings: ConnectionSettings): Promise<AnyConnectionState>;
@@ -348,7 +373,7 @@ export class MCPConnectionManager extends ConnectionManager {
                 tag: "errored",
                 errorReason,
                 connectionStringInfo,
-                connectedAtlasCluster: settings.atlas,
+                connectedAtlasCluster: this.resolveAtlasCluster(settings),
             });
             throw new MongoDBError(ErrorCodes.MisconfiguredConnectionString, errorReason);
         }
@@ -358,7 +383,7 @@ export class MCPConnectionManager extends ConnectionManager {
                 return this.changeState("connection-request", {
                     tag: "connecting",
                     serviceProvider,
-                    connectedAtlasCluster: settings.atlas,
+                    connectedAtlasCluster: this.resolveAtlasCluster(settings),
                     connectionStringInfo,
                     oidcConnectionType: connectionStringInfo.authType as OIDCConnectionAuthType,
                 });
@@ -366,7 +391,11 @@ export class MCPConnectionManager extends ConnectionManager {
 
             return this.changeState(
                 "connection-success",
-                new ConnectionStateConnected(await serviceProvider, connectionStringInfo, settings.atlas)
+                new ConnectionStateConnected(
+                    await serviceProvider,
+                    connectionStringInfo,
+                    this.resolveAtlasCluster(settings)
+                )
             );
         } catch (error: unknown) {
             const errorReason = error instanceof Error ? error.message : `${error as string}`;
@@ -374,7 +403,7 @@ export class MCPConnectionManager extends ConnectionManager {
                 tag: "errored",
                 errorReason,
                 connectionStringInfo,
-                connectedAtlasCluster: settings.atlas,
+                connectedAtlasCluster: this.resolveAtlasCluster(settings),
             });
             throw new MongoDBError(ErrorCodes.NotConnectedToMongoDB, errorReason);
         }
