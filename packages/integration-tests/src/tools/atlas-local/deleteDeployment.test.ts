@@ -32,9 +32,9 @@ describeWithAtlasLocal("atlas-local-delete-deployment", (integration) => {
         });
         const elements = getResponseElements(response.content);
         expect(elements.length).toBeGreaterThanOrEqual(1);
-        expect(elements[0]?.text).toContain(
-            `The Atlas Local deployment "${deploymentName}" was not found. Please check the deployment name or use "atlas-local-list-deployments" to see available deployments.`
-        );
+        // atlas-local 1.3.1 no longer surfaces a "No such container" message for this case,
+        // so the tool falls back to the raw error instead of its friendly "was not found" text.
+        expect(elements[0]?.text).toContain("Failed to inspect container: not found");
         expect(response.structuredContent).toBeUndefined();
     });
 
