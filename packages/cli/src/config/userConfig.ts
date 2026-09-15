@@ -165,6 +165,13 @@ const ServerConfigSchema = z.object({
             "Header that the HTTP server will validate when making requests (only used when transport is 'http')."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    dangerousHostBinding: z
+        .preprocess(parseBoolean, z.boolean())
+        .default(false)
+        .describe(
+            "When set to true, allows binding the HTTP server (and monitoring server) to a non-loopback host such as 0.0.0.0, a LAN IP, or an empty host (all interfaces). Binding to a non-loopback host exposes the server to the entire network and can allow unauthorized access. Off by default: the server refuses to start on a non-loopback host unless this is true."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
     httpBodyLimit: z.coerce
         .number()
         .int()

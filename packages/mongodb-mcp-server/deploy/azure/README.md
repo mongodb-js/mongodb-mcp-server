@@ -14,8 +14,8 @@ This directory contains an Azure Bicep template (`bicep/main.bicep`) and support
 
 Two sample parameter files are provided to help you tailor deployments. Copy these files and remove the suffix "\_template" part to create parameter files as "bicep/params.json" and "bicep/paramsWithAuthEnabled.json".
 
-- `bicep/params_template.json`: Baseline configuration that deploys the MongoDB MCP server with authentication disabled or using default settings. Use this when testing in development environments or when external authentication is not required.
-- `bicep/paramsWithAuthEnabled_template.json`: Extends the baseline deployment and enables Microsoft Entra ID (Azure AD) authentication using managed identity and client application IDs. Use this when you want the server protected with Azure AD authentication via managed identity.
+- `bicep/params_template.json`: Baseline configuration that deploys the MongoDB MCP server with authentication disabled or using default settings. Use this when testing in development environments or when external authentication is not required. Because it binds to all interfaces (`::`) with **no authentication**, the server now **fails closed** at startup unless you explicitly set `MDB_MCP_DANGEROUS_HOST_BINDING=true` (see the commented-out entry in the parameter file). This is a dev/test-only posture — do **not** use it for production.
+- `bicep/paramsWithAuthEnabled_template.json`: Extends the baseline deployment and enables Microsoft Entra ID (Azure AD) authentication using managed identity and client application IDs. Use this when you want the server protected with Azure AD authentication via managed identity. This template sets `MDB_MCP_DANGEROUS_HOST_BINDING=true` because authentication is enforced at the Azure Container Apps platform layer before requests reach the server.
 
 ### Reusing an Existing Container Apps Environment
 
