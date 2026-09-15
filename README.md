@@ -928,14 +928,14 @@ For detailed Azure instructions, see [deploy/azure/README.md](deploy/azure/READM
 
 ## Deployment Constraints
 
-The MongoDB MCP Server is designed for **single-user, localhost (or private) deployments** where the operating user is the only principal. It ships with **no built-in authentication**, and the MCP protocol does not carry a verified end-user identity. **It is not meant to be run as a multi-tenant / shared server.**
+The **CLI tool** (`mongodb-mcp-server` / `npx mongodb-mcp-server`) is designed for **single-user, localhost (or private) deployments** where the operating user is the only principal. It ships with **no built-in authentication**, and the MCP protocol does not carry a verified end-user identity. **It is not meant to serve multiple users** — there is no authentication middleware in front of it to distinguish callers or control connection isolation.
 
-As a result, if you expose it to a network — or use it as a shared server — you are responsible for the isolation guarantees:
+As a result, if you expose it to a network — or run it as a shared server — you are responsible for the isolation guarantees:
 
 - **Internet exposure:** binding to `0.0.0.0` / `::` (or any non-loopback host) with no auth exposes an unauthenticated endpoint that can run MongoDB operations (including destructive ones) against the configured connection string. If you intentionally bind to a non-loopback host, you must set `MDB_MCP_DANGEROUS_HOST_BINDING=true` (see [Environment Variables](#environment-variables)).
 - **Multi-user isolation:** connections are scoped by the (soon-to-be-removed) `connectionScope` option, whose default is moving to `global` — every request shares one scope. The `mcp-session-id` header that keys the scope on the sessionless path is client-asserted, not a security boundary, and requests without it fall into the shared scope. So multiple users can see and operate on each other's connections, including any Atlas temporary database user credentials. The server does not distinguish callers.
 
-**Do not** run the server as a shared, internet-facing endpoint without your own authentication and identity layer in front of it.
+**Do not** run the CLI tool as a shared, internet-facing endpoint without adding your own authentication and identity layer in front of it.
 
 ### Use the library and add your own auth
 
