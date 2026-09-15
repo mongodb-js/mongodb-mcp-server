@@ -5,57 +5,19 @@ import type { IKeychain } from "@mongodb-js/mcp-types";
 export type { Secret } from "mongodb-redact";
 
 /** The category a secret is redacted as (e.g. `password`, `mongodb uri`). */
-type SecretKind = Secret["kind"];
+export type SecretKind = Secret["kind"];
 
-/**
- * The shape of the secret map: keyed by the secret value, holding its kind. A
- * `Map` (rather than an array) gives O(1) dedup: the same value is never held
- * twice, and {@link Keychain.extended} is a pure merge of two maps.
- */
-type SecretRecord = Map<string, { kind: SecretKind }>;
-
-/**
- * Creates a secret map from a {@link Secret} array, deduplicating by value.
- * A value registered twice keeps its last kind.
- */
-function toSecretMap(secrets: Secret[]): SecretRecord {
-    const map: SecretRecord = new Map();
-    for (const { value, kind } of secrets) {
-        map.set(value, { kind });
-    }
-    return map;
-}
-
-/** Materialises the map back into the array mongodb-redact expects. */
-function toSecretArray(map: SecretRecord): Secret[] {
-    return [...map.entries()].map(([value, { kind }]) => ({ value, kind }));
-}
-
-/** Normalises any accepted input shape into a flat {@link Secret} array. */
-function normalizeSecrets(secrets: Secret | Secret[] | Record<string, SecretKind>): Secret[] {
-    if (Array.isArray(secrets)) {
-        return secrets;
-    }
-    // A single Secret has a `value` string; a value→kind record has string keys
-    // whose values are kinds. A record could technically have a key named
-    // "value", so disambiguate by checking for a normal Secret shape first.
-    if (typeof secrets === "object" && "value" in secrets && "kind" in secrets) {
-        return [secrets as Secret];
-    }
-    return Object.entries(secrets).map(([value, kind]) => ({ value, kind }));
-}
+/** The map of secret value → kind. */
+type SecretRecord = Record<string, SecretKind>;
 
 /**
  * An immutable, redaction-only keychain.
  *
  * A keychain is constructed once with every secret it will ever hold, and never
- * grows: there is no way to register or clear a secret after construction. To
- * redact a value against additional secrets (for example a connection-scoped
- * temporary credential), derive a copy with {@link Keychain.extended} rather
- * than mutating this one.
+ * grows: there is no way to register or clear a secret after construction.
  *
- * Secrets are stored in a map keyed by value (each value → its kind), so a value
- * is deduplicated and lookup/merge is O(1).
+ * Secrets are keyed by value (each value → its kind), so a value is
+ * deduplicated and lookup is O(1).
  *
  * Secrets are never handed out: the only way to act on them is
  * {@link Keychain.redact}, so no consumer can accidentally leak them by holding
@@ -65,23 +27,11 @@ export class Keychain implements IKeychain {
     private readonly secrets: SecretRecord;
 
     /**
-     * @param secrets - The secrets this keychain will redact, as a
-     * {@link Secret} array (the config shape) or a value→kind record.
+     * @param secrets - The secrets this keychain will redact, as a value→kind
+     * record (e.g. `{ "s3cr3t": "password" }`).
      */
-    constructor(secrets: Secret[] | Record<string, SecretKind> = {}) {
-        this.secrets = toSecretMap(normalizeSecrets(secrets));
-    }
-
-    /**
-     * Returns a new keychain that redacts everything this one does plus the
-     * given secrets. This keychain is unchanged; `extended` never mutates.
-     */
-    extended(additional: Secret | Secret[] | Record<string, SecretKind>): Keychain {
-        const merged = new Map(this.secrets);
-        for (const secret of normalizeSecrets(additional)) {
-            merged.set(secret.value, { kind: secret.kind });
-        }
-        return new Keychain([...merged.entries()].map(([value, { kind }]) => ({ value, kind })));
+    constructor(secrets: SecretRecord = {}) {
+        this.secrets = secrets;
     }
 
     /**
@@ -96,6 +46,20 @@ export class Keychain implements IKeychain {
     redact<T>(value: T): T {
         return redactDeep(value, toSecretArray(this.secrets), new WeakMap()) as T;
     }
+
+    /**
+     * Returns the message of an error (or the string form of a non-error) with
+     * this keychain's secrets redacted, safe to log or surface to a user.
+     */
+    redactErrorMessage(error: unknown): string {
+        const message = error instanceof Error ? error.message : String(error);
+        return this.redact(message);
+    }
+}
+
+/** Converts the value→kind record into the array mongodb-redact expects. */
+function toSecretArray(secrets: SecretRecord): Secret[] {
+    return Object.entries(secrets).map(([value, kind]) => ({ value, kind }));
 }
 
 /**

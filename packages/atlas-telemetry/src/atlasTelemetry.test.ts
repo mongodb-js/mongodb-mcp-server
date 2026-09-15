@@ -628,14 +628,14 @@ describe("AtlasTelemetry", () => {
     describe("when secrets are registered", () => {
         describe("comprehensive redaction coverage", () => {
             it("should redact sensitive data from CommonStaticProperties", async () => {
-                keychain = new Keychain([
-                    { value: "secret-server-version", kind: "password" },
-                    { value: "secret-server-name", kind: "password" },
-                    { value: "secret-password", kind: "password" },
-                    { value: "secret-key", kind: "password" },
-                    { value: "secret-token", kind: "password" },
-                    { value: "secret-password-version", kind: "password" },
-                ]);
+                keychain = new Keychain({
+                    "secret-server-version": "password",
+                    "secret-server-name": "password",
+                    "secret-password": "password",
+                    "secret-key": "password",
+                    "secret-token": "password",
+                    "secret-password-version": "password",
+                });
 
                 const sensitiveStaticProps = {
                     mcp_server_version: "secret-server-version",
@@ -668,7 +668,7 @@ describe("AtlasTelemetry", () => {
             });
 
             it("should redact sensitive data from CommonProperties", async () => {
-                keychain = new Keychain([{ value: "test-device-id", kind: "password" }]);
+                keychain = new Keychain({ "test-device-id": "password" });
 
                 vi.clearAllTimers();
                 telemetry = createAtlasTelemetry({});
@@ -685,10 +685,10 @@ describe("AtlasTelemetry", () => {
             });
 
             it("should redact sensitive data that is added to events", async () => {
-                keychain = new Keychain([
-                    { value: "test-device-id", kind: "password" },
-                    { value: "test-component", kind: "password" },
-                ]);
+                keychain = new Keychain({
+                    "test-device-id": "password",
+                    "test-component": "password",
+                });
 
                 vi.clearAllTimers();
                 telemetry = createAtlasTelemetry({});

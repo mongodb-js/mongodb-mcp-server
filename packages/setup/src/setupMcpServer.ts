@@ -7,7 +7,7 @@ import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver
 import type { AIToolType } from "./aiTool.js";
 import { AI_TOOL_REGISTRY, openConfigSettings, TOOLS_WITHOUT_EDITORS } from "./aiTool.js";
 import type { Platform } from "./setupAiToolsUtils.js";
-import { formatError, getPlatform } from "./setupAiToolsUtils.js";
+import { getPlatform } from "./setupAiToolsUtils.js";
 import { getAuthType } from "@mongodb-js/mcp-tools-mongodb";
 import type { ServerMetadata } from "@mongodb-js/mcp-types";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
@@ -37,7 +37,8 @@ const buildEnvObject = (
 };
 
 const testConnectionString = async (
-    connectionString: string
+    connectionString: string,
+    keychain: Keychain
 ): Promise<{
     connectionString: string;
     /** Final result of the connection attempt, or undefined if the user never tested. */
@@ -61,7 +62,7 @@ const testConnectionString = async (
             console.log(chalk.green("✓ Connection successful!"));
             return { connectionString, testResult: "success", attempts };
         } catch (error: unknown) {
-            console.log(chalk.red("\n✗ Connection failed: " + formatError(error)));
+            console.log(chalk.red("\n✗ Connection failed: " + keychain.redactErrorMessage(error)));
             console.log(chalk.yellow("\nPlease check:"));
             console.log(chalk.yellow("  • Your database user credentials are correct"));
             console.log(chalk.yellow("  • Your IP address is allowed in Network Access"));
@@ -93,7 +94,8 @@ const configureEditor = async (
     connectionString: string,
     serviceWorkerId: string,
     serviceWorkerSecret: string,
-    isReadOnly: boolean
+    isReadOnly: boolean,
+    keychain: Keychain
 ): Promise<{
     usedDefaultConfigPath: boolean;
     result: TelemetryResult;
@@ -120,11 +122,11 @@ const configureEditor = async (
 
     const env = buildEnvObject(connectionString, serviceWorkerId, serviceWorkerSecret);
     try {
-        AI_TOOL_REGISTRY[tool].updateConfig(configPath, env, isReadOnly);
+        AI_TOOL_REGISTRY[tool].updateConfig(configPath, env, isReadOnly, keychain);
         console.log(`\nConfiguration saved to ${configPath}`);
         return { usedDefaultConfigPath: useDetectedPath, result: "success" };
     } catch (error: unknown) {
-        console.log(chalk.red(`\nFailed to save configuration: ${formatError(error)}`));
+        console.log(chalk.red(`\nFailed to save configuration: ${keychain.redactErrorMessage(error)}`));
         return { usedDefaultConfigPath: useDetectedPath, result: "failure", error };
     }
 };
@@ -209,7 +211,8 @@ const promptForReadonly = async (): Promise<boolean> => {
 };
 
 const promptForConnectionString = async (
-    config: SetupConfig
+    config: SetupConfig,
+    keychain: Keychain
 ): Promise<{
     connectionString: string;
     provided: boolean;
@@ -238,7 +241,7 @@ const promptForConnectionString = async (
             const shouldTest = await confirm({ message: "Test your connection string?", default: true });
 
             if (shouldTest) {
-                const outcome = await testConnectionString(connectionString);
+                const outcome = await testConnectionString(connectionString, keychain);
                 return {
                     connectionString: outcome.connectionString,
                     provided: true,
@@ -341,7 +344,8 @@ const getAvailablePrompts = (
 
 const promptToOpenConfigFile = async (
     displayName: string,
-    tool: AIToolType
+    tool: AIToolType,
+    keychain: Keychain
 ): Promise<{
     opened: boolean;
     result: TelemetryResult;
@@ -364,7 +368,7 @@ const promptToOpenConfigFile = async (
         await openConfigSettings(tool);
         return { opened: true, result: "success" };
     } catch (error: unknown) {
-        console.log(chalk.red(`Failed to open config file: ${formatError(error)}`));
+        console.log(chalk.red(`Failed to open config file: ${keychain.redactErrorMessage(error)}`));
         return { opened: true, result: "failure", error };
     }
 };
@@ -472,7 +476,7 @@ export const runSetup = async ({
         setupTelemetry.emitReadOnlySelected(isReadOnly);
         printNewLine();
 
-        const connectionOutcome = await promptForConnectionString(config);
+        const connectionOutcome = await promptForConnectionString(config, keychain);
         setupTelemetry.emitConnectionStringEntered({
             provided: connectionOutcome.provided,
             tested: connectionOutcome.tested,
@@ -495,7 +499,8 @@ export const runSetup = async ({
             connectionOutcome.connectionString,
             serviceAccountId,
             serviceAccountSecret,
-            isReadOnly
+            isReadOnly,
+            keychain
         );
         setupTelemetry.emitEditorConfigured(editorOutcome);
 
@@ -509,7 +514,7 @@ export const runSetup = async ({
             hasDocker
         );
         guideUserWithSetupSuccess(displayName, availablePrompts, skillsResult);
-        const openOutcome = await promptToOpenConfigFile(displayName, tool);
+        const openOutcome = await promptToOpenConfigFile(displayName, tool, keychain);
         setupTelemetry.emitOpenConfigPrompted(openOutcome);
 
         setupTelemetry.emitCompleted();
