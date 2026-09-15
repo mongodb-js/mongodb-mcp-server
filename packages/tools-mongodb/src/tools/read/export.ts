@@ -77,6 +77,15 @@ export class ExportTool extends MongoDBToolBase {
         { request }: ToolExecutionContext<IMongoDBConfig>
     ): Promise<CallToolResult> {
         const provider = await this.resolveConnection(connectionId);
+        // The export stream runs in the background, so hold a lease on the
+        // backing connection for the stream's lifetime — otherwise the idle
+        // reaper could close it mid-export.
+        const entry = await this.server.connectionRegistry.get(connectionId);
+        // `get` returns undefined only if the entry vanished between resolve
+        // and now; in that case the cursor is unusable anyway, so fail closed.
+        if (!entry) {
+            throw new Error(`Connection "${connectionId}" does not exist or has expired.`);
+        }
         const exportTarget = target[0];
         if (!exportTarget) {
             throw new ToolArgumentValidationError(
@@ -113,14 +122,28 @@ export class ExportTool extends MongoDBToolBase {
 
         const exportName = `${new ObjectId().toString()}.json`;
 
-        const { exportURI, exportPath } = await this.server.exportsManager.createJSONExport({
-            input: cursor,
-            exportName,
-            exportTitle:
-                exportTitle ||
-                `Export for namespace ${database}.${collection} requested on ${new Date().toLocaleString()}`,
-            jsonExportFormat,
-        });
+        // The background export stream runs after this request returns, so hold
+        // a lease on the backing connection until it finishes — otherwise the
+        // idle reaper could close the connection mid-export. Acquired only now
+        // (after validation can no longer throw) and released either by the
+        // export's own `onFinish` or, if registration fails, here.
+        entry.acquire();
+        const releaseLease = () => entry.release();
+
+        const { exportURI, exportPath } = await this.server.exportsManager
+            .createJSONExport({
+                input: cursor,
+                exportName,
+                exportTitle:
+                    exportTitle ||
+                    `Export for namespace ${database}.${collection} requested on ${new Date().toLocaleString()}`,
+                jsonExportFormat,
+                onFinish: releaseLease,
+            })
+            .catch((error: unknown) => {
+                releaseLease();
+                throw error;
+            });
         const toolCallContent: CallToolResult["content"] = [
             // Not all the clients as of this commit understands how to
             // parse a resource_link so we provide a text result for them to

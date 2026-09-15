@@ -27,6 +27,13 @@ export type CreateJSONExportParams = {
     exportName: string;
     exportTitle: string;
     jsonExportFormat: JSONExportFormat;
+    /**
+     * Invoked once the background export stream has finished (or errored), so
+     * the caller can release any lease it holds on the backing connection.
+     * Runs in the export's own `finally`, so it fires on success, failure, and
+     * shutdown alike; safe to call more than once.
+     */
+    onFinish?: () => void;
 };
 
 export interface CommonExportData {
@@ -170,6 +177,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         exportName,
         exportTitle,
         jsonExportFormat,
+        onFinish,
     }: CreateJSONExportParams): Promise<AvailableExport> {
         try {
             this.assertIsNotShuttingDown();
@@ -189,7 +197,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
                 exportStatus: "in-progress",
             });
 
-            void this.startExport({ input, jsonExportFormat, inProgressExport });
+            void this.startExport({ input, jsonExportFormat, inProgressExport, onFinish });
             return Promise.resolve(inProgressExport);
         } catch (error) {
             this.logger.error({
@@ -205,10 +213,12 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         input,
         jsonExportFormat,
         inProgressExport,
+        onFinish,
     }: {
         input: FindCursor | AggregationCursor;
         jsonExportFormat: JSONExportFormat;
         inProgressExport: InProgressExport;
+        onFinish?: () => void;
     }): Promise<void> {
         try {
             let pipeSuccessful = false;
@@ -244,6 +254,11 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
                     this.emit("export-available", inProgressExport.exportURI);
                 }
                 void input.close();
+                try {
+                    onFinish?.();
+                } catch {
+                    // Never let a lease-release failure mask the export outcome.
+                }
             }
         } catch (error) {
             this.logger.error({

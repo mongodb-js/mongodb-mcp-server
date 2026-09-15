@@ -284,6 +284,7 @@ describe("configOverrides", () => {
                     "readOnly",
                     "indexCheck",
                     "disableServerSideJs",
+                    "connectionIdleTimeoutMs",
                     "idleTimeoutMs",
                     "notificationTimeoutMs",
                     "exportTimeoutMs",

@@ -3,7 +3,8 @@ import { atlasClusterSlug, PRECONFIGURED_CONNECTION_ID } from "./connectionRegis
 import { MCPConnectionStore, type ConnectionStoreOptions, type ConnectionStoreConfig } from "./connectionStore.js";
 import { summarizeConnection } from "./connectionSummary.js";
 import { FakeConnectionManager } from "./mocks/connectionManager.js";
-import type { ConnectionManager } from "./connectionManager.js";
+import { ConnectionManager, type ConnectionStateConnecting, type AnyConnectionState, type ConnectionSettings } from "./connectionManager.js";
+import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { DeviceId } from "../helpers/deviceId.js";
 import { ErrorCodes, MongoDBError } from "./errors.js";
@@ -13,6 +14,28 @@ const defaultTestConfig: ConnectionStoreConfig = {
     transport: "stdio",
     httpHost: "127.0.0.1",
 };
+
+const fakeProvider = { fake: true } as unknown as NodeDriverServiceProvider;
+
+/** A ConnectionManager that stays in the `connecting` state, like an Atlas dial in progress. */
+class ConnectingManager extends ConnectionManager {
+    override connect(_settings: ConnectionSettings): Promise<AnyConnectionState> {
+        const connecting: ConnectionStateConnecting = {
+            tag: "connecting",
+            serviceProvider: Promise.resolve(fakeProvider),
+            oidcConnectionType: "oidc-auth-flow",
+        };
+        return Promise.resolve(this.changeState("connection-request", connecting));
+    }
+
+    override disconnect(): Promise<{ tag: "disconnected" }> {
+        return Promise.resolve(this.changeState("connection-close", { tag: "disconnected" }));
+    }
+
+    override close(): Promise<void> {
+        return this.disconnect().then(() => undefined);
+    }
+}
 
 describe("ConnectionRegistry", () => {
     let managers: FakeConnectionManager[];
@@ -359,6 +382,105 @@ describe("ConnectionRegistry", () => {
             await expect(unbound.peek(sharedEntry.connectionId)).resolves.toBeUndefined();
             await expect(unbound.peek(PRECONFIGURED_CONNECTION_ID)).resolves.toBeUndefined();
             expect(managers.every((manager) => manager.closed)).toBe(true);
+        });
+    });
+
+    describe("idle reaping", () => {
+        it("revokes an explicit entry idle past the timeout", async () => {
+            const store = makeStore({
+                options: { ...defaultTestConfig, connectionIdleTimeoutMs: 1000 },
+            });
+            const registry = store.view();
+            const entry = await registry.connect({
+                settings: { connectionString: "mongodb://host:27017" },
+            });
+
+            await vi.advanceTimersByTimeAsync(60_000);
+
+            await expect(registry.peek(entry.connectionId)).resolves.toBeUndefined();
+            expect(managers[0]?.closed).toBe(true);
+        });
+
+        it("keeps an entry that is still used within the timeout", async () => {
+            const store = makeStore({
+                options: { ...defaultTestConfig, connectionIdleTimeoutMs: 600_000 },
+            });
+            const registry = store.view();
+            const entry = await registry.connect({
+                settings: { connectionString: "mongodb://host:27017" },
+            });
+
+            // A single sweep pass (60s) is well under the 10-minute timeout.
+            await vi.advanceTimersByTimeAsync(60_000);
+
+            await expect(registry.peek(entry.connectionId)).resolves.toBe(entry);
+            expect(managers[0]?.closed).toBe(false);
+        });
+
+        it("never reaps the preconfigured connection", async () => {
+            const store = makeStore({
+                options: {
+                    ...defaultTestConfig,
+                    connectionString: "mongodb://localhost:27017",
+                    connectionIdleTimeoutMs: 1000,
+                },
+            });
+            const registry = store.view();
+
+            await vi.advanceTimersByTimeAsync(120_000);
+
+            await expect(registry.peek(PRECONFIGURED_CONNECTION_ID)).resolves.toBeDefined();
+            expect(managers[0]?.closed).toBe(false);
+        });
+
+        it("skips a leased entry, then revokes it after the lease is released", async () => {
+            const store = makeStore({
+                options: { ...defaultTestConfig, connectionIdleTimeoutMs: 1000 },
+            });
+            const registry = store.view();
+            const entry = await registry.connect({
+                settings: { connectionString: "mongodb://host:27017" },
+            });
+            entry.acquire();
+
+            await vi.advanceTimersByTimeAsync(120_000);
+            await expect(registry.peek(entry.connectionId)).resolves.toBe(entry);
+            expect(managers[0]?.closed).toBe(false);
+
+            entry.release();
+            await vi.advanceTimersByTimeAsync(60_000);
+            await expect(registry.peek(entry.connectionId)).resolves.toBeUndefined();
+            expect(managers[0]?.closed).toBe(true);
+        });
+
+        it("leaves a connecting entry alone (an in-progress Atlas dial)", async () => {
+            const store = makeStore({
+                options: { ...defaultTestConfig, connectionIdleTimeoutMs: 1000 },
+            });
+            // A manager that stays in the connecting state, like an Atlas dial.
+            managerFactory = (): ConnectionManager => new ConnectingManager();
+            const registry = store.view();
+            const entry = await registry.connect({
+                settings: { connectionString: "mongodb://host:27017" },
+            });
+
+            await vi.advanceTimersByTimeAsync(120_000);
+
+            await expect(registry.peek(entry.connectionId)).resolves.toBe(entry);
+            expect(entry.state.tag).toBe("connecting");
+        });
+
+        it("stops reaping after closeAll", async () => {
+            const store = makeStore({
+                options: { ...defaultTestConfig, connectionIdleTimeoutMs: 1000 },
+            });
+            const registry = store.view();
+            const entry = await registry.connect({
+                settings: { connectionString: "mongodb://host:27017" },
+            });
+
+            await store.closeAll();
+            await expect(store.view().find(() => true)).resolves.toHaveLength(0);
         });
     });
 

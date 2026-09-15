@@ -155,6 +155,13 @@ export class ConnectionEntry {
     /** Revocation cleanup armed at creation; see {@link CreateConnectionEntryOptions.onRevoke}. */
     private onRevoke?: () => Promise<void>;
 
+    /**
+     * Count of live background consumers (e.g. a streaming export) that must
+     * not be reaped while active. Guarded by {@link acquire}/{@link release};
+     * see {@link MCPConnectionStore}'s idle reaper.
+     */
+    private leases = 0;
+
     private readonly manager: ConnectionManager;
 
     constructor({ connectionId, name, source, manager, onRevoke, atlasCluster }: ConnectionEntryOptions) {
@@ -168,6 +175,27 @@ export class ConnectionEntry {
 
     get state(): AnyConnectionState {
         return this.manager.currentConnectionState;
+    }
+
+    /**
+     * Marks a background consumer as active so the idle reaper does not close
+     * the connection while it is in use. Balanced by {@link release}.
+     */
+    acquire(): void {
+        this.leases++;
+    }
+
+    /**
+     * Releases a lease taken by {@link acquire}. Safe to call more times than
+     * `acquire` (floors at 0) and after the entry has been revoked.
+     */
+    release(): void {
+        this.leases = Math.max(0, this.leases - 1);
+    }
+
+    /** Number of outstanding background-consumer leases. */
+    get activeLeases(): number {
+        return this.leases;
     }
 
     /**
