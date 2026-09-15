@@ -281,6 +281,14 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
         this.mcpServer.server.onclose = (): void => {
             const closeTime = Date.now();
             this.emitServerTelemetryEvent("stop", Date.now() - closeTime);
+            // Reap the request-scoped connection registry view when the underlying
+            // McpServer closes. This covers the modern stateless (2026-07-28)
+            // path, where the SDK closes each per-request McpServer and never
+            // calls {@link CliServer.close}: an owned (ephemeral) view has its
+            // connections revoked, while an unowned (stable / shared) view no-ops
+            // so its connections survive. Idempotent, so the legacy path (which
+            // closes via {@link CliServer.close} → mcpServer.close()) is fine.
+            void this.connectionRegistry.close().catch(() => undefined);
         };
 
         this.mcpServer.server.onerror = (error: Error): void => {
@@ -296,9 +304,13 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
     private closed = false;
 
     /**
-     * Closes the request-scoped McpServer. App-level services (telemetry,
-     * connections, exports, API client) are untouched — they live once per
-     * process and are closed by the runner on shutdown.
+     * Closes the request-scoped McpServer, then the connection registry view:
+     * an owned view (an ephemeral, per-session scope) reaps its connections
+     * here — on the legacy sessionful path that is when the session ends —
+     * while unowned views (the shared app-level registry, stable named scopes)
+     * no-op so their connections survive. Other app-level services (telemetry,
+     * exports, API client) are untouched — they live once per process and are
+     * closed by the runner on shutdown.
      */
     async close(): Promise<void> {
         if (this.closed) {
@@ -306,6 +318,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
         }
         this.closed = true;
         await this.mcpServer.close();
+        await this.connectionRegistry.close().catch(() => undefined);
     }
 
     public sendResourceListChanged(): void {

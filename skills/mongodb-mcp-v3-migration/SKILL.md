@@ -154,10 +154,9 @@ const runner = createHttpTransportRunnerFromConfig(sharedServices);
 await runner.start();
 ```
 
-To also apply per-request config overrides or stricter auth (e.g. enforce
-`authMode: "authenticated"`), subclass `MCPHttpServer` and override
-`createServerForRequest` to return a request-scoped `CliServer` built with
-`createServerFromConfig`:
+To also apply per-request config overrides or control connection isolation, subclass
+`MCPHttpServer` and override `createServerForRequest` to return a request-scoped
+`CliServer` built with `createServerFromConfig`.
 
 ```diff
 - class CustomRunner extends StreamableHttpRunner {
@@ -165,12 +164,23 @@ To also apply per-request config overrides or stricter auth (e.g. enforce
 -     return this.createServer({ userConfig: sessionConfig });
 -   }
 - }
++ const connectionScope = (request: TransportRequestContext): string | undefined => {
++   // Fail closed: a missing / non-string / empty sub is not a usable principal.
++   const sub = request.authInfo?.extra?.sub;
++   if (typeof sub !== "string" || sub === "") {
++     return undefined;
++   }
++   // JSON-encode the tuple so it is injective regardless of the claim values
++   // (a sub containing a delimiter or quote cannot collide).
++   return `user:${JSON.stringify([request.authInfo.clientId, sub])}`;
++ };
+
 + class MyMCPHttpServer extends MCPHttpServer<CliServer> {
 +   protected override async createServerForRequest(
 +     request: TransportRequestContext
 +   ): Promise<CliServer> {
 +     const config = applyConfigOverrides({ baseConfig: this.sharedServices.config, request });
-+     return createServerFromConfig({ config, sharedServices: this.sharedServices, request });
++     return createServerFromConfig({ config, sharedServices: this.sharedServices, request, connectionScope });
 +   }
 + }
 
@@ -182,7 +192,6 @@ To also apply per-request config overrides or stricter auth (e.g. enforce
 +       bodyLimit: config.httpBodyLimit,
 +       headers: config.httpHeaders,
 +       responseType: config.httpResponseType,
-+       authMode: "authenticated", // or "unauthenticated"
 +     },
 +   },
 +   logger,
@@ -191,13 +200,15 @@ To also apply per-request config overrides or stricter auth (e.g. enforce
 + const runner = new StreamableHttpRunner({ logger, metrics, mcpHttpServer });
 ```
 
-Note the v3 `MCPHttpServer` takes `options.http` (with the required `authMode`) and an
-optional `sessionOptions` for the legacy 2025-era lifecycle — there is no
-`session:` block and no `SessionStore` to build. App-level services (`keychain`,
-`connectionStore`, `exportsManager`, `apiClient`, `telemetry`, …) are built once by
-`createSharedServicesFromConfig` and passed in as `SharedServerServices`; the
-request-scoped server holds no per-client session state (connections are scoped per
-request via the request's auth identity). See
+Note the v3 `MCPHttpServer` takes `options.http` and an optional `sessionOptions` for the
+legacy 2025-era lifecycle — there is no `session:` block and no `SessionStore` to
+build. App-level services (`keychain`, `connectionStore`, `exportsManager`, `apiClient`,
+`telemetry`, …) are built once by `createSharedServicesFromConfig` and passed in as
+`SharedServerServices`; the request-scoped server holds no per-client session state
+(hosts that require verified identity enforce it in their own middleware and inject it
+as `req.auth`, which both the modern and legacy paths forward as the request's
+`authInfo`; connections are scoped per request via the `connectionScope` policy, which
+keys on the request's verified identity). See
 [Use Case 2](../MCP_SERVER_LIBRARY.md#use-case-2-request-scoped-configuration).
 
 Still may `extends StreamableHttpRunner` to customize `start()`/`close()` or bundle the
@@ -374,9 +385,12 @@ const apiClient = createApiClientFromConfig({ config, serverMetadata, logger });
 | ad-hoc logger from config       | `createLoggerFromConfig`                                          |
 
 Full stack alternative: build app-level services once with
-`createSharedServicesFromConfig`, then `createServerFromConfig({ config, sharedServices, request })`
-returns a **request-scoped `CliServer` directly** (the logger is provided as input; the
-heavy services come from `sharedServices`). `createRunnerFromConfig` calls
+`createSharedServicesFromConfig`, then `createServerFromConfig` returns a
+**request-scoped `CliServer` directly** (the logger is provided as input; the
+heavy services come from `sharedServices`). For HTTP, pass both `request` and a
+`connectionScope` policy — it is required whenever `request` is present and
+`createServerFromConfig` throws without it (fail closed). For stdio, omit `request`
+(or pass only the config). `createRunnerFromConfig` calls
 `createSharedServicesFromConfig` internally and returns only the configured transport
 runner; `closeSharedServices(sharedServices)` releases app-level services on shutdown.
 

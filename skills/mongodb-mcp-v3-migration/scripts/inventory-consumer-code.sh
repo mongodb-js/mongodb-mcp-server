@@ -40,7 +40,7 @@ pkg_of() {
         StreamableHttpRunnerOptions|MCPHttpServerOptions|MonitoringServerOptions) echo "@mongodb-js/mcp-http-runners" ;;
 
         # mcp-types
-        TransportRequestContext|ITransportRunner|ServerMetadata|IMetrics|DefaultMetricDefinitions|TransportType|RequestAuthState|RequestAuthInfo|BaseServer|ToolRequest|ToolExecutionContext|ResourceServices|ResourceServerArg|IRedactor) echo "@mongodb-js/mcp-types" ;;
+        TransportRequestContext|ITransportRunner|ServerMetadata|IMetrics|DefaultMetricDefinitions|TransportType|ConnectionScopePolicy|RequestAuthInfo|BaseServer|ToolRequest|ToolExecutionContext|ResourceServices|ResourceServerArg|IRedactor) echo "@mongodb-js/mcp-types" ;;
         ISession|IToolSession|IResourceSession) echo "REMOVED — v3 is sessionless; see the migration guide" ;;
 
         # mcp-tools-mongodb
