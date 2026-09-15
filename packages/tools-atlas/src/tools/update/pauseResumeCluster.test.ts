@@ -55,6 +55,7 @@ describe("PauseResumeClusterTool", () => {
             options: defaultTestConfig,
             logger: new CompositeLogger(),
             deviceId: DeviceId.create(new CompositeLogger()),
+            keychain: new Keychain(),
         }).view();
 
         const mockSession: Partial<AtlasToolServer> = {

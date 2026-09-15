@@ -186,6 +186,25 @@ describe("ConnectionRegistry", () => {
             expect((error as MongoDBError).message).toBe("bad string");
             expect((await registry.peek(PRECONFIGURED_CONNECTION_ID))?.lastError).toBe("bad string");
         });
+
+        it("redacts a credential-bearing connection string from lastError without keychain registration", async () => {
+            // The built-in mongodb-redact pattern (applied inside Keychain.redact
+            // regardless of registered secrets) scrubs the whole mongodb:// URI run,
+            // so a driver error that embeds a connection string with credentials is
+            // never surfaced even though the runtime connection string is not
+            // registered on the (immutable) keychain.
+            const registry = makeStore({ options: config }).view();
+            expect(managers[0]).toBeDefined();
+            (managers[0] as FakeConnectionManager).failNextConnect = new Error(
+                "connect to mongodb://mcpUser12345:s3cr3t@my-cluster.example.com:27017/?authSource=admin failed"
+            );
+            await registry.resolve(PRECONFIGURED_CONNECTION_ID).catch(() => undefined);
+            const lastError = (await registry.peek(PRECONFIGURED_CONNECTION_ID))?.lastError;
+            expect(lastError).toBeDefined();
+            expect(lastError).not.toContain("s3cr3t");
+            expect(lastError).not.toContain("mcpUser12345");
+            expect(lastError).toContain("<mongodb uri>");
+        });
     });
 
     describe("disconnect", () => {

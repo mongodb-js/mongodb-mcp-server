@@ -44,7 +44,7 @@ export class InMemoryMcpConnection {
             ...userConfig,
         });
 
-        const keychain = createKeychainFromConfig(config);
+        const keychain = createKeychainFromConfig({ config });
         const logger = await createLoggerFromConfig({ config, keychain });
         const sharedServices = await createSharedServicesFromConfig({
             config,

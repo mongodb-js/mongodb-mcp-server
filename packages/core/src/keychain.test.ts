@@ -24,7 +24,10 @@ describe("Keychain", () => {
         expect(keychain.redact(`user is ${SECRET}`)).toBe("user is <user>");
     });
 
-    it("redacts a value that appears inside a larger word", () => {
+    it("does not redact a value that is only a substring of a larger word", () => {
+        // mongodb-redact matches secrets as whole words (`(?<!\w)value(?!\w)`),
+        // so a registered value embedded inside a longer token is left alone rather
+        // than over-redacting common substrings.
         const keychain = new Keychain({ secretpart: "password" });
         expect(keychain.redact("mysecretpartvalue")).toBe("mysecretpartvalue");
     });

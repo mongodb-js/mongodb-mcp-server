@@ -926,7 +926,7 @@ describe("keychain management", () => {
     for (const { cliArg, secretKind } of testCases) {
         it(`should register ${cliArg} as a secret of kind ${secretKind} in the root keychain`, () => {
             const { parsed } = parseUserConfig({ args: [`--${cliArg}`, cliArg] });
-            const keychain = createKeychainFromConfig(parsed ?? {});
+            const keychain = createKeychainFromConfig({ config: parsed ?? {} });
             expect(keychain.redact(cliArg)).toBe(`<${secretKind}>`);
         });
     }
@@ -939,7 +939,7 @@ describe("keychain management", () => {
     for (const secretKey of secretsFromSchema) {
         it(`should register ${secretKey} as a secret in the root keychain`, () => {
             const { parsed } = parseUserConfig({ args: [`--${secretKey}`, secretKey] });
-            const keychain = createKeychainFromConfig(parsed ?? {});
+            const keychain = createKeychainFromConfig({ config: parsed ?? {} });
 
             expect(keychain.redact(secretKey)).toMatch(/^<[a-z ]+>$/);
         });

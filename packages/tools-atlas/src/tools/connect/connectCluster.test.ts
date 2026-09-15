@@ -1,7 +1,8 @@
+import { createMockLogger, type MockLogger } from "@mongodb-js/mcp-test-utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ConnectClusterTool } from "./connectCluster.js";
 import type { IAtlasConfig } from "../../atlasTool.js";
-import type { ITelemetry, ICompositeLogger, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import type { ITelemetry, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
@@ -47,19 +48,14 @@ const CLUSTER_DESCRIPTION = {
 };
 
 describe("ConnectClusterTool", () => {
-    let mockLogger: Record<string, ReturnType<typeof vi.fn>>;
+    let mockLogger: MockLogger;
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
     let mockSession: Partial<AtlasToolServer>;
     let connectionRegistry: ConnectionRegistry;
     let tool: ConnectClusterTool;
 
     beforeEach(() => {
-        mockLogger = {
-            info: vi.fn(),
-            debug: vi.fn(),
-            warning: vi.fn(),
-            error: vi.fn(),
-        };
+        mockLogger = createMockLogger();
 
         mockApiClient = {
             getCluster: vi.fn().mockResolvedValue(CLUSTER_DESCRIPTION),
@@ -76,11 +72,12 @@ describe("ConnectClusterTool", () => {
             options: defaultTestConfig,
             logger: new CompositeLogger(),
             deviceId: DeviceId.create(new CompositeLogger()),
+            keychain: new Keychain(),
         }).view();
 
         mockSession = {
-            logger: mockLogger as unknown as ICompositeLogger,
-            apiClient: { ...mockApiClient, logger: mockLogger } as unknown as ApiClient,
+            logger: mockLogger.asCompositeLogger(),
+            apiClient: { ...mockApiClient, logger: mockLogger.asCompositeLogger() } as unknown as ApiClient,
             connectionRegistry,
             keychain: new Keychain(),
             config: {
@@ -129,6 +126,27 @@ describe("ConnectClusterTool", () => {
             const connectionId = result.structuredContent?.connectionId;
             const entry = await connectionRegistry.peek(connectionId);
             expect(entry?.name).toMatch(/^test-project-cluster1-[0-9a-f]{4}$/);
+        });
+
+        it("does not leak the temporary connection credentials into the result or logs", async () => {
+            const result = await tool["execute"](args, { request: { signal: new AbortController().signal } });
+
+            // Recover the temp user's username/password from the Atlas API call.
+            const createUserCall = mockApiClient.createDatabaseUser!.mock.calls[0]?.[0] as {
+                body: { username: string; password: string };
+            };
+            const { username, password } = createUserCall.body;
+            expect(username).toMatch(/^mcpUser/);
+
+            // The temp credentials live only in the connection string handed to
+            // the driver. They must not surface in the tool result (content or
+            // structuredContent) nor in any logger output.
+            const resultText = JSON.stringify(result);
+            expect(resultText).not.toContain(password);
+            expect(resultText).not.toContain(username);
+            expect(resultText).not.toContain("mongodb+srv://");
+
+            expect(mockLogger.allLogMessages()).not.toContain(password);
         });
 
         it("records the cluster id alongside the project and cluster name on the connection", async () => {

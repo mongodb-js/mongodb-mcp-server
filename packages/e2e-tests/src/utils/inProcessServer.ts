@@ -28,7 +28,7 @@ export async function startInProcessServer(connectionString: string): Promise<In
         loggers: [],
     });
 
-    const keychain = createKeychainFromConfig(config);
+    const keychain = createKeychainFromConfig({ config });
     const logger = await createLoggerFromConfig({ config, keychain });
     const transportRunner = await createRunnerFromConfig({
         config,

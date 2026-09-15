@@ -76,7 +76,7 @@ export async function runMcpCli({
                 consoleLogger,
                 onExit,
                 serverMetadata,
-                keychain: createKeychainFromConfig(config),
+                keychain: createKeychainFromConfig({ config }),
             });
             if (handled) {
                 return;
@@ -87,7 +87,7 @@ export async function runMcpCli({
     // Create the immutable redaction keychain once (from config secrets), then
     // the logger and transport runner with it. No code registers secrets on the
     // keychain after this point.
-    const keychain = createKeychainFromConfig(config);
+    const keychain = createKeychainFromConfig({ config });
     const logger = await createLoggerFromConfig({ config, keychain });
 
     try {

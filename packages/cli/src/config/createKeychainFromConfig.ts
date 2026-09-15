@@ -1,16 +1,31 @@
 import { Keychain, type SecretKind } from "@mongodb-js/mcp-core";
 import type { UserConfig } from "./userConfig.js";
 
+export type CreateKeychainFromConfigOptions = {
+    /** The parsed user config whose secret-bearing fields are registered. */
+    config: Partial<UserConfig>;
+    /**
+     * Additional secrets to redact, merged on top of the config secrets (the
+     * config value wins on a key collision). Useful for construction-time
+     * secrets an embedder knows up front; there is no runtime register.
+     */
+    additionalSecrets?: Record<string, SecretKind>;
+};
+
 /**
  * Builds the server's redaction keychain from the fixed, config-derived
- * secrets. The keychain is immutable: every secret it will ever hold is known
- * here, at config time, and no runtime code may add secrets to it (temporary
- * database users and per-request connection strings are kept out of emitted
- * strings by construction instead). One keychain instance is created per server
- * and threaded through the loggers, services and tools.
+ * secrets, plus any {@link CreateKeychainFromConfigOptions.additionalSecrets}.
+ * The keychain is immutable: every secret it will ever hold is known at
+ * construction, and no runtime code may add secrets to it (temporary database
+ * users and per-request connection strings are kept out of emitted strings by
+ * construction instead). One keychain instance is created per server and
+ * threaded through the loggers, services and tools.
  */
-export function createKeychainFromConfig(userConfig: Partial<UserConfig>): Keychain {
-    const secrets: Record<string, SecretKind> = {};
+export function createKeychainFromConfig({
+    config: userConfig,
+    additionalSecrets = {},
+}: CreateKeychainFromConfigOptions): Keychain {
+    const secrets: Record<string, SecretKind> = { ...additionalSecrets };
 
     if (userConfig.apiClientId) secrets[userConfig.apiClientId] = "user";
     if (userConfig.apiClientSecret) secrets[userConfig.apiClientSecret] = "password";
