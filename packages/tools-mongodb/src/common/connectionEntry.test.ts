@@ -11,6 +11,7 @@ import { ErrorCodes, MongoDBError } from "./errors.js";
 
 const defaultTestConfig: ConnectionStoreConfig = {
     maxActiveConnections: 10,
+    connectionIdleTimeoutMs: 600_000,
     transport: "stdio",
     httpHost: "127.0.0.1",
 };
