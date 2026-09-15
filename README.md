@@ -948,3 +948,7 @@ For multi-tenant or public deployments, **build an authenticated solution** usin
 **Already on MongoDB Atlas?** For multi-tenant Atlas cluster usage, the simplest alternative is the **MongoDB Atlas-Managed MCP server** — a hosted, authenticated deployment that handles per-user identity (OAuth / service-account) for you instead of you standing up your own. See [Option 2](#option-2-connect-to-the-mongodb-atlas-managed-mcp-server) above.
 
 See [MCP_SERVER_LIBRARY.md](MCP_SERVER_LIBRARY.md) for the embedding API, `createHttpTransportRunnerFromConfig` / `CliMcpHttpServer` and the `connectionScope` policy seam, and the per-user scoping example to copy.
+
+## 🤝Contributing
+
+Interested in contributing? Great! Please check our [Contributing Guide](CONTRIBUTING.md) for guidelines on code contributions, standards, adding new tools, and troubleshooting information.
