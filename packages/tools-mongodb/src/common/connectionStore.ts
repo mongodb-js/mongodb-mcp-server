@@ -29,6 +29,11 @@ import { buildEntryName, ConnectionEntry, PRECONFIGURED_CONNECTION_ID } from "./
 export type ConnectionStoreConfig = ConnectionDriverConfig & {
     connectionString?: string;
     maxActiveConnections: number;
+    /**
+     * Milliseconds a connection may stay unused before the idle reaper closes
+     * it. `0` disables reaping (default 600_000 / 10 minutes).
+     */
+    connectionIdleTimeoutMs: number;
     transport: "stdio" | "http";
     httpHost: string;
 };
@@ -80,13 +85,19 @@ export class MCPConnectionStore {
     private readonly logger: LoggerBase;
     private readonly deviceId: DeviceId;
     private readonly serverMetadata: ServerMetadata;
+    private readonly connectionIdleTimeoutMs: number;
     private preconfiguredDial?: Promise<unknown>;
+    private sweepTimer?: ReturnType<typeof setInterval>;
 
     constructor(options: ConnectionStoreOptions) {
-        this.options = options.options;
-        this.logger = options.logger;
-        this.deviceId = options.deviceId;
-        this.serverMetadata = options.serverMetadata ?? DEFAULT_SERVER_METADATA;
+        const { options: config, logger, deviceId, serverMetadata } = options;
+        this.options = config;
+        this.logger = logger;
+        this.deviceId = deviceId;
+        this.serverMetadata = serverMetadata ?? DEFAULT_SERVER_METADATA;
+        this.connectionIdleTimeoutMs = config.connectionIdleTimeoutMs;
+
+        this.startSweeper();
 
         if (this.options.connectionString) {
             this.entries.set(PRECONFIGURED_CONNECTION_ID, {
@@ -251,9 +262,69 @@ export class MCPConnectionStore {
 
     /** Closes and removes every entry, including the preconfigured one. For process/runner shutdown. */
     async closeAll(): Promise<void> {
+        this.stopSweeper();
         const stored = [...this.entries.values()];
         this.entries.clear();
         await Promise.allSettled(stored.map(({ entry }) => this.revoke(entry)));
+    }
+
+    /**
+     * Releases connections that have been idle past {@link connectionIdleTimeoutMs}.
+     * This restores the per-session lifetime bound the sessionful model provided
+     * (session idle timeout closed its connections) now that connections in
+     * named/global scopes have no other natural teardown. Reaping routes through
+     * {@link revoke} so temp-user cleanup, list-connections removal, and the
+     * revocation log behave exactly as an LRU overflow.
+     *
+     * The preconfigured connection is pinned (auto-redials on next resolve) and
+     * an in-progress dial is left alone (it may take minutes).
+     */
+    private async sweepIdleConnections(): Promise<void> {
+        if (this.connectionIdleTimeoutMs <= 0) {
+            return;
+        }
+        const now = Date.now();
+        const idle: ConnectionEntry[] = [];
+        for (const { entry } of this.entries.values()) {
+            if (entry.source === "preconfigured") {
+                continue;
+            }
+            if (entry.state.tag === "connecting") {
+                continue;
+            }
+            if (now - entry.lastUsedAt.getTime() > this.connectionIdleTimeoutMs) {
+                idle.push(entry);
+            }
+        }
+        for (const entry of idle) {
+            this.entries.delete(entry.connectionId);
+            await this.revoke(entry);
+        }
+    }
+
+    private startSweeper(): void {
+        if (this.connectionIdleTimeoutMs <= 0) {
+            return;
+        }
+        // Reap on the timeout cadence itself, so an entry is released within one
+        // interval of crossing the threshold. 0 (handled above) disables; the
+        // connectionIdleTimeoutMs schema rejects negatives, so a tiny but positive
+        // value here simply makes the reaper run more often.
+        this.sweepTimer = setInterval(() => {
+            void this.sweepIdleConnections();
+        }, this.connectionIdleTimeoutMs);
+        // Browser-safe: unref() is a Node-only method that keeps the timer from
+        // holding the process open; skip it when unavailable (e.g. in a web build).
+        if (typeof this.sweepTimer?.unref === "function") {
+            this.sweepTimer.unref();
+        }
+    }
+
+    private stopSweeper(): void {
+        if (this.sweepTimer) {
+            clearInterval(this.sweepTimer);
+            this.sweepTimer = undefined;
+        }
     }
 
     private addEntry({
