@@ -124,6 +124,15 @@ var authEnvVars = authMode == 'MicrosoftMIBasedAuth'
         name: 'MDB_MCP_AZURE_MANAGED_IDENTITY_CLIENT_ID'
         value: authClientId
       }
+      {
+        // Binding to all interfaces is intentional: the app is fronted by the
+        // Azure Container Apps platform auth (MicrosoftMIBasedAuth), which
+        // enforces the Entra 401 for unauthenticated requests before the MCP
+        // server is reached. NOAUTH omits this flag so the server refuses to
+        // start (fail closed) on an all-interfaces bind without auth.
+        name: 'MDB_MCP_DANGEROUS_HOST_BINDING'
+        value: 'true'
+      }
     ], length(authAllowedClientApps) > 0 ? [
       {
         // Comma-separated list of allowed Client App IDs for access

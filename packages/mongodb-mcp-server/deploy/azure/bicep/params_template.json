@@ -15,6 +15,12 @@
         "MDB_MCP_TRANSPORT": "http",
         "MDB_MCP_LOGGERS": "disk,mcp,stderr",
         "MDB_MCP_LOG_PATH": "/tmp/mongodb-mcp"
+        // NOAUTH + an all-interfaces bind ("::") means the server is exposed to
+        // the network with no authentication. The server now fails closed and
+        // refuses to start unless MDB_MCP_DANGEROUS_HOST_BINDING=true is set.
+        // This is a dev/test-only posture (see README). Add the flag below ONLY
+        // if you understand and accept that this is an unauthenticated endpoint.
+        // "MDB_MCP_DANGEROUS_HOST_BINDING": "true"
       }
     },
     "mdbConnectionString": { "value": "<MONGODB_CONNECTION_STRING>" },

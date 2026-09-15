@@ -528,3 +528,59 @@ describe("MCPHttpServer stateless serving", () => {
         });
     });
 });
+
+describe("MCPHttpServer dangerous-host binding guard", () => {
+    let server: MCPHttpServer<BaseServer> | undefined;
+
+    afterEach(async () => {
+        await server?.stop().catch(() => undefined);
+        server = undefined;
+    });
+
+    function makeDangerousServer(host: string, dangerousHostBinding?: boolean): MCPHttpServer<BaseServer> {
+        const opts: HttpServerOptions = {
+            host,
+            port: 0,
+            responseType: "json",
+            ...(dangerousHostBinding !== undefined ? { dangerousHostBinding } : {}),
+        };
+        return new (class DangerousServer extends MCPHttpServer<BaseServer> {
+            constructor() {
+                super({
+                    options: { http: opts },
+                    logger: new InMemoryLogger(),
+                    metrics: new MockMetrics(),
+                });
+            }
+
+            protected override createServerForRequest(_request: TransportRequestContext): Promise<BaseServer> {
+                return Promise.resolve(makeFakeServer());
+            }
+        })();
+    }
+
+    it("throws when binding to 0.0.0.0 without the opt-in", async () => {
+        server = makeDangerousServer("0.0.0.0");
+        await expect(server.start()).rejects.toThrow(/non-loopback host "0.0.0.0"/);
+    });
+
+    it("throws when binding to an all-interfaces (empty) host without the opt-in", async () => {
+        server = makeDangerousServer("");
+        await expect(server.start()).rejects.toThrow(/non-loopback host "<all interfaces>"/);
+    });
+
+    it("throws when binding to a LAN IP without the opt-in", async () => {
+        server = makeDangerousServer("192.168.1.10");
+        await expect(server.start()).rejects.toThrow(/non-loopback host "192.168.1.10"/);
+    });
+
+    it("starts on a dangerous host when dangerousHostBinding is set", async () => {
+        server = makeDangerousServer("0.0.0.0", true);
+        await expect(server.start()).resolves.toBeUndefined();
+    });
+
+    it("starts on loopback without the opt-in", async () => {
+        server = makeDangerousServer("127.0.0.1");
+        await expect(server.start()).resolves.toBeUndefined();
+    });
+});

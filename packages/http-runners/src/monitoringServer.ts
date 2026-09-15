@@ -31,7 +31,11 @@ export class MonitoringServer<
         super({
             options: {
                 logContext: "monitoringServer",
-                http: { port: options.http.port, host: options.http.host },
+                http: {
+                    port: options.http.port,
+                    host: options.http.host,
+                    dangerousHostBinding: options.http.dangerousHostBinding,
+                },
             },
             logger,
         });
@@ -88,6 +92,11 @@ export type MonitoringServerOptions<TMetrics extends DefaultMetricDefinitions = 
             host: string;
             /** Port to bind the monitoring server to */
             port: number;
+            /**
+             * When true, permits binding to a non-loopback host. Requires an
+             * explicit opt-in (see {@link HttpServerOptions.dangerousHostBinding}).
+             */
+            dangerousHostBinding?: boolean;
         };
         /** Features to enable on the monitoring server */
         features: MonitoringServerFeature[];

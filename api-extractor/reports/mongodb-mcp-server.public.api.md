@@ -792,6 +792,7 @@ export type MonitoringServerOptions<TMetrics extends DefaultMetricDefinitions = 
         http: {
             host: string;
             port: number;
+            dangerousHostBinding?: boolean;
         };
         features: MonitoringServerFeature_2[];
         version?: string;

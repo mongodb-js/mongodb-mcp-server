@@ -80,6 +80,13 @@
           "isSecret": true
         },
         {
+          "name": "MDB_MCP_DANGEROUS_HOST_BINDING",
+          "description": "When set to true, allows binding the HTTP server (and monitoring server) to a non-loopback host such as 0.0.0.0, a LAN IP, or an empty host (all interfaces). Binding to a non-loopback host exposes the server to the entire network and can allow unauthorized access. Off by default: the server refuses to start on a non-loopback host unless this is true.",
+          "isRequired": false,
+          "format": "boolean",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_DISABLE_SERVER_SIDE_JS",
           "description": "When set to true, disallows the use of server-side JavaScript operators (such as $where, $function, and $accumulator) in query filters and aggregation pipelines.",
           "isRequired": false,
@@ -389,6 +396,13 @@
           "name": "--connectionString",
           "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
           "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--dangerousHostBinding",
+          "description": "When set to true, allows binding the HTTP server (and monitoring server) to a non-loopback host such as 0.0.0.0, a LAN IP, or an empty host (all interfaces). Binding to a non-loopback host exposes the server to the entire network and can allow unauthorized access. Off by default: the server refuses to start on a non-loopback host unless this is true.",
+          "isRequired": false,
+          "format": "boolean"
         },
         {
           "type": "named",
@@ -700,6 +714,13 @@
           "isSecret": true
         },
         {
+          "name": "MDB_MCP_DANGEROUS_HOST_BINDING",
+          "description": "When set to true, allows binding the HTTP server (and monitoring server) to a non-loopback host such as 0.0.0.0, a LAN IP, or an empty host (all interfaces). Binding to a non-loopback host exposes the server to the entire network and can allow unauthorized access. Off by default: the server refuses to start on a non-loopback host unless this is true.",
+          "isRequired": false,
+          "format": "boolean",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_DISABLE_SERVER_SIDE_JS",
           "description": "When set to true, disallows the use of server-side JavaScript operators (such as $where, $function, and $accumulator) in query filters and aggregation pipelines.",
           "isRequired": false,
@@ -1009,6 +1030,13 @@
           "name": "--connectionString",
           "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
           "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--dangerousHostBinding",
+          "description": "When set to true, allows binding the HTTP server (and monitoring server) to a non-loopback host such as 0.0.0.0, a LAN IP, or an empty host (all interfaces). Binding to a non-loopback host exposes the server to the entire network and can allow unauthorized access. Off by default: the server refuses to start on a non-loopback host unless this is true.",
+          "isRequired": false,
+          "format": "boolean"
         },
         {
           "type": "named",
