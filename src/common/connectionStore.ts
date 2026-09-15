@@ -120,9 +120,15 @@ export class MCPConnectionStore {
             createEntry: (opts: CreateConnectionEntryOptions): Promise<ConnectionEntry> =>
                 Promise.resolve(this.addEntry({ ...opts, scope })),
 
-            connect: async ({ settings, name, clientName }: CreateConnectionOptions): Promise<ConnectionEntry> => {
-                name ??= settings.atlas?.clusterName ?? hostFromConnectionString(settings.connectionString);
-                const entry = this.addEntry({ name, clientName, scope });
+            connect: async ({
+                settings,
+                name,
+                clientName,
+                atlasCluster,
+            }: CreateConnectionOptions): Promise<ConnectionEntry> => {
+                atlasCluster ??= settings.atlas;
+                name ??= atlasCluster?.clusterName ?? hostFromConnectionString(settings.connectionString);
+                const entry = this.addEntry({ name, clientName, scope, atlasCluster });
                 try {
                     await entry.connect(settings);
                 } catch (error: unknown) {
@@ -189,6 +195,7 @@ export class MCPConnectionStore {
         clientName,
         scope,
         onRevoke,
+        atlasCluster,
     }: CreateConnectionEntryOptions & { scope?: string }): ConnectionEntry {
         const manager = this.createConnectionManager();
         if (clientName) {
@@ -201,6 +208,7 @@ export class MCPConnectionStore {
             source: "explicit",
             manager,
             onRevoke,
+            atlasCluster,
         });
         this.entries.set(entry.connectionId, { entry, scope });
         void this.enforceLimit(scope);

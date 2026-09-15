@@ -86,7 +86,7 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
             ...(await super.resolveTelemetryMetadata(args, { result })),
             ...(connectionId && { connection_id: connectionId }),
             ...this.getConnectionInfoMetadata(
-                connectionId ? (await this.session.connectionRegistry.peek(connectionId))?.state : undefined
+                connectionId ? await this.session.connectionRegistry.peek(connectionId) : undefined
             ),
         };
     }
