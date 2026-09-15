@@ -53,6 +53,7 @@ const expectedDefaults = {
     evictionIdleGraceMS: 120000,
     externallyManagedSessions: false,
     httpHeaders: {},
+    dangerousHostBinding: false,
     httpBodyLimit: TRANSPORT_PAYLOAD_LIMITS.http,
     maxDocumentsPerQuery: 100,
     maxBytesPerQuery: 16 * 1024 * 1024, // ~16 mb

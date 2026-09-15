@@ -12,6 +12,13 @@ export type HttpServerOptions = {
     headers?: Record<string, string>;
     /** Response type: 'sse' for Server-Sent Events, 'json' for JSON responses */
     responseType?: "sse" | "json";
+    /**
+     * When true, permits binding to a non-loopback host (e.g. `0.0.0.0`, `::`,
+     * a LAN IP, or an empty host meaning "all interfaces"). Defaults to a strict
+     * loopback-only policy that throws when the host is not loopback. Set this
+     * explicitly only when the server is intentionally exposed to the network.
+     */
+    dangerousHostBinding?: boolean;
 };
 
 /**
