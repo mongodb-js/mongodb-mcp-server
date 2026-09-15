@@ -10,7 +10,13 @@ import type {
 } from "@mongodb-js/mcp-types";
 import type { ToolArgs, InputRequiredResult } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
-import { ConnectionConfig, PrivateLinkConfig, StreamsArgs } from "../../streams/streamsArgs.js";
+import {
+    ConnectionConfig,
+    PrivateLinkConfig,
+    StreamsArgs,
+    StreamsAutoscaling,
+    StreamsTier,
+} from "../../streams/streamsArgs.js";
 import { StreamsInvalidArgumentError } from "../../streams/errors.js";
 
 const BuildResource = z.enum(["workspace", "connection", "processor", "privatelink"]);
@@ -130,10 +136,7 @@ const StreamsBuildArgsShape = {
                 "Use Atlas region names: AWS examples: 'VIRGINIA_USA', 'OREGON_USA', 'DUBLIN_IRL'. " +
                 "Azure examples: 'eastus2', 'westeurope'. GCP examples: 'US_CENTRAL1', 'EUROPE_WEST1'."
         ),
-    tier: z
-        .enum(["SP2", "SP5", "SP10", "SP30", "SP50"])
-        .optional()
-        .describe("Processing tier. Default: SP10. Only for resource='workspace'."),
+    tier: StreamsTier.optional().describe("Processing tier. Default: SP10. Only for resource='workspace'."),
     includeSampleData: z
         .boolean()
         .optional()
@@ -195,6 +198,14 @@ const StreamsBuildArgsShape = {
                 "Only include when the user explicitly requests a DLQ, or when the pipeline uses $https with default onError='dlq'. " +
                 "The DLQ connection must already exist in the workspace."
         ),
+    processorTier: StreamsTier.optional().describe(
+        "Baseline processing tier. Only for resource='processor'. Defaults to the workspace tier when omitted."
+    ),
+    autoscaling: StreamsAutoscaling.optional().describe(
+        "Autoscaling configuration. Only for resource='processor'. " +
+            "Set enabled=true to enable it; omitted means disabled at creation. " +
+            "minTier and maxTier default to workspace bounds when enabled."
+    ),
     autoStart: z
         .boolean()
         .optional()
@@ -846,10 +857,15 @@ export class StreamsBuildTool extends StreamsToolBase {
         );
         if (connectionError) return connectionError;
 
+        const options = {
+            ...(args.dlq !== undefined && { dlq: args.dlq }),
+            ...(args.autoscaling !== undefined && { autoscaling: args.autoscaling }),
+        };
         const body = {
             name: args.processorName,
             pipeline: args.pipeline,
-            options: args.dlq ? { dlq: args.dlq } : undefined,
+            ...(args.processorTier !== undefined && { tier: args.processorTier }),
+            ...(Object.keys(options).length > 0 && { options }),
         };
 
         await this.server.apiClient.createStreamProcessor(

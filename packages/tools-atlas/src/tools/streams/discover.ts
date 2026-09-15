@@ -4,15 +4,33 @@ import type { IAtlasConfig } from "../../atlasTool.js";
 import type { CallToolResult, OperationType, ToolExecutionContext, ToolRequest } from "@mongodb-js/mcp-types";
 import { formatUntrustedData, type ToolArgs } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
-import { StreamsArgs } from "../../streams/streamsArgs.js";
+import {
+    StreamsArgs,
+    StreamsAutoscaling,
+    StreamsTier,
+    type StreamsTierValue,
+    toStreamsAutoscaling,
+} from "../../streams/streamsArgs.js";
 import { StreamsInvalidArgumentError } from "../../streams/errors.js";
 
 type StreamsProcessorWithStats = {
     name?: string;
     state?: string;
-    tier?: string;
+    tier?: StreamsTierValue;
+    effectiveTier?: StreamsTierValue;
     stats?: Record<string, unknown>;
-    options?: { dlq?: { connectionName?: string; db?: string; coll?: string } };
+    options?: {
+        dlq?: { connectionName?: string; db?: string; coll?: string };
+        // Raw Atlas response model: the generated client types options.autoscaling as
+        // nullable, but the API omits it when disabled/cleared and never returns a null
+        // `enabled` (only minTier/maxTier may be null). toStreamsAutoscaling normalizes
+        // this to the tool's non-null surface before structured output.
+        autoscaling?: {
+            enabled?: boolean | null;
+            minTier?: StreamsTierValue | null;
+            maxTier?: StreamsTierValue | null;
+        } | null;
+    };
     pipeline?: Record<string, unknown>[];
 };
 
@@ -76,10 +94,14 @@ function toConnectionInspect(data: Record<string, unknown>): ConnectionInspect {
     } as ConnectionInspect;
 }
 
+const AutoscalingSchema = StreamsAutoscaling;
+
 const ProcessorSummarySchema = z.object({
     name: z.string(),
     state: z.string().optional(),
-    tier: z.string().optional(),
+    tier: StreamsTier.optional(),
+    effectiveTier: StreamsTier.optional(),
+    autoscaling: AutoscalingSchema.optional(),
 });
 
 const ProcessorState = z.enum(["STARTED", "STOPPED", "CREATED", "FAILED"]);
@@ -154,7 +176,9 @@ export const DiscoverOutputSchema = z.object({
     processors: z.array(ProcessorSummarySchema).optional(),
     workspace: WorkspaceInspectConciseSchema.optional(),
     processorState: ProcessorState.optional(),
-    tier: z.string().optional(),
+    tier: StreamsTier.optional(),
+    effectiveTier: StreamsTier.optional(),
+    autoscaling: AutoscalingSchema.optional(),
     stats: ProcessorStatsSchema.optional(),
     dlq: DlqConfigSchema.optional(),
     pipeline: z.array(z.record(z.string(), z.unknown())).optional(),
@@ -178,6 +202,13 @@ function buildProcessorStructuredContent(
     }
     if (proc.tier !== undefined) {
         structuredContent.tier = proc.tier;
+    }
+    if (proc.effectiveTier !== undefined) {
+        structuredContent.effectiveTier = proc.effectiveTier;
+    }
+    const autoscaling = toStreamsAutoscaling(proc.options?.autoscaling);
+    if (autoscaling !== undefined) {
+        structuredContent.autoscaling = autoscaling;
     }
     if (proc.stats && Object.keys(proc.stats).length > 0) {
         structuredContent.stats = {
@@ -533,11 +564,16 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         }
 
         const format = responseFormat ?? "concise";
-        const conciseProcessors = data.results.map((p) => ({
-            name: p.name,
-            state: p.state,
-            tier: p.tier,
-        }));
+        const conciseProcessors = data.results.map((p) => {
+            const autoscaling = toStreamsAutoscaling(p.options?.autoscaling);
+            return {
+                name: p.name,
+                state: p.state,
+                tier: p.tier,
+                effectiveTier: p.effectiveTier,
+                ...(autoscaling !== undefined && { autoscaling }),
+            };
+        });
         const processors = format === "concise" ? conciseProcessors : data.results;
 
         return {
@@ -599,8 +635,12 @@ export class StreamsDiscoverTool extends StreamsToolBase {
             Object.assign(structuredContent, buildProcessorStructuredContent(proc));
 
             sections.push(
-                `## Processor State\n- Name: ${proc.name}\n- State: ${proc.state}\n- Tier: ${proc.tier ?? "default"}`
+                `## Processor State\n- Name: ${proc.name}\n- State: ${proc.state}\n- Baseline Tier: ${proc.tier ?? "default"}\n- Effective Tier: ${proc.effectiveTier ?? proc.tier ?? "default"}`
             );
+
+            if (proc.options?.autoscaling !== undefined) {
+                sections.push(`## Autoscaling\n${JSON.stringify(proc.options.autoscaling, null, 2)}`);
+            }
 
             if (proc.stats && Object.keys(proc.stats).length > 0 && structuredContent.stats) {
                 const stats = structuredContent.stats;
