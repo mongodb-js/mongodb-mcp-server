@@ -48,6 +48,7 @@ describe("createMonitoringServerFromConfig", () => {
                 http: {
                     host: "127.0.0.1",
                     port: 9090,
+                    dangerousHostBinding: false,
                 },
                 features: ["health-check", "metrics"],
             },
@@ -98,6 +99,7 @@ describe("createMonitoringServerFromConfig", () => {
                 http: {
                     host: "127.0.0.1",
                     port: 9090,
+                    dangerousHostBinding: false,
                 },
                 features: ["health-check"],
             },
@@ -126,6 +128,35 @@ describe("createMonitoringServerFromConfig", () => {
                 http: {
                     host: "127.0.0.1",
                     port: 9090,
+                    dangerousHostBinding: false,
+                },
+                features: ["health-check"],
+            },
+            logger,
+            metrics,
+        });
+    });
+
+    it("propagates dangerousHostBinding when enabled", () => {
+        mockMonitoringServer.mockClear();
+
+        const config = UserConfigSchema.parse({
+            telemetry: "disabled",
+            loggers: ["stderr"],
+            monitoringServerHost: "0.0.0.0",
+            monitoringServerPort: 9090,
+            dangerousHostBinding: true,
+        });
+
+        const monitoringServer = createMonitoringServerFromConfig({ config, logger, metrics });
+
+        expect(monitoringServer).toBeDefined();
+        expect(mockMonitoringServer).toHaveBeenCalledWith({
+            options: {
+                http: {
+                    host: "0.0.0.0",
+                    port: 9090,
+                    dangerousHostBinding: true,
                 },
                 features: ["health-check"],
             },
