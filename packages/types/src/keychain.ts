@@ -15,6 +15,11 @@ export interface IRedactor {
      * redacted. Never mutates `value`, and terminates on self-referencing input.
      */
     redact<T>(value: T): T;
+    /**
+     * Returns the message of an `error` (or the string form of a non-error) with
+     * this redactor's secrets removed, for safe logging or display.
+     */
+    redactErrorMessage(error: unknown): string;
 }
 
 /**

@@ -81,10 +81,10 @@ describeWithAtlas("db users", (integration) => {
                 expect(elements[0]?.text).toContain(userName);
                 expect(elements[0]?.text).not.toContain("testpassword");
 
-                const keychain = new Keychain([
-                    { value: userName, kind: "user" },
-                    { value: "testpassword", kind: "password" },
-                ]);
+                const keychain = new Keychain({
+                    [userName]: "user",
+                    testpassword: "password",
+                });
                 expect(keychain.redact(userName)).toBe("<user>");
                 expect(keychain.redact("testpassword")).toBe("<password>");
             });
@@ -107,10 +107,10 @@ describeWithAtlas("db users", (integration) => {
                     .replace(/`/g, "")
                     .trim();
 
-                const keychain = new Keychain([
-                    { value: userName, kind: "user" },
-                    { value: password, kind: "password" },
-                ]);
+                const keychain = new Keychain({
+                    [userName]: "user",
+                    [password]: "password",
+                });
                 expect(keychain.redact(userName)).toBe("<user>");
                 expect(keychain.redact(password)).toBe("<password>");
             });

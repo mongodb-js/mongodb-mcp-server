@@ -74,7 +74,7 @@ describe("RedactingLoggerBase redaction", () => {
     });
 
     it("redacts keychain secrets from mcp logger by default", () => {
-        const seeded = new Keychain([{ value: "SuperSecretPass123", kind: "password" }]);
+        const seeded = new Keychain({ SuperSecretPass123: "password" });
         const seededLogger = new McpLogger({
             server: {
                 sendLoggingMessage: mcpLoggerSpy,
@@ -94,7 +94,7 @@ describe("RedactingLoggerBase redaction", () => {
     });
 
     it("redacts sensitive information from the keychain", () => {
-        const seeded = new Keychain([{ value: "123456", kind: "password" }]);
+        const seeded = new Keychain({ "123456": "password" });
         const seededLogger = new ConsoleLogger({ keychain: seeded });
         seededLogger.info({ id: LogId.serverInitialized, context: "test", message: "Your password is 123456." });
 
@@ -105,7 +105,7 @@ describe("RedactingLoggerBase redaction", () => {
     });
 
     it("redacts sensitive information in attributes", () => {
-        const seeded = new Keychain([{ value: "123456", kind: "password" }]);
+        const seeded = new Keychain({ "123456": "password" });
         const seededLogger = new ConsoleLogger({ keychain: seeded });
         seededLogger.info({
             id: LogId.serverInitialized,
@@ -133,7 +133,7 @@ describe("RedactingLoggerBase redaction", () => {
     });
 
     it("keeps an attribute named __proto__ instead of dropping it", () => {
-        const seeded = new Keychain([{ value: "123456", kind: "password" }]);
+        const seeded = new Keychain({ "123456": "password" });
         const seededLogger = new ConsoleLogger({ keychain: seeded });
         seededLogger.info({
             id: LogId.serverInitialized,

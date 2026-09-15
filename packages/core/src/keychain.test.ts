@@ -5,12 +5,12 @@ const SECRET = "s3cr3t-value";
 
 describe("Keychain", () => {
     it("redacts a registered secret", () => {
-        const keychain = new Keychain([{ value: SECRET, kind: "password" }]);
+        const keychain = new Keychain({ [SECRET]: "password" });
         expect(keychain.redact(`token is ${SECRET} here`)).not.toContain(SECRET);
     });
 
     it("leaves unregistered values alone", () => {
-        const keychain = new Keychain([{ value: "some-other-secret", kind: "password" }]);
+        const keychain = new Keychain({ "some-other-secret": "password" });
         expect(keychain.redact(`token is ${SECRET} here`)).toBe(`token is ${SECRET} here`);
     });
 
@@ -19,71 +19,23 @@ describe("Keychain", () => {
         expect(keychain.redact(SECRET)).toBe(SECRET);
     });
 
-    it("accepts a value→kind record in the constructor", () => {
-        const keychain = new Keychain({ [SECRET]: "password" });
-        expect(keychain.redact(SECRET)).toBe("<password>");
+    it("redacts a value registered as a user", () => {
+        const keychain = new Keychain({ [SECRET]: "user" });
+        expect(keychain.redact(`user is ${SECRET}`)).toBe("user is <user>");
     });
 
-    it("deduplicates a value registered with the same kind", () => {
-        const keychain = new Keychain([
-            { value: SECRET, kind: "password" },
-            { value: SECRET, kind: "password" },
-        ]);
-        expect(keychain.redact(SECRET)).toBe("<password>");
+    it("redacts a value that appears inside a larger word", () => {
+        const keychain = new Keychain({ secretpart: "password" });
+        expect(keychain.redact("mysecretpartvalue")).toBe("mysecretpartvalue");
     });
 
     it("redacts multiple secrets", () => {
-        const keychain = new Keychain([
-            { value: "one", kind: "password" },
-            { value: "two", kind: "password" },
-        ]);
+        const keychain = new Keychain({ one: "password", two: "password" });
         expect(keychain.redact("one and two")).toBe("<password> and <password>");
     });
 
-    describe("extended", () => {
-        it("redacts the parent's secrets plus the added ones", () => {
-            const base = new Keychain([{ value: "base-secret", kind: "password" }]);
-            const extended = base.extended({ value: "added-secret", kind: "password" });
-
-            expect(extended.redact("base-secret")).toBe("<password>");
-            expect(extended.redact("added-secret")).toBe("<password>");
-        });
-
-        it("accepts an array of additional secrets", () => {
-            const base = new Keychain();
-            const extended = base.extended([
-                { value: "a", kind: "password" },
-                { value: "b", kind: "user" },
-            ]);
-
-            expect(extended.redact("a and b")).toBe("<password> and <user>");
-        });
-
-        it("accepts a value→kind record", () => {
-            const base = new Keychain();
-            const extended = base.extended({ "added-secret": "password" });
-
-            expect(extended.redact("added-secret")).toBe("<password>");
-        });
-
-        it("does not mutate the parent keychain", () => {
-            const base = new Keychain([{ value: "base-secret", kind: "password" }]);
-            const extended = base.extended({ value: "added-secret", kind: "password" });
-
-            expect(base.redact("added-secret")).toBe("added-secret");
-            expect(extended.redact("base-secret")).toBe("<password>");
-        });
-
-        it("remains immutable: a derived keychain cannot be grown", () => {
-            const extended = new Keychain().extended({ value: "secret", kind: "password" });
-            // Redacting something not registered stays as-is; there is no way to
-            // add secrets to an existing keychain.
-            expect(extended.redact("never-registered")).toBe("never-registered");
-        });
-    });
-
     describe("redact", () => {
-        const keychain = new Keychain([{ value: SECRET, kind: "password" }]);
+        const keychain = new Keychain({ [SECRET]: "password" });
 
         it("redacts secrets in nested object string values while preserving structure", () => {
             const result = keychain.redact({

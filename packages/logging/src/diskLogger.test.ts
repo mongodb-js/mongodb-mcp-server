@@ -88,7 +88,7 @@ describe("DiskLogger", () => {
     });
 
     it("redacts sensitive information by default", () => {
-        const seeded = new Keychain([{ value: "SuperSecretPass123", kind: "password" }]);
+        const seeded = new Keychain({ SuperSecretPass123: "password" });
         const seededLogger = new DiskLogger({ logWriter: mock.writer, keychain: seeded });
         seededLogger.info({
             id: LogId.serverInitialized,

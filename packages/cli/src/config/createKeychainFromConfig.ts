@@ -1,4 +1,4 @@
-import { Keychain, type Secret } from "@mongodb-js/mcp-core";
+import { Keychain, type SecretKind } from "@mongodb-js/mcp-core";
 import type { UserConfig } from "./userConfig.js";
 
 /**
@@ -7,32 +7,25 @@ import type { UserConfig } from "./userConfig.js";
  * here, at config time, and no runtime code may add secrets to it (temporary
  * database users and per-request connection strings are kept out of emitted
  * strings by construction instead). One keychain instance is created per server
- * and threaded through the loggers, services and tools; a scoped copy can be
- * derived with {@link Keychain.extended}.
+ * and threaded through the loggers, services and tools.
  */
 export function createKeychainFromConfig(userConfig: Partial<UserConfig>): Keychain {
-    const secrets: Secret[] = [];
+    const secrets: Record<string, SecretKind> = {};
 
-    const add = (value: string | undefined, kind: Secret["kind"]): void => {
-        if (value) {
-            secrets.push({ value, kind });
-        }
-    };
-
-    add(userConfig.apiClientId, "user");
-    add(userConfig.apiClientSecret, "password");
-    add(userConfig.awsAccessKeyId, "password");
-    add(userConfig.awsIamSessionToken, "password");
-    add(userConfig.awsSecretAccessKey, "password");
-    add(userConfig.awsSessionToken, "password");
-    add(userConfig.password, "password");
-    add(userConfig.tlsCAFile, "url");
-    add(userConfig.tlsCRLFile, "url");
-    add(userConfig.tlsCertificateKeyFile, "url");
-    add(userConfig.tlsCertificateKeyFilePassword, "password");
-    add(userConfig.username, "user");
-    add(userConfig.voyageApiKey, "password");
-    add(userConfig.connectionString, "mongodb uri");
+    if (userConfig.apiClientId) secrets[userConfig.apiClientId] = "user";
+    if (userConfig.apiClientSecret) secrets[userConfig.apiClientSecret] = "password";
+    if (userConfig.awsAccessKeyId) secrets[userConfig.awsAccessKeyId] = "password";
+    if (userConfig.awsIamSessionToken) secrets[userConfig.awsIamSessionToken] = "password";
+    if (userConfig.awsSecretAccessKey) secrets[userConfig.awsSecretAccessKey] = "password";
+    if (userConfig.awsSessionToken) secrets[userConfig.awsSessionToken] = "password";
+    if (userConfig.password) secrets[userConfig.password] = "password";
+    if (userConfig.tlsCAFile) secrets[userConfig.tlsCAFile] = "url";
+    if (userConfig.tlsCRLFile) secrets[userConfig.tlsCRLFile] = "url";
+    if (userConfig.tlsCertificateKeyFile) secrets[userConfig.tlsCertificateKeyFile] = "url";
+    if (userConfig.tlsCertificateKeyFilePassword) secrets[userConfig.tlsCertificateKeyFilePassword] = "password";
+    if (userConfig.username) secrets[userConfig.username] = "user";
+    if (userConfig.voyageApiKey) secrets[userConfig.voyageApiKey] = "password";
+    if (userConfig.connectionString) secrets[userConfig.connectionString] = "mongodb uri";
 
     return new Keychain(secrets);
 }

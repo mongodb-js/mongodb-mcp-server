@@ -92,7 +92,7 @@ describe("config resource", () => {
         } as unknown as UserConfig;
 
         // Seed a keychain with a secret that would otherwise appear in the output (logPath).
-        const resource = createResource(config, new Keychain([{ value: config.logPath, kind: "url" }]));
+        const resource = createResource(config, new Keychain({ [config.logPath]: "url" }));
 
         const output = resource.toOutput();
         expect(output).not.toContain(config.logPath);

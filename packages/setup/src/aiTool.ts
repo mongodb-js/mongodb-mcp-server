@@ -4,7 +4,8 @@ import os from "os";
 import { applyEdits, findNodeAtLocation, modify, parseTree } from "jsonc-parser";
 import { exec } from "child_process";
 import type { Platform } from "./setupAiToolsUtils.js";
-import { formatError, getPlatform } from "./setupAiToolsUtils.js";
+import { getPlatform } from "./setupAiToolsUtils.js";
+import type { Keychain } from "@mongodb-js/mcp-core";
 
 export type AIToolType = "cursor" | "vscode" | "windsurf" | "claudeDesktop" | "claudeCode" | "opencode";
 
@@ -78,14 +79,14 @@ const ensureConfigDir = (configPath: string): void => {
     }
 };
 
-const writeConfigFile = (configPath: string, config: McpConfig): void => {
+const writeConfigFile = (configPath: string, config: McpConfig, keychain: Keychain): void => {
     const resolvedPath = path.resolve(configPath);
     ensureConfigDir(configPath);
     try {
         fs.writeFileSync(resolvedPath, JSON.stringify(config, null, 2), "utf-8");
     } catch (err: unknown) {
         throw new Error(
-            `Could not write config to ${resolvedPath}: ${formatError(err)}. ` +
+            `Could not write config to ${resolvedPath}: ${keychain.redactErrorMessage(err)}. ` +
                 "Check that the path is correct and you have permission to write to that location.",
             { cause: err }
         );
@@ -172,7 +173,7 @@ export abstract class AITool {
         return "env";
     }
 
-    protected readConfig(configPath: string): McpConfig {
+    protected readConfig(configPath: string, keychain: Keychain): McpConfig {
         const serversKey = this.getServersKey();
         const emptyConfig = (): McpConfig => ({ [serversKey]: {} }) as McpConfig;
         let config: McpConfig = emptyConfig();
@@ -183,7 +184,7 @@ export abstract class AITool {
                 getOrCreateServersEntry(config, serversKey);
             } catch (e: unknown) {
                 console.error(
-                    `Warning: Could not parse existing ${this.configFileName}, creating new config. Error is: ${formatError(e)}`
+                    `Warning: Could not parse existing ${this.configFileName}, creating new config. Error is: ${keychain.redactErrorMessage(e)}`
                 );
                 config = emptyConfig();
             }
@@ -203,7 +204,7 @@ export abstract class AITool {
         };
     }
 
-    updateConfig(configPath: string, env: Record<string, string>, isReadOnly: boolean): void {
+    updateConfig(configPath: string, env: Record<string, string>, isReadOnly: boolean, keychain: Keychain): void {
         const serversKey = this.getServersKey();
         const environmentKey = this.getEnvironmentKey();
         const updatedMcpConfigEntry = this.buildMcpConfigEntry(isReadOnly, env);
@@ -219,17 +220,17 @@ export abstract class AITool {
                 fs.writeFileSync(resolvedPath, newContent, "utf-8");
             } catch {
                 // Fallback: write full config if in-place update fails (e.g. invalid JSONC)
-                const config = this.readConfig(configPath);
+                const config = this.readConfig(configPath, keychain);
                 const servers = getOrCreateServersEntry(config, serversKey);
                 servers[MCP_SERVER_KEY] = updatedMcpConfigEntry;
-                writeConfigFile(configPath, config);
+                writeConfigFile(configPath, config, keychain);
             }
         } else {
             // New file: write full config
-            const config = this.readConfig(configPath);
+            const config = this.readConfig(configPath, keychain);
             const servers = getOrCreateServersEntry(config, serversKey);
             servers[MCP_SERVER_KEY] = updatedMcpConfigEntry;
-            writeConfigFile(configPath, config);
+            writeConfigFile(configPath, config, keychain);
         }
     }
 
