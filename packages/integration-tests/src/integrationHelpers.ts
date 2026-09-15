@@ -166,10 +166,9 @@ export function setupIntegrationTest(
         const exportsManager = ExportsManager.init({ options: userConfig, logger: logger });
 
         deviceId = DeviceId.create(logger);
-        connectionStore = new MCPConnectionStore({ options: userConfig, logger, deviceId });
-        const connectionRegistry = connectionStore.view();
-
         const keychain = new Keychain();
+        connectionStore = new MCPConnectionStore({ options: userConfig, logger, deviceId, keychain });
+        const connectionRegistry = connectionStore.view();
 
         const apiClient = createTestApiClient({
             baseUrl: userConfig.apiBaseUrl,

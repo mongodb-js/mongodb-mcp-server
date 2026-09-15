@@ -628,12 +628,14 @@ describe("AtlasTelemetry", () => {
     describe("when secrets are registered", () => {
         describe("comprehensive redaction coverage", () => {
             it("should redact sensitive data from CommonStaticProperties", async () => {
-                keychain.register("secret-server-version", "password");
-                keychain.register("secret-server-name", "password");
-                keychain.register("secret-password", "password");
-                keychain.register("secret-key", "password");
-                keychain.register("secret-token", "password");
-                keychain.register("secret-password-version", "password");
+                keychain = new Keychain([
+                    { value: "secret-server-version", kind: "password" },
+                    { value: "secret-server-name", kind: "password" },
+                    { value: "secret-password", kind: "password" },
+                    { value: "secret-key", kind: "password" },
+                    { value: "secret-token", kind: "password" },
+                    { value: "secret-password-version", kind: "password" },
+                ]);
 
                 const sensitiveStaticProps = {
                     mcp_server_version: "secret-server-version",
@@ -666,8 +668,10 @@ describe("AtlasTelemetry", () => {
             });
 
             it("should redact sensitive data from CommonProperties", async () => {
-                keychain.register("test-device-id", "password");
+                keychain = new Keychain([{ value: "test-device-id", kind: "password" }]);
 
+                vi.clearAllTimers();
+                telemetry = createAtlasTelemetry({});
                 await telemetry.setupPromise;
                 await emitEventsForTest([createTestEvent()]);
 
@@ -681,9 +685,13 @@ describe("AtlasTelemetry", () => {
             });
 
             it("should redact sensitive data that is added to events", async () => {
-                keychain.register("test-device-id", "password");
-                keychain.register("test-component", "password");
+                keychain = new Keychain([
+                    { value: "test-device-id", kind: "password" },
+                    { value: "test-component", kind: "password" },
+                ]);
 
+                vi.clearAllTimers();
+                telemetry = createAtlasTelemetry({});
                 await telemetry.setupPromise;
                 await emitEventsForTest([createTestEvent()]);
 

@@ -16,7 +16,7 @@ describe("RedactingLoggerBase redaction", () => {
 
     beforeEach(() => {
         consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-        keychain = Keychain.root;
+        keychain = new Keychain();
 
         consoleLogger = new ConsoleLogger({ keychain });
 
@@ -32,7 +32,6 @@ describe("RedactingLoggerBase redaction", () => {
     });
 
     afterEach(() => {
-        keychain.clearAllSecrets();
         vi.restoreAllMocks();
     });
 
@@ -75,8 +74,16 @@ describe("RedactingLoggerBase redaction", () => {
     });
 
     it("redacts keychain secrets from mcp logger by default", () => {
-        keychain.register("SuperSecretPass123", "password");
-        mcpLogger.error({
+        const seeded = new Keychain([{ value: "SuperSecretPass123", kind: "password" }]);
+        const seededLogger = new McpLogger({
+            server: {
+                sendLoggingMessage: mcpLoggerSpy,
+                isConnected: () => true,
+            } as unknown as McpServer,
+            options: { logLevel: "debug" },
+            keychain: seeded,
+        });
+        seededLogger.error({
             id: LogId.serverInitialized,
             context: "test",
             message: 'Failed to connect: "mongodb://admin:SuperSecretPass123@/db"',
@@ -87,8 +94,9 @@ describe("RedactingLoggerBase redaction", () => {
     });
 
     it("redacts sensitive information from the keychain", () => {
-        keychain.register("123456", "password");
-        consoleLogger.info({ id: LogId.serverInitialized, context: "test", message: "Your password is 123456." });
+        const seeded = new Keychain([{ value: "123456", kind: "password" }]);
+        const seededLogger = new ConsoleLogger({ keychain: seeded });
+        seededLogger.info({ id: LogId.serverInitialized, context: "test", message: "Your password is 123456." });
 
         expect(consoleErrorSpy).toHaveBeenCalledOnce();
 
@@ -97,8 +105,9 @@ describe("RedactingLoggerBase redaction", () => {
     });
 
     it("redacts sensitive information in attributes", () => {
-        keychain.register("123456", "password");
-        consoleLogger.info({
+        const seeded = new Keychain([{ value: "123456", kind: "password" }]);
+        const seededLogger = new ConsoleLogger({ keychain: seeded });
+        seededLogger.info({
             id: LogId.serverInitialized,
             context: "test",
             message: "Safe message",
@@ -124,8 +133,9 @@ describe("RedactingLoggerBase redaction", () => {
     });
 
     it("keeps an attribute named __proto__ instead of dropping it", () => {
-        keychain.register("123456", "password");
-        consoleLogger.info({
+        const seeded = new Keychain([{ value: "123456", kind: "password" }]);
+        const seededLogger = new ConsoleLogger({ keychain: seeded });
+        seededLogger.info({
             id: LogId.serverInitialized,
             context: "test",
             message: "Safe message",

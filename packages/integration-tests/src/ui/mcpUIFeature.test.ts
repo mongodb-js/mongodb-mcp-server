@@ -166,10 +166,10 @@ describe("mcpUI feature with custom UIs", () => {
         };
         const logger = new CompositeLogger();
         const deviceId = DeviceId.create(logger);
-        const connectionRegistry = new MCPConnectionStore({ options: userConfig, logger, deviceId }).view();
+        const keychain = new Keychain();
+        const connectionRegistry = new MCPConnectionStore({ options: userConfig, logger, deviceId, keychain }).view();
         const exportsManager = ExportsManager.init({ options: userConfig, logger });
 
-        const keychain = Keychain.root;
         const apiClient = createTestApiClient({
             baseUrl: userConfig.apiBaseUrl,
             serverMetadata: { mcpServerName: "test", version: "1" },

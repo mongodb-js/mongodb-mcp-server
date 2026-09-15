@@ -21,7 +21,7 @@ import { MongoDBClusterProcess } from "@mongodb-js/mcp-test-utils";
 import type { MongoClusterConfiguration } from "@mongodb-js/mcp-test-utils";
 import type { createMockElicitInput, MockClientCapabilities } from "@mongodb-js/mcp-test-utils";
 import { ConnectionEntry, type ConnectionManager, PRECONFIGURED_CONNECTION_ID } from "@mongodb-js/mcp-tools-mongodb";
-import { sleep } from "@mongodb-js/mcp-core";
+import { Keychain, sleep } from "@mongodb-js/mcp-core";
 
 export const DEFAULT_WAIT_TIMEOUT = 1000;
 export const DEFAULT_RETRY_INTERVAL = 100;
@@ -282,6 +282,7 @@ export function validateAutoConnectBehavior(
                     name: PRECONFIGURED_CONNECTION_ID,
                     source: "preconfigured",
                     manager: seam.createConnectionManager(),
+                    keychain: new Keychain(),
                 }),
             });
 

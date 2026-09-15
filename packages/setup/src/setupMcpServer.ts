@@ -14,7 +14,7 @@ import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { NoopLogger } from "@mongodb-js/mcp-core";
 import type { TelemetryResult } from "@mongodb-js/mcp-atlas-telemetry";
 import { SetupTelemetry } from "./setupTelemetry.js";
-import { Keychain, registerGlobalSecretToRedact } from "@mongodb-js/mcp-core";
+import type { Keychain } from "@mongodb-js/mcp-core";
 import { promptAndInstallSkills, type SkillsInstallOutcome } from "./installSkills.js";
 import type { SetupConfig } from "./types.js";
 
@@ -227,7 +227,10 @@ const promptForConnectionString = async (
         return { connectionString: "", provided: false, tested: false, attempts: 0 };
     }
 
-    registerGlobalSecretToRedact(connectionString, "mongodb uri");
+    // The connection string is a `mongodb://` URI: even though the keychain is
+    // fixed once at construction and cannot grow, the built-in mongodb-redact
+    // pattern scrubs the whole URI run (`<mongodb uri>`) from any error or log
+    // it reaches, so there is no need to register it here.
 
     try {
         const auth = getAuthType(config, connectionString);
@@ -263,10 +266,9 @@ const promptForServiceAccountSecret = async (): Promise<string> => {
         mask: true,
     });
 
-    if (secret.trim()) {
-        registerGlobalSecretToRedact(secret, "private key");
-    }
-
+    // The service account secret is never printed or logged by the setup
+    // wizard (it only goes into the on-disk config), so it is not registered on
+    // the keychain, which is immutable after construction.
     return secret;
 };
 
@@ -412,11 +414,14 @@ class UnsupportedPlatformError extends Error {
 export const runSetup = async ({
     config,
     serverMetadata,
+    keychain,
 }: {
     config: SetupConfig;
     serverMetadata: ServerMetadata;
+    /** The server's immutable redaction keychain, built from config secrets. */
+    keychain: Keychain;
 }): Promise<never> => {
-    const setupTelemetry = SetupTelemetry.create({ config, keychain: Keychain.root, serverMetadata });
+    const setupTelemetry = SetupTelemetry.create({ config, keychain, serverMetadata });
 
     // Ensure hard cancellations (SIGINT/SIGTERM outside of an Inquirer prompt)
     // are still captured. Inquirer itself converts Ctrl+C during prompts into

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import { type UserConfig, UserConfigSchema } from "@mongodb-js/mcp-cli";
 import { parseUserConfig, defaultParserOptions } from "@mongodb-js/mcp-cli";
 import {
@@ -6,8 +6,8 @@ import {
     getExportsPath,
     onlyLowerThanBaseValueOverride,
     onlySubsetOfBaseValueOverride,
+    createKeychainFromConfig,
 } from "@mongodb-js/mcp-cli";
-import { Keychain } from "@mongodb-js/mcp-core";
 import type { Secret } from "@mongodb-js/mcp-core";
 import { createEnvironment, useClearEnvironment } from "@mongodb-js/mcp-test-utils";
 import path from "path";
@@ -922,20 +922,11 @@ describe("keychain management", () => {
         { cliArg: "tlsCertificateKeyFilePassword", secretKind: "password" },
         { cliArg: "username", secretKind: "user" },
     ] as TestCase[];
-    let keychain: Keychain;
-
-    beforeEach(() => {
-        keychain = Keychain.root;
-        keychain.clearAllSecrets();
-    });
-
-    afterEach(() => {
-        keychain.clearAllSecrets();
-    });
 
     for (const { cliArg, secretKind } of testCases) {
         it(`should register ${cliArg} as a secret of kind ${secretKind} in the root keychain`, () => {
-            parseUserConfig({ args: [`--${cliArg}`, cliArg] });
+            const { parsed } = parseUserConfig({ args: [`--${cliArg}`, cliArg] });
+            const keychain = createKeychainFromConfig(parsed ?? {});
             expect(keychain.redact(cliArg)).toBe(`<${secretKind}>`);
         });
     }
@@ -947,7 +938,8 @@ describe("keychain management", () => {
 
     for (const secretKey of secretsFromSchema) {
         it(`should register ${secretKey} as a secret in the root keychain`, () => {
-            parseUserConfig({ args: [`--${secretKey}`, secretKey] });
+            const { parsed } = parseUserConfig({ args: [`--${secretKey}`, secretKey] });
+            const keychain = createKeychainFromConfig(parsed ?? {});
 
             expect(keychain.redact(secretKey)).toMatch(/^<[a-z ]+>$/);
         });

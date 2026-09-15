@@ -1,5 +1,5 @@
 import { getRandomUUID, LogId } from "@mongodb-js/mcp-core";
-import type { LoggerBase } from "@mongodb-js/mcp-core";
+import type { Keychain, LoggerBase } from "@mongodb-js/mcp-core";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ConnectionString } from "mongodb-connection-string-url";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
@@ -60,6 +60,11 @@ export type ConnectionStoreOptions = {
     deviceId: DeviceId;
     /** Server metadata embedded in the driver `appName`; a generic default is used when omitted. */
     serverMetadata?: ServerMetadata;
+    /**
+     * The immutable redaction keychain used to scrub connection strings and
+     * credentials from captured `lastError` values. Required.
+     */
+    keychain: Keychain;
 };
 
 type StoredConnection = {
@@ -86,16 +91,18 @@ export class MCPConnectionStore {
     private readonly deviceId: DeviceId;
     private readonly serverMetadata: ServerMetadata;
     private readonly connectionIdleTimeoutMs: number;
+    private readonly keychain: Keychain;
     private preconfiguredDial?: Promise<unknown>;
     private sweepTimer?: ReturnType<typeof setInterval>;
 
     constructor(options: ConnectionStoreOptions) {
-        const { options: config, logger, deviceId, serverMetadata } = options;
+        const { options: config, logger, deviceId, serverMetadata, keychain } = options;
         this.options = config;
         this.logger = logger;
         this.deviceId = deviceId;
         this.serverMetadata = serverMetadata ?? DEFAULT_SERVER_METADATA;
         this.connectionIdleTimeoutMs = config.connectionIdleTimeoutMs;
+        this.keychain = keychain;
 
         this.startSweeper();
 
@@ -106,6 +113,7 @@ export class MCPConnectionStore {
                     name: PRECONFIGURED_CONNECTION_ID,
                     source: "preconfigured",
                     manager: this.createConnectionManager(),
+                    keychain,
                 }),
             });
         }
@@ -346,6 +354,7 @@ export class MCPConnectionStore {
             manager,
             onRevoke,
             atlasCluster,
+            keychain: this.keychain,
         });
         this.entries.set(entry.connectionId, { entry, scope });
         void this.enforceLimit(scope);
