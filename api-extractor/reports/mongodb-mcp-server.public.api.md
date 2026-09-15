@@ -1103,6 +1103,7 @@ export const UserConfigSchema: z.ZodObject<{
     dangerousHostBinding: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
     httpBodyLimit: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxActiveConnections: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    connectionIdleTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     connectionScope: z.ZodDefault<z.ZodEnum<{
         session: "session";
         global: "global";
