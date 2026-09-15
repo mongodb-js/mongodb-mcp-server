@@ -928,12 +928,12 @@ For detailed Azure instructions, see [deploy/azure/README.md](deploy/azure/READM
 
 ## Deployment Constraints
 
-The MongoDB MCP Server is designed for **single-user, localhost (or private) deployments** where the operating user is the only principal. It ships with **no built-in authentication**, and the MCP protocol does not carry a verified end-user identity.
+The MongoDB MCP Server is designed for **single-user, localhost (or private) deployments** where the operating user is the only principal. It ships with **no built-in authentication**, and the MCP protocol does not carry a verified end-user identity. **It is not meant to be run as a multi-tenant / shared server.**
 
-As a result, if you expose it to a network — or use it as a **multi-tenant / shared server** — you are responsible for the isolation guarantees:
+As a result, if you expose it to a network — or use it as a shared server — you are responsible for the isolation guarantees:
 
 - **Internet exposure:** binding to `0.0.0.0` / `::` (or any non-loopback host) with no auth exposes an unauthenticated endpoint that can run MongoDB operations (including destructive ones) against the configured connection string. If you intentionally bind to a non-loopback host, you must set `MDB_MCP_DANGEROUS_HOST_BINDING=true` (see [Environment Variables](#environment-variables)).
-- **Multi-tenant isolation:** connections are scoped by the `mcp-session-id` header (or the shared scope on the sessionless path). If two distinct users connect without distinct, unguessable session ids, they can see and operate on each other's connections — including any Atlas temporary database user credentials. The server itself does not distinguish callers.
+- **Multi-user isolation:** connections are scoped by the (soon-to-be-removed) `connectionScope` option, whose default is moving to `global` — every request shares one scope. The `mcp-session-id` header that keys the scope on the sessionless path is client-asserted, not a security boundary, and requests without it fall into the shared scope. So multiple users can see and operate on each other's connections, including any Atlas temporary database user credentials. The server does not distinguish callers.
 
 **Do not** run the server as a shared, internet-facing endpoint without your own authentication and identity layer in front of it.
 
@@ -942,8 +942,7 @@ As a result, if you expose it to a network — or use it as a **multi-tenant / s
 For multi-tenant or public deployments, **build an authenticated solution** using the `@mongodb-js/mcp-*` library packages instead:
 
 - Terminate authentication / user identity at your own proxy or middleware, and pass a verified principal into the request via `authInfo` (the SDK's `createMcpHandler` and the legacy handler both forward it).
-- Supply a `connectionScope` policy that keys on your verified end-user identity (e.g. the OIDC `sub` claim) so each user's connections and credentials are isolated.
-- Never let the scope fall back to the shared `global` scope for authenticated multi-user traffic.
+- Supply a `connectionScope` policy that keys on your verified end-user identity (e.g. the OIDC `sub` claim) so each user's connections and credentials are isolated — do not let it fall back to the shared `global` scope for multi-user traffic.
 
 **Already on MongoDB Atlas?** For multi-tenant Atlas cluster usage, the simplest alternative is the **MongoDB Atlas-Managed MCP server** — a hosted, authenticated deployment that handles per-user identity (OAuth / service-account) for you instead of you standing up your own. See [Option 2](#option-2-connect-to-the-mongodb-atlas-managed-mcp-server) above.
 
