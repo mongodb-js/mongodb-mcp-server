@@ -1100,6 +1100,7 @@ export const UserConfigSchema: z.ZodObject<{
     httpPort: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     httpHost: z.ZodDefault<z.ZodString>;
     httpHeaders: z.ZodDefault<z.ZodObject<{}, z.core.$catchall<z.ZodString>>>;
+    dangerousHostBinding: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
     httpBodyLimit: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxActiveConnections: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     connectionScope: z.ZodDefault<z.ZodEnum<{
