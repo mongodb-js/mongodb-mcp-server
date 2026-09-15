@@ -101,10 +101,11 @@ export class CreateDBUserTool extends AtlasToolBase {
             request
         );
 
-        this.server.keychain.register(username, "user");
-        if (password) {
-            this.server.keychain.register(password, "password");
-        }
+        // The new user's username/password are delivered to the caller in the
+        // tool result (the password is the deliverable). They are deliberately
+        // not registered on the keychain — which is fixed at construction and
+        // cannot grow — and are never logged: tool args and result content are
+        // not emitted through the redacting logger or telemetry.
 
         const ipAccessListNote = getAccessListNote(ipAccessListResult);
 

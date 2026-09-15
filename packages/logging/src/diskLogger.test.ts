@@ -35,13 +35,12 @@ describe("DiskLogger", () => {
     let diskLogger: DiskLogger;
 
     beforeEach(() => {
-        keychain = Keychain.root;
+        keychain = new Keychain();
         mock = createMockLogWriter();
         diskLogger = new DiskLogger({ logWriter: mock.writer, keychain });
     });
 
     afterEach(() => {
-        keychain.clearAllSecrets();
         vi.restoreAllMocks();
     });
 
@@ -89,8 +88,9 @@ describe("DiskLogger", () => {
     });
 
     it("redacts sensitive information by default", () => {
-        keychain.register("SuperSecretPass123", "password");
-        diskLogger.info({
+        const seeded = new Keychain([{ value: "SuperSecretPass123", kind: "password" }]);
+        const seededLogger = new DiskLogger({ logWriter: mock.writer, keychain: seeded });
+        seededLogger.info({
             id: LogId.serverInitialized,
             context: "test",
             message: 'Failed to connect: "mongodb://admin:SuperSecretPass123@/db"',

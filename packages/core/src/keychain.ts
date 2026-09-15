@@ -4,61 +4,97 @@ import type { IKeychain } from "@mongodb-js/mcp-types";
 
 export type { Secret } from "mongodb-redact";
 
+/** The category a secret is redacted as (e.g. `password`, `mongodb uri`). */
+type SecretKind = Secret["kind"];
+
 /**
- * This class holds the secrets of a single server. Ideally, we might want to have a keychain
- * per session, but right now the loggers are set up by server and are not aware of the concept
- * of session and this would require a bigger refactor.
+ * The shape of the secret map: keyed by the secret value, holding its kind. A
+ * `Map` (rather than an array) gives O(1) dedup: the same value is never held
+ * twice, and {@link Keychain.extended} is a pure merge of two maps.
+ */
+type SecretRecord = Map<string, { kind: SecretKind }>;
+
+/**
+ * Creates a secret map from a {@link Secret} array, deduplicating by value.
+ * A value registered twice keeps its last kind.
+ */
+function toSecretMap(secrets: Secret[]): SecretRecord {
+    const map: SecretRecord = new Map();
+    for (const { value, kind } of secrets) {
+        map.set(value, { kind });
+    }
+    return map;
+}
+
+/** Materialises the map back into the array mongodb-redact expects. */
+function toSecretArray(map: SecretRecord): Secret[] {
+    return [...map.entries()].map(([value, { kind }]) => ({ value, kind }));
+}
+
+/** Normalises any accepted input shape into a flat {@link Secret} array. */
+function normalizeSecrets(secrets: Secret | Secret[] | Record<string, SecretKind>): Secret[] {
+    if (Array.isArray(secrets)) {
+        return secrets;
+    }
+    // A single Secret has a `value` string; a value→kind record has string keys
+    // whose values are kinds. A record could technically have a key named
+    // "value", so disambiguate by checking for a normal Secret shape first.
+    if (typeof secrets === "object" && "value" in secrets && "kind" in secrets) {
+        return [secrets as Secret];
+    }
+    return Object.entries(secrets).map(([value, kind]) => ({ value, kind }));
+}
+
+/**
+ * An immutable, redaction-only keychain.
  *
- * Whenever we identify or create a secret (for example, Atlas login, CLI arguments...) we
- * should register them in the root Keychain (`Keychain.root.register`) or preferably
- * on the session keychain if available `this.session.keychain`.
+ * A keychain is constructed once with every secret it will ever hold, and never
+ * grows: there is no way to register or clear a secret after construction. To
+ * redact a value against additional secrets (for example a connection-scoped
+ * temporary credential), derive a copy with {@link Keychain.extended} rather
+ * than mutating this one.
  *
- * Secrets are never handed out: the only way to act on them is {@link Keychain.redact}, so no
- * consumer can accidentally leak them by holding onto the raw values.
+ * Secrets are stored in a map keyed by value (each value → its kind), so a value
+ * is deduplicated and lookup/merge is O(1).
+ *
+ * Secrets are never handed out: the only way to act on them is
+ * {@link Keychain.redact}, so no consumer can accidentally leak them by holding
+ * onto the raw values.
  **/
 export class Keychain implements IKeychain {
-    private secrets: Secret[];
-    private static rootKeychain: Keychain = new Keychain();
+    private readonly secrets: SecretRecord;
 
-    constructor() {
-        this.secrets = [];
-    }
-
-    static get root(): Keychain {
-        return Keychain.rootKeychain;
-    }
-
-    register(value: Secret["value"], kind: Secret["kind"]): void {
-        this.secrets.push({ value, kind });
-    }
-
-    clearAllSecrets(): void {
-        this.secrets = [];
+    /**
+     * @param secrets - The secrets this keychain will redact, as a
+     * {@link Secret} array (the config shape) or a value→kind record.
+     */
+    constructor(secrets: Secret[] | Record<string, SecretKind> = {}) {
+        this.secrets = toSecretMap(normalizeSecrets(secrets));
     }
 
     /**
-     * Redacts the secrets registered on this keychain - and on the root keychain, which acts as a
-     * backstop for server-wide secrets - from the strings in `value`, leaving its structure
-     * intact. Redaction is applied per-value (not on serialized JSON) so it can never corrupt the
-     * resulting JSON, regardless of what the redactor substitutes.
-     *
-     * See {@link redactDeep} for exactly what is traversed; notably `Map` and `Set` contents are
-     * not.
+     * Returns a new keychain that redacts everything this one does plus the
+     * given secrets. This keychain is unchanged; `extended` never mutates.
      */
-    redact<T>(value: T): T {
-        return redactDeep(value, this.effectiveSecrets(), new WeakMap()) as T;
+    extended(additional: Secret | Secret[] | Record<string, SecretKind>): Keychain {
+        const merged = new Map(this.secrets);
+        for (const secret of normalizeSecrets(additional)) {
+            merged.set(secret.value, { kind: secret.kind });
+        }
+        return new Keychain([...merged.entries()].map(([value, { kind }]) => ({ value, kind })));
     }
 
-    private effectiveSecrets(): Secret[] {
-        const root = Keychain.rootKeychain;
-        if (this === root) {
-            return this.secrets;
-        }
-
-        const inherited = root.secrets.filter(
-            (rootSecret) => !this.secrets.some((secret) => secret.value === rootSecret.value)
-        );
-        return [...this.secrets, ...inherited];
+    /**
+     * Redacts the secrets on this keychain from the strings in `value`, leaving
+     * its structure intact. Redaction is applied per-value (not on serialized
+     * JSON) so it can never corrupt the resulting JSON, regardless of what the
+     * redactor substitutes.
+     *
+     * See {@link redactDeep} for exactly what is traversed; notably `Map` and
+     * `Set` contents are not.
+     */
+    redact<T>(value: T): T {
+        return redactDeep(value, toSecretArray(this.secrets), new WeakMap()) as T;
     }
 }
 
@@ -116,8 +152,4 @@ function redactChildren(value: object, secrets: Secret[], redacted: WeakMap<obje
     }
 
     return Object.setPrototypeOf(Object.fromEntries(redactedEntries), Object.getPrototypeOf(value) as object | null);
-}
-
-export function registerGlobalSecretToRedact(value: Secret["value"], kind: Secret["kind"]): void {
-    Keychain.root.register(value, kind);
 }

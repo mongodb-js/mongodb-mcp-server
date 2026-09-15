@@ -126,9 +126,12 @@ export class ConnectClusterTool extends AtlasToolBase {
         cn.password = password;
         cn.searchParams.set("authSource", "admin");
 
-        this.server.keychain.register(username, "user");
-        this.server.keychain.register(password, "password");
-
+        // The temporary user's username and password live only inside the
+        // connection URI used to dial — they are never registered on the
+        // keychain (which is fixed at construction and cannot grow) and never
+        // surface in logs, telemetry or tool responses. If a URI ever reaches
+        // an error message the built-in mongodb-redact pattern scrubs the whole
+        // `mongodb://...` run to `<mongodb uri>`.
         return {
             connectionString: cn.toString(),
             atlas: connectedAtlasCluster,

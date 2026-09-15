@@ -1,6 +1,7 @@
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
-import { Elicitation, Keychain, McpServer, LogId } from "@mongodb-js/mcp-core";
+import { Elicitation, McpServer, LogId } from "@mongodb-js/mcp-core";
+import type { Keychain } from "@mongodb-js/mcp-core";
 import type {
     IMetrics,
     IDeviceId,
@@ -34,6 +35,12 @@ export type CreateServerServicesOptions = {
     tools: ToolRegistry;
     resources: ResourceRegistry;
     logger: CompositeLogger;
+    /**
+     * The server's immutable redaction keychain, built once from config secrets
+     * and threaded through every service. Required: no code may create or
+     * mutate a keychain after this point.
+     */
+    keychain: Keychain;
 };
 
 /**
@@ -132,16 +139,21 @@ export async function validateAppConfig({
 export async function createSharedServicesFromConfig(
     options: CreateServerServicesOptions
 ): Promise<SharedServerServices> {
-    const { config, serverMetadata, logger } = options;
+    const { config, serverMetadata, logger, keychain } = options;
     const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
     const monitoringServer = createMonitoringServerFromConfig({ config, logger, metrics });
 
-    const keychain = Keychain.root;
     const deviceId = DeviceId.create(logger);
 
     // Shared across requests; a single app-level view ([no scope]) means every
     // request sees the same connections, keyed by opaque connectionId.
-    const connectionStore = new MCPConnectionStore({ options: config, logger, deviceId, serverMetadata });
+    const connectionStore = new MCPConnectionStore({
+        options: config,
+        logger,
+        deviceId,
+        serverMetadata,
+        keychain,
+    });
     const connectionRegistry = connectionStore.view();
 
     const exportsManager = createExportsManagerFromConfig({ config, logger });
