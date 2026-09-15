@@ -358,7 +358,9 @@ describe("configOverrides", () => {
                             baseConfig: { ...baseConfig, connectionIdleTimeoutMs: 600_000 } as UserConfig,
                             request,
                         })
-                    ).toThrow("Cannot apply override for connectionIdleTimeoutMs: Can only set to a value lower than the base value");
+                    ).toThrow(
+                        "Cannot apply override for connectionIdleTimeoutMs: Can only set to a value lower than the base value"
+                    );
                 });
             });
 

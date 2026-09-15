@@ -3,7 +3,7 @@ import { atlasClusterSlug, PRECONFIGURED_CONNECTION_ID } from "./connectionRegis
 import { MCPConnectionStore, type ConnectionStoreOptions, type ConnectionStoreConfig } from "./connectionStore.js";
 import { summarizeConnection } from "./connectionSummary.js";
 import { FakeConnectionManager } from "./mocks/connectionManager.js";
-import { ConnectionManager, type ConnectionStateConnecting, type AnyConnectionState, type ConnectionSettings } from "./connectionManager.js";
+import { ConnectionManager, type ConnectionStateConnecting, type AnyConnectionState } from "./connectionManager.js";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { CompositeLogger } from "@mongodb-js/mcp-core";
 import { DeviceId } from "../helpers/deviceId.js";
@@ -20,7 +20,7 @@ const fakeProvider = { fake: true } as unknown as NodeDriverServiceProvider;
 
 /** A ConnectionManager that stays in the `connecting` state, like an Atlas dial in progress. */
 class ConnectingManager extends ConnectionManager {
-    override connect(_settings: ConnectionSettings): Promise<AnyConnectionState> {
+    override connect(): Promise<AnyConnectionState> {
         const connecting: ConnectionStateConnecting = {
             tag: "connecting",
             serviceProvider: Promise.resolve(fakeProvider),
@@ -503,7 +503,7 @@ describe("ConnectionRegistry", () => {
                 options: { ...defaultTestConfig, connectionIdleTimeoutMs: 1000 },
             });
             const registry = store.view();
-            const entry = await registry.connect({
+            await registry.connect({
                 settings: { connectionString: "mongodb://host:27017" },
             });
 
