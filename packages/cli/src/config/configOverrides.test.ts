@@ -284,6 +284,7 @@ describe("configOverrides", () => {
                     "readOnly",
                     "indexCheck",
                     "disableServerSideJs",
+                    "connectionIdleTimeoutMs",
                     "idleTimeoutMs",
                     "notificationTimeoutMs",
                     "exportTimeoutMs",
@@ -322,6 +323,45 @@ describe("configOverrides", () => {
                 expect(() =>
                     applyConfigOverrides({ baseConfig: { ...baseConfig, indexCheck: true } as UserConfig, request })
                 ).toThrow("Cannot apply override for indexCheck: Can only set to true");
+            });
+
+            describe("connectionIdleTimeoutMs (onlyLowerThanBaseValueOverride, non-negative)", () => {
+                it("should allow lowering the idle timeout and importing 0 to disable", () => {
+                    const request: TransportRequestContext = {
+                        headers: { "x-mongodb-mcp-connection-idle-timeout-ms": "0" },
+                    };
+                    const result = applyConfigOverrides({
+                        baseConfig: { ...baseConfig, connectionIdleTimeoutMs: 600_000 } as UserConfig,
+                        request,
+                    });
+                    expect(result.connectionIdleTimeoutMs).toBe(0);
+                });
+
+                it("should reject a negative idle timeout", () => {
+                    const request: TransportRequestContext = {
+                        headers: { "x-mongodb-mcp-connection-idle-timeout-ms": "-5" },
+                    };
+                    expect(() =>
+                        applyConfigOverrides({
+                            baseConfig: { ...baseConfig, connectionIdleTimeoutMs: 600_000 } as UserConfig,
+                            request,
+                        })
+                    ).toThrow(/connectionIdleTimeoutMs/);
+                });
+
+                it("should reject raising the idle timeout", () => {
+                    const request: TransportRequestContext = {
+                        headers: { "x-mongodb-mcp-connection-idle-timeout-ms": "720000" },
+                    };
+                    expect(() =>
+                        applyConfigOverrides({
+                            baseConfig: { ...baseConfig, connectionIdleTimeoutMs: 600_000 } as UserConfig,
+                            request,
+                        })
+                    ).toThrow(
+                        "Cannot apply override for connectionIdleTimeoutMs: Can only set to a value lower than the base value"
+                    );
+                });
             });
 
             describe("mcpClientLogLevel (onlyStricterLogLevelOverride)", () => {

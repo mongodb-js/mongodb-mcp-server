@@ -193,6 +193,15 @@ const ServerConfigSchema = z.object({
             "Maximum number of MongoDB connections a single scope (an MCP session by default, see connectionScope) can hold open. When exceeded, the scope's least-recently-used connection is closed and its connectionId revoked. The preconfigured connection does not count towards the limit."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    connectionIdleTimeoutMs: z.coerce
+        .number()
+        .int()
+        .min(0, "Invalid connectionIdleTimeoutMs: must be a non-negative integer")
+        .default(600_000)
+        .describe(
+            "Milliseconds a MongoDB connection may stay unused (no tool call touching it) before it is closed to release the underlying connection pool and its server-side state. Applied per connection regardless of its connection scope; the preconfigured connection is excluded, and the reaper runs on this cadence. Set to 0 to disable reaping; must not be negative."
+        )
+        .register(configRegistry, { overrideBehavior: onlyLowerThanBaseValueOverride() }),
     /**
      * @deprecated The MCP protocol is moving to sessionless, so this option will
      * soon be removed and the connection scope will default to "global". For
