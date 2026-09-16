@@ -6,12 +6,12 @@
     "url": "https://github.com/mongodb-js/mongodb-mcp-server",
     "source": "github"
   },
-  "version": "3.0.0-prerelease.5",
+  "version": "3.0.0-prerelease.6",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "mongodb-mcp-server",
-      "version": "3.0.0-prerelease.5",
+      "version": "3.0.0-prerelease.6",
       "transport": {
         "type": "stdio"
       },
@@ -63,6 +63,13 @@
           "description": "Comma separated values of tool names that require user confirmation before execution. Requires the client to support elicitation.",
           "isRequired": false,
           "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_CONNECTION_IDLE_TIMEOUT_MS",
+          "description": "Milliseconds a MongoDB connection may stay unused (no tool call touching it) before it is closed to release the underlying connection pool and its server-side state. Applied per connection regardless of its connection scope; the preconfigured connection is excluded, and the reaper runs on this cadence. Set to 0 to disable reaping; must not be negative.",
+          "isRequired": false,
+          "format": "number",
           "isSecret": false
         },
         {
@@ -384,6 +391,13 @@
           "name": "--confirmationRequiredTools",
           "description": "Comma separated values of tool names that require user confirmation before execution. Requires the client to support elicitation.",
           "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--connectionIdleTimeoutMs",
+          "description": "Milliseconds a MongoDB connection may stay unused (no tool call touching it) before it is closed to release the underlying connection pool and its server-side state. Applied per connection regardless of its connection scope; the preconfigured connection is excluded, and the reaper runs on this cadence. Set to 0 to disable reaping; must not be negative.",
+          "isRequired": false,
+          "format": "number"
         },
         {
           "type": "named",
@@ -645,7 +659,7 @@
     },
     {
       "registryType": "oci",
-      "identifier": "docker.io/mongodb/mongodb-mcp-server:3.0.0-prerelease.5",
+      "identifier": "docker.io/mongodb/mongodb-mcp-server:3.0.0-prerelease.6",
       "transport": {
         "type": "stdio"
       },
@@ -697,6 +711,13 @@
           "description": "Comma separated values of tool names that require user confirmation before execution. Requires the client to support elicitation.",
           "isRequired": false,
           "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_CONNECTION_IDLE_TIMEOUT_MS",
+          "description": "Milliseconds a MongoDB connection may stay unused (no tool call touching it) before it is closed to release the underlying connection pool and its server-side state. Applied per connection regardless of its connection scope; the preconfigured connection is excluded, and the reaper runs on this cadence. Set to 0 to disable reaping; must not be negative.",
+          "isRequired": false,
+          "format": "number",
           "isSecret": false
         },
         {
@@ -1018,6 +1039,13 @@
           "name": "--confirmationRequiredTools",
           "description": "Comma separated values of tool names that require user confirmation before execution. Requires the client to support elicitation.",
           "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--connectionIdleTimeoutMs",
+          "description": "Milliseconds a MongoDB connection may stay unused (no tool call touching it) before it is closed to release the underlying connection pool and its server-side state. Applied per connection regardless of its connection scope; the preconfigured connection is excluded, and the reaper runs on this cadence. Set to 0 to disable reaping; must not be negative.",
+          "isRequired": false,
+          "format": "number"
         },
         {
           "type": "named",

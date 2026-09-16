@@ -1,5 +1,5 @@
 The following third-party software is used by and included in **MongoDB MCP Server**.
-This document was automatically generated on Sun Sep 13 2026.
+This document was automatically generated on Wed Sep 16 2026.
 
 ## List of dependencies
 
@@ -704,7 +704,7 @@ Package|Version|License
 **[unbzip2-stream](#8624e2dceaa1f8ccf8652c8c7f13ca7a609584520166d44758fdf0d1d96d17db)**|1.4.3|MIT
 **[undici-types](#bd50bc60a9b5c2ca9c8085450b1ba8acf312e451bccdca5d2399e268338d9a63)**|5.26.5|MIT
 **[undici-types](#b0d2c11cf977876b41bc2854498debbc94808c37e6b3c3eb5d00c3b84f2e17ed)**|7.19.2|MIT
-**[undici](#9f3dc2d15b893a0f515fa401e072b90067b8f11b68e74b6337227e48809af6e8)**|7.29.0|MIT
+**[undici](#962be31618d54a6976f0fb7d8e970d5c8dfd4ebfe8af852e8856fdcd128698fa)**|7.29.1|MIT
 **[undici](#7d5944af5afd449853589be095945f6d6f870a8f9e29062128984fb698d6e226)**|8.10.0|MIT
 **[unpipe](#3a555405bd00c7e7e52b07a5600248bdaa683db613d7c286e425511cee8ed14a)**|1.0.0|MIT
 **[unplugin](#c3ae9c0ff2de2ae7f7f568e3f8266119a5088cd96b8cff02db75345c3a10ab66)**|2.3.11|MIT
@@ -4383,8 +4383,8 @@ License tags: MIT
 License tags: MIT
 
 
-<a id="9f3dc2d15b893a0f515fa401e072b90067b8f11b68e74b6337227e48809af6e8"></a>
-### [undici](https://www.npmjs.com/package/undici) (version 7.29.0)
+<a id="962be31618d54a6976f0fb7d8e970d5c8dfd4ebfe8af852e8856fdcd128698fa"></a>
+### [undici](https://www.npmjs.com/package/undici) (version 7.29.1)
 License tags: MIT
 
 
