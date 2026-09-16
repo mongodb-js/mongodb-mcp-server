@@ -375,9 +375,6 @@ importers:
       '@mongodb-js/mcp-cli':
         specifier: workspace:*
         version: link:../cli
-      '@mongodb-js/mcp-core':
-        specifier: workspace:*
-        version: link:../core
       '@mongodb-js/mcp-test-utils':
         specifier: workspace:*
         version: link:../test-utils
