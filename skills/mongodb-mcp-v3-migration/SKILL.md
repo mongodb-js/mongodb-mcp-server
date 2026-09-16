@@ -373,7 +373,7 @@ request-scoped server) and the 2025-era **legacy** sessionful protocol (via an i
 When overriding only part of the stack, use individual factories from `@mongodb-js/mcp-cli`:
 
 ```typescript
-const keychain = createKeychainFromConfig(config); // @mongodb-js/mcp-cli
+const keychain = createKeychainFromConfig({ config }); // @mongodb-js/mcp-cli
 const logger = await createLoggerFromConfig({ config, keychain });
 const apiClient = createApiClientFromConfig({ config, serverMetadata, logger });
 ```

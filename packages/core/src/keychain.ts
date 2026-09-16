@@ -24,14 +24,16 @@ type SecretRecord = Record<string, SecretKind>;
  * onto the raw values.
  **/
 export class Keychain implements IKeychain {
-    private readonly secrets: SecretRecord;
+    private readonly secrets: Readonly<SecretRecord>;
 
     /**
      * @param secrets - The secrets this keychain will redact, as a value→kind
      * record (e.g. `{ "s3cr3t": "password" }`).
      */
     constructor(secrets: SecretRecord = {}) {
-        this.secrets = secrets;
+        // Clone and freeze so a caller holding the record can't mutate the
+        // keychain after construction (it must stay immutable).
+        this.secrets = Object.freeze({ ...secrets });
     }
 
     /**
@@ -58,7 +60,7 @@ export class Keychain implements IKeychain {
 }
 
 /** Converts the value→kind record into the array mongodb-redact expects. */
-function toSecretArray(secrets: SecretRecord): Secret[] {
+function toSecretArray(secrets: Readonly<SecretRecord>): Secret[] {
     return Object.entries(secrets).map(([value, kind]) => ({ value, kind }));
 }
 

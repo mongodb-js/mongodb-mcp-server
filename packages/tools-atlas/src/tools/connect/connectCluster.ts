@@ -168,6 +168,16 @@ export class ConnectClusterTool extends AtlasToolBase {
     ): Promise<void> {
         let lastError: Error | undefined = undefined;
 
+        // The temporary user's credentials live only in the connection string
+        // and are never registered on the keychain, so a driver/API error that
+        // carries them without a full `mongodb://` run would leak. Redact the
+        // username and password locally before the message reaches a log or the
+        // tool's error path.
+        const url = new URL(connectionString);
+        const sensitiveValues = [url.username, url.password].filter(Boolean);
+        const redactCredentials = (message: string): string =>
+            sensitiveValues.reduce((m, v) => m.split(v).join("<redacted>"), message);
+
         this.server.logger.debug({
             id: LogId.atlasConnectAttempt,
             context: "atlas-connect-cluster",
@@ -186,6 +196,10 @@ export class ConnectClusterTool extends AtlasToolBase {
             } catch (err: unknown) {
                 const error = err instanceof Error ? err : new Error(String(err));
 
+                // Redact the temp credentials (not on the keychain) in-place so the
+                // message that reaches the log and the tool's error path is
+                // credential-free.
+                error.message = redactCredentials(error.message);
                 lastError = error;
 
                 this.server.logger.debug({

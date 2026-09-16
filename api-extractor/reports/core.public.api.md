@@ -178,14 +178,9 @@ export const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
 
 // @public
 export class Keychain implements IKeychain {
-    constructor();
-    // (undocumented)
-    clearAllSecrets(): void;
+    constructor(secrets?: SecretRecord);
     redact<T>(value: T): T;
-    // (undocumented)
-    register(value: Secret["value"], kind: Secret["kind"]): void;
-    // (undocumented)
-    static get root(): Keychain;
+    redactErrorMessage(error: unknown): string;
 }
 
 // @public
@@ -373,13 +368,13 @@ export abstract class RedactingLoggerBase<T extends EventMap<T> = DefaultEventMa
     protected abstract readonly type?: LoggerType;
 }
 
-// @public (undocumented)
-export function registerGlobalSecretToRedact(value: Secret["value"], kind: Secret["kind"]): void;
-
 // @public
 export function requestIdAttr(headers: Record<string, unknown> | undefined): Record<string, string>;
 
 export { Secret }
+
+// @public
+export type SecretKind = Secret["kind"];
 
 // @public @deprecated (undocumented)
 export class SessionLimitExceededError extends Error {

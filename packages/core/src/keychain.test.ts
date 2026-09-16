@@ -37,6 +37,27 @@ describe("Keychain", () => {
         expect(keychain.redact("one and two")).toBe("<password> and <password>");
     });
 
+    describe("redactErrorMessage", () => {
+        const keychain = new Keychain({ [SECRET]: "password" });
+
+        it("returns the message of an Error with secrets redacted", () => {
+            const message = keychain.redactErrorMessage(new Error(`failed using ${SECRET}`));
+            expect(message).not.toContain(SECRET);
+            expect(message).toContain("<password>");
+        });
+
+        it("stringifies a non-Error value and redacts it", () => {
+            expect(keychain.redactErrorMessage(`boom ${SECRET}`)).not.toContain(SECRET);
+            expect(keychain.redactErrorMessage(`boom ${SECRET}`)).toContain("<password>");
+        });
+
+        it("redacts a configured secret from the message", () => {
+            const message = keychain.redactErrorMessage(new Error(`auth failed using ${SECRET} here`));
+            expect(message).toContain("<password>");
+            expect(message).not.toContain(SECRET);
+        });
+    });
+
     describe("redact", () => {
         const keychain = new Keychain({ [SECRET]: "password" });
 

@@ -77,4 +77,39 @@ describe("redactSensitiveKeys", () => {
         expect(redactSensitiveKeys(null)).toBe(null);
         expect(redactSensitiveKeys(undefined)).toBe(undefined);
     });
+
+    it("masks the values of sensitive HTTP header names (e.g. Authorization, X-Api-Key)", () => {
+        const input = {
+            type: "Https",
+            url: "https://example.com",
+            headers: {
+                Authorization: "Bearer super-secret-token",
+                "X-Api-Key": "api-key-123",
+                "Content-Type": "application/json",
+            },
+        };
+
+        const redacted = redactSensitiveKeys(input);
+
+        expect(JSON.stringify(redacted)).not.toContain("super-secret-token");
+        expect(JSON.stringify(redacted)).not.toContain("api-key-123");
+        // Non-sensitive header names survive.
+        expect(redacted.headers["Content-Type"]).toBe("application/json");
+        expect(redacted.headers.Authorization).toBe("<redacted>");
+        expect(redacted.headers["X-Api-Key"]).toBe("<redacted>");
+    });
+
+    it("turns a source `__proto__` key into an own key instead of setting the prototype", () => {
+        // Simulate an object whose own enumerable key is `__proto__` (as a
+        // credential value used as a key could be). The rebuilt object must not
+        // inherit a mutated prototype.
+        const input = JSON.parse('{"__proto__": "s3cr3t", "name": "x"}') as Record<string, unknown>;
+        const redacted = redactSensitiveKeys(input);
+
+        expect(Object.prototype.hasOwnProperty.call(redacted, "__proto__")).toBe(true);
+        expect(Object.getOwnPropertyDescriptor(redacted, "__proto__")?.value).toBe("s3cr3t");
+        // The object still has the normal prototype; nothing was polluted.
+        expect(Object.getPrototypeOf(redacted)).toBe(Object.prototype);
+        expect(redacted.name).toBe("x");
+    });
 });

@@ -659,14 +659,9 @@ export const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
 
 // @public
 export class Keychain implements IKeychain {
-    constructor();
-    // (undocumented)
-    clearAllSecrets(): void;
+    constructor(secrets?: SecretRecord);
     redact<T>(value: T): T;
-    // (undocumented)
-    register(value: Secret["value"], kind: Secret["kind"]): void;
-    // (undocumented)
-    static get root(): Keychain;
+    redactErrorMessage(error: unknown): string;
 }
 
 // @public
@@ -862,9 +857,6 @@ export interface PrometheusMetricsOptions<TMetricsDefinitions extends DefaultMet
 
 // @public
 export const QUERY_COUNT_MAX_TIME_MS_CAP: number;
-
-// @public (undocumented)
-export function registerGlobalSecretToRedact(value: Secret["value"], kind: Secret["kind"]): void;
 
 export { Registry }
 

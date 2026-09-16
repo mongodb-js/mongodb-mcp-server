@@ -146,7 +146,10 @@ describe("ConnectClusterTool", () => {
             expect(resultText).not.toContain(username);
             expect(resultText).not.toContain("mongodb+srv://");
 
+            // Both temp-user fields (username and password) must stay out of the
+            // logs, not just the password.
             expect(mockLogger.allLogMessages()).not.toContain(password);
+            expect(mockLogger.allLogMessages()).not.toContain(username);
         });
 
         it("records the cluster id alongside the project and cluster name on the connection", async () => {
@@ -274,6 +277,40 @@ describe("ConnectClusterTool", () => {
                     "x-request-id"
                 );
             }
+        });
+    });
+
+    describe("connectToCluster credential redaction", () => {
+        it("redacts the temporary credentials from a failed dial log", async () => {
+            const context: ToolExecutionContext<IAtlasConfig> = {
+                request: {
+                    signal: new AbortController().signal,
+                },
+            };
+
+            const entry = await connectionRegistry.createEntry({ name: ATLAS_INFO.clusterName });
+
+            // A driver error that carries the generated username/password without a
+            // full `mongodb://` run — those values are not on the immutable keychain,
+            // so only the URI pattern would normally be scrubbed.
+            const driverError = new Error("dial failed for mcpUser123:p4ssw0rd456 rejected");
+            const connectSpy = vi.spyOn(entry, "connect");
+            connectSpy.mockRejectedValueOnce(driverError);
+            // Succeed on the retry so the dial loop breaks immediately instead of
+            // running its full 600-retry backoff.
+            connectSpy.mockResolvedValueOnce({} as never);
+
+            await tool["connectToCluster"](
+                entry,
+                "mongodb://mcpUser123:p4ssw0rd456@cluster.example.com:27017/?authSource=admin",
+                ATLAS_INFO,
+                context.request
+            );
+
+            const all = mockLogger.allLogMessages();
+            expect(all).not.toContain("mcpUser123");
+            expect(all).not.toContain("p4ssw0rd456");
+            expect(all).toContain("<redacted>");
         });
     });
 });

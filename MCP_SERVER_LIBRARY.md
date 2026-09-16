@@ -141,10 +141,8 @@ const serverMetadata: ServerMetadata = {
   engines: { node: process.version },
 };
 
-const logger = await createLoggerFromConfig({
-  config,
-  keychain: createKeychainFromConfig(config),
-});
+const keychain = createKeychainFromConfig({ config });
+const logger = await createLoggerFromConfig({ config, keychain });
 const transportRunner = await createRunnerFromConfig({
   config: {
     ...config,
@@ -156,6 +154,7 @@ const transportRunner = await createRunnerFromConfig({
   tools: [...MongoDBTools],
   resources: Resources,
   logger,
+  keychain,
 });
 
 await startRunner({
@@ -178,7 +177,7 @@ import {
 } from "@mongodb-js/mcp-cli";
 import { createKeychainFromConfig } from "@mongodb-js/mcp-cli";
 
-const keychain = createKeychainFromConfig(config);
+const keychain = createKeychainFromConfig({ config });
 const logger = await createLoggerFromConfig({ config, keychain });
 const apiClient = createApiClientFromConfig({ config, serverMetadata, logger });
 ```
@@ -237,7 +236,7 @@ const serverMetadata: ServerMetadata = {
 
 // App-level services, built once per process and shared by every server
 const { parsed: baseConfig } = parseUserConfig({ args: process.argv.slice(2) });
-const keychain = createKeychainFromConfig(baseConfig);
+const keychain = createKeychainFromConfig({ config: baseConfig });
 const logger = await createLoggerFromConfig({ config: baseConfig, keychain });
 const sharedServices: SharedServerServices =
   await createSharedServicesFromConfig({
@@ -246,6 +245,7 @@ const sharedServices: SharedServerServices =
     tools: MongoDBTools,
     resources: Resources,
     logger,
+    keychain,
   });
 
 // A request-scoped server per HTTP request: every heavy service comes from

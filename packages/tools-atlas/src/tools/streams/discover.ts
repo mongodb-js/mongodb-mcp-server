@@ -454,7 +454,10 @@ export class StreamsDiscoverTool extends StreamsToolBase {
             maxTier: data.streamConfig?.maxTierSize ?? "unknown",
             connectionCount: data.connections?.length ?? 0,
         };
-        const output = format === "concise" ? conciseWorkspace : data;
+        // The detailed form carries the raw workspace object (with embedded
+        // connections when `includeConnections` is set), so mask secret-valued
+        // fields first; the concise form is already a safe summary.
+        const output = format === "concise" ? conciseWorkspace : redactSensitiveKeys(data);
 
         return {
             content: formatUntrustedData("Details for the requested workspace:", JSON.stringify(output, null, 2)),

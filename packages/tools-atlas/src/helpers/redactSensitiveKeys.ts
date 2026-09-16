@@ -23,6 +23,12 @@ const SECRET_KEYS = new Set([
     "awssecretaccesskey",
     "oidcclientsecret",
     "sharedsecret",
+    // Header names whose values are secrets (an `Authorization`/`X-Api-Key`
+    // value is auth config, never useful to the agent).
+    "authorization",
+    "proxy-authorization",
+    "api-key",
+    "x-api-key",
 ]);
 
 /** Whether a given object key holds a secret and must be masked. */
@@ -46,11 +52,14 @@ function walk(value: unknown): unknown {
     }
 
     if (value !== null && typeof value === "object") {
-        const result: Record<string, unknown> = {};
-        for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
-            result[key] = isSecretKey(key) ? "<redacted>" : walk(entry);
-        }
-        return result;
+        // `Object.fromEntries` uses CreateDataProperty, so a source key of
+        // `__proto__` becomes an own key rather than setting the prototype.
+        return Object.fromEntries(
+            Object.entries(value as Record<string, unknown>).map(([key, entry]) => [
+                key,
+                isSecretKey(key) ? "<redacted>" : walk(entry),
+            ])
+        );
     }
 
     return value;

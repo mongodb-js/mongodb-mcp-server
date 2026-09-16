@@ -211,6 +211,27 @@ describe("StreamsDiscoverTool", () => {
                 },
             });
         });
+
+        it("should redact secret-valued fields from the detailed workspace output", async () => {
+            mockApiClient.getStreamWorkspace!.mockResolvedValue({
+                name: "ws1",
+                dataProcessRegion: { cloudProvider: "AWS", region: "VIRGINIA_USA" },
+                streamConfig: { tier: "SP10" },
+                connections: [
+                    { name: "c1", type: "Kafka", authentication: { mechanism: "SCRAM", password: "LeakyWsP4ss" } },
+                ],
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "inspect-workspace",
+                workspaceName: "ws1",
+            });
+
+            const untrusted = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(untrusted).not.toContain("LeakyWsP4ss");
+            expect(untrusted).toContain("<redacted>");
+        });
     });
 
     describe("diagnose-processor", () => {

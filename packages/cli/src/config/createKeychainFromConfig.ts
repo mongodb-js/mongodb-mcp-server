@@ -25,7 +25,9 @@ export function createKeychainFromConfig({
     config: userConfig,
     additionalSecrets = {},
 }: CreateKeychainFromConfigOptions): Keychain {
-    const secrets: Record<string, SecretKind> = { ...additionalSecrets };
+    // Null prototype so a secret value that happens to be e.g. `__proto__`
+    // becomes an own key instead of hitting the prototype chain.
+    const secrets = Object.assign(Object.create(null), additionalSecrets) as Record<string, SecretKind>;
 
     if (userConfig.apiClientId) secrets[userConfig.apiClientId] = "user";
     if (userConfig.apiClientSecret) secrets[userConfig.apiClientSecret] = "password";
