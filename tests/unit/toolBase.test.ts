@@ -369,6 +369,22 @@ describe("ToolBase", () => {
             atlasCluster: state.connectedAtlasCluster,
         });
 
+        it("should still accept a bare connection state and attribute its mirrored cluster", () => {
+            const metadata = testTool["getConnectionInfoMetadata"]({
+                tag: "disconnected",
+                connectedAtlasCluster: atlasCluster,
+                connectionStringInfo: { authType: "scram", hostType: "atlas" },
+            });
+
+            expect(metadata).toEqual({
+                project_id: "test-project-id",
+                cluster_name: "test-cluster",
+                cluster_id: "test-cluster-id",
+                connection_auth_type: "scram",
+                connection_host_type: "atlas",
+            });
+        });
+
         it("should attribute the entry's atlasCluster even when the live state has no connected cluster", () => {
             const metadata = testTool["getConnectionInfoMetadata"]({
                 state: { tag: "disconnected" },

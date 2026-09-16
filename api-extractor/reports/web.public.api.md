@@ -225,6 +225,8 @@ export interface AtlasClusterConnectionInfo {
     instanceType?: "FREE" | "FLEX" | "DEDICATED";
     // (undocumented)
     projectId: string;
+    // @deprecated (undocumented)
+    username?: string;
 }
 
 // @public
@@ -1054,7 +1056,7 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     enable(): void;
     protected abstract execute(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     protected getConfirmationMessage(args: ToolArgs<typeof ToolBase.argsShape>): string;
-    protected getConnectionInfoMetadata(entry?: Pick<ConnectionEntry, "state" | "atlasCluster">): ConnectionMetadata;
+    protected getConnectionInfoMetadata(source?: Pick<ConnectionEntry, "state" | "atlasCluster"> | AnyConnectionState): ConnectionMetadata;
     protected handleError(error: unknown, args: z.infer<z.ZodObject<typeof ToolBase.argsShape>>): Promise<CallToolResult> | CallToolResult;
     invoke(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)

@@ -354,7 +354,7 @@ export class MCPConnectionManager extends ConnectionManager {
             connectionStringInfo = getConnectionStringInfo(
                 connectionInfo.connectionString,
                 this.userConfig,
-                settings.atlas
+                this.resolveAtlasCluster(settings)
             );
 
             serviceProvider = NodeDriverServiceProvider.connect(

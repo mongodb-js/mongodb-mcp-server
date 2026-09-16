@@ -40,6 +40,13 @@ export interface AtlasClusterConnectionInfo {
 
     /** The cluster's tier, set when the host resolved it. */
     instanceType?: "FREE" | "FLEX" | "DEDICATED";
+
+    /**
+     * @deprecated No longer read: the temporary database user that
+     * `connect-cluster` mints is tracked by the tool itself. Kept so existing
+     * callers that set it keep compiling.
+     */
+    username?: string;
 }
 
 export function getConnectionStringInfo(

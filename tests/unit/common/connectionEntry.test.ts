@@ -127,6 +127,8 @@ describe("ConnectionEntry with MCPConnectionManager", () => {
 
             expect(entry.atlasCluster).toEqual(atlas);
             expect(entry.state.connectedAtlasCluster).toEqual(atlas);
+            // The cluster, not the connection string, decides the host type.
+            expect(entry.state.connectionStringInfo?.hostType).toBe("atlas");
         });
 
         it("adopts the deprecated settings.atlas when the entry was created without a cluster", async () => {
