@@ -9,6 +9,7 @@ import type {
     ToolAnnotations,
 } from "@modelcontextprotocol/sdk/types.js";
 import type { Session } from "../common/session.js";
+import type { ConnectionEntry } from "../common/connectionRegistry.js";
 import type { AnyConnectionState } from "../common/connectionManager.js";
 import { LogId } from "../common/logging/index.js";
 import type { Telemetry } from "../telemetry/telemetry.js";
@@ -1093,22 +1094,41 @@ export abstract class ToolBase<
         return this.config.previewFeatures.includes(feature);
     }
 
-    protected getConnectionInfoMetadata(connectionState?: AnyConnectionState): ConnectionMetadata {
+    /**
+     * Telemetry metadata for the connection entry a tool call ran against.
+     * Auth and host type come from the live state; Atlas attribution comes
+     * from the entry's `atlasCluster`, which a registry may know without a
+     * live connection.
+     *
+     * Passing a bare connection state is deprecated: it can only attribute
+     * the cluster through the state's mirrored `connectedAtlasCluster`.
+     */
+    protected getConnectionInfoMetadata(
+        source?: Pick<ConnectionEntry, "state" | "atlasCluster"> | AnyConnectionState
+    ): ConnectionMetadata {
         const metadata: ConnectionMetadata = {};
 
-        if (connectionState === undefined) {
+        if (source === undefined) {
             return metadata;
         }
 
-        if (connectionState.connectionStringInfo !== undefined) {
-            metadata.connection_auth_type = connectionState.connectionStringInfo.authType;
-            metadata.connection_host_type = connectionState.connectionStringInfo.hostType;
+        // A state carries a `tag`; an entry does not.
+        const { state, atlasCluster } =
+            "tag" in source ? { state: source, atlasCluster: source.connectedAtlasCluster } : source;
+
+        if (state.connectionStringInfo !== undefined) {
+            metadata.connection_auth_type = state.connectionStringInfo.authType;
+            metadata.connection_host_type = state.connectionStringInfo.hostType;
         }
 
-        if (connectionState.connectedAtlasCluster) {
-            metadata.project_id = connectionState.connectedAtlasCluster.projectId;
-            metadata.cluster_name = connectionState.connectedAtlasCluster.clusterName;
-            metadata.cluster_id = connectionState.connectedAtlasCluster.clusterId;
+        if (atlasCluster) {
+            metadata.project_id = atlasCluster.projectId;
+            metadata.cluster_name = atlasCluster.clusterName;
+            // Only set when known: `properties` is spread over the common
+            // telemetry properties, so an explicit undefined would override them.
+            if (atlasCluster.clusterId !== undefined) {
+                metadata.cluster_id = atlasCluster.clusterId;
+            }
         }
 
         return metadata;
