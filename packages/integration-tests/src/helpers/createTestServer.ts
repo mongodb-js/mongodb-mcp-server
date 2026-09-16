@@ -38,7 +38,7 @@ export type CreateTestServerOptions = {
  */
 export async function createTestServer(config: UserConfig, options: CreateTestServerOptions = {}): Promise<CliServer> {
     const logger = new CompositeLogger({ loggers: [] });
-    const keychain = Keychain.root;
+    const keychain = new Keychain();
 
     const exportsManager = ExportsManager.init({
         options: {
@@ -52,6 +52,7 @@ export async function createTestServer(config: UserConfig, options: CreateTestSe
     const connectionRegistry = new MCPConnectionStore({
         options: config,
         logger,
+        keychain,
         deviceId: options.deviceId ?? ({} as unknown as DeviceId),
     }).view();
 

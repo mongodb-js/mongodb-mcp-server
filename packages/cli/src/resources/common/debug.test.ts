@@ -42,13 +42,14 @@ describe("debug resource", () => {
     }
 
     function setup(config: UserConfig = defaultTestConfig): void {
+        const keychain = new Keychain();
         registry = new TestStore({
             options: config,
             logger,
             deviceId,
+            keychain,
         }).view();
 
-        const keychain = new Keychain();
         const apiClient = new ApiClient({
             options: {
                 baseUrl: config.apiBaseUrl,

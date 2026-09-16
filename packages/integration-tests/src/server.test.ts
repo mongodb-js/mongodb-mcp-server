@@ -183,9 +183,9 @@ describe("CliServer integration test", () => {
     ): Promise<{ server: CliServer; transport: Transport }> => {
         const logger = new CompositeLogger({ loggers });
         const deviceId = DeviceId.create(logger);
-        const connectionRegistry = new MCPConnectionStore({ options: config, logger, deviceId }).view();
+        const keychain = new Keychain();
+        const connectionRegistry = new MCPConnectionStore({ options: config, logger, deviceId, keychain }).view();
         const exportsManager = ExportsManager.init({ options: config, logger });
-        const keychain = Keychain.root;
         const apiClient = createTestApiClient({
             baseUrl: config.apiBaseUrl,
             serverMetadata: { mcpServerName: "test", version: "1" },

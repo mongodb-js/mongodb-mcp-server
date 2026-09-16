@@ -4,62 +4,64 @@ import type { IKeychain } from "@mongodb-js/mcp-types";
 
 export type { Secret } from "mongodb-redact";
 
+/** The category a secret is redacted as (e.g. `password`, `mongodb uri`). */
+export type SecretKind = Secret["kind"];
+
+/** The map of secret value → kind. */
+type SecretRecord = Record<string, SecretKind>;
+
 /**
- * This class holds the secrets of a single server. Ideally, we might want to have a keychain
- * per session, but right now the loggers are set up by server and are not aware of the concept
- * of session and this would require a bigger refactor.
+ * An immutable, redaction-only keychain.
  *
- * Whenever we identify or create a secret (for example, Atlas login, CLI arguments...) we
- * should register them in the root Keychain (`Keychain.root.register`) or preferably
- * on the session keychain if available `this.session.keychain`.
+ * A keychain is constructed once with every secret it will ever hold, and never
+ * grows: there is no way to register or clear a secret after construction.
  *
- * Secrets are never handed out: the only way to act on them is {@link Keychain.redact}, so no
- * consumer can accidentally leak them by holding onto the raw values.
+ * Secrets are keyed by value (each value → its kind), so a value is
+ * deduplicated and lookup is O(1).
+ *
+ * Secrets are never handed out: the only way to act on them is
+ * {@link Keychain.redact}, so no consumer can accidentally leak them by holding
+ * onto the raw values.
  **/
 export class Keychain implements IKeychain {
-    private secrets: Secret[];
-    private static rootKeychain: Keychain = new Keychain();
+    private readonly secrets: Readonly<SecretRecord>;
 
-    constructor() {
-        this.secrets = [];
-    }
-
-    static get root(): Keychain {
-        return Keychain.rootKeychain;
-    }
-
-    register(value: Secret["value"], kind: Secret["kind"]): void {
-        this.secrets.push({ value, kind });
-    }
-
-    clearAllSecrets(): void {
-        this.secrets = [];
+    /**
+     * @param secrets - The secrets this keychain will redact, as a value→kind
+     * record (e.g. `{ "s3cr3t": "password" }`).
+     */
+    constructor(secrets: SecretRecord = {}) {
+        // Clone and freeze so a caller holding the record can't mutate the
+        // keychain after construction (it must stay immutable).
+        this.secrets = Object.freeze({ ...secrets });
     }
 
     /**
-     * Redacts the secrets registered on this keychain - and on the root keychain, which acts as a
-     * backstop for server-wide secrets - from the strings in `value`, leaving its structure
-     * intact. Redaction is applied per-value (not on serialized JSON) so it can never corrupt the
-     * resulting JSON, regardless of what the redactor substitutes.
+     * Redacts the secrets on this keychain from the strings in `value`, leaving
+     * its structure intact. Redaction is applied per-value (not on serialized
+     * JSON) so it can never corrupt the resulting JSON, regardless of what the
+     * redactor substitutes.
      *
-     * See {@link redactDeep} for exactly what is traversed; notably `Map` and `Set` contents are
-     * not.
+     * See {@link redactDeep} for exactly what is traversed; notably `Map` and
+     * `Set` contents are not.
      */
     redact<T>(value: T): T {
-        return redactDeep(value, this.effectiveSecrets(), new WeakMap()) as T;
+        return redactDeep(value, toSecretArray(this.secrets), new WeakMap()) as T;
     }
 
-    private effectiveSecrets(): Secret[] {
-        const root = Keychain.rootKeychain;
-        if (this === root) {
-            return this.secrets;
-        }
-
-        const inherited = root.secrets.filter(
-            (rootSecret) => !this.secrets.some((secret) => secret.value === rootSecret.value)
-        );
-        return [...this.secrets, ...inherited];
+    /**
+     * Returns the message of an error (or the string form of a non-error) with
+     * this keychain's secrets redacted, safe to log or surface to a user.
+     */
+    redactErrorMessage(error: unknown): string {
+        const message = error instanceof Error ? error.message : String(error);
+        return this.redact(message);
     }
+}
+
+/** Converts the value→kind record into the array mongodb-redact expects. */
+function toSecretArray(secrets: Readonly<SecretRecord>): Secret[] {
+    return Object.entries(secrets).map(([value, kind]) => ({ value, kind }));
 }
 
 /**
@@ -116,8 +118,4 @@ function redactChildren(value: object, secrets: Secret[], redacted: WeakMap<obje
     }
 
     return Object.setPrototypeOf(Object.fromEntries(redactedEntries), Object.getPrototypeOf(value) as object | null);
-}
-
-export function registerGlobalSecretToRedact(value: Secret["value"], kind: Secret["kind"]): void {
-    Keychain.root.register(value, kind);
 }

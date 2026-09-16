@@ -101,11 +101,6 @@ export class CreateDBUserTool extends AtlasToolBase {
             request
         );
 
-        this.server.keychain.register(username, "user");
-        if (password) {
-            this.server.keychain.register(password, "password");
-        }
-
         const ipAccessListNote = getAccessListNote(ipAccessListResult);
 
         return {

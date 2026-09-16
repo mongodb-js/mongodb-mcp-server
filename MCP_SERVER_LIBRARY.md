@@ -128,7 +128,7 @@ import {
 } from "@mongodb-js/mcp-cli";
 import { MongoDBTools } from "@mongodb-js/mcp-tools-mongodb";
 import { Resources } from "@mongodb-js/mcp-cli";
-import { Keychain } from "@mongodb-js/mcp-core";
+import { createKeychainFromConfig } from "@mongodb-js/mcp-cli";
 import type { ServerMetadata } from "@mongodb-js/mcp-types";
 
 const { parsed: config } = parseUserConfig({
@@ -141,10 +141,8 @@ const serverMetadata: ServerMetadata = {
   engines: { node: process.version },
 };
 
-const logger = await createLoggerFromConfig({
-  config,
-  keychain: Keychain.root,
-});
+const keychain = createKeychainFromConfig({ config });
+const logger = await createLoggerFromConfig({ config, keychain });
 const transportRunner = await createRunnerFromConfig({
   config: {
     ...config,
@@ -156,6 +154,7 @@ const transportRunner = await createRunnerFromConfig({
   tools: [...MongoDBTools],
   resources: Resources,
   logger,
+  keychain,
 });
 
 await startRunner({
@@ -176,9 +175,9 @@ import {
   createLoggerFromConfig,
   createApiClientFromConfig,
 } from "@mongodb-js/mcp-cli";
-import { Keychain } from "@mongodb-js/mcp-core";
+import { createKeychainFromConfig } from "@mongodb-js/mcp-cli";
 
-const keychain = Keychain.root;
+const keychain = createKeychainFromConfig({ config });
 const logger = await createLoggerFromConfig({ config, keychain });
 const apiClient = createApiClientFromConfig({ config, serverMetadata, logger });
 ```
@@ -207,7 +206,7 @@ import {
   type CliServer,
   type SharedServerServices,
 } from "@mongodb-js/mcp-cli";
-import { Keychain } from "@mongodb-js/mcp-core";
+import { createKeychainFromConfig } from "@mongodb-js/mcp-cli";
 import { MongoDBTools } from "@mongodb-js/mcp-tools-mongodb";
 import type {
   TransportRequestContext,
@@ -237,7 +236,7 @@ const serverMetadata: ServerMetadata = {
 
 // App-level services, built once per process and shared by every server
 const { parsed: baseConfig } = parseUserConfig({ args: process.argv.slice(2) });
-const keychain = Keychain.root;
+const keychain = createKeychainFromConfig({ config: baseConfig });
 const logger = await createLoggerFromConfig({ config: baseConfig, keychain });
 const sharedServices: SharedServerServices =
   await createSharedServicesFromConfig({
@@ -246,6 +245,7 @@ const sharedServices: SharedServerServices =
     tools: MongoDBTools,
     resources: Resources,
     logger,
+    keychain,
   });
 
 // A request-scoped server per HTTP request: every heavy service comes from
@@ -435,17 +435,17 @@ const standard = [...MongoDBTools, ...AtlasTools, ...AtlasLocalTools];
 
 ### `@mongodb-js/mcp-core`
 
-| Symbol                                                                                | Description                                                                                                                                                   |
-| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ToolBase`, `ToolClass`, `ToolArgs`, `ToolResult`, `formatUntrustedData`              | Custom tool authoring                                                                                                                                         |
-| `toToolExecutionContext`                                                              | Adapts the SDK `ServerContext` to a `ToolExecutionContext` (builds the per-request object; the request-scoped server is carried on the tool, not the request) |
-| `StdioRunner({ logger })`                                                             | Abstract stdio transport runner (`serveStdio`; override `createServer()` to return a registered `McpServer`)                                                  |
-| `InMemoryTransport`                                                                   | In-memory transport for tests                                                                                                                                 |
-| `SessionStore`, `createDefaultSessionStore`                                           | **Deprecated** legacy 2025-era HTTP session store                                                                                                             |
-| `Keychain`, `registerGlobalSecretToRedact`                                            | Secret storage/redaction (the `IRedactor` type lives in `@mongodb-js/mcp-types`); `Keychain.redact(value)` replaces the removed `allSecrets` field            |
-| `Elicitation`                                                                         | Multi-round-trip confirmation/input (`confirmationRequired`/`readConfirmation`/`inputRequired`/`readInput`)                                                   |
-| `NoopLogger`, `NoopTelemetry`, `LoggerBase`, `RedactingLoggerBase`, `CompositeLogger` | Logging/telemetry primitives                                                                                                                                  |
-| `McpServer` (re-export)                                                               | `@modelcontextprotocol/server`                                                                                                                                |
+| Symbol                                                                                | Description                                                                                                                                                                                                                                                                   |
+| ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ToolBase`, `ToolClass`, `ToolArgs`, `ToolResult`, `formatUntrustedData`              | Custom tool authoring                                                                                                                                                                                                                                                         |
+| `toToolExecutionContext`                                                              | Adapts the SDK `ServerContext` to a `ToolExecutionContext` (builds the per-request object; the request-scoped server is carried on the tool, not the request)                                                                                                                 |
+| `StdioRunner({ logger })`                                                             | Abstract stdio transport runner (`serveStdio`; override `createServer()` to return a registered `McpServer`)                                                                                                                                                                  |
+| `InMemoryTransport`                                                                   | In-memory transport for tests                                                                                                                                                                                                                                                 |
+| `SessionStore`, `createDefaultSessionStore`                                           | **Deprecated** legacy 2025-era HTTP session store                                                                                                                                                                                                                             |
+| `Keychain`                                                                            | Secret storage/redaction (the `IRedactor` type lives in `@mongodb-js/mcp-types`); constructor takes the config secrets and `Keychain.redact(value)`/`redactErrorMessage(error)` replace the removed `allSecrets` field. Built once from config via `createKeychainFromConfig` |
+| `Elicitation`                                                                         | Multi-round-trip confirmation/input (`confirmationRequired`/`readConfirmation`/`inputRequired`/`readInput`)                                                                                                                                                                   |
+| `NoopLogger`, `NoopTelemetry`, `LoggerBase`, `RedactingLoggerBase`, `CompositeLogger` | Logging/telemetry primitives                                                                                                                                                                                                                                                  |
+| `McpServer` (re-export)                                                               | `@modelcontextprotocol/server`                                                                                                                                                                                                                                                |
 
 ### `@mongodb-js/mcp-http-runners`
 
