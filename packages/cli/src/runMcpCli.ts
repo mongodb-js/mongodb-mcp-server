@@ -68,6 +68,11 @@ export async function runMcpCli({
 - Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.`);
     }
 
+    // Create the immutable redaction keychain once (from config secrets), then
+    // thread the same instance to every handler and to the logger/transport
+    // runner. No code registers secrets on the keychain after this point.
+    const keychain = createKeychainFromConfig({ config });
+
     if (handlers) {
         for (const handler of handlers) {
             const handled = await handler.handle({
@@ -76,7 +81,7 @@ export async function runMcpCli({
                 consoleLogger,
                 onExit,
                 serverMetadata,
-                keychain: createKeychainFromConfig({ config }),
+                keychain,
             });
             if (handled) {
                 return;
@@ -84,10 +89,6 @@ export async function runMcpCli({
         }
     }
 
-    // Create the immutable redaction keychain once (from config secrets), then
-    // the logger and transport runner with it. No code registers secrets on the
-    // keychain after this point.
-    const keychain = createKeychainFromConfig({ config });
     const logger = await createLoggerFromConfig({ config, keychain });
 
     try {

@@ -1,7 +1,6 @@
 import type { CliHandler, CliHandlerContext } from "../cliHandler.js";
 import { DryRunModeRunner } from "../transports/dryModeRunner.js";
 import { createLoggerFromConfig } from "../createLoggerFromConfig.js";
-import { createKeychainFromConfig } from "../config/createKeychainFromConfig.js";
 import { createServerFromConfig, createSharedServicesFromConfig } from "../createRunnerFromConfig.js";
 import type { ToolRegistry, ResourceRegistry } from "../cliServer.js";
 
@@ -33,14 +32,13 @@ export class DryRunHandler implements CliHandler {
         this.resources = resources;
     }
 
-    async handle({ config, consoleLogger, onExit, serverMetadata }: CliHandlerContext): Promise<boolean> {
+    async handle({ config, consoleLogger, onExit, serverMetadata, keychain }: CliHandlerContext): Promise<boolean> {
         if (!config.dryRun) {
             return false;
         }
 
         try {
             // Create a minimal server just for listing tools
-            const keychain = createKeychainFromConfig({ config });
             const logger = await createLoggerFromConfig({ config, keychain });
             const sharedServices = await createSharedServicesFromConfig({
                 config,
