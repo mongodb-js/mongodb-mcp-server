@@ -475,6 +475,36 @@ describe("StreamsDiscoverTool", () => {
             });
         });
 
+        it("masks secret-valued authentication fields from the returned content", async () => {
+            mockApiClient.getStreamConnection!.mockResolvedValue({
+                name: "kafka-in",
+                type: "Kafka",
+                bootstrapServers: "broker:9092",
+                authentication: {
+                    mechanism: "SCRAM",
+                    username: "svc-user",
+                    password: "LeakyP4ssw0rd",
+                },
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "inspect-connection",
+                workspaceName: "ws1",
+                resourceName: "kafka-in",
+            });
+
+            const untrusted = result.content.map((c) => (c as { text: string }).text).join("\n");
+            // The secret value never surfaces; the useful auth metadata does.
+            expect(untrusted).not.toContain("LeakyP4ssw0rd");
+            expect(untrusted).toContain("<redacted>");
+            expect(untrusted).toContain("svc-user");
+            expect(untrusted).toContain("SCRAM");
+            expect(result.structuredContent).toEqual({
+                connection: { type: "Kafka", bootstrapServers: "broker:9092" },
+            });
+        });
+
         it("should throw when resourceName is missing", async () => {
             await expect(exec({ ...baseArgs, action: "inspect-connection", workspaceName: "ws1" })).rejects.toThrow(
                 "resourceName is required"

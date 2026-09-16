@@ -12,6 +12,7 @@ import {
     toStreamsAutoscaling,
 } from "../../streams/streamsArgs.js";
 import { StreamsInvalidArgumentError } from "../../streams/errors.js";
+import { redactSensitiveKeys } from "../../helpers/redactSensitiveKeys.js";
 
 type StreamsProcessorWithStats = {
     name?: string;
@@ -493,7 +494,9 @@ export class StreamsDiscoverTool extends StreamsToolBase {
 
         const format = responseFormat ?? "concise";
         const conciseConnections = data.results.map(toConnectionSummary);
-        const connections = format === "concise" ? conciseConnections : data.results;
+        // The concise form is already safe; the verbose form carries the raw
+        // connection objects, so mask any secret-valued fields first.
+        const connections = format === "concise" ? conciseConnections : data.results.map(redactSensitiveKeys);
 
         return {
             content: formatUntrustedData(
@@ -527,8 +530,13 @@ export class StreamsDiscoverTool extends StreamsToolBase {
 
         const connection = toConnectionInspect(data);
 
+        // Mask any secret-valued fields (e.g. authentication.password) that the
+        // Atlas API response may include: those values are never useful to the
+        // agent, and the keychain does not register runtime connection secrets.
+        const safeData = redactSensitiveKeys(data);
+
         return {
-            content: formatUntrustedData(header, JSON.stringify(data, null, 2)),
+            content: formatUntrustedData(header, JSON.stringify(safeData, null, 2)),
             ...(Object.keys(connection).length > 0 && { structuredContent: { connection } }),
         };
     }

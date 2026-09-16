@@ -3,12 +3,12 @@ import { LogId } from "@mongodb-js/mcp-core";
 import { createMockLogger } from "./mockLogger.js";
 
 describe("createMockLogger", () => {
-    it("exposes every method as a mock", () => {
+    it("exposes every method as a mock", async () => {
         const logger = createMockLogger();
         expect(logger.info).toBeTypeOf("function");
         logger.info({ id: LogId.serverInitialized, context: "test", message: "hello" });
         expect(logger.info).toHaveBeenCalled();
-        expect(logger.flush()).resolves.toEqual([]);
+        await expect(logger.flush()).resolves.toEqual([]);
     });
 
     it("asCompositeLogger() satisfies the ICompositeLogger contract without mutation", () => {

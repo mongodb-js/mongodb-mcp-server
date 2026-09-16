@@ -52,17 +52,19 @@ export function createMockLogger(): MockLogger {
 
     logger.asCompositeLogger = (): ICompositeLogger => logger as unknown as ICompositeLogger;
     logger.allLogMessages = (): string =>
-        ([
-            logger.log,
-            logger.info,
-            logger.error,
-            logger.debug,
-            logger.notice,
-            logger.warning,
-            logger.critical,
-            logger.alert,
-            logger.emergency,
-        ] as Mock[])
+        (
+            [
+                logger.log,
+                logger.info,
+                logger.error,
+                logger.debug,
+                logger.notice,
+                logger.warning,
+                logger.critical,
+                logger.alert,
+                logger.emergency,
+            ] as Mock[]
+        )
             .flatMap((fn) => fn.mock.calls.map((call) => JSON.stringify(call)))
             .join(" ");
 
