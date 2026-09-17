@@ -108,14 +108,18 @@ export const defaultTestSuiteConfig: TestSuiteConfig = {
     downloadOptions: DEFAULT_MONGODB_PROCESS_OPTIONS,
 };
 
-export function describeWithMongoDB(
-    name: string,
-    fn: (integration: MongoDBIntegrationTestCase) => void,
-    partialTestSuiteConfig?: Partial<TestSuiteConfig>
-): void {
+export function describeWithMongoDB({
+    name,
+    fn,
+    config,
+}: {
+    name: string;
+    fn: (integration: MongoDBIntegrationTestCase) => void;
+    config?: Partial<TestSuiteConfig>;
+}): void {
     const merged: TestSuiteConfig = {
         ...defaultTestSuiteConfig,
-        ...partialTestSuiteConfig,
+        ...config,
     };
     const {
         getUserConfig,
@@ -233,16 +237,21 @@ export function setupMongoDBIntegrationTest(
     };
 }
 
-export function validateAutoConnectBehavior(
-    integration: IntegrationTest & MongoDBIntegrationTest,
-    name: string,
+export function validateAutoConnectBehavior({
+    integration,
+    name,
+    validation,
+    beforeEachImpl,
+}: {
+    integration: IntegrationTest & MongoDBIntegrationTest;
+    name: string;
     validation: () => {
         args: { [x: string]: unknown };
         expectedResponse?: string;
         validate?: (content: unknown) => void;
-    },
-    beforeEachImpl?: () => Promise<void>
-): void {
+    };
+    beforeEachImpl?: () => Promise<void>;
+}): void {
     describe("when no connection was explicitly established", () => {
         if (beforeEachImpl) {
             beforeEach(() => beforeEachImpl());
@@ -402,11 +411,15 @@ export async function getServerVersion(integration: MongoDBIntegrationTestCase):
 }
 export const SEARCH_WAIT_TIMEOUT = 20_000;
 
-export async function waitUntilSearchIsReady(
-    mongoClient: MongoClient,
-    timeout: number = SEARCH_WAIT_TIMEOUT,
-    interval: number = DEFAULT_RETRY_INTERVAL
-): Promise<void> {
+export async function waitUntilSearchIsReady({
+    mongoClient,
+    timeout = SEARCH_WAIT_TIMEOUT,
+    interval = DEFAULT_RETRY_INTERVAL,
+}: {
+    mongoClient: MongoClient;
+    timeout?: number;
+    interval?: number;
+}): Promise<void> {
     await vi.waitFor(
         async () => {
             const testCollection = mongoClient.db("tempDB").collection("tempCollection");
@@ -452,12 +465,17 @@ async function waitUntilSearchIndexIs({
     );
 }
 
-export async function waitUntilSearchIndexIsListed(
-    collection: Collection,
-    searchIndex: string,
-    timeout: number = SEARCH_WAIT_TIMEOUT,
-    interval: number = DEFAULT_RETRY_INTERVAL
-): Promise<void> {
+export async function waitUntilSearchIndexIsListed({
+    collection,
+    searchIndex,
+    timeout = SEARCH_WAIT_TIMEOUT,
+    interval = DEFAULT_RETRY_INTERVAL,
+}: {
+    collection: Collection;
+    searchIndex: string;
+    timeout?: number;
+    interval?: number;
+}): Promise<void> {
     return waitUntilSearchIndexIs({
         collection,
         searchIndex,
@@ -469,12 +487,17 @@ export async function waitUntilSearchIndexIsListed(
     });
 }
 
-export async function waitUntilSearchIndexIsQueryable(
-    collection: Collection,
-    searchIndex: string,
-    timeout: number = SEARCH_WAIT_TIMEOUT,
-    interval: number = DEFAULT_RETRY_INTERVAL
-): Promise<void> {
+export async function waitUntilSearchIndexIsQueryable({
+    collection,
+    searchIndex,
+    timeout = SEARCH_WAIT_TIMEOUT,
+    interval = DEFAULT_RETRY_INTERVAL,
+}: {
+    collection: Collection;
+    searchIndex: string;
+    timeout?: number;
+    interval?: number;
+}): Promise<void> {
     return waitUntilSearchIndexIs({
         collection,
         searchIndex,
@@ -488,12 +511,17 @@ export async function waitUntilSearchIndexIsQueryable(
     });
 }
 
-export async function createVectorSearchIndexAndWait(
-    mongoClient: MongoClient,
-    database: string,
-    collection: string,
-    fields: Document[]
-): Promise<void> {
+export async function createVectorSearchIndexAndWait({
+    mongoClient,
+    database,
+    collection,
+    fields,
+}: {
+    mongoClient: MongoClient;
+    database: string;
+    collection: string;
+    fields: Document[];
+}): Promise<void> {
     const coll = await mongoClient.db(database).createCollection(collection);
     await coll.createSearchIndex({
         name: "default",
@@ -503,5 +531,5 @@ export async function createVectorSearchIndexAndWait(
         },
     });
 
-    await waitUntilSearchIndexIsQueryable(coll, "default");
+    await waitUntilSearchIndexIsQueryable({ collection: coll, searchIndex: "default" });
 }

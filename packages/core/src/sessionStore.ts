@@ -283,6 +283,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
      * behave as capability-less unless a subclass overrides these.
      */
     /* eslint-disable @typescript-eslint/no-unused-vars */
+    // eslint-disable-next-line max-params -- public interface contract (ISessionStore.saveNegotiatedClientState); callers in legacyMcpHttpHandler depend on the positional shape
     saveNegotiatedClientState(
         sessionId: string,
         state: NegotiatedClientState,

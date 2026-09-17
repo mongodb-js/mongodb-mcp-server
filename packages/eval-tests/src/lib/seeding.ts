@@ -74,7 +74,15 @@ async function waitForIndexesQueryable({
  * @param db - The database name.
  * @param dbSeed - The database seed.
  */
-export async function seedTempDb(dbClient: MongoClient, db: string, dbSeed: DbSeedEntry[] = []): Promise<void> {
+export async function seedTempDb({
+    dbClient,
+    db,
+    dbSeed = [],
+}: {
+    dbClient: MongoClient;
+    db: string;
+    dbSeed?: DbSeedEntry[];
+}): Promise<void> {
     for (const entry of dbSeed) {
         const { collection, indexes } = parseSeedEntry(entry);
         const coll = dbClient.db(db).collection(collection);

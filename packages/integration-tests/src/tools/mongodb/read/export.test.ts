@@ -14,12 +14,10 @@ import {
 import { describeWithMongoDB } from "../../../mongodbHelpers.js";
 import type { UserConfig } from "mongodb-mcp-server";
 import { ExportedData } from "@mongodb-js/mcp-cli";
-
 const userConfig: UserConfig = {
     ...defaultTestConfig,
     exportsPath: path.join(path.dirname(defaultTestConfig.exportsPath), `exports-${Date.now()}`),
 };
-
 export function contentWithTextResourceURI(
     content: CallToolResult["content"]
 ): CallToolResult["content"][number] | undefined {
@@ -27,14 +25,20 @@ export function contentWithTextResourceURI(
         return part.type === "text" && part.text.startsWith(`Data for namespace`);
     });
 }
-
-export function contentWithResourceURILink(content: CallToolResult["content"]): { uri: string } | undefined {
+export function contentWithResourceURILink(content: CallToolResult["content"]):
+    | {
+          uri: string;
+      }
+    | undefined {
     return content.find((part) => {
         return part.type === "resource_link";
     });
 }
-
-export function contentWithExportPath(content: CallToolResult["content"]): { text: string } | undefined {
+export function contentWithExportPath(content: CallToolResult["content"]):
+    | {
+          text: string;
+      }
+    | undefined {
     return content
         .filter((part) => part.type === "text")
         .find((part) => {
@@ -43,18 +47,16 @@ export function contentWithExportPath(content: CallToolResult["content"]): { tex
             );
         });
 }
-
-describeWithMongoDB(
-    "export tool",
-    (integration) => {
+describeWithMongoDB({
+    name: "export tool",
+    fn: (integration) => {
         let connectionId: string;
-
-        validateToolMetadata(
+        validateToolMetadata({
             integration,
-            "export",
-            "Export a query or aggregation results in the specified EJSON format.",
-            "read",
-            [
+            name: "export",
+            description: "Export a query or aggregation results in the specified EJSON format.",
+            operationType: "read",
+            parameters: [
                 ...databaseCollectionParameters,
                 {
                     name: "exportTitle",
@@ -78,27 +80,27 @@ describeWithMongoDB(
                     description: "The export target along with its arguments.",
                     required: true,
                 },
-            ]
-        );
-
-        validateThrowsForInvalidArguments(integration, "export", [
-            {},
-            { database: 123, collection: "bar" },
-            { database: "test", collection: [] },
-            { database: "test", collection: "bar", filter: "{ $gt: { foo: 5 } }" },
-            { database: "test", collection: "bar", projection: "name" },
-            { database: "test", collection: "bar", limit: "10" },
-            { database: "test", collection: "bar", sort: [], limit: 10 },
-        ]);
-
+            ],
+        });
+        validateThrowsForInvalidArguments({
+            integration,
+            name: "export",
+            args: [
+                {},
+                { database: 123, collection: "bar" },
+                { database: "test", collection: [] },
+                { database: "test", collection: "bar", filter: "{ $gt: { foo: 5 } }" },
+                { database: "test", collection: "bar", projection: "name" },
+                { database: "test", collection: "bar", limit: "10" },
+                { database: "test", collection: "bar", sort: [], limit: 10 },
+            ],
+        });
         beforeEach(async () => {
             connectionId = await integration.connectMcpClient();
         });
-
         afterAll(async () => {
             await fs.rm(userConfig.exportsPath, { recursive: true, force: true });
         });
-
         it("when provided with incorrect namespace, export should have empty data", async function () {
             const response = await integration.mcpClient().callTool({
                 name: "export",
@@ -120,20 +122,15 @@ describeWithMongoDB(
             const content = response.content as CallToolResult["content"];
             const exportURI = contentWithResourceURILink(content)?.uri as string;
             await resourceChangedNotification(integration.mcpClient(), exportURI);
-
             expect(content).toHaveLength(3);
             expect(contentWithTextResourceURI(content)).toBeDefined();
             expect(contentWithResourceURILink(content)).toBeDefined();
-
             const localPathPart = contentWithExportPath(content);
             expect(localPathPart).toBeDefined();
-
             const [, localPath] = /"(.*)"/.exec(String(localPathPart?.text)) ?? [];
             expect(localPath).toBeDefined();
-
             expect(await fs.readFile(localPath as string, "utf8")).toEqual("[]");
         });
-
         describe("with correct namespace", function () {
             beforeEach(async () => {
                 const mongoClient = integration.mongoClient();
@@ -145,7 +142,6 @@ describeWithMongoDB(
                         { name: "bar", bigInt: new Long(123412341234) },
                     ]);
             });
-
             it("should export entire namespace when filter are empty", async function () {
                 const response = await integration.mcpClient().callTool({
                     name: "export",
@@ -167,12 +163,10 @@ describeWithMongoDB(
                 const content = response.content as CallToolResult["content"];
                 const exportURI = contentWithResourceURILink(content)?.uri as string;
                 await resourceChangedNotification(integration.mcpClient(), exportURI);
-
                 const localPathPart = contentWithExportPath(content);
                 expect(localPathPart).toBeDefined();
                 const [, localPath] = /"(.*)"/.exec(String(localPathPart?.text)) ?? [];
                 expect(localPath).toBeDefined();
-
                 const exportedContent = JSON.parse(await fs.readFile(localPath as string, "utf8")) as Record<
                     string,
                     unknown
@@ -181,7 +175,6 @@ describeWithMongoDB(
                 expect(exportedContent[0]?.name).toEqual("foo");
                 expect(exportedContent[1]?.name).toEqual("bar");
             });
-
             it("should export filter results namespace when there are filters", async function () {
                 const response = await integration.mcpClient().callTool({
                     name: "export",
@@ -203,12 +196,10 @@ describeWithMongoDB(
                 const content = response.content as CallToolResult["content"];
                 const exportURI = contentWithResourceURILink(content)?.uri as string;
                 await resourceChangedNotification(integration.mcpClient(), exportURI);
-
                 const localPathPart = contentWithExportPath(content);
                 expect(localPathPart).toBeDefined();
                 const [, localPath] = /"(.*)"/.exec(String(localPathPart?.text)) ?? [];
                 expect(localPath).toBeDefined();
-
                 const exportedContent = JSON.parse(await fs.readFile(localPath as string, "utf8")) as Record<
                     string,
                     unknown
@@ -216,7 +207,6 @@ describeWithMongoDB(
                 expect(exportedContent).toHaveLength(1);
                 expect(exportedContent[0]?.name).toEqual("foo");
             });
-
             it("should export results limited to the provided limit", async function () {
                 const response = await integration.mcpClient().callTool({
                     name: "export",
@@ -239,12 +229,10 @@ describeWithMongoDB(
                 const content = response.content as CallToolResult["content"];
                 const exportURI = contentWithResourceURILink(content)?.uri as string;
                 await resourceChangedNotification(integration.mcpClient(), exportURI);
-
                 const localPathPart = contentWithExportPath(content);
                 expect(localPathPart).toBeDefined();
                 const [, localPath] = /"(.*)"/.exec(String(localPathPart?.text)) ?? [];
                 expect(localPath).toBeDefined();
-
                 const exportedContent = JSON.parse(await fs.readFile(localPath as string, "utf8")) as Record<
                     string,
                     unknown
@@ -252,7 +240,6 @@ describeWithMongoDB(
                 expect(exportedContent).toHaveLength(1);
                 expect(exportedContent[0]?.name).toEqual("foo");
             });
-
             it("should export results with sorted by the provided sort", async function () {
                 const response = await integration.mcpClient().callTool({
                     name: "export",
@@ -276,12 +263,10 @@ describeWithMongoDB(
                 const content = response.content as CallToolResult["content"];
                 const exportURI = contentWithResourceURILink(content)?.uri as string;
                 await resourceChangedNotification(integration.mcpClient(), exportURI);
-
                 const localPathPart = contentWithExportPath(content);
                 expect(localPathPart).toBeDefined();
                 const [, localPath] = /"(.*)"/.exec(String(localPathPart?.text)) ?? [];
                 expect(localPath).toBeDefined();
-
                 const exportedContent = JSON.parse(await fs.readFile(localPath as string, "utf8")) as Record<
                     string,
                     unknown
@@ -289,7 +274,6 @@ describeWithMongoDB(
                 expect(exportedContent).toHaveLength(1);
                 expect(exportedContent[0]?.name).toEqual("bar");
             });
-
             it("should export results containing only projected fields", async function () {
                 const response = await integration.mcpClient().callTool({
                     name: "export",
@@ -313,12 +297,10 @@ describeWithMongoDB(
                 const content = response.content as CallToolResult["content"];
                 const exportURI = contentWithResourceURILink(content)?.uri as string;
                 await resourceChangedNotification(integration.mcpClient(), exportURI);
-
                 const localPathPart = contentWithExportPath(content);
                 expect(localPathPart).toBeDefined();
                 const [, localPath] = /"(.*)"/.exec(String(localPathPart?.text)) ?? [];
                 expect(localPath).toBeDefined();
-
                 const exportedContent = JSON.parse(await fs.readFile(localPath as string, "utf8")) as Record<
                     string,
                     unknown
@@ -329,7 +311,6 @@ describeWithMongoDB(
                     },
                 ]);
             });
-
             it("should export relaxed json when provided jsonExportFormat is relaxed", async function () {
                 const response = await integration.mcpClient().callTool({
                     name: "export",
@@ -354,12 +335,10 @@ describeWithMongoDB(
                 const content = response.content as CallToolResult["content"];
                 const exportURI = contentWithResourceURILink(content)?.uri as string;
                 await resourceChangedNotification(integration.mcpClient(), exportURI);
-
                 const localPathPart = contentWithExportPath(content);
                 expect(localPathPart).toBeDefined();
                 const [, localPath] = /"(.*)"/.exec(String(localPathPart?.text)) ?? [];
                 expect(localPath).toBeDefined();
-
                 const exportedContent = JSON.parse(await fs.readFile(localPath as string, "utf8")) as Record<
                     string,
                     unknown
@@ -371,7 +350,6 @@ describeWithMongoDB(
                     },
                 ]);
             });
-
             it("should export canonical json when provided jsonExportFormat is canonical", async function () {
                 const response = await integration.mcpClient().callTool({
                     name: "export",
@@ -396,12 +374,10 @@ describeWithMongoDB(
                 const content = response.content as CallToolResult["content"];
                 const exportURI = contentWithResourceURILink(content)?.uri as string;
                 await resourceChangedNotification(integration.mcpClient(), exportURI);
-
                 const localPathPart = contentWithExportPath(content);
                 expect(localPathPart).toBeDefined();
                 const [, localPath] = /"(.*)"/.exec(String(localPathPart?.text)) ?? [];
                 expect(localPath).toBeDefined();
-
                 const exportedContent = JSON.parse(await fs.readFile(localPath as string, "utf8")) as Record<
                     string,
                     unknown
@@ -415,7 +391,6 @@ describeWithMongoDB(
                     },
                 ]);
             });
-
             it("should allow exporting an aggregation", async () => {
                 const response = await integration.mcpClient().callTool({
                     name: "export",
@@ -444,12 +419,10 @@ describeWithMongoDB(
                 const content = response.content as CallToolResult["content"];
                 const exportURI = contentWithResourceURILink(content)?.uri as string;
                 await resourceChangedNotification(integration.mcpClient(), exportURI);
-
                 const localPathPart = contentWithExportPath(content);
                 expect(localPathPart).toBeDefined();
                 const [, localPath] = /"(.*)"/.exec(String(localPathPart?.text)) ?? [];
                 expect(localPath).toBeDefined();
-
                 const exportedContent = JSON.parse(await fs.readFile(localPath as string, "utf8")) as Record<
                     string,
                     unknown
@@ -458,7 +431,6 @@ describeWithMongoDB(
                 expect(exportedContent[0]?.name).toEqual("foo");
             });
         });
-
         describe("server-side JavaScript operators", function () {
             beforeEach(async () => {
                 await integration
@@ -468,11 +440,9 @@ describeWithMongoDB(
                     .insertMany([{ age: 5 }, { age: 10 }]);
                 integration.mcpServer().userConfig.disableServerSideJs = true;
             });
-
             afterEach(() => {
                 integration.mcpServer().userConfig.disableServerSideJs = true;
             });
-
             const jsTargets: {
                 name: string;
                 operator: string;
@@ -536,7 +506,6 @@ describeWithMongoDB(
                     ],
                 },
             ];
-
             for (const { name, operator, exportTarget } of jsTargets) {
                 for (const jsDisabled of [true, false]) {
                     it(`${jsDisabled ? "rejects" : "allows"} ${name} when disableServerSideJs is ${jsDisabled}`, async function () {
@@ -562,7 +531,6 @@ describeWithMongoDB(
                 }
             }
         });
-
         describe("write stages", function () {
             beforeEach(async () => {
                 await integration
@@ -571,15 +539,16 @@ describeWithMongoDB(
                     .collection("foo")
                     .insertMany([{ age: 5 }, { age: 10 }]);
             });
-
             afterEach(() => {
                 integration.mcpServer().userConfig.readOnly = false;
                 integration.mcpServer().userConfig.disabledTools = [];
             });
-
             // No configuration lets export run a write stage, so the rejection
             // reason must not vary with the write-related settings.
-            const writeConfigs: { name: string; apply: () => void }[] = [
+            const writeConfigs: {
+                name: string;
+                apply: () => void;
+            }[] = [
                 { name: "write operations are allowed", apply: (): void => {} },
                 {
                     name: "in readOnly mode",
@@ -594,10 +563,8 @@ describeWithMongoDB(
                     },
                 },
             ];
-
             for (const stage of [{ $out: "outpeople" }, { $merge: "outpeople" }]) {
                 const operator = Object.keys(stage)[0];
-
                 for (const { name, apply } of writeConfigs) {
                     it(`rejects aggregate targets using ${operator} ${name}`, async function () {
                         apply();
@@ -615,7 +582,6 @@ describeWithMongoDB(
                         expect(content).toContain(
                             "The export tool can not run pipelines with $out or $merge stages. Use the aggregate tool to run a pipeline that writes to a collection."
                         );
-
                         // The rejection happens before the pipeline runs, so the
                         // targeted collection must not have been created.
                         const collections = await integration
@@ -626,7 +592,6 @@ describeWithMongoDB(
                         expect(collections).toHaveLength(0);
                     });
                 }
-
                 it(`rejects aggregate targets using ${operator} that are not the last stage`, async function () {
                     const response = await integration.mcpClient().callTool({
                         name: "export",
@@ -644,7 +609,6 @@ describeWithMongoDB(
                     expect(content).toContain("The export tool can not run pipelines with $out or $merge stages.");
                 });
             }
-
             it("allows aggregate targets without write stages", async function () {
                 const response = await integration.mcpClient().callTool({
                     name: "export",
@@ -661,7 +625,6 @@ describeWithMongoDB(
                 const content = response.content as CallToolResult["content"];
                 expect(contentWithResourceURILink(content)).toBeDefined();
             });
-
             it("allows find targets while write stages are forbidden", async function () {
                 const response = await integration.mcpClient().callTool({
                     name: "export",
@@ -678,8 +641,8 @@ describeWithMongoDB(
             });
         });
     },
-    {
+    config: {
         getUserConfig: () => userConfig,
         serverOptions: { resources: [ExportedData] },
-    }
-);
+    },
+});

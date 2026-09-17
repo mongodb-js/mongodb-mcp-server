@@ -38,7 +38,7 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
             // Get the connection string for the deployment. atlas-local-create-deployment can return
             // before Docker publishes port bindings, so retry briefly to usually avoid surfacing that
             // race condition to the caller.
-            connectionString = await waitForConnectionString(client, deploymentName);
+            connectionString = await waitForConnectionString({ client, deploymentName });
         } catch (error: unknown) {
             if (error instanceof AtlasLocalDeploymentNotReadyError) {
                 return {

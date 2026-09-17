@@ -270,6 +270,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         const result = Object.assign(
             new Transform({
                 objectMode: true,
+                // eslint-disable-next-line max-params -- Node stream Transform callback signature
                 transform(chunk: unknown, encoding, callback): void {
                     try {
                         const doc = EJSON.stringify(chunk, undefined, undefined, ejsonOptions);

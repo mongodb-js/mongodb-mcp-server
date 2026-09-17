@@ -276,7 +276,7 @@ export class CreateClusterTool extends AtlasToolBase {
 
         let encryptionAtRestProvider = args.encryptionAtRestProvider;
         if (encryptionAtRestProvider === undefined) {
-            const validConfigExists = await this.doesValidEARConfigExist(provider, projectId, request);
+            const validConfigExists = await this.doesValidEARConfigExist({ provider, projectId, request });
             encryptionAtRestProvider = validConfigExists ? provider : "NONE";
         }
 
@@ -290,7 +290,11 @@ export class CreateClusterTool extends AtlasToolBase {
             encryptionAtRestProvider,
         } as unknown as ClusterDescription20240805;
 
-        const ipAccessListResult = await ensureCurrentIpInAccessList(this.server.apiClient, projectId, request);
+        const ipAccessListResult = await ensureCurrentIpInAccessList({
+            apiClient: this.server.apiClient,
+            projectId,
+            context: request,
+        });
 
         const result = await this.server.apiClient.createCluster(
             {
@@ -329,11 +333,15 @@ export class CreateClusterTool extends AtlasToolBase {
         };
     }
 
-    protected async doesValidEARConfigExist(
-        provider: AtlasCloudProvider,
-        projectId: string,
-        request: ToolRequest<IAtlasConfig>
-    ): Promise<boolean> {
+    protected async doesValidEARConfigExist({
+        provider,
+        projectId,
+        request,
+    }: {
+        provider: AtlasCloudProvider;
+        projectId: string;
+        request: ToolRequest<IAtlasConfig>;
+    }): Promise<boolean> {
         try {
             const encryptionAtRest = await this.server.apiClient.getEncryptionAtRest(
                 { params: { path: { groupId: projectId } } },

@@ -10,35 +10,36 @@ import { describeWithMongoDB } from "../../../mongodbHelpers.js";
 import { beforeEach, describe, expect, it, type MockInstance, vi } from "vitest";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { PRECONFIGURED_CONNECTION_ID } from "@mongodb-js/mcp-tools-mongodb";
-
-describeWithMongoDB(
-    "Connect tool with a configured connection string",
-    (integration) => {
+describeWithMongoDB({
+    name: "Connect tool with a configured connection string",
+    fn: (integration) => {
         it("seeds a preconfigured connection", async () => {
             const response = await integration.mcpClient().callTool({ name: "list-connections", arguments: {} });
             const structuredContent = response.structuredContent as {
-                connections: { connectionId: string; source: string; state?: string }[];
+                connections: {
+                    connectionId: string;
+                    source: string;
+                    state?: string;
+                }[];
             };
-
             expect(structuredContent.connections).toHaveLength(1);
             expect(structuredContent.connections[0]?.connectionId).toBe(PRECONFIGURED_CONNECTION_ID);
             expect(structuredContent.connections[0]?.source).toBe("preconfigured");
         });
-
         it("creates an additional, independent connection when the connect tool is called", async () => {
             const connectionId = await connect(integration.mcpClient(), integration.connectionString());
             expect(connectionId).not.toBe(PRECONFIGURED_CONNECTION_ID);
-
             const response = await integration.mcpClient().callTool({ name: "list-connections", arguments: {} });
             const structuredContent = response.structuredContent as {
-                connections: { connectionId: string }[];
+                connections: {
+                    connectionId: string;
+                }[];
             };
             expect(structuredContent.connections.map((connection) => connection.connectionId)).toIncludeSameMembers([
                 PRECONFIGURED_CONNECTION_ID,
                 connectionId,
             ]);
         });
-
         it("rejects the reserved preconfigured connection name", async () => {
             const response = await integration.mcpClient().callTool({
                 name: "connect",
@@ -47,31 +48,28 @@ describeWithMongoDB(
                     connectionName: PRECONFIGURED_CONNECTION_ID,
                 },
             });
-
             expect(response.isError).toBe(true);
             const content = getResponseContent(response.content);
             expect(content).toContain("Input validation error:");
             expect(content).toContain("reserved connection name");
         });
     },
-    {
+    config: {
         getUserConfig: (mdbIntegration) => ({
             ...defaultTestConfig,
             connectionString: mdbIntegration.connectionString(),
         }),
-    }
-);
-
-describeWithMongoDB(
-    "Connect tool when server is configured to connect with complex connection",
-    (integration) => {
+    },
+});
+describeWithMongoDB({
+    name: "Connect tool when server is configured to connect with complex connection",
+    fn: (integration) => {
         let connectFnSpy: MockInstance<typeof NodeDriverServiceProvider.connect>;
         beforeEach(async () => {
             connectFnSpy = vi.spyOn(NodeDriverServiceProvider, "connect");
             // Dial the preconfigured connection seeded from the configured connection string.
             await integration.mcpServer().connectionRegistry.resolve(PRECONFIGURED_CONNECTION_ID);
         });
-
         it("should connect to the provided connection string while applying user config driver options", async () => {
             const newConnectionString = `${integration.connectionString()}`;
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -83,7 +81,6 @@ describeWithMongoDB(
                 productName: "MongoDB MCP",
                 proxy: { useEnvironmentVariableProxies: true },
             });
-
             expect(connectFnSpy).toHaveBeenNthCalledWith(
                 1,
                 expect.stringContaining(`${integration.connectionString()}/?directConnection=true`),
@@ -97,13 +94,11 @@ describeWithMongoDB(
                     connectionString: newConnectionString,
                 },
             });
-
             const content = getResponseContent(response.content);
             // The connection will still be connected because the --browser
             // option only sets the command to be used when opening the browser
             // for OIDC handling.
             expect(content).toContain("Successfully connected");
-
             expect(connectFnSpy).toHaveBeenNthCalledWith(
                 2,
                 expect.stringContaining(`${integration.connectionString()}`),
@@ -113,7 +108,7 @@ describeWithMongoDB(
             );
         });
     },
-    {
+    config: {
         getUserConfig: (mdbIntegration) => ({
             ...defaultTestConfig,
             // Setting browser in config is the same as passing `--browser` CLI
@@ -123,72 +118,70 @@ describeWithMongoDB(
             browser: "not-a-browser",
             connectionString: `${mdbIntegration.connectionString()}/?directConnection=true`,
         }),
-    }
-);
-
-describeWithMongoDB("Connect tool", (integration) => {
-    validateToolMetadata(
-        integration,
-        "connect",
-        "Connect to a MongoDB instance and get back a connectionId to pass to the other MongoDB tools. Each call establishes a new, independent connection — multiple connections can be active at the same time.",
-        "connect",
-        [
-            {
-                name: "connectionString",
-                description: "MongoDB connection string (in the mongodb:// or mongodb+srv:// format)",
-                type: "string",
-                required: true,
-            },
-            {
-                name: "connectionName",
-                description:
-                    'Optional short label for the connection (stored slugified with a short suffix, e.g. "staging" becomes staging-<suffix>). Shown in connection listings; helpful for telling multiple connections apart.',
-                type: "string",
-                required: false,
-            },
-        ]
-    );
-
-    validateThrowsForInvalidArguments(integration, "connect", [{}, { connectionString: 123 }]);
-
-    it("registers the connection management tools", async () => {
-        const { tools } = await integration.mcpClient().listTools();
-        const toolNames = tools.map((tool) => tool.name);
-        expect(toolNames).toContain("connect");
-        expect(toolNames).toContain("disconnect");
-        expect(toolNames).toContain("list-connections");
-    });
-
-    describe("with connection string", () => {
-        it("connects to the database and returns a connectionId", async () => {
-            const response = await integration.mcpClient().callTool({
-                name: "connect",
-                arguments: {
-                    connectionString: integration.connectionString(),
-                },
-            });
-            expect(response.structuredContent).toEqual({ connectionId: expect.any(String) as string });
-            const content = getResponseContent(response.content);
-            expect(content).toContain("Successfully connected");
-        });
-    });
-
-    describe("with invalid connection string", () => {
-        it("returns error message", async () => {
-            const response = await integration.mcpClient().callTool({
-                name: "connect",
-                arguments: { connectionString: "mangodb://localhost:12345" },
-            });
-            const content = getResponseContent(response.content);
-            expect(content).toContain("Could not connect to MongoDB.");
-            expect(response.structuredContent).toBeUndefined();
-        });
-    });
+    },
 });
-
-describeWithMongoDB(
-    "Connect tool when disabled",
-    (integration) => {
+describeWithMongoDB({
+    name: "Connect tool",
+    fn: (integration) => {
+        validateToolMetadata({
+            integration,
+            name: "connect",
+            description:
+                "Connect to a MongoDB instance and get back a connectionId to pass to the other MongoDB tools. Each call establishes a new, independent connection — multiple connections can be active at the same time.",
+            operationType: "connect",
+            parameters: [
+                {
+                    name: "connectionString",
+                    description: "MongoDB connection string (in the mongodb:// or mongodb+srv:// format)",
+                    type: "string",
+                    required: true,
+                },
+                {
+                    name: "connectionName",
+                    description:
+                        'Optional short label for the connection (stored slugified with a short suffix, e.g. "staging" becomes staging-<suffix>). Shown in connection listings; helpful for telling multiple connections apart.',
+                    type: "string",
+                    required: false,
+                },
+            ],
+        });
+        validateThrowsForInvalidArguments({ integration, name: "connect", args: [{}, { connectionString: 123 }] });
+        it("registers the connection management tools", async () => {
+            const { tools } = await integration.mcpClient().listTools();
+            const toolNames = tools.map((tool) => tool.name);
+            expect(toolNames).toContain("connect");
+            expect(toolNames).toContain("disconnect");
+            expect(toolNames).toContain("list-connections");
+        });
+        describe("with connection string", () => {
+            it("connects to the database and returns a connectionId", async () => {
+                const response = await integration.mcpClient().callTool({
+                    name: "connect",
+                    arguments: {
+                        connectionString: integration.connectionString(),
+                    },
+                });
+                expect(response.structuredContent).toEqual({ connectionId: expect.any(String) as string });
+                const content = getResponseContent(response.content);
+                expect(content).toContain("Successfully connected");
+            });
+        });
+        describe("with invalid connection string", () => {
+            it("returns error message", async () => {
+                const response = await integration.mcpClient().callTool({
+                    name: "connect",
+                    arguments: { connectionString: "mangodb://localhost:12345" },
+                });
+                const content = getResponseContent(response.content);
+                expect(content).toContain("Could not connect to MongoDB.");
+                expect(response.structuredContent).toBeUndefined();
+            });
+        });
+    },
+});
+describeWithMongoDB({
+    name: "Connect tool when disabled",
+    fn: (integration) => {
         it("is not suggested when querying MongoDB with an unknown connectionId", async () => {
             const response = await integration.mcpClient().callTool({
                 name: "find",
@@ -198,7 +191,6 @@ describeWithMongoDB(
                     collection: "some-collection",
                 },
             });
-
             const elements = getResponseElements(response);
             expect(elements).toHaveLength(2);
             expect(elements[0]?.text).toContain('Connection "unknown-connection-id" does not exist or has expired.');
@@ -207,10 +199,10 @@ describeWithMongoDB(
             );
         });
     },
-    {
+    config: {
         getUserConfig: () => ({
             ...defaultTestConfig,
             disabledTools: ["connect"],
         }),
-    }
-);
+    },
+});

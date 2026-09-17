@@ -177,7 +177,7 @@ export class AggregateTool extends MongoDBToolBase {
         try {
             const provider = await this.resolveConnection(connectionId);
             const isSearchSupported = await this.isSearchSupported(connectionId);
-            this.assertOnlyUsesPermittedStages(this.server.config, { isSearchSupported }, pipeline);
+            this.assertOnlyUsesPermittedStages({ config: this.server.config, isSearchSupported, pipeline });
             if (isSearchSupported) {
                 let searchIndexes: SearchIndex[] | undefined;
                 try {
@@ -339,11 +339,15 @@ export class AggregateTool extends MongoDBToolBase {
         }
     }
 
-    private assertOnlyUsesPermittedStages(
-        config: IMongoDBConfig,
-        { isSearchSupported }: { isSearchSupported: boolean },
-        pipeline: Record<string, unknown>[]
-    ): void {
+    private assertOnlyUsesPermittedStages({
+        config,
+        isSearchSupported,
+        pipeline,
+    }: {
+        config: IMongoDBConfig;
+        isSearchSupported: boolean;
+        pipeline: Record<string, unknown>[];
+    }): void {
         this.assertMqlIsAllowed(config, pipeline);
 
         for (const stage of pipeline) {

@@ -139,7 +139,11 @@ describe("indexCheck", () => {
 
     describe("getIndexCheckErrorMessage", () => {
         it("should generate appropriate error message", () => {
-            const message = getIndexCheckErrorMessage("testdb", "testcoll", "find");
+            const message = getIndexCheckErrorMessage({
+                database: "testdb",
+                collection: "testcoll",
+                operation: "find",
+            });
             expect(message).toContain("Index check failed");
             expect(message).toContain("testdb.testcoll");
             expect(message).toContain("find operation");

@@ -19,16 +19,33 @@ export class TokenError extends Error {
 export class TokenManager {
     private cachedToken: CachedToken | null = null;
     private refreshPromise: Promise<string> | null = null;
+    private readonly tokenUrl: string;
+    private readonly clientId: string;
+    private readonly clientSecret: string;
+    private readonly timeoutMs: number;
+    private readonly fetch: FetchLike;
 
     private readonly userAgent = `mongodb-atlas-mcp-remote/${packageInfo.version} (${process.platform}; ${process.arch})`;
 
-    constructor(
-        private readonly tokenUrl: string,
-        private readonly clientId: string,
-        private readonly clientSecret: string,
-        private readonly timeoutMs: number,
-        private readonly fetch: FetchLike
-    ) {}
+    constructor({
+        tokenUrl,
+        clientId,
+        clientSecret,
+        timeoutMs,
+        fetch,
+    }: {
+        tokenUrl: string;
+        clientId: string;
+        clientSecret: string;
+        timeoutMs: number;
+        fetch: FetchLike;
+    }) {
+        this.tokenUrl = tokenUrl;
+        this.clientId = clientId;
+        this.clientSecret = clientSecret;
+        this.timeoutMs = timeoutMs;
+        this.fetch = fetch;
+    }
 
     async getToken(): Promise<string> {
         if (this.cachedToken && Date.now() < this.cachedToken.expiresAt - TOKEN_EXPIRY_BUFFER_MS) {

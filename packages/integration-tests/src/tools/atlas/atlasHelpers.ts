@@ -153,11 +153,15 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
     });
 }
 
-export async function assertClusterIsAvailable(
-    session: CliServer,
-    projectId: string,
-    clusterName: string
-): Promise<boolean> {
+export async function assertClusterIsAvailable({
+    session,
+    projectId,
+    clusterName,
+}: {
+    session: CliServer;
+    projectId: string;
+    clusterName: string;
+}): Promise<boolean> {
     assertApiClientIsAvailable(session);
     try {
         await session.apiClient.getCluster({
@@ -182,12 +186,17 @@ export function assertApiClientIsAvailable(
     }
 }
 
-export async function deleteCluster(
-    session: CliServer,
-    projectId: string,
-    clusterName: string,
-    shouldWaitTillClusterIsDeleted: boolean = true
-): Promise<void> {
+export async function deleteCluster({
+    session,
+    projectId,
+    clusterName,
+    shouldWaitTillClusterIsDeleted = true,
+}: {
+    session: CliServer;
+    projectId: string;
+    clusterName: string;
+    shouldWaitTillClusterIsDeleted?: boolean;
+}): Promise<void> {
     assertApiClientIsAvailable(session);
     await session.apiClient.deleteCluster({
         params: {
@@ -202,19 +211,33 @@ export async function deleteCluster(
         return;
     }
 
-    await waitForClusterDeletion(session.apiClient, projectId, clusterName);
+    await waitForClusterDeletion({ apiClient: session.apiClient, projectId, clusterName });
 }
 
-export async function waitCluster(
-    session: CliServer,
-    projectId: string,
-    clusterName: string,
-    check: (cluster: ClusterDescription20240805) => boolean | Promise<boolean>,
-    pollingInterval: number = 1000,
-    maxPollingIterations: number = 300
-): Promise<void> {
+export async function waitCluster({
+    session,
+    projectId,
+    clusterName,
+    check,
+    pollingInterval = 1000,
+    maxPollingIterations = 300,
+}: {
+    session: CliServer;
+    projectId: string;
+    clusterName: string;
+    check: (cluster: ClusterDescription20240805) => boolean | Promise<boolean>;
+    pollingInterval?: number;
+    maxPollingIterations?: number;
+}): Promise<void> {
     assertApiClientIsAvailable(session);
-    await waitForClusterState(session.apiClient, projectId, clusterName, check, pollingInterval, maxPollingIterations);
+    await waitForClusterState({
+        apiClient: session.apiClient,
+        projectId,
+        clusterName,
+        check,
+        pollingInterval,
+        maxPollingIterations,
+    });
 }
 
 export function withCluster(integration: IntegrationTest, fn: ClusterTestFunction): SuiteCollector<object> {
@@ -260,16 +283,16 @@ export function withCluster(integration: IntegrationTest, fn: ClusterTestFunctio
                 // M0 provisioning on cloud-dev is slow and non-deterministic (observed
                 // to exceed 10 minutes), so allow up to 20 minutes (10s x 120); a hook
                 // timeout here would silently skip every test in the suite.
-                await waitCluster(
-                    integration.mcpServer(),
+                await waitCluster({
+                    session: integration.mcpServer(),
                     projectId,
                     clusterName,
-                    (cluster) => {
+                    check: (cluster) => {
                         return cluster.stateName === "IDLE";
                     },
-                    10_000,
-                    120
-                );
+                    pollingInterval: 10_000,
+                    maxPollingIterations: 120,
+                });
             }, 1_500_000);
 
             afterAll(async () => {
@@ -278,7 +301,7 @@ export function withCluster(integration: IntegrationTest, fn: ClusterTestFunctio
 
                 try {
                     // delete the cluster and wait for termination, but ignore errors
-                    await deleteCluster(session, getProjectId(), clusterName);
+                    await deleteCluster({ session, projectId: getProjectId(), clusterName });
                 } catch (error) {
                     console.log("Failed to delete cluster:", error);
                 }

@@ -428,13 +428,19 @@ export const databaseCollectionInvalidArgs = [
 
 export const databaseInvalidArgs = [{}, { database: 123 }, { database: [] }];
 
-export function validateToolMetadata(
-    integration: IntegrationTest,
-    name: string,
-    description: string,
-    operationType: OperationType,
-    parameters: ParameterInfo[]
-): void {
+export function validateToolMetadata({
+    integration,
+    name,
+    description,
+    operationType,
+    parameters,
+}: {
+    integration: IntegrationTest;
+    name: string;
+    description: string;
+    operationType: OperationType;
+    parameters: ParameterInfo[];
+}): void {
     it("should have correct metadata", async () => {
         const { tools } = await integration.mcpClient().listTools();
         const tool = tools.find((tool) => tool.name === name);
@@ -448,11 +454,15 @@ export function validateToolMetadata(
     });
 }
 
-export function validateThrowsForInvalidArguments(
-    integration: IntegrationTest,
-    name: string,
-    args: { [x: string]: unknown }[]
-): void {
+export function validateThrowsForInvalidArguments({
+    integration,
+    name,
+    args,
+}: {
+    integration: IntegrationTest;
+    name: string;
+    args: { [x: string]: unknown }[];
+}): void {
     describe("with invalid arguments", () => {
         for (const arg of args) {
             it(`throws a schema error for: ${JSON.stringify(arg)}`, async () => {
@@ -530,12 +540,17 @@ export function responseAsText(response: Awaited<ReturnType<Client["callTool"]>>
     return JSON.stringify(response.content, undefined, 2);
 }
 
-export function waitUntil<T extends ConnectionState>(
-    tag: T["tag"],
-    source: ConnectionManager | ConnectionEntry,
-    signal: AbortSignal,
-    additionalCondition?: (state: T) => boolean
-): Promise<T> {
+export function waitUntil<T extends ConnectionState>({
+    tag,
+    source,
+    signal,
+    additionalCondition,
+}: {
+    tag: T["tag"];
+    source: ConnectionManager | ConnectionEntry;
+    signal: AbortSignal;
+    additionalCondition?: (state: T) => boolean;
+}): Promise<T> {
     let ts: NodeJS.Timeout | undefined;
 
     return new Promise<T>((resolve, reject) => {

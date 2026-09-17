@@ -62,7 +62,7 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
         let stillStarting = false;
         if (resolvedDeploymentName) {
             try {
-                await waitForConnectionString(client, resolvedDeploymentName);
+                await waitForConnectionString({ client, deploymentName: resolvedDeploymentName });
             } catch (error: unknown) {
                 if (error instanceof AtlasLocalDeploymentNotReadyError) {
                     stillStarting = true;

@@ -65,11 +65,11 @@ export class CreateAccessListTool extends AtlasToolBase {
         }));
 
         if (currentIpAddress) {
-            const input = await makeCurrentIpAccessListEntry(
-                this.server.apiClient,
+            const input = await makeCurrentIpAccessListEntry({
+                apiClient: this.server.apiClient,
                 projectId,
-                comment || DEFAULT_ACCESS_LIST_COMMENT
-            );
+                comment: comment || DEFAULT_ACCESS_LIST_COMMENT,
+            });
             ipInputs.push(input);
         }
 

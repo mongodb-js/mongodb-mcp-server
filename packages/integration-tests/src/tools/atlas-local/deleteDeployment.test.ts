@@ -5,77 +5,74 @@ import {
     describeWithAtlasLocal,
     describeWithAtlasLocalDisabled,
 } from "./atlasLocalHelpers.js";
-
-describeWithAtlasLocal("atlas-local-delete-deployment", (integration) => {
-    it("should have the atlas-local-delete-deployment tool", async () => {
-        const { tools } = await integration.mcpClient().listTools();
-        const deleteDeployment = tools.find((tool) => tool.name === "atlas-local-delete-deployment");
-        expectDefined(deleteDeployment);
-    });
-
-    it("should have correct metadata", async () => {
-        const { tools } = await integration.mcpClient().listTools();
-        const deleteDeployment = tools.find((tool) => tool.name === "atlas-local-delete-deployment");
-        expectDefined(deleteDeployment);
-        expect(deleteDeployment.inputSchema.type).toBe("object");
-        expectDefined(deleteDeployment.inputSchema.properties);
-        expect(deleteDeployment.inputSchema.properties).toHaveProperty("deploymentName");
-        expect(deleteDeployment).toHaveProperty("outputSchema");
-    });
-
-    it("should return 'no such container' error when deployment to delete does not exist", async () => {
-        const deploymentName = "non-existent";
-
-        const response = await integration.mcpClient().callTool({
-            name: "atlas-local-delete-deployment",
-            arguments: { deploymentName },
+describeWithAtlasLocal({
+    name: "atlas-local-delete-deployment",
+    fn: (integration) => {
+        it("should have the atlas-local-delete-deployment tool", async () => {
+            const { tools } = await integration.mcpClient().listTools();
+            const deleteDeployment = tools.find((tool) => tool.name === "atlas-local-delete-deployment");
+            expectDefined(deleteDeployment);
         });
-        const elements = getResponseElements(response.content);
-        expect(elements.length).toBeGreaterThanOrEqual(1);
-        // atlas-local 1.3.1 no longer surfaces a "No such container" message for this case,
-        // so the tool falls back to the raw error instead of its friendly "was not found" text.
-        expect(elements[0]?.text).toContain("Failed to inspect container: not found");
-        expect(response.structuredContent).toBeUndefined();
-    });
-
-    it("should delete a deployment when calling the tool", async () => {
-        // Create a deployment
-        const deploymentName = `test-deployment-${Date.now()}`;
-        await createAtlasLocalDeployment(integration, { deploymentName });
-
-        // Check that deployment exists before deletion
-        const beforeResponse = await integration.mcpClient().callTool({
-            name: "atlas-local-list-deployments",
-            arguments: {},
+        it("should have correct metadata", async () => {
+            const { tools } = await integration.mcpClient().listTools();
+            const deleteDeployment = tools.find((tool) => tool.name === "atlas-local-delete-deployment");
+            expectDefined(deleteDeployment);
+            expect(deleteDeployment.inputSchema.type).toBe("object");
+            expectDefined(deleteDeployment.inputSchema.properties);
+            expect(deleteDeployment.inputSchema.properties).toHaveProperty("deploymentName");
+            expect(deleteDeployment).toHaveProperty("outputSchema");
         });
-        const beforeElements = getResponseElements(beforeResponse.content);
-        expect(beforeElements.length).toBeGreaterThanOrEqual(1);
-        expect(beforeElements[1]?.text ?? "").toContain(deploymentName);
-
-        // Delete the deployment
-        const deleteResponse = await integration.mcpClient().callTool({
-            name: "atlas-local-delete-deployment",
-            arguments: { deploymentName },
+        it("should return 'no such container' error when deployment to delete does not exist", async () => {
+            const deploymentName = "non-existent";
+            const response = await integration.mcpClient().callTool({
+                name: "atlas-local-delete-deployment",
+                arguments: { deploymentName },
+            });
+            const elements = getResponseElements(response.content);
+            expect(elements.length).toBeGreaterThanOrEqual(1);
+            // atlas-local 1.3.1 no longer surfaces a "No such container" message for this case,
+            // so the tool falls back to the raw error instead of its friendly "was not found" text.
+            expect(elements[0]?.text).toContain("Failed to inspect container: not found");
+            expect(response.structuredContent).toBeUndefined();
         });
-        expect(deleteResponse.structuredContent).toEqual({
-            deleted: true,
-            deploymentName,
+        it("should delete a deployment when calling the tool", async () => {
+            // Create a deployment
+            const deploymentName = `test-deployment-${Date.now()}`;
+            await createAtlasLocalDeployment(integration, { deploymentName });
+            // Check that deployment exists before deletion
+            const beforeResponse = await integration.mcpClient().callTool({
+                name: "atlas-local-list-deployments",
+                arguments: {},
+            });
+            const beforeElements = getResponseElements(beforeResponse.content);
+            expect(beforeElements.length).toBeGreaterThanOrEqual(1);
+            expect(beforeElements[1]?.text ?? "").toContain(deploymentName);
+            // Delete the deployment
+            const deleteResponse = await integration.mcpClient().callTool({
+                name: "atlas-local-delete-deployment",
+                arguments: { deploymentName },
+            });
+            expect(deleteResponse.structuredContent).toEqual({
+                deleted: true,
+                deploymentName,
+            });
+            // Check that deployment doesn't exist after deletion
+            const afterResponse = await integration.mcpClient().callTool({
+                name: "atlas-local-list-deployments",
+                arguments: {},
+            });
+            const afterElements = getResponseElements(afterResponse.content);
+            expect(afterElements[1]?.text ?? "").not.toContain(deploymentName);
         });
-
-        // Check that deployment doesn't exist after deletion
-        const afterResponse = await integration.mcpClient().callTool({
-            name: "atlas-local-list-deployments",
-            arguments: {},
-        });
-        const afterElements = getResponseElements(afterResponse.content);
-        expect(afterElements[1]?.text ?? "").not.toContain(deploymentName);
-    });
+    },
 });
-
-describeWithAtlasLocalDisabled("[MacOS in GitHub Actions] atlas-local-delete-deployment", (integration) => {
-    it("should not have the atlas-local-delete-deployment tool", async () => {
-        const { tools } = await integration.mcpClient().listTools();
-        const deleteDeployment = tools.find((tool) => tool.name === "atlas-local-delete-deployment");
-        expect(deleteDeployment).toBeUndefined();
-    });
+describeWithAtlasLocalDisabled({
+    name: "[MacOS in GitHub Actions] atlas-local-delete-deployment",
+    fn: (integration) => {
+        it("should not have the atlas-local-delete-deployment tool", async () => {
+            const { tools } = await integration.mcpClient().listTools();
+            const deleteDeployment = tools.find((tool) => tool.name === "atlas-local-delete-deployment");
+            expect(deleteDeployment).toBeUndefined();
+        });
+    },
 });

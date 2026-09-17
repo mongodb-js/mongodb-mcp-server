@@ -7,20 +7,22 @@ import { describeWithMongoDB } from "../mongodbHelpers.js";
 import { contentWithResourceURILink } from "../tools/mongodb/read/export.test.js";
 import type { UserConfig } from "mongodb-mcp-server";
 import { ExportedData } from "@mongodb-js/mcp-cli";
-
 const userConfig: UserConfig = {
     ...defaultTestConfig,
     exportsPath: path.join(path.dirname(defaultTestConfig.exportsPath), `exports-${Date.now()}`),
     exportTimeoutMs: 200,
     exportCleanupIntervalMs: 300,
 };
-
-describeWithMongoDB(
-    "exported-data resource",
-    (integration) => {
-        let docs: { _id: ObjectId; name: string; longNumber?: Long; bigInt?: Long }[];
+describeWithMongoDB({
+    name: "exported-data resource",
+    fn: (integration) => {
+        let docs: {
+            _id: ObjectId;
+            name: string;
+            longNumber?: Long;
+            bigInt?: Long;
+        }[];
         let collection: string;
-
         beforeEach(async () => {
             const mongoClient = integration.mongoClient();
             collection = new ObjectId().toString();
@@ -30,11 +32,9 @@ describeWithMongoDB(
             ];
             await mongoClient.db("db").collection(collection).insertMany(docs);
         });
-
         afterAll(async () => {
             await fs.rm(userConfig.exportsPath, { recursive: true, force: true });
         });
-
         it("should be able to list resource template", async () => {
             await integration.connectMcpClient();
             const response = await integration.mcpClient().listResourceTemplates();
@@ -46,7 +46,6 @@ describeWithMongoDB(
                 },
             ]);
         });
-
         describe("when requesting non-existent resource", () => {
             it("should return an error", async () => {
                 const exportURI = "exported-data://db.coll.json";
@@ -56,13 +55,12 @@ describeWithMongoDB(
                 });
                 expect(response.isError).toEqual(true);
                 expect(response.contents[0]?.uri).toEqual(exportURI);
-                const text = (response.contents[0] as { text: string }).text;
-                expect(text).toEqual(
-                    `Error reading ${exportURI}: Requested export has either expired or does not exist.`
-                );
+                const text = (response.contents[0] as {
+                    text: string;
+                }).text;
+                expect(text).toEqual(`Error reading ${exportURI}: Requested export has either expired or does not exist.`);
             });
         });
-
         describe("when requesting an expired resource", () => {
             it("should return an error", async () => {
                 const connectionId = await integration.connectMcpClient();
@@ -76,34 +74,29 @@ describeWithMongoDB(
                         exportTarget: [{ name: "find", arguments: {} }],
                     },
                 });
-
-                const exportedResourceURI = exportResponse.content.find(
-                    (part) => part.type === "resource_link"
-                )?.uri;
+                const exportedResourceURI = exportResponse.content.find((part) => part.type === "resource_link")?.uri;
                 expect(exportedResourceURI).toBeDefined();
-
                 // wait for export expired
                 for (let tries = 0; tries < 10; tries++) {
                     await sleep(300);
                     const response = await integration.mcpClient().readResource({
                         uri: exportedResourceURI as string,
                     });
-
                     // wait for an error from the MCP Server as it
                     // means the resource is not available anymore
                     if (response.isError !== true) {
                         continue;
                     }
-
                     expect(response.isError).toEqual(true);
                     expect(response.contents[0]?.uri).toEqual(exportedResourceURI);
-                    const text = (response.contents[0] as { text: string }).text;
+                    const text = (response.contents[0] as {
+                        text: string;
+                    }).text;
                     expect(text).toMatch(`Error reading ${exportedResourceURI}:`);
                     break;
                 }
             });
         });
-
         describe("after requesting a fresh export", () => {
             it("should be able to read the resource", async () => {
                 const connectionId = await integration.connectMcpClient();
@@ -120,30 +113,32 @@ describeWithMongoDB(
                 const content = exportResponse.content;
                 const exportURI = contentWithResourceURILink(content)?.uri as string;
                 await resourceChangedNotification(integration.mcpClient(), exportURI);
-
-                const exportedResourceURI = exportResponse.content.find(
-                    (part) => part.type === "resource_link"
-                )?.uri;
+                const exportedResourceURI = exportResponse.content.find((part) => part.type === "resource_link")?.uri;
                 expect(exportedResourceURI).toBeDefined();
-
                 const response = await integration.mcpClient().readResource({
                     uri: exportedResourceURI as string,
                 });
                 expect(response.isError).toBeFalsy();
                 expect(response.contents[0]?.mimeType).toEqual("application/json");
-
-                const text = (response.contents[0] as { text: string }).text;
+                const text = (response.contents[0] as {
+                    text: string;
+                }).text;
                 expect(text).toContain(`The exported data contains ${docs.length} documents.`);
                 expect(text).toContain("<untrusted-user-data");
                 const exportContent = getDataFromUntrustedContent(text);
-                const exportedDocs = EJSON.parse(exportContent) as { name: string; _id: ObjectId }[];
-                const expectedDocs = docs as unknown as { name: string; _id: ObjectId }[];
+                const exportedDocs = EJSON.parse(exportContent) as {
+                    name: string;
+                    _id: ObjectId;
+                }[];
+                const expectedDocs = docs as unknown as {
+                    name: string;
+                    _id: ObjectId;
+                }[];
                 expect(exportedDocs[0]?.name).toEqual(expectedDocs[0]?.name);
                 expect(exportedDocs[0]?._id).toEqual(expectedDocs[0]?._id);
                 expect(exportedDocs[1]?.name).toEqual(expectedDocs[1]?.name);
                 expect(exportedDocs[1]?._id).toEqual(expectedDocs[1]?._id);
             });
-
             it("should be able to autocomplete the resource", async () => {
                 const connectionId = await integration.connectMcpClient();
                 const exportResponse = await integration.mcpClient().callTool({
@@ -159,12 +154,8 @@ describeWithMongoDB(
                 const content = exportResponse.content;
                 const exportURI = contentWithResourceURILink(content)?.uri as string;
                 await resourceChangedNotification(integration.mcpClient(), exportURI);
-
-                const exportedResourceURI = exportResponse.content.find(
-                    (part) => part.type === "resource_link"
-                )?.uri;
+                const exportedResourceURI = exportResponse.content.find((part) => part.type === "resource_link")?.uri;
                 expect(exportedResourceURI).toBeDefined();
-
                 const completeResponse = await integration.mcpClient().complete({
                     ref: {
                         type: "ref/resource",
@@ -179,8 +170,8 @@ describeWithMongoDB(
             });
         });
     },
-    {
+    config: {
         getUserConfig: () => userConfig,
         serverOptions: { resources: [ExportedData] },
     }
-);
+});

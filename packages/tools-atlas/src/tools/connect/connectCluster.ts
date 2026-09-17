@@ -69,7 +69,12 @@ export class ConnectClusterTool extends AtlasToolBase {
         connectionType?: "standard" | "private" | "privateEndpoint" | undefined;
         request: ToolRequest<IAtlasConfig>;
     }): Promise<{ connectionString: string; atlas: AtlasClusterConnectionInfo; temporaryUser: TemporaryDatabaseUser }> {
-        const cluster = await inspectCluster(this.server.apiClient, projectId, clusterName, request);
+        const cluster = await inspectCluster({
+            apiClient: this.server.apiClient,
+            projectId,
+            clusterName,
+            request,
+        });
 
         if (cluster.clusterId === undefined) {
             throw new Error(`Atlas did not return an id for cluster "${clusterName}" in project "${projectId}"`);
@@ -252,7 +257,8 @@ export class ConnectClusterTool extends AtlasToolBase {
         { request }: ToolExecutionContext
     ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const ipAccessListUpdated =
-            (await ensureCurrentIpInAccessList(this.server.apiClient, projectId, request)) === "added";
+            (await ensureCurrentIpInAccessList({ apiClient: this.server.apiClient, projectId, context: request })) ===
+            "added";
 
         // Models are expected to poll this tool while a dial is in progress, so
         // a repeat call for a cluster that is already connecting or connected

@@ -314,7 +314,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -328,7 +328,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -342,7 +342,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -354,7 +354,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -367,7 +367,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -381,7 +381,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -395,7 +395,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -410,7 +410,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -423,7 +423,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -437,7 +437,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -451,7 +451,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -465,7 +465,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -479,7 +479,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -496,7 +496,7 @@ export class ApiClient {
             )
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -508,7 +508,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -521,7 +521,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -535,7 +535,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -549,7 +549,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -563,7 +563,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -577,7 +577,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -591,7 +591,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -605,7 +605,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -620,7 +620,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -633,7 +633,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -647,7 +647,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -661,7 +661,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -675,7 +675,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -690,7 +690,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -703,7 +703,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -717,7 +717,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -731,7 +731,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -745,7 +745,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -759,7 +759,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -773,7 +773,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -787,7 +787,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -801,7 +801,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -815,7 +815,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -829,7 +829,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -844,7 +844,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -857,7 +857,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -872,7 +872,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -886,7 +886,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -900,7 +900,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -914,7 +914,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -927,7 +927,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -941,7 +941,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -959,7 +959,7 @@ export class ApiClient {
             )
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -973,7 +973,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -987,7 +987,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -1002,7 +1002,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -1015,7 +1015,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -1029,7 +1029,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -1043,7 +1043,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -1058,7 +1058,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -1071,7 +1071,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -1085,7 +1085,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -1100,7 +1100,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -1114,7 +1114,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -1128,7 +1128,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
     }
 
@@ -1141,7 +1141,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -1159,7 +1159,7 @@ export class ApiClient {
             )
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -1173,7 +1173,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -1187,7 +1187,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }
@@ -1201,7 +1201,7 @@ export class ApiClient {
             this.applyRequestContext(options, context)
         );
         if (error) {
-            throw ApiClientError.fromError(response, error);
+            throw ApiClientError.fromError({ response, error });
         }
         return data;
     }

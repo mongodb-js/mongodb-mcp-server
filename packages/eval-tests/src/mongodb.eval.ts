@@ -30,6 +30,7 @@ function transientDbName(): string {
 }
 
 const reporter = Reporter<boolean>("mongodb-eval-cleanup", {
+    // eslint-disable-next-line max-params -- braintrust Reporter callback signature
     async reportEval(evaluator, result, opts) {
         const { results, summary } = result;
         const failing = results.filter((r) => r.error !== undefined);
@@ -67,7 +68,9 @@ void Eval<RunEvalInput, RunEvalOutput, RunEvalExpected, void, boolean, typeof Ev
             const dbClient = await shared.getMongoDbClient();
 
             try {
-                await hooks.span.traced(() => seedTempDb(dbClient, dbName, input.db_seed), { name: "seedTempDb" });
+                await hooks.span.traced(() => seedTempDb({ dbClient, db: dbName, dbSeed: input.db_seed }), {
+                    name: "seedTempDb",
+                });
                 const mcpClient = await hooks.span.traced(shared.getMcpClient, { name: "getMcpClient" });
 
                 const tools = await mcpClient.tools();

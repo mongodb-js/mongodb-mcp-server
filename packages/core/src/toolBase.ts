@@ -710,7 +710,7 @@ export abstract class ToolBase<
             // raw `z.ZodType` shapes assembled from `ZodRawShape` here, TypeScript
             // cannot infer the callback's args type, so we register through a
             // structurally-typed wrapper and route through `invoke`.
-            /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion -- the generic registers are not directly assignable to this callback shape */
+            /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion, max-params -- the generic registers are not directly assignable to this callback shape, and registerTool's signature is a fixed (name, config, cb) contract */
             (
                 this.server.mcpServer.registerTool as unknown as (
                     name: string,
@@ -727,7 +727,7 @@ export abstract class ToolBase<
                     ) => Promise<CallToolResult | InputRequiredResult>
                 ) => RegisteredTool
             )(
-                /* eslint-enable @typescript-eslint/no-unnecessary-type-assertion */ this.name,
+                /* eslint-enable @typescript-eslint/no-unnecessary-type-assertion, max-params */ this.name,
                 {
                     description: this.description,
                     // Wrap the raw shape in a strict object so the SDK rejects unrecognized
