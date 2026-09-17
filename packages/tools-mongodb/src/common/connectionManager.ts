@@ -444,11 +444,11 @@ export class MCPConnectionManager extends ConnectionManager {
             mongoshConnectionInfo.driverOptions.proxy ??= { useEnvironmentVariableProxies: true };
             mongoshConnectionInfo.driverOptions.applyProxyToOIDC ??= true;
 
-            connectionStringInfo = getConnectionStringInfo(
-                mongoshConnectionInfo.connectionString,
-                this.connectionInfo,
-                settings.hostType
-            );
+            connectionStringInfo = getConnectionStringInfo({
+                connectionString: mongoshConnectionInfo.connectionString,
+                connectionInfo: this.connectionInfo,
+                hostType: settings.hostType,
+            });
 
             const clientOptions = {
                 productDocsLink: "https://github.com/mongodb-js/mongodb-mcp-server/",

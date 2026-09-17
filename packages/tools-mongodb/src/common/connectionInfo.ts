@@ -40,11 +40,15 @@ export interface ConnectionStringInfo {
  *   (e.g. `"atlas"` for a cluster reached through a private or mesh address).
  * @returns The connection string metadata.
  */
-export function getConnectionStringInfo(
-    connectionString: string,
-    connectionInfo: ConnectionInfo,
-    hostType?: ConnectionStringHostType
-): ConnectionStringInfo {
+export function getConnectionStringInfo({
+    connectionString,
+    connectionInfo,
+    hostType,
+}: {
+    connectionString: string;
+    connectionInfo: ConnectionInfo;
+    hostType?: ConnectionStringHostType;
+}): ConnectionStringInfo {
     return {
         authType: getAuthType(connectionInfo, connectionString),
         hostType: hostType ?? getHostType(connectionString),

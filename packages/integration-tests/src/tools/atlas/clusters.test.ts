@@ -31,7 +31,7 @@ describeWithAtlas("clusters", (integration) => {
             const projectId = getProjectId();
             if (projectId) {
                 const session = integration.mcpServer();
-                await deleteCluster(session, projectId, clusterName);
+                await deleteCluster({ session, projectId, clusterName });
             }
         });
 
@@ -250,20 +250,20 @@ describeWithAtlas("clusters", (integration) => {
                 // M0 provisioning on cloud-dev is slow and non-deterministic (observed
                 // to exceed 10 minutes), so allow up to 20 minutes (10s x 120); a hook
                 // timeout here would silently skip the connect tests.
-                await waitCluster(
-                    integration.mcpServer(),
+                await waitCluster({
+                    session: integration.mcpServer(),
                     projectId,
                     clusterName,
-                    (cluster) => {
+                    check: (cluster) => {
                         return (
                             cluster.stateName === "IDLE" &&
                             (cluster.connectionStrings?.standardSrv || cluster.connectionStrings?.standard) !==
                                 undefined
                         );
                     },
-                    10_000,
-                    120
-                );
+                    pollingInterval: 10_000,
+                    maxPollingIterations: 120,
+                });
                 const session = integration.mcpServer();
                 assertApiClientIsAvailable(session);
                 await session.apiClient.createAccessListEntry({
@@ -480,14 +480,14 @@ describeWithAtlas("clusters", (integration) => {
                         });
                         expect(upgradeResponse.isError).toBeFalsy();
 
-                        await waitCluster(
+                        await waitCluster({
                             session,
                             projectId,
-                            scaleClusterName,
-                            (c) => c.stateName === "IDLE",
+                            clusterName: scaleClusterName,
+                            check: (c) => c.stateName === "IDLE",
                             pollingInterval,
-                            maxPollingIterations
-                        );
+                            maxPollingIterations,
+                        });
 
                         const scaleResponse = await integration.mcpClient().callTool({
                             name: "atlas-upgrade-cluster",
@@ -503,14 +503,14 @@ describeWithAtlas("clusters", (integration) => {
                             targetTier: "M20",
                         });
 
-                        await waitCluster(
+                        await waitCluster({
                             session,
                             projectId,
-                            scaleClusterName,
-                            (c) => c.stateName === "IDLE",
+                            clusterName: scaleClusterName,
+                            check: (c) => c.stateName === "IDLE",
                             pollingInterval,
-                            maxPollingIterations
-                        );
+                            maxPollingIterations,
+                        });
                     });
                 });
             });
@@ -524,7 +524,7 @@ describeWithAtlas("clusters", (integration) => {
             const projectId = getProjectId();
             if (projectId && clusterName) {
                 const session = integration.mcpServer();
-                await deleteCluster(session, projectId, clusterName);
+                await deleteCluster({ session, projectId, clusterName });
             }
             clusterName = "";
         });
@@ -696,14 +696,14 @@ describeWithAtlas("clusters", (integration) => {
                 const pollingInterval = 10000;
                 const maxPollingIterations = 120;
 
-                await waitCluster(
+                await waitCluster({
                     session,
                     projectId,
-                    clusterName,
-                    (c) => c.stateName === "IDLE",
+                    clusterName: clusterName,
+                    check: (c) => c.stateName === "IDLE",
                     pollingInterval,
-                    maxPollingIterations
-                );
+                    maxPollingIterations,
+                });
 
                 const pauseResponse = await integration.mcpClient().callTool({
                     name: "atlas-pause-resume-cluster",
@@ -719,14 +719,14 @@ describeWithAtlas("clusters", (integration) => {
                     action: "PAUSE",
                 });
 
-                await waitCluster(
+                await waitCluster({
                     session,
                     projectId,
-                    clusterName,
-                    (c) => c.paused === true,
+                    clusterName: clusterName,
+                    check: (c) => c.paused === true,
                     pollingInterval,
-                    maxPollingIterations
-                );
+                    maxPollingIterations,
+                });
 
                 const resumeResponse = await integration.mcpClient().callTool({
                     name: "atlas-pause-resume-cluster",

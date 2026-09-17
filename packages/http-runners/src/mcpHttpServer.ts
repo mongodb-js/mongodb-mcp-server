@@ -181,6 +181,7 @@ export abstract class MCPHttpServer<
 
         const headers = this.httpOptions.headers;
         if (headers && Object.keys(headers).length > 0) {
+            // eslint-disable-next-line max-params -- express middleware callback signature
             this.app.use((req, res, next) => {
                 for (const [key, value] of Object.entries(headers)) {
                     const header = req.headers[key.toLowerCase()];
@@ -226,8 +227,10 @@ export abstract class MCPHttpServer<
     }
 
     private withErrorHandling(
+        // eslint-disable-next-line max-params -- express-style request handler function type
         fn: (req: express.Request, res: express.Response, next: express.NextFunction) => Promise<void>
     ) {
+        // eslint-disable-next-line max-params -- express middleware callback signature
         return (req: express.Request, res: express.Response, next: express.NextFunction): void => {
             fn(req, res, next).catch((error) => {
                 const errorMessage = error instanceof Error ? error.message : String(error);

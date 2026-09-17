@@ -18,11 +18,15 @@ import type { Keychain } from "@mongodb-js/mcp-core";
 import { promptAndInstallSkills, type SkillsInstallOutcome } from "./installSkills.js";
 import type { SetupConfig } from "./types.js";
 
-const buildEnvObject = (
-    connectionString: string,
-    serviceWorkerId: string,
-    serviceWorkerSecret: string
-): Record<string, string> => {
+const buildEnvObject = ({
+    connectionString,
+    serviceWorkerId,
+    serviceWorkerSecret,
+}: {
+    connectionString: string;
+    serviceWorkerId: string;
+    serviceWorkerSecret: string;
+}): Record<string, string> => {
     const env: Record<string, string> = {};
     if (connectionString) {
         env.MDB_MCP_CONNECTION_STRING = connectionString;
@@ -89,14 +93,21 @@ const testConnectionString = async (
     }
 };
 
-const configureEditor = async (
-    tool: AIToolType,
-    connectionString: string,
-    serviceWorkerId: string,
-    serviceWorkerSecret: string,
-    isReadOnly: boolean,
-    keychain: Keychain
-): Promise<{
+const configureEditor = async ({
+    tool,
+    connectionString,
+    serviceWorkerId,
+    serviceWorkerSecret,
+    isReadOnly,
+    keychain,
+}: {
+    tool: AIToolType;
+    connectionString: string;
+    serviceWorkerId: string;
+    serviceWorkerSecret: string;
+    isReadOnly: boolean;
+    keychain: Keychain;
+}): Promise<{
     usedDefaultConfigPath: boolean;
     result: TelemetryResult;
     error?: unknown;
@@ -120,9 +131,9 @@ const configureEditor = async (
     // Resolve to absolute path and trim so we always write to the intended file
     configPath = path.resolve(configPath.trim());
 
-    const env = buildEnvObject(connectionString, serviceWorkerId, serviceWorkerSecret);
+    const env = buildEnvObject({ connectionString, serviceWorkerId, serviceWorkerSecret });
     try {
-        AI_TOOL_REGISTRY[tool].updateConfig(configPath, env, isReadOnly, keychain);
+        AI_TOOL_REGISTRY[tool].updateConfig({ configPath, env, isReadOnly, keychain });
         console.log(`\nConfiguration saved to ${configPath}`);
         return { usedDefaultConfigPath: useDetectedPath, result: "success" };
     } catch (error: unknown) {
@@ -275,12 +286,17 @@ const promptForServiceAccountSecret = async (): Promise<string> => {
     return secret;
 };
 
-const validateCredentials = (
-    connectionString: string,
-    serviceAccountId: string,
-    serviceAccountSecret: string,
-    hasDocker: boolean
-): void => {
+const validateCredentials = ({
+    connectionString,
+    serviceAccountId,
+    serviceAccountSecret,
+    hasDocker,
+}: {
+    connectionString: string;
+    serviceAccountId: string;
+    serviceAccountSecret: string;
+    hasDocker: boolean;
+}): void => {
     // If either the connection string is missing or one of the service account credentials, throw error
     if (!connectionString && (!serviceAccountId || !serviceAccountSecret)) {
         console.log(
@@ -311,12 +327,17 @@ const validateCredentials = (
     }
 };
 
-const getAvailablePrompts = (
-    connectionString: string,
-    serviceAccountId: string,
-    serviceAccountSecret: string,
-    hasDocker: boolean
-): string[] => {
+const getAvailablePrompts = ({
+    connectionString,
+    serviceAccountId,
+    serviceAccountSecret,
+    hasDocker,
+}: {
+    connectionString: string;
+    serviceAccountId: string;
+    serviceAccountSecret: string;
+    hasDocker: boolean;
+}): string[] => {
     const availablePrompts: string[] = [];
     if (connectionString) {
         availablePrompts.push('\t"List the collections in my MongoDB instance"');
@@ -342,11 +363,15 @@ const getAvailablePrompts = (
     return availablePrompts;
 };
 
-const promptToOpenConfigFile = async (
-    displayName: string,
-    tool: AIToolType,
-    keychain: Keychain
-): Promise<{
+const promptToOpenConfigFile = async ({
+    displayName,
+    tool,
+    keychain,
+}: {
+    displayName: string;
+    tool: AIToolType;
+    keychain: Keychain;
+}): Promise<{
     opened: boolean;
     result: TelemetryResult;
     error?: unknown;
@@ -384,11 +409,15 @@ const formatSkillsResult = (result: SkillsInstallOutcome): string => {
     }
 };
 
-const guideUserWithSetupSuccess = (
-    displayName: string,
-    availablePrompts: string[],
-    skillsResult: SkillsInstallOutcome
-): void => {
+const guideUserWithSetupSuccess = ({
+    displayName,
+    availablePrompts,
+    skillsResult,
+}: {
+    displayName: string;
+    availablePrompts: string[];
+    skillsResult: SkillsInstallOutcome;
+}): void => {
     printNewLine();
     console.log(
         chalk.green(
@@ -491,30 +520,35 @@ export const runSetup = async ({
         setupTelemetry.emitServiceAccountSecretEntered(Boolean(serviceAccountSecret));
         printNewLine();
 
-        validateCredentials(connectionOutcome.connectionString, serviceAccountId, serviceAccountSecret, hasDocker);
-        setupTelemetry.emitCredentialsValidated();
-
-        const editorOutcome = await configureEditor(
-            tool,
-            connectionOutcome.connectionString,
+        validateCredentials({
+            connectionString: connectionOutcome.connectionString,
             serviceAccountId,
             serviceAccountSecret,
+            hasDocker,
+        });
+        setupTelemetry.emitCredentialsValidated();
+
+        const editorOutcome = await configureEditor({
+            tool,
+            connectionString: connectionOutcome.connectionString,
+            serviceWorkerId: serviceAccountId,
+            serviceWorkerSecret: serviceAccountSecret,
             isReadOnly,
-            keychain
-        );
+            keychain,
+        });
         setupTelemetry.emitEditorConfigured(editorOutcome);
 
         const skillsResult = await promptAndInstallSkills({ tool, cwd: process.cwd() });
         setupTelemetry.emitSkillsInstallPrompted(skillsResult);
 
-        const availablePrompts = getAvailablePrompts(
-            connectionOutcome.connectionString,
+        const availablePrompts = getAvailablePrompts({
+            connectionString: connectionOutcome.connectionString,
             serviceAccountId,
             serviceAccountSecret,
-            hasDocker
-        );
-        guideUserWithSetupSuccess(displayName, availablePrompts, skillsResult);
-        const openOutcome = await promptToOpenConfigFile(displayName, tool, keychain);
+            hasDocker,
+        });
+        guideUserWithSetupSuccess({ displayName, availablePrompts, skillsResult });
+        const openOutcome = await promptToOpenConfigFile({ displayName, tool, keychain });
         setupTelemetry.emitOpenConfigPrompted(openOutcome);
 
         setupTelemetry.emitCompleted();

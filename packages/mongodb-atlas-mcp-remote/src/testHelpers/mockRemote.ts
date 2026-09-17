@@ -68,11 +68,15 @@ export class MockRemote {
             this.tokenRequestCount++;
             if (this.shouldFailNextTokenCall) {
                 this.shouldFailNextTokenCall = false;
-                this.sendJson(res, 401, { error: "unauthorized" });
+                this.sendJson({ res, status: 401, body: { error: "unauthorized" } });
                 return;
             }
             this.currentToken = `token-${this.tokenRequestCount}`;
-            this.sendJson(res, 200, { access_token: this.currentToken, expires_in: 3600, token_type: "Bearer" });
+            this.sendJson({
+                res,
+                status: 200,
+                body: { access_token: this.currentToken, expires_in: 3600, token_type: "Bearer" },
+            });
             return;
         }
 
@@ -88,7 +92,7 @@ export class MockRemote {
 
             const auth = req.headers["authorization"];
             if (auth !== `Bearer ${this.currentToken}`) {
-                this.sendJson(res, 401, { error: "unauthorized" });
+                this.sendJson({ res, status: 401, body: { error: "unauthorized" } });
                 return;
             }
 
@@ -195,11 +199,11 @@ export class MockRemote {
             res.write(`event: message\ndata: ${JSON.stringify(payload)}\n\n`);
             res.end();
         } else {
-            this.sendJson(res, 200, payload);
+            this.sendJson({ res, status: 200, body: payload });
         }
     }
 
-    private sendJson(res: ServerResponse, status: number, body: unknown): void {
+    private sendJson({ res, status, body }: { res: ServerResponse; status: number; body: unknown }): void {
         res.writeHead(status, { "Content-Type": "application/json" });
         res.end(JSON.stringify(body));
     }

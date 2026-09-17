@@ -10,7 +10,15 @@ const MCP_BASE_URL_TO_OAUTH_BASE: Readonly<Record<string, string>> = {
     "https://mcp-stage.mongodb.com": "https://cloud-stage.mongodb.com",
 };
 
-function loadPosIntEnvVar(name: string, defaultValue: number, errors: string[]): number {
+function loadPosIntEnvVar({
+    name,
+    defaultValue,
+    errors,
+}: {
+    name: string;
+    defaultValue: number;
+    errors: string[];
+}): number {
     const value = process.env[name];
     if (value === undefined) return defaultValue;
 
@@ -41,7 +49,11 @@ export function loadConfig(): AppConfig {
 
     const oauthBaseUrl = MCP_BASE_URL_TO_OAUTH_BASE[mcpBaseUrl] ?? mcpBaseUrl;
 
-    const tokenTimeoutMs = loadPosIntEnvVar("MDB_MCP_TOKEN_TIMEOUT_MS", DEFAULT_TOKEN_TIMEOUT_MS, errors);
+    const tokenTimeoutMs = loadPosIntEnvVar({
+        name: "MDB_MCP_TOKEN_TIMEOUT_MS",
+        defaultValue: DEFAULT_TOKEN_TIMEOUT_MS,
+        errors,
+    });
 
     if (errors.length > 0) {
         throw new ConfigurationError(errors);

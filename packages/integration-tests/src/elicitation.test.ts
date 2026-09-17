@@ -5,7 +5,6 @@ import { defaultTestConfig } from "./integrationHelpers.js";
 import { Elicitation } from "mongodb-mcp-server";
 import { createMockElicitInput } from "@mongodb-js/mcp-test-utils";
 import { describeWithMongoDB } from "./mongodbHelpers.js";
-
 function createTestConfig(config: Partial<UserConfig> = {}): UserConfig {
     return {
         ...defaultTestConfig,
@@ -15,25 +14,21 @@ function createTestConfig(config: Partial<UserConfig> = {}): UserConfig {
         ...config,
     };
 }
-
 describe("Elicitation Integration Tests", () => {
     const mockElicitInput = createMockElicitInput();
     afterEach(() => {
         mockElicitInput.clear();
     });
-
-    describeWithMongoDB(
-        "with elicitation support",
-        (integration) => {
+    describeWithMongoDB({
+        name: "with elicitation support",
+        fn: (integration) => {
             describe("tools requiring confirmation by default", () => {
                 it("should request confirmation for drop-database tool and proceed when confirmed", async () => {
                     mockElicitInput.confirmYes();
-
                     const result = await integration.mcpClient().callTool({
                         name: "drop-database",
                         arguments: { connectionId: "preconfigured", database: "test-db" },
                     });
-
                     expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
                     expect(mockElicitInput.mock).toHaveBeenCalledWith(
                         expect.objectContaining({
@@ -42,7 +37,6 @@ describe("Elicitation Integration Tests", () => {
                             mode: "form",
                         }) as never
                     );
-
                     // Should attempt to execute (will fail due to no connection, but confirms flow worked)
                     expect(result.isError).toBe(true);
                     expect(result.content).toEqual(
@@ -54,15 +48,12 @@ describe("Elicitation Integration Tests", () => {
                         ])
                     );
                 });
-
                 it("should not proceed when user declines confirmation", async () => {
                     mockElicitInput.confirmNo();
-
                     const result = await integration.mcpClient().callTool({
                         name: "drop-database",
                         arguments: { connectionId: "preconfigured", database: "test-db" },
                     });
-
                     expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
                     expect(result.isError).toBeTruthy();
                     expect(result.content).toEqual([
@@ -72,10 +63,8 @@ describe("Elicitation Integration Tests", () => {
                         },
                     ]);
                 });
-
                 it("should request confirmation for drop-collection tool", async () => {
                     mockElicitInput.confirmYes();
-
                     await integration.mcpClient().callTool({
                         name: "drop-collection",
                         arguments: {
@@ -84,7 +73,6 @@ describe("Elicitation Integration Tests", () => {
                             collection: "test-collection",
                         },
                     });
-
                     expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
                     expect(mockElicitInput.mock).toHaveBeenCalledWith(
                         expect.objectContaining({
@@ -96,26 +84,23 @@ describe("Elicitation Integration Tests", () => {
                         }) as never
                     );
                 });
-
                 it("escapes markdown special characters in drop-collection names", async () => {
                     mockElicitInput.confirmYes();
-
                     await integration.mcpClient().callTool({
                         name: "drop-collection",
                         arguments: { connectionId: "preconfigured", database: "test-db", collection: "orders`v2" },
                     });
-
                     const [firstCallArg] = (mockElicitInput.mock.mock.calls[0] ?? []) as unknown as [
-                        { message: string },
+                        {
+                            message: string;
+                        },
                     ];
                     const message = firstCallArg.message;
                     expect(message).not.toContain("orders`v2");
                     expect(message).toContain("orders\\`v2");
                 });
-
                 it("should request confirmation for delete-many tool", async () => {
                     mockElicitInput.confirmYes();
-
                     await integration.mcpClient().callTool({
                         name: "delete-many",
                         arguments: {
@@ -125,7 +110,6 @@ describe("Elicitation Integration Tests", () => {
                             filter: { status: "inactive" },
                         },
                     });
-
                     expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
                     expect(mockElicitInput.mock).toHaveBeenCalledWith(
                         expect.objectContaining({
@@ -135,10 +119,8 @@ describe("Elicitation Integration Tests", () => {
                         }) as never
                     );
                 });
-
                 it("should request confirmation for create-db-user tool", async () => {
                     mockElicitInput.confirmYes();
-
                     await integration.mcpClient().callTool({
                         name: "atlas-create-db-user",
                         arguments: {
@@ -147,7 +129,6 @@ describe("Elicitation Integration Tests", () => {
                             roles: [{ roleName: "read", databaseName: "test-db" }],
                         },
                     });
-
                     expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
                     expect(mockElicitInput.mock).toHaveBeenCalledWith(
                         expect.objectContaining({
@@ -157,10 +138,8 @@ describe("Elicitation Integration Tests", () => {
                         }) as never
                     );
                 });
-
                 it("should request confirmation for create-access-list tool", async () => {
                     mockElicitInput.confirmYes();
-
                     await integration.mcpClient().callTool({
                         name: "atlas-create-access-list",
                         arguments: {
@@ -168,7 +147,6 @@ describe("Elicitation Integration Tests", () => {
                             ipAddresses: ["192.168.1.1"],
                         },
                     });
-
                     expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
                     expect(mockElicitInput.mock).toHaveBeenCalledWith(
                         expect.objectContaining({
@@ -181,19 +159,16 @@ describe("Elicitation Integration Tests", () => {
                     );
                 });
             });
-
             describe("tools not requiring confirmation by default", () => {
                 it("should not request confirmation for read operations", async () => {
                     const result = await integration.mcpClient().callTool({
                         name: "list-databases",
                         arguments: { connectionId: "preconfigured" },
                     });
-
                     expect(mockElicitInput.mock).not.toHaveBeenCalled();
                     // Should fail with connection error since we're not connected
                     expect(result.isError).toBe(true);
                 });
-
                 it("should not request confirmation for find operations", async () => {
                     const result = await integration.mcpClient().callTool({
                         name: "find",
@@ -203,28 +178,25 @@ describe("Elicitation Integration Tests", () => {
                             collection: "test-collection",
                         },
                     });
-
                     expect(mockElicitInput.mock).not.toHaveBeenCalled();
                     // Should fail with connection error since we're not connected
                     expect(result.isError).toBe(true);
                 });
             });
         },
-        {
+        config: {
             getUserConfig: () => createTestConfig(),
             getMockElicitationInput: () => mockElicitInput,
-        }
-    );
-
-    describeWithMongoDB(
-        "without elicitation support",
-        (integration) => {
+        },
+    });
+    describeWithMongoDB({
+        name: "without elicitation support",
+        fn: (integration) => {
             it("should proceed without confirmation for default confirmation-required tools when client lacks elicitation support", async () => {
                 const result = await integration.mcpClient().callTool({
                     name: "drop-database",
                     arguments: { connectionId: "preconfigured", database: "test-db" },
                 });
-
                 // Note: No mock assertions needed since elicitation is disabled
                 // Should fail with connection error since we're not connected, but confirms flow bypassed confirmation
                 expect(result.isError).toBe(true);
@@ -238,23 +210,20 @@ describe("Elicitation Integration Tests", () => {
                 );
             });
         },
-        {
+        config: {
             getUserConfig: () => createTestConfig(),
             getClientCapabilities: () => ({}),
-        }
-    );
-
-    describeWithMongoDB(
-        "custom confirmation configuration",
-        (integration) => {
+        },
+    });
+    describeWithMongoDB({
+        name: "custom confirmation configuration",
+        fn: (integration) => {
             it("should confirm with a generic message with custom configurations for other tools", async () => {
                 mockElicitInput.confirmYes();
-
                 await integration.mcpClient().callTool({
                     name: "list-databases",
                     arguments: { connectionId: "preconfigured" },
                 });
-
                 expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
                 expect(mockElicitInput.mock).toHaveBeenCalledWith(
                     expect.objectContaining({
@@ -266,30 +235,26 @@ describe("Elicitation Integration Tests", () => {
                     }) as never
                 );
             });
-
             it("should not request confirmation when tool is removed from default confirmationRequiredTools", async () => {
                 const result = await integration.mcpClient().callTool({
                     name: "drop-database",
                     arguments: { connectionId: "preconfigured", database: "test-db" },
                 });
-
                 expect(mockElicitInput.mock).not.toHaveBeenCalled();
                 // Should fail with connection error since we're not connected
                 expect(result.isError).toBe(true);
             });
         },
-        {
+        config: {
             getUserConfig: () => createTestConfig({ confirmationRequiredTools: ["list-databases"] }),
             getMockElicitationInput: () => mockElicitInput,
-        }
-    );
-
-    describeWithMongoDB(
-        "confirmation message content validation",
-        (integration) => {
+        },
+    });
+    describeWithMongoDB({
+        name: "confirmation message content validation",
+        fn: (integration) => {
             it("should include specific details in create-db-user confirmation", async () => {
                 mockElicitInput.confirmYes();
-
                 await integration.mcpClient().callTool({
                     name: "atlas-create-db-user",
                     arguments: {
@@ -303,7 +268,6 @@ describe("Elicitation Integration Tests", () => {
                         clusters: ["cluster1", "cluster2"],
                     },
                 });
-
                 expect(mockElicitInput.mock).toHaveBeenCalledWith(
                     expect.objectContaining({
                         message: expect.stringMatching(/project.*507f1f77bcf86cd799439011/),
@@ -312,10 +276,8 @@ describe("Elicitation Integration Tests", () => {
                     }) as never
                 );
             });
-
             it("should include filter details in delete-many confirmation", async () => {
                 mockElicitInput.confirmYes();
-
                 await integration.mcpClient().callTool({
                     name: "delete-many",
                     arguments: {
@@ -325,7 +287,6 @@ describe("Elicitation Integration Tests", () => {
                         filter: { status: "inactive", lastLogin: { $lt: "2023-01-01" } },
                     },
                 });
-
                 expect(mockElicitInput.mock).toHaveBeenCalledWith(
                     expect.objectContaining({
                         message: expect.stringMatching(/mydb.*database/),
@@ -335,23 +296,20 @@ describe("Elicitation Integration Tests", () => {
                 );
             });
         },
-        {
+        config: {
             getUserConfig: () => createTestConfig(),
             getMockElicitationInput: () => mockElicitInput,
-        }
-    );
-
-    describeWithMongoDB(
-        "error handling in confirmation flow",
-        (integration) => {
+        },
+    });
+    describeWithMongoDB({
+        name: "error handling in confirmation flow",
+        fn: (integration) => {
             it("should handle confirmation errors gracefully", async () => {
                 mockElicitInput.rejectWith(new Error("Confirmation service unavailable"));
-
                 const result = await integration.mcpClient().callTool({
                     name: "drop-database",
                     arguments: { connectionId: "preconfigured", database: "test-db" },
                 });
-
                 expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
                 expect(result.isError).toBe(true);
                 expect(result.content).toEqual(
@@ -366,9 +324,9 @@ describe("Elicitation Integration Tests", () => {
                 );
             });
         },
-        {
+        config: {
             getUserConfig: () => createTestConfig(),
             getMockElicitationInput: () => mockElicitInput,
-        }
-    );
+        },
+    });
 });

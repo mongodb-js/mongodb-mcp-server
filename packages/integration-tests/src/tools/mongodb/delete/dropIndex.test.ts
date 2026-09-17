@@ -19,7 +19,6 @@ import {
 import { createMockElicitInput } from "@mongodb-js/mcp-test-utils";
 import { Elicitation } from "mongodb-mcp-server";
 import type { DropIndexOutput } from "@mongodb-js/mcp-tools-mongodb";
-
 function setupForClassicIndexes(integration: MongoDBIntegrationTestCase): {
     getMoviesCollection: () => Collection;
     getIndexName: () => string;
@@ -44,18 +43,15 @@ function setupForClassicIndexes(integration: MongoDBIntegrationTestCase): {
         ]);
         indexName = await moviesCollection.createIndex({ year: 1 });
     });
-
     afterEach(async () => {
         await moviesCollection.drop();
     });
-
     return {
         getMoviesCollection: () => moviesCollection,
         getIndexName: () => indexName,
         getConnectionId: () => connectionId,
     };
 }
-
 function setupForVectorSearchIndexes(integration: MongoDBIntegrationTestCase): {
     getMoviesCollection: () => Collection;
     getSearchIndexName: () => string;
@@ -77,7 +73,7 @@ function setupForVectorSearchIndexes(integration: MongoDBIntegrationTestCase): {
                 embeddings: [0.1, 0.2, 0.3, 0.4],
             },
         ]);
-        await waitUntilSearchIsReady(mongoClient);
+        await waitUntilSearchIsReady({ mongoClient });
         await moviesCollection.createSearchIndex({
             name: indexName,
             definition: { mappings: { fields: { plot: { type: "string" } } } },
@@ -90,15 +86,13 @@ function setupForVectorSearchIndexes(integration: MongoDBIntegrationTestCase): {
             },
             type: "vectorSearch",
         });
-        await waitUntilSearchIndexIsListed(moviesCollection, indexName);
-        await waitUntilSearchIndexIsListed(moviesCollection, vectorIndexName);
+        await waitUntilSearchIndexIsListed({ collection: moviesCollection, searchIndex: indexName });
+        await waitUntilSearchIndexIsListed({ collection: moviesCollection, searchIndex: vectorIndexName });
     });
-
     afterEach(async () => {
         // dropping collection also drops the associated search indexes
         await moviesCollection.drop();
     });
-
     return {
         getMoviesCollection: () => moviesCollection,
         getSearchIndexName: () => indexName,
@@ -106,17 +100,16 @@ function setupForVectorSearchIndexes(integration: MongoDBIntegrationTestCase): {
         getConnectionId: () => connectionId,
     };
 }
-
 describe("drop-index tool", () => {
-    describeWithMongoDB(
-        "tool metadata and parameters",
-        (integration) => {
-            validateToolMetadata(
+    describeWithMongoDB({
+        name: "tool metadata and parameters",
+        fn: (integration) => {
+            validateToolMetadata({
                 integration,
-                "drop-index",
-                "Drop an index for the provided database and collection.",
-                "delete",
-                [
+                name: "drop-index",
+                description: "Drop an index for the provided database and collection.",
+                operationType: "delete",
+                parameters: [
                     ...databaseCollectionParameters,
                     {
                         name: "indexName",
@@ -131,9 +124,8 @@ describe("drop-index tool", () => {
                             "The type of index to be deleted. Use 'classic' for standard indexes and 'search' for atlas search and vector search indexes.",
                         required: true,
                     },
-                ]
-            );
-
+                ],
+            });
             const invalidArgsTestCases = [
                 ...databaseCollectionInvalidArgs,
                 { database: "test", collection: "testColl", indexName: null, type: "classic" },
@@ -148,20 +140,18 @@ describe("drop-index tool", () => {
                 // classic are invalid
                 { database: "test", collection: "testColl", indexName: "goodIndex", type: "anything" },
             ];
-
-            validateThrowsForInvalidArguments(integration, "drop-index", invalidArgsTestCases);
+            validateThrowsForInvalidArguments({ integration, name: "drop-index", args: invalidArgsTestCases });
         },
-        {
+        config: {
             getUserConfig: () => ({
                 ...defaultTestConfig,
                 previewFeatures: [],
             }),
-        }
-    );
-
-    describeWithMongoDB(
-        "dropping classic indexes",
-        (integration) => {
+        },
+    });
+    describeWithMongoDB({
+        name: "dropping classic indexes",
+        fn: (integration) => {
             const { getIndexName, getConnectionId } = setupForClassicIndexes(integration);
             describe.each([
                 {
@@ -192,7 +182,6 @@ describe("drop-index tool", () => {
                     });
                 }
             );
-
             describe("when attempting to delete an index that does not exist", () => {
                 it("should fail with error", async () => {
                     const response = await integration.mcpClient().callTool({
@@ -210,7 +199,6 @@ describe("drop-index tool", () => {
                     expect(content).toEqual(`Error running drop-index: index not found with name [non-existent]`);
                 });
             });
-
             describe("when attempting to delete an index that exists", () => {
                 it("should succeed", async () => {
                     const response = await integration.mcpClient().callTool({
@@ -232,7 +220,6 @@ describe("drop-index tool", () => {
                         indexName: getIndexName(),
                         namespace: "mflix.movies",
                     });
-
                     const structuredContent = response.structuredContent as DropIndexOutput;
                     expect(structuredContent.database).toBe("mflix");
                     expect(structuredContent.collection).toBe("movies");
@@ -241,23 +228,21 @@ describe("drop-index tool", () => {
                 });
             });
         },
-        {
+        config: {
             getUserConfig: () => ({
                 ...defaultTestConfig,
                 previewFeatures: [],
             }),
-        }
-    );
-
+        },
+    });
     const mockElicitInput = createMockElicitInput();
-    describeWithMongoDB(
-        "dropping classic indexes through an elicitation enabled client",
-        (integration) => {
+    describeWithMongoDB({
+        name: "dropping classic indexes through an elicitation enabled client",
+        fn: (integration) => {
             const { getMoviesCollection, getIndexName, getConnectionId } = setupForClassicIndexes(integration);
             afterEach(() => {
                 mockElicitInput.clear();
             });
-
             it("should ask for confirmation before proceeding with tool call", async () => {
                 expect(await getMoviesCollection().listIndexes().toArray()).toHaveLength(2);
                 mockElicitInput.confirmYes();
@@ -271,9 +256,7 @@ describe("drop-index tool", () => {
                         type: "classic",
                     },
                 });
-
                 expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
-
                 expect(mockElicitInput.mock).toHaveBeenCalledWith(
                     expect.objectContaining({
                         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -286,7 +269,6 @@ describe("drop-index tool", () => {
                 );
                 expect(await getMoviesCollection().listIndexes().toArray()).toHaveLength(1);
             });
-
             it("should not drop the index if the confirmation was not provided", async () => {
                 expect(await getMoviesCollection().listIndexes().toArray()).toHaveLength(2);
                 mockElicitInput.confirmNo();
@@ -314,19 +296,18 @@ describe("drop-index tool", () => {
                 expect(await getMoviesCollection().listIndexes().toArray()).toHaveLength(2);
             });
         },
-        {
+        config: {
             getUserConfig: () => ({
                 ...defaultTestConfig,
                 previewFeatures: [],
             }),
             getMockElicitationInput: () => mockElicitInput,
-        }
-    );
-
+        },
+    });
     describe("dropping vector search indexes", () => {
-        describeWithMongoDB(
-            "when connected to MongoDB without search support",
-            (integration) => {
+        describeWithMongoDB({
+            name: "when connected to MongoDB without search support",
+            fn: (integration) => {
                 it("should fail with appropriate error when invoked", async () => {
                     const connectionId = await integration.connectMcpClient();
                     const response = await integration.mcpClient().callTool({
@@ -346,17 +327,15 @@ describe("drop-index tool", () => {
                     );
                 });
             },
-            {
+            config: {
                 getUserConfig: () => ({ ...defaultTestConfig, previewFeatures: [] }),
-            }
-        );
-
-        describeWithMongoDB(
-            "when connected to MongoDB with search support",
-            (integration) => {
+            },
+        });
+        describeWithMongoDB({
+            name: "when connected to MongoDB with search support",
+            fn: (integration) => {
                 const { getSearchIndexName, getVectorIndexName, getMoviesCollection, getConnectionId } =
                     setupForVectorSearchIndexes(integration);
-
                 describe.each([
                     {
                         title: "an index from non-existent database",
@@ -391,7 +370,6 @@ describe("drop-index tool", () => {
                         expect(response.isError).toBe(true);
                         const content = getResponseContent(response.content);
                         expect(content).toContain("Index does not exist in the provided namespace.");
-
                         const data = getDataFromUntrustedContent(content);
                         expect(JSON.parse(data)).toMatchObject({
                             indexName,
@@ -399,7 +377,6 @@ describe("drop-index tool", () => {
                         });
                     });
                 });
-
                 describe.each([
                     { description: "search", getIndexName: getSearchIndexName },
                     { description: "vector search", getIndexName: getVectorIndexName },
@@ -409,7 +386,6 @@ describe("drop-index tool", () => {
                         const collection = getMoviesCollection();
                         let indexes = await collection.listSearchIndexes().toArray();
                         expect(indexes.find((idx) => idx.name === indexName)).toBeDefined();
-
                         const response = await integration.mcpClient().callTool({
                             name: "drop-index",
                             arguments: {
@@ -422,33 +398,29 @@ describe("drop-index tool", () => {
                         });
                         const content = getResponseContent(response.content);
                         expect(content).toContain("Successfully dropped the index from the provided namespace.");
-
                         const data = getDataFromUntrustedContent(content);
                         expect(JSON.parse(data)).toMatchObject({
                             indexName,
                             namespace: "mflix.movies",
                         });
-
                         const structuredContent = response.structuredContent as DropIndexOutput;
                         expect(structuredContent.database).toBe("mflix");
                         expect(structuredContent.collection).toBe("movies");
                         expect(structuredContent.indexName).toBe(indexName);
                         expect(structuredContent.dropped).toBe(true);
-
                         indexes = await collection.listSearchIndexes().toArray();
                         expect(indexes.find((idx) => idx.name === indexName)).toBeUndefined();
                     });
                 });
             },
-            {
+            config: {
                 getUserConfig: () => ({ ...defaultTestConfig, previewFeatures: [] }),
                 downloadOptions: { search: true },
-            }
-        );
-
-        describeWithMongoDB(
-            "when connected to MongoDB with auto-embed index support",
-            (integration) => {
+            },
+        });
+        describeWithMongoDB({
+            name: "when connected to MongoDB with auto-embed index support",
+            fn: (integration) => {
                 const indexName = "auto-embed-index";
                 let collection: Collection;
                 let connectionId: string;
@@ -470,13 +442,11 @@ describe("drop-index tool", () => {
                             ],
                         },
                     });
-                    await waitUntilSearchIndexIsListed(collection, indexName);
+                    await waitUntilSearchIndexIsListed({ collection: collection, searchIndex: indexName });
                 });
-
                 it("should succeed in deleting the index", async () => {
                     let indexes = await collection.listSearchIndexes().toArray();
                     expect(indexes.find((idx) => idx.name === indexName)).toBeDefined();
-
                     const response = await integration.mcpClient().callTool({
                         name: "drop-index",
                         arguments: {
@@ -489,18 +459,16 @@ describe("drop-index tool", () => {
                     });
                     const content = getResponseContent(response.content);
                     expect(content).toContain("Successfully dropped the index from the provided namespace.");
-
                     const data = getDataFromUntrustedContent(content);
                     expect(JSON.parse(data)).toMatchObject({
                         indexName,
                         namespace: `${integration.randomDbName()}.foo`,
                     });
-
                     indexes = await collection.listSearchIndexes().toArray();
                     expect(indexes.find((idx) => idx.name === indexName)).toBeUndefined();
                 });
             },
-            {
+            config: {
                 getUserConfig: () => ({ ...defaultTestConfig, previewFeatures: [] }),
                 downloadOptions: {
                     autoEmbed: true,
@@ -508,16 +476,14 @@ describe("drop-index tool", () => {
                     voyageIndexingKey: process.env.MDB_VOYAGE_API_KEY as string,
                     voyageQueryKey: process.env.MDB_VOYAGE_API_KEY as string,
                 },
-            }
-        );
-
+            },
+        });
         const mockElicitInput = createMockElicitInput();
-        describeWithMongoDB(
-            "when invoked via an elicitation enabled client",
-            (integration) => {
+        describeWithMongoDB({
+            name: "when invoked via an elicitation enabled client",
+            fn: (integration) => {
                 const { getSearchIndexName: getIndexName, getConnectionId } = setupForVectorSearchIndexes(integration);
                 let dropSearchIndexSpy: MockInstance;
-
                 beforeEach(async () => {
                     // Note: Unlike drop-index tool test, we don't test the final state of
                     // indexes because of possible longer wait periods for changes to
@@ -530,11 +496,9 @@ describe("drop-index tool", () => {
                     expectDefined(entry);
                     dropSearchIndexSpy = vi.spyOn(entry.getServiceProvider(), "dropSearchIndex");
                 });
-
                 afterEach(() => {
                     mockElicitInput.clear();
                 });
-
                 it("should ask for confirmation before proceeding with tool call", async () => {
                     mockElicitInput.confirmYes();
                     await integration.mcpClient().callTool({
@@ -558,10 +522,8 @@ describe("drop-index tool", () => {
                             requestedSchema: Elicitation.CONFIRMATION_SCHEMA,
                         })
                     );
-
                     expect(dropSearchIndexSpy).toHaveBeenCalledExactlyOnceWith("mflix", "movies", getIndexName());
                 });
-
                 it("should not drop the index if the confirmation was not provided", async () => {
                     mockElicitInput.confirmNo();
                     await integration.mcpClient().callTool({
@@ -588,11 +550,11 @@ describe("drop-index tool", () => {
                     expect(dropSearchIndexSpy).not.toHaveBeenCalled();
                 });
             },
-            {
+            config: {
                 getUserConfig: () => ({ ...defaultTestConfig, previewFeatures: [] }),
                 downloadOptions: { search: true },
                 getMockElicitationInput: () => mockElicitInput,
-            }
-        );
+            },
+        });
     });
 });

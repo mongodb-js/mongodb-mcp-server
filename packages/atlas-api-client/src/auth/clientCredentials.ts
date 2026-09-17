@@ -58,6 +58,7 @@ export class ClientCredentialsAuthProvider implements AuthProvider {
         // the username and password (for example, encodes `_` to %5F, which is wrong).
         return {
             client: { client_id: clientId },
+            // eslint-disable-next-line max-params -- oauth4webapi ClientAuth callback signature
             clientAuth: (_as, client, _body, headers): void => {
                 const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
                 headers.set("Authorization", `Basic ${credentials}`);

@@ -47,6 +47,7 @@ export interface IResourceServer {
     readonly keychain: ResourceServices["keychain"];
     readonly telemetry: ITelemetry;
     mcpServer: {
+        // eslint-disable-next-line max-params -- type contract: matches the SDK's registerResource signature (name, uri, config, callback)
         registerResource: (name: string, uri: string, config: ResourceMetadata, callback: ReadResourceCallback) => void;
     };
     sendResourceListChanged(): void;

@@ -51,7 +51,7 @@ export function applyConfigOverrides<TUserConfig extends UserConfig = UserConfig
         const meta = getConfigMeta(key);
         const behavior = meta?.overrideBehavior || "not-allowed";
         const baseValue = baseConfig[key];
-        const newValue = applyOverride(key, baseValue, overrideValue, behavior);
+        const newValue = applyOverride({ key, baseValue, overrideValue, behavior });
         (result as Record<keyof TUserConfig, unknown>)[key] = newValue;
     }
 
@@ -67,7 +67,7 @@ export function applyConfigOverrides<TUserConfig extends UserConfig = UserConfig
 
         const behavior = meta?.overrideBehavior || "not-allowed";
         const baseValue = baseConfig[key];
-        const newValue = applyOverride(key, baseValue, overrideValue, behavior);
+        const newValue = applyOverride({ key, baseValue, overrideValue, behavior });
         (result as Record<keyof TUserConfig, unknown>)[key] = newValue;
     }
 
@@ -156,12 +156,17 @@ export function nameToConfigKey(mode: "header" | "query", name: string): string 
     return undefined;
 }
 
-function applyOverride(
-    key: keyof typeof UserConfigSchema.shape,
-    baseValue: unknown,
-    overrideValue: unknown,
-    behavior: OverrideBehavior
-): unknown {
+function applyOverride({
+    key,
+    baseValue,
+    overrideValue,
+    behavior,
+}: {
+    key: keyof typeof UserConfigSchema.shape;
+    baseValue: unknown;
+    overrideValue: unknown;
+    behavior: OverrideBehavior;
+}): unknown {
     if (typeof behavior === "function") {
         try {
             return behavior(baseValue, overrideValue);

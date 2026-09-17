@@ -182,7 +182,7 @@ async function main(): Promise<void> {
             return `${explicitReturnLint}async ${methodName}(options${requiredParams ? "" : "?"}: FetchOptions<operations["${operationId}"]>, context?: ApiClientRequestContext)${returnType} {
     const { ${hasResponseBody ? `data, ` : ``}error, response } = await this.client.${method}("${opPath}", ${optionsArg});
     if (error) {
-        throw ApiClientError.fromError(response, error);
+        throw ApiClientError.fromError({ response, error });
     }
     ${
         hasResponseBody

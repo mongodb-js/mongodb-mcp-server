@@ -428,31 +428,41 @@ export const databaseCollectionInvalidArgs = [
 
 export const databaseInvalidArgs = [{}, { database: 123 }, { database: [] }];
 
-export function validateToolMetadata(
-    integration: IntegrationTest,
-    name: string,
-    description: string,
-    operationType: OperationType,
-    parameters: ParameterInfo[]
-): void {
+export function validateToolMetadata({
+    integration,
+    name,
+    description,
+    operationType,
+    parameters,
+}: {
+    integration: IntegrationTest;
+    name: string;
+    description: string;
+    operationType: OperationType;
+    parameters: ParameterInfo[];
+}): void {
     it("should have correct metadata", async () => {
         const { tools } = await integration.mcpClient().listTools();
         const tool = tools.find((tool) => tool.name === name);
         expectDefined(tool);
         expect(tool.description).toBe(description);
 
-        validateToolAnnotations(tool, name, operationType);
+        validateToolAnnotations({ tool, name, operationType });
         const toolParameters = getParameters(tool);
         expect(toolParameters).toHaveLength(parameters.length);
         expect(toolParameters).toIncludeSameMembers(parameters);
     });
 }
 
-export function validateThrowsForInvalidArguments(
-    integration: IntegrationTest,
-    name: string,
-    args: { [x: string]: unknown }[]
-): void {
+export function validateThrowsForInvalidArguments({
+    integration,
+    name,
+    args,
+}: {
+    integration: IntegrationTest;
+    name: string;
+    args: { [x: string]: unknown }[];
+}): void {
     describe("with invalid arguments", () => {
         for (const arg of args) {
             it(`throws a schema error for: ${JSON.stringify(arg)}`, async () => {
@@ -472,7 +482,15 @@ export function expectDefined<T>(arg: T): asserts arg is Exclude<T, undefined | 
     expect(arg).not.toBeNull();
 }
 
-function validateToolAnnotations(tool: ToolInfo, name: string, operationType: OperationType): void {
+function validateToolAnnotations({
+    tool,
+    name,
+    operationType,
+}: {
+    tool: ToolInfo;
+    name: string;
+    operationType: OperationType;
+}): void {
     expectDefined(tool.annotations);
     expect(tool.annotations.title).toBe(name);
     expect(tool.annotations.openWorldHint).toBe(true);
@@ -522,12 +540,17 @@ export function responseAsText(response: Awaited<ReturnType<Client["callTool"]>>
     return JSON.stringify(response.content, undefined, 2);
 }
 
-export function waitUntil<T extends ConnectionState>(
-    tag: T["tag"],
-    source: ConnectionManager | ConnectionEntry,
-    signal: AbortSignal,
-    additionalCondition?: (state: T) => boolean
-): Promise<T> {
+export function waitUntil<T extends ConnectionState>({
+    tag,
+    source,
+    signal,
+    additionalCondition,
+}: {
+    tag: T["tag"];
+    source: ConnectionManager | ConnectionEntry;
+    signal: AbortSignal;
+    additionalCondition?: (state: T) => boolean;
+}): Promise<T> {
     let ts: NodeJS.Timeout | undefined;
 
     return new Promise<T>((resolve, reject) => {

@@ -4,7 +4,7 @@ export class ApiClientError extends Error {
     readonly response: Response;
     readonly apiError?: ApiError;
 
-    private constructor(message: string, response: Response, apiError?: ApiError) {
+    private constructor({ message, response, apiError }: { message: string; response: Response; apiError?: ApiError }) {
         super(message);
         this.name = "ApiClientError";
         this.response = response;
@@ -17,23 +17,27 @@ export class ApiClientError extends Error {
     ): Promise<ApiClientError> {
         const err = await this.extractError(response);
 
-        return this.fromError(response, err, message);
+        return this.fromError({ response, error: err, message });
     }
 
-    static fromError(
-        response: Response,
-        error?: ApiError | string | Error,
-        message: string = `error calling Atlas API`
-    ): ApiClientError {
+    static fromError({
+        response,
+        error,
+        message = `error calling Atlas API`,
+    }: {
+        response: Response;
+        error?: ApiError | string | Error;
+        message?: string;
+    }): ApiClientError {
         const errorMessage = this.buildErrorMessage(error);
 
         const apiError = typeof error === "object" && !(error instanceof Error) ? error : undefined;
 
-        return new ApiClientError(
-            `[${response.status} ${response.statusText}] ${message}: ${errorMessage}`,
+        return new ApiClientError({
+            message: `[${response.status} ${response.statusText}] ${message}: ${errorMessage}`,
             response,
-            apiError
-        );
+            apiError,
+        });
     }
 
     private static async extractError(response: Response): Promise<ApiError | string | undefined> {

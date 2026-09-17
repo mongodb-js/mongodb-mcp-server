@@ -11,438 +11,190 @@ import type { CreateIndexOutput } from "@mongodb-js/mcp-tools-mongodb";
 import { ObjectId, type Collection, type Document, type IndexDirection } from "mongodb";
 import type { TelemetryToolEvent as ToolEvent } from "@mongodb-js/mcp-atlas-telemetry";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-describeWithMongoDB("createIndex tool", (integration) => {
-    validateToolMetadata(integration, "create-index", "Create an index for a collection", "create", [
-        ...databaseCollectionParameters,
-        {
-            name: "definition",
-            type: "array",
-            description:
-                "The index definition. Use 'classic' for standard indexes, 'vectorSearch' for vector search indexes, and 'search' for Atlas Search (lexical) indexes.",
-            required: true,
-        },
-        {
-            name: "name",
-            type: "string",
-            description: "The name of the index",
-            required: false,
-        },
-    ]);
-
-    validateThrowsForInvalidArguments(integration, "create-index", [
-        {},
-        { collection: "bar", database: 123, definition: [{ type: "classic", keys: { foo: 1 } }] },
-        { collection: [], database: "test", definition: [{ type: "classic", keys: { foo: 1 } }] },
-        { collection: "bar", database: "test", definition: [{ type: "classic", keys: { foo: 1 } }], name: 123 },
-        {
-            collection: "bar",
-            database: "test",
-            definition: [{ type: "unknown", keys: { foo: 1 } }],
-            name: "my-index",
-        },
-        {
-            collection: "bar",
-            database: "test",
-            definition: [{ type: "vectorSearch", fields: { foo: 1 } }],
-        },
-        {
-            collection: "bar",
-            database: "test",
-            definition: [{ type: "vectorSearch", fields: [] }],
-        },
-        {
-            collection: "bar",
-            database: "test",
-            definition: [{ type: "vectorSearch", fields: [{ type: "vector", path: true }] }],
-        },
-        {
-            collection: "bar",
-            database: "test",
-            definition: [{ type: "vectorSearch", fields: [{ type: "filter", path: "foo" }] }],
-        },
-        {
-            collection: "bar",
-            database: "test",
-            definition: [
+describeWithMongoDB({
+    name: "createIndex tool",
+    fn: (integration) => {
+        validateToolMetadata({
+            integration,
+            name: "create-index",
+            description: "Create an index for a collection",
+            operationType: "create",
+            parameters: [
+                ...databaseCollectionParameters,
                 {
-                    type: "vectorSearch",
-                    fields: [
-                        { type: "vector", path: "foo", numDimensions: 128 },
-                        { type: "filter", path: "bar", numDimensions: 128 },
-                    ],
+                    name: "definition",
+                    type: "array",
+                    description:
+                        "The index definition. Use 'classic' for standard indexes, 'vectorSearch' for vector search indexes, and 'search' for Atlas Search (lexical) indexes.",
+                    required: true,
+                },
+                {
+                    name: "name",
+                    type: "string",
+                    description: "The name of the index",
+                    required: false,
                 },
             ],
-        },
-        {
-            collection: "bar",
-            database: "test",
-            definition: [{ type: "search", mappings: "invalid" }],
-        },
-        {
-            collection: "bar",
-            database: "test",
-            definition: [{ type: "search", analyzer: 123 }],
-        },
-        {
-            collection: "bar",
-            database: "test",
-            definition: [{ type: "search", mappings: { dynamic: "not-boolean" } }],
-        },
-        {
-            collection: "bar",
-            database: "test",
-            definition: [{ type: "search", mappings: { fields: "not-an-object" } }],
-        },
-    ]);
-
-    it("tool schema allows creating vector search indexes with vector, autoEmbed and filter fields", async () => {
-        const { tools } = await integration.mcpClient().listTools();
-        const createIndexTool = tools.find((tool) => tool.name === "create-index");
-        const definitionProperty = createIndexTool?.inputSchema.properties?.definition as {
-            type: string;
-            items: { oneOf: Array<{ properties: Record<string, Record<string, unknown>> }> };
-        };
-        expectDefined(definitionProperty);
-
-        expect(definitionProperty.type).toEqual("array");
-
-        // We should see "classic", "vectorSearch", and "search" options in the oneOf array.
-        expect(definitionProperty.items.oneOf).toHaveLength(3);
-
-        // Classic index definition
-        expect(definitionProperty.items.oneOf?.[0]?.properties?.type).toEqual({ type: "string", const: "classic" });
-        expect(definitionProperty.items.oneOf?.[0]?.properties?.keys).toBeDefined();
-
-        // Vector search index definition
-        expect(definitionProperty.items.oneOf?.[1]?.properties?.type).toEqual({
-            type: "string",
-            const: "vectorSearch",
         });
-        expect(definitionProperty.items.oneOf?.[1]?.properties?.fields).toBeDefined();
-
-        const fields = definitionProperty.items.oneOf?.[1]?.properties?.fields as {
-            type: string;
-            items: { oneOf: Array<{ type: string; properties: Record<string, Record<string, unknown>> }> };
-        };
-
-        expect(fields.type).toEqual("array");
-        expect(fields.items.oneOf).toHaveLength(3);
-        expect(fields.items.oneOf?.[0]?.type).toEqual("object");
-        expect(fields.items.oneOf?.[0]?.properties?.type).toEqual({ type: "string", const: "filter" });
-        expectDefined(fields.items.oneOf?.[0]?.properties?.path);
-
-        expect(fields.items.oneOf?.[1]?.type).toEqual("object");
-        expect(fields.items.oneOf?.[1]?.properties?.type).toEqual({ type: "string", const: "vector" });
-        expectDefined(fields.items.oneOf?.[1]?.properties?.path);
-        expectDefined(fields.items.oneOf?.[1]?.properties?.quantization);
-        expectDefined(fields.items.oneOf?.[1]?.properties?.numDimensions);
-        expectDefined(fields.items.oneOf?.[1]?.properties?.similarity);
-
-        expect(fields.items.oneOf?.[2]?.type).toEqual("object");
-        expect(fields.items.oneOf?.[2]?.properties?.type).toEqual({ type: "string", const: "autoEmbed" });
-        expectDefined(fields.items.oneOf?.[2]?.properties?.path);
-        expectDefined(fields.items.oneOf?.[2]?.properties?.model);
-        expectDefined(fields.items.oneOf?.[2]?.properties?.modality);
-
-        // Atlas search index definition
-        expect(definitionProperty.items.oneOf?.[2]?.properties?.type).toEqual({
-            type: "string",
-            const: "search",
+        validateThrowsForInvalidArguments({
+            integration,
+            name: "create-index",
+            args: [
+                {},
+                { collection: "bar", database: 123, definition: [{ type: "classic", keys: { foo: 1 } }] },
+                { collection: [], database: "test", definition: [{ type: "classic", keys: { foo: 1 } }] },
+                { collection: "bar", database: "test", definition: [{ type: "classic", keys: { foo: 1 } }], name: 123 },
+                {
+                    collection: "bar",
+                    database: "test",
+                    definition: [{ type: "unknown", keys: { foo: 1 } }],
+                    name: "my-index",
+                },
+                {
+                    collection: "bar",
+                    database: "test",
+                    definition: [{ type: "vectorSearch", fields: { foo: 1 } }],
+                },
+                {
+                    collection: "bar",
+                    database: "test",
+                    definition: [{ type: "vectorSearch", fields: [] }],
+                },
+                {
+                    collection: "bar",
+                    database: "test",
+                    definition: [{ type: "vectorSearch", fields: [{ type: "vector", path: true }] }],
+                },
+                {
+                    collection: "bar",
+                    database: "test",
+                    definition: [{ type: "vectorSearch", fields: [{ type: "filter", path: "foo" }] }],
+                },
+                {
+                    collection: "bar",
+                    database: "test",
+                    definition: [
+                        {
+                            type: "vectorSearch",
+                            fields: [
+                                { type: "vector", path: "foo", numDimensions: 128 },
+                                { type: "filter", path: "bar", numDimensions: 128 },
+                            ],
+                        },
+                    ],
+                },
+                {
+                    collection: "bar",
+                    database: "test",
+                    definition: [{ type: "search", mappings: "invalid" }],
+                },
+                {
+                    collection: "bar",
+                    database: "test",
+                    definition: [{ type: "search", analyzer: 123 }],
+                },
+                {
+                    collection: "bar",
+                    database: "test",
+                    definition: [{ type: "search", mappings: { dynamic: "not-boolean" } }],
+                },
+                {
+                    collection: "bar",
+                    database: "test",
+                    definition: [{ type: "search", mappings: { fields: "not-an-object" } }],
+                },
+            ],
         });
-        expectDefined(definitionProperty.items.oneOf?.[2]?.properties?.analyzer);
-        expectDefined(definitionProperty.items.oneOf?.[2]?.properties?.mappings);
-
-        const mappings = definitionProperty.items.oneOf?.[2]?.properties?.mappings as {
-            type: string;
-            properties: Record<string, Record<string, unknown>>;
-        };
-
-        expect(mappings.type).toEqual("object");
-        expectDefined(mappings.properties?.dynamic);
-        expectDefined(mappings.properties?.fields);
-    });
+        it("tool schema allows creating vector search indexes with vector, autoEmbed and filter fields", async () => {
+            const { tools } = await integration.mcpClient().listTools();
+            const createIndexTool = tools.find((tool) => tool.name === "create-index");
+            const definitionProperty = createIndexTool?.inputSchema.properties?.definition as {
+                type: string;
+                items: {
+                    oneOf: Array<{
+                        properties: Record<string, Record<string, unknown>>;
+                    }>;
+                };
+            };
+            expectDefined(definitionProperty);
+            expect(definitionProperty.type).toEqual("array");
+            // We should see "classic", "vectorSearch", and "search" options in the oneOf array.
+            expect(definitionProperty.items.oneOf).toHaveLength(3);
+            // Classic index definition
+            expect(definitionProperty.items.oneOf?.[0]?.properties?.type).toEqual({ type: "string", const: "classic" });
+            expect(definitionProperty.items.oneOf?.[0]?.properties?.keys).toBeDefined();
+            // Vector search index definition
+            expect(definitionProperty.items.oneOf?.[1]?.properties?.type).toEqual({
+                type: "string",
+                const: "vectorSearch",
+            });
+            expect(definitionProperty.items.oneOf?.[1]?.properties?.fields).toBeDefined();
+            const fields = definitionProperty.items.oneOf?.[1]?.properties?.fields as {
+                type: string;
+                items: {
+                    oneOf: Array<{
+                        type: string;
+                        properties: Record<string, Record<string, unknown>>;
+                    }>;
+                };
+            };
+            expect(fields.type).toEqual("array");
+            expect(fields.items.oneOf).toHaveLength(3);
+            expect(fields.items.oneOf?.[0]?.type).toEqual("object");
+            expect(fields.items.oneOf?.[0]?.properties?.type).toEqual({ type: "string", const: "filter" });
+            expectDefined(fields.items.oneOf?.[0]?.properties?.path);
+            expect(fields.items.oneOf?.[1]?.type).toEqual("object");
+            expect(fields.items.oneOf?.[1]?.properties?.type).toEqual({ type: "string", const: "vector" });
+            expectDefined(fields.items.oneOf?.[1]?.properties?.path);
+            expectDefined(fields.items.oneOf?.[1]?.properties?.quantization);
+            expectDefined(fields.items.oneOf?.[1]?.properties?.numDimensions);
+            expectDefined(fields.items.oneOf?.[1]?.properties?.similarity);
+            expect(fields.items.oneOf?.[2]?.type).toEqual("object");
+            expect(fields.items.oneOf?.[2]?.properties?.type).toEqual({ type: "string", const: "autoEmbed" });
+            expectDefined(fields.items.oneOf?.[2]?.properties?.path);
+            expectDefined(fields.items.oneOf?.[2]?.properties?.model);
+            expectDefined(fields.items.oneOf?.[2]?.properties?.modality);
+            // Atlas search index definition
+            expect(definitionProperty.items.oneOf?.[2]?.properties?.type).toEqual({
+                type: "string",
+                const: "search",
+            });
+            expectDefined(definitionProperty.items.oneOf?.[2]?.properties?.analyzer);
+            expectDefined(definitionProperty.items.oneOf?.[2]?.properties?.mappings);
+            const mappings = definitionProperty.items.oneOf?.[2]?.properties?.mappings as {
+                type: string;
+                properties: Record<string, Record<string, unknown>>;
+            };
+            expect(mappings.type).toEqual("object");
+            expectDefined(mappings.properties?.dynamic);
+            expectDefined(mappings.properties?.fields);
+        });
+    },
 });
-
-describeWithMongoDB("createIndex tool with classic indexes", (integration) => {
-    const validateIndex = async (collection: string, expected: { name: string; key: object }[]): Promise<void> => {
-        const mongoClient = integration.mongoClient();
-        const collections = await mongoClient.db(integration.randomDbName()).listCollections().toArray();
-        expect(collections).toHaveLength(1);
-        expect(collections[0]?.name).toEqual("coll1");
-        const indexes = await mongoClient.db(integration.randomDbName()).collection(collection).indexes();
-        expect(indexes).toHaveLength(expected.length + 1);
-        expect(indexes[0]?.name).toEqual("_id_");
-        for (const index of expected) {
-            const foundIndex = indexes.find((i) => i.name === index.name);
-            expectDefined(foundIndex);
-            expect(foundIndex.key).toEqual(index.key);
-        }
-    };
-
-    it("creates the namespace if necessary", async () => {
-        const connectionId = await integration.connectMcpClient();
-        const response = await integration.mcpClient().callTool({
-            name: "create-index",
-            arguments: {
-                connectionId,
-                database: integration.randomDbName(),
-                collection: "coll1",
-                definition: [
-                    {
-                        type: "classic",
-                        keys: { prop1: 1 },
-                    },
-                ],
-                name: "my-index",
-            },
-        });
-
-        const content = getResponseContent(response.content);
-        expect(content).toEqual(
-            `Created the index "my-index" on collection "coll1" in database "${integration.randomDbName()}".`
-        );
-
-        // Validate structured content
-        const structuredContent = response.structuredContent as CreateIndexOutput;
-        expect(structuredContent.database).toBe(integration.randomDbName());
-        expect(structuredContent.collection).toBe("coll1");
-        expect(structuredContent.indexName).toBe("my-index");
-        expect(structuredContent.indexType).toBe("classic");
-
-        await validateIndex("coll1", [{ name: "my-index", key: { prop1: 1 } }]);
-    });
-
-    it("generates a name if not provided", async () => {
-        const connectionId = await integration.connectMcpClient();
-        const response = await integration.mcpClient().callTool({
-            name: "create-index",
-            arguments: {
-                connectionId,
-                database: integration.randomDbName(),
-                collection: "coll1",
-                definition: [{ type: "classic", keys: { prop1: 1 } }],
-            },
-        });
-
-        const content = getResponseContent(response.content);
-        expect(content).toEqual(
-            `Created the index "prop1_1" on collection "coll1" in database "${integration.randomDbName()}".`
-        );
-
-        // Validate structured content
-        const structuredContent = response.structuredContent as CreateIndexOutput;
-        expect(structuredContent.database).toBe(integration.randomDbName());
-        expect(structuredContent.collection).toBe("coll1");
-        expect(structuredContent.indexName).toBe("prop1_1");
-        expect(structuredContent.indexType).toBe("classic");
-
-        await validateIndex("coll1", [{ name: "prop1_1", key: { prop1: 1 } }]);
-    });
-
-    it("can create multiple indexes in the same collection", async () => {
-        const connectionId = await integration.connectMcpClient();
-        let response = await integration.mcpClient().callTool({
-            name: "create-index",
-            arguments: {
-                connectionId,
-                database: integration.randomDbName(),
-                collection: "coll1",
-                definition: [{ type: "classic", keys: { prop1: 1 } }],
-            },
-        });
-
-        expect(getResponseContent(response.content)).toEqual(
-            `Created the index "prop1_1" on collection "coll1" in database "${integration.randomDbName()}".`
-        );
-
-        response = await integration.mcpClient().callTool({
-            name: "create-index",
-            arguments: {
-                connectionId,
-                database: integration.randomDbName(),
-                collection: "coll1",
-                definition: [{ type: "classic", keys: { prop2: -1 } }],
-            },
-        });
-
-        expect(getResponseContent(response.content)).toEqual(
-            `Created the index "prop2_-1" on collection "coll1" in database "${integration.randomDbName()}".`
-        );
-
-        await validateIndex("coll1", [
-            { name: "prop1_1", key: { prop1: 1 } },
-            { name: "prop2_-1", key: { prop2: -1 } },
-        ]);
-    });
-
-    it("can create multiple indexes on the same property", async () => {
-        const connectionId = await integration.connectMcpClient();
-        let response = await integration.mcpClient().callTool({
-            name: "create-index",
-            arguments: {
-                connectionId,
-                database: integration.randomDbName(),
-                collection: "coll1",
-                definition: [{ type: "classic", keys: { prop1: 1 } }],
-            },
-        });
-
-        expect(getResponseContent(response.content)).toEqual(
-            `Created the index "prop1_1" on collection "coll1" in database "${integration.randomDbName()}".`
-        );
-
-        response = await integration.mcpClient().callTool({
-            name: "create-index",
-            arguments: {
-                connectionId,
-                database: integration.randomDbName(),
-                collection: "coll1",
-                definition: [{ type: "classic", keys: { prop1: -1 } }],
-            },
-        });
-
-        expect(getResponseContent(response.content)).toEqual(
-            `Created the index "prop1_-1" on collection "coll1" in database "${integration.randomDbName()}".`
-        );
-
-        await validateIndex("coll1", [
-            { name: "prop1_1", key: { prop1: 1 } },
-            { name: "prop1_-1", key: { prop1: -1 } },
-        ]);
-    });
-
-    it("doesn't duplicate indexes", async () => {
-        const connectionId = await integration.connectMcpClient();
-        let response = await integration.mcpClient().callTool({
-            name: "create-index",
-            arguments: {
-                connectionId,
-                database: integration.randomDbName(),
-                collection: "coll1",
-                definition: [{ type: "classic", keys: { prop1: 1 } }],
-            },
-        });
-
-        expect(getResponseContent(response.content)).toEqual(
-            `Created the index "prop1_1" on collection "coll1" in database "${integration.randomDbName()}".`
-        );
-
-        response = await integration.mcpClient().callTool({
-            name: "create-index",
-            arguments: {
-                connectionId,
-                database: integration.randomDbName(),
-                collection: "coll1",
-                definition: [{ type: "classic", keys: { prop1: 1 } }],
-            },
-        });
-
-        expect(getResponseContent(response.content)).toEqual(
-            `Created the index "prop1_1" on collection "coll1" in database "${integration.randomDbName()}".`
-        );
-
-        await validateIndex("coll1", [{ name: "prop1_1", key: { prop1: 1 } }]);
-    });
-
-    it("emits index_type telemetry metadata for classic indexes", async () => {
-        const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
-        vi.spyOn(integration.mcpServer()["telemetry"], "isTelemetryEnabled").mockReturnValue(true);
-        const connectionId = await integration.connectMcpClient();
-
-        await integration.mcpClient().callTool({
-            name: "create-index",
-            arguments: {
-                connectionId,
-                database: integration.randomDbName(),
-                collection: "coll1",
-                definition: [{ type: "classic", keys: { prop1: 1 } }],
-            },
-        });
-
-        expect(mockEmitEvents).toHaveBeenCalled();
-        const emittedEvent = (mockEmitEvents.mock.lastCall?.[0] as ToolEvent[] | undefined)?.[0] as ToolEvent;
-        expectDefined(emittedEvent);
-        expect(emittedEvent.properties.result).toEqual("success");
-        expect(emittedEvent.properties.command).toEqual("create-index");
-        expect(emittedEvent.properties.index_type).toEqual("classic");
-    });
-
-    it("does not emit index_type telemetry metadata when the tool call fails", async () => {
-        const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
-        vi.spyOn(integration.mcpServer()["telemetry"], "isTelemetryEnabled").mockReturnValue(true);
-        const connectionId = await integration.connectMcpClient();
-        const collection = new ObjectId().toString();
-        await integration.mongoClient().db(integration.randomDbName()).createCollection(collection);
-
-        const response = await integration.mcpClient().callTool({
-            name: "create-index",
-            arguments: {
-                connectionId,
-                database: integration.randomDbName(),
-                collection,
-                name: "vector_1_vector",
-                definition: [
-                    {
-                        type: "vectorSearch",
-                        fields: [
-                            { type: "vector", path: "vector_1", numDimensions: 4 },
-                            { type: "filter", path: "category" },
-                        ],
-                    },
-                ],
-            },
-        });
-
-        expect(response.isError).toBe(true);
-        expect(mockEmitEvents).toHaveBeenCalled();
-        const emittedEvent = (mockEmitEvents.mock.lastCall?.[0] as ToolEvent[] | undefined)?.[0] as ToolEvent;
-        expectDefined(emittedEvent);
-        expect(emittedEvent.properties.result).toEqual("failure");
-        expect(emittedEvent.properties.command).toEqual("create-index");
-        expect(emittedEvent.properties.index_type).toBeUndefined();
-    });
-
-    it("fails to create a vector search index", async () => {
-        const connectionId = await integration.connectMcpClient();
-        const collection = new ObjectId().toString();
-        await integration.mongoClient().db(integration.randomDbName()).createCollection(collection);
-
-        const response = await integration.mcpClient().callTool({
-            name: "create-index",
-            arguments: {
-                connectionId,
-                database: integration.randomDbName(),
-                collection,
-                name: "vector_1_vector",
-                definition: [
-                    {
-                        type: "vectorSearch",
-                        fields: [
-                            { type: "vector", path: "vector_1", numDimensions: 4 },
-                            { type: "filter", path: "category" },
-                        ],
-                    },
-                ],
-            },
-        });
-
-        const content = getResponseContent(response.content);
-        expect(content).toContain("The connected MongoDB deployment does not support vector search indexes.");
-        expect(response.isError).toBe(true);
-    });
-
-    const testCases: { name: string; direction: IndexDirection }[] = [
-        { name: "descending", direction: -1 },
-        { name: "ascending", direction: 1 },
-        { name: "hashed", direction: "hashed" },
-        { name: "text", direction: "text" },
-        { name: "geoHaystack", direction: "2dsphere" },
-        { name: "geo2d", direction: "2d" },
-    ];
-
-    for (const { name, direction } of testCases) {
-        it(`creates ${name} index`, async () => {
+describeWithMongoDB({
+    name: "createIndex tool with classic indexes",
+    fn: (integration) => {
+        const validateIndex = async (
+            collection: string,
+            expected: {
+                name: string;
+                key: object;
+            }[]
+        ): Promise<void> => {
+            const mongoClient = integration.mongoClient();
+            const collections = await mongoClient.db(integration.randomDbName()).listCollections().toArray();
+            expect(collections).toHaveLength(1);
+            expect(collections[0]?.name).toEqual("coll1");
+            const indexes = await mongoClient.db(integration.randomDbName()).collection(collection).indexes();
+            expect(indexes).toHaveLength(expected.length + 1);
+            expect(indexes[0]?.name).toEqual("_id_");
+            for (const index of expected) {
+                const foundIndex = indexes.find((i) => i.name === index.name);
+                expectDefined(foundIndex);
+                expect(foundIndex.key).toEqual(index.key);
+            }
+        };
+        it("creates the namespace if necessary", async () => {
             const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "create-index",
@@ -450,46 +202,278 @@ describeWithMongoDB("createIndex tool with classic indexes", (integration) => {
                     connectionId,
                     database: integration.randomDbName(),
                     collection: "coll1",
-                    definition: [{ type: "classic", keys: { prop1: direction } }],
+                    definition: [
+                        {
+                            type: "classic",
+                            keys: { prop1: 1 },
+                        },
+                    ],
+                    name: "my-index",
                 },
             });
-
-            expect(getResponseContent(response.content)).toEqual(
-                `Created the index "prop1_${direction}" on collection "coll1" in database "${integration.randomDbName()}".`
+            const content = getResponseContent(response.content);
+            expect(content).toEqual(
+                `Created the index "my-index" on collection "coll1" in database "${integration.randomDbName()}".`
             );
-
-            let expectedKey: object = { prop1: direction };
-            if (direction === "text") {
-                expectedKey = {
-                    _fts: "text",
-                    _ftsx: 1,
-                };
-            }
-            await validateIndex("coll1", [{ name: `prop1_${direction}`, key: expectedKey }]);
+            // Validate structured content
+            const structuredContent = response.structuredContent as CreateIndexOutput;
+            expect(structuredContent.database).toBe(integration.randomDbName());
+            expect(structuredContent.collection).toBe("coll1");
+            expect(structuredContent.indexName).toBe("my-index");
+            expect(structuredContent.indexType).toBe("classic");
+            await validateIndex("coll1", [{ name: "my-index", key: { prop1: 1 } }]);
         });
-    }
-
-    validateAutoConnectBehavior(integration, "create-index", () => {
-        return {
-            args: {
-                database: integration.randomDbName(),
-                collection: "coll1",
-                definition: [{ type: "classic", keys: { prop1: 1 } }],
+        it("generates a name if not provided", async () => {
+            const connectionId = await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "create-index",
+                arguments: {
+                    connectionId,
+                    database: integration.randomDbName(),
+                    collection: "coll1",
+                    definition: [{ type: "classic", keys: { prop1: 1 } }],
+                },
+            });
+            const content = getResponseContent(response.content);
+            expect(content).toEqual(
+                `Created the index "prop1_1" on collection "coll1" in database "${integration.randomDbName()}".`
+            );
+            // Validate structured content
+            const structuredContent = response.structuredContent as CreateIndexOutput;
+            expect(structuredContent.database).toBe(integration.randomDbName());
+            expect(structuredContent.collection).toBe("coll1");
+            expect(structuredContent.indexName).toBe("prop1_1");
+            expect(structuredContent.indexType).toBe("classic");
+            await validateIndex("coll1", [{ name: "prop1_1", key: { prop1: 1 } }]);
+        });
+        it("can create multiple indexes in the same collection", async () => {
+            const connectionId = await integration.connectMcpClient();
+            let response = await integration.mcpClient().callTool({
+                name: "create-index",
+                arguments: {
+                    connectionId,
+                    database: integration.randomDbName(),
+                    collection: "coll1",
+                    definition: [{ type: "classic", keys: { prop1: 1 } }],
+                },
+            });
+            expect(getResponseContent(response.content)).toEqual(
+                `Created the index "prop1_1" on collection "coll1" in database "${integration.randomDbName()}".`
+            );
+            response = await integration.mcpClient().callTool({
+                name: "create-index",
+                arguments: {
+                    connectionId,
+                    database: integration.randomDbName(),
+                    collection: "coll1",
+                    definition: [{ type: "classic", keys: { prop2: -1 } }],
+                },
+            });
+            expect(getResponseContent(response.content)).toEqual(
+                `Created the index "prop2_-1" on collection "coll1" in database "${integration.randomDbName()}".`
+            );
+            await validateIndex("coll1", [
+                { name: "prop1_1", key: { prop1: 1 } },
+                { name: "prop2_-1", key: { prop2: -1 } },
+            ]);
+        });
+        it("can create multiple indexes on the same property", async () => {
+            const connectionId = await integration.connectMcpClient();
+            let response = await integration.mcpClient().callTool({
+                name: "create-index",
+                arguments: {
+                    connectionId,
+                    database: integration.randomDbName(),
+                    collection: "coll1",
+                    definition: [{ type: "classic", keys: { prop1: 1 } }],
+                },
+            });
+            expect(getResponseContent(response.content)).toEqual(
+                `Created the index "prop1_1" on collection "coll1" in database "${integration.randomDbName()}".`
+            );
+            response = await integration.mcpClient().callTool({
+                name: "create-index",
+                arguments: {
+                    connectionId,
+                    database: integration.randomDbName(),
+                    collection: "coll1",
+                    definition: [{ type: "classic", keys: { prop1: -1 } }],
+                },
+            });
+            expect(getResponseContent(response.content)).toEqual(
+                `Created the index "prop1_-1" on collection "coll1" in database "${integration.randomDbName()}".`
+            );
+            await validateIndex("coll1", [
+                { name: "prop1_1", key: { prop1: 1 } },
+                { name: "prop1_-1", key: { prop1: -1 } },
+            ]);
+        });
+        it("doesn't duplicate indexes", async () => {
+            const connectionId = await integration.connectMcpClient();
+            let response = await integration.mcpClient().callTool({
+                name: "create-index",
+                arguments: {
+                    connectionId,
+                    database: integration.randomDbName(),
+                    collection: "coll1",
+                    definition: [{ type: "classic", keys: { prop1: 1 } }],
+                },
+            });
+            expect(getResponseContent(response.content)).toEqual(
+                `Created the index "prop1_1" on collection "coll1" in database "${integration.randomDbName()}".`
+            );
+            response = await integration.mcpClient().callTool({
+                name: "create-index",
+                arguments: {
+                    connectionId,
+                    database: integration.randomDbName(),
+                    collection: "coll1",
+                    definition: [{ type: "classic", keys: { prop1: 1 } }],
+                },
+            });
+            expect(getResponseContent(response.content)).toEqual(
+                `Created the index "prop1_1" on collection "coll1" in database "${integration.randomDbName()}".`
+            );
+            await validateIndex("coll1", [{ name: "prop1_1", key: { prop1: 1 } }]);
+        });
+        it("emits index_type telemetry metadata for classic indexes", async () => {
+            const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
+            vi.spyOn(integration.mcpServer()["telemetry"], "isTelemetryEnabled").mockReturnValue(true);
+            const connectionId = await integration.connectMcpClient();
+            await integration.mcpClient().callTool({
+                name: "create-index",
+                arguments: {
+                    connectionId,
+                    database: integration.randomDbName(),
+                    collection: "coll1",
+                    definition: [{ type: "classic", keys: { prop1: 1 } }],
+                },
+            });
+            expect(mockEmitEvents).toHaveBeenCalled();
+            const emittedEvent = (mockEmitEvents.mock.lastCall?.[0] as ToolEvent[] | undefined)?.[0] as ToolEvent;
+            expectDefined(emittedEvent);
+            expect(emittedEvent.properties.result).toEqual("success");
+            expect(emittedEvent.properties.command).toEqual("create-index");
+            expect(emittedEvent.properties.index_type).toEqual("classic");
+        });
+        it("does not emit index_type telemetry metadata when the tool call fails", async () => {
+            const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
+            vi.spyOn(integration.mcpServer()["telemetry"], "isTelemetryEnabled").mockReturnValue(true);
+            const connectionId = await integration.connectMcpClient();
+            const collection = new ObjectId().toString();
+            await integration.mongoClient().db(integration.randomDbName()).createCollection(collection);
+            const response = await integration.mcpClient().callTool({
+                name: "create-index",
+                arguments: {
+                    connectionId,
+                    database: integration.randomDbName(),
+                    collection,
+                    name: "vector_1_vector",
+                    definition: [
+                        {
+                            type: "vectorSearch",
+                            fields: [
+                                { type: "vector", path: "vector_1", numDimensions: 4 },
+                                { type: "filter", path: "category" },
+                            ],
+                        },
+                    ],
+                },
+            });
+            expect(response.isError).toBe(true);
+            expect(mockEmitEvents).toHaveBeenCalled();
+            const emittedEvent = (mockEmitEvents.mock.lastCall?.[0] as ToolEvent[] | undefined)?.[0] as ToolEvent;
+            expectDefined(emittedEvent);
+            expect(emittedEvent.properties.result).toEqual("failure");
+            expect(emittedEvent.properties.command).toEqual("create-index");
+            expect(emittedEvent.properties.index_type).toBeUndefined();
+        });
+        it("fails to create a vector search index", async () => {
+            const connectionId = await integration.connectMcpClient();
+            const collection = new ObjectId().toString();
+            await integration.mongoClient().db(integration.randomDbName()).createCollection(collection);
+            const response = await integration.mcpClient().callTool({
+                name: "create-index",
+                arguments: {
+                    connectionId,
+                    database: integration.randomDbName(),
+                    collection,
+                    name: "vector_1_vector",
+                    definition: [
+                        {
+                            type: "vectorSearch",
+                            fields: [
+                                { type: "vector", path: "vector_1", numDimensions: 4 },
+                                { type: "filter", path: "category" },
+                            ],
+                        },
+                    ],
+                },
+            });
+            const content = getResponseContent(response.content);
+            expect(content).toContain("The connected MongoDB deployment does not support vector search indexes.");
+            expect(response.isError).toBe(true);
+        });
+        const testCases: {
+            name: string;
+            direction: IndexDirection;
+        }[] = [
+            { name: "descending", direction: -1 },
+            { name: "ascending", direction: 1 },
+            { name: "hashed", direction: "hashed" },
+            { name: "text", direction: "text" },
+            { name: "geoHaystack", direction: "2dsphere" },
+            { name: "geo2d", direction: "2d" },
+        ];
+        for (const { name, direction } of testCases) {
+            it(`creates ${name} index`, async () => {
+                const connectionId = await integration.connectMcpClient();
+                const response = await integration.mcpClient().callTool({
+                    name: "create-index",
+                    arguments: {
+                        connectionId,
+                        database: integration.randomDbName(),
+                        collection: "coll1",
+                        definition: [{ type: "classic", keys: { prop1: direction } }],
+                    },
+                });
+                expect(getResponseContent(response.content)).toEqual(
+                    `Created the index "prop1_${direction}" on collection "coll1" in database "${integration.randomDbName()}".`
+                );
+                let expectedKey: object = { prop1: direction };
+                if (direction === "text") {
+                    expectedKey = {
+                        _fts: "text",
+                        _ftsx: 1,
+                    };
+                }
+                await validateIndex("coll1", [{ name: `prop1_${direction}`, key: expectedKey }]);
+            });
+        }
+        validateAutoConnectBehavior({
+            integration,
+            name: "create-index",
+            validation: () => {
+                return {
+                    args: {
+                        database: integration.randomDbName(),
+                        collection: "coll1",
+                        definition: [{ type: "classic", keys: { prop1: 1 } }],
+                    },
+                    expectedResponse: `Created the index "prop1_1" on collection "coll1" in database "${integration.randomDbName()}".`,
+                };
             },
-            expectedResponse: `Created the index "prop1_1" on collection "coll1" in database "${integration.randomDbName()}".`,
-        };
-    });
+        });
+    },
 });
-
-describeWithMongoDB(
-    "createIndex tool with vector search indexes",
-    (integration) => {
+describeWithMongoDB({
+    name: "createIndex tool with vector search indexes",
+    fn: (integration) => {
         let connectionId: string;
         beforeEach(async () => {
             connectionId = await integration.connectMcpClient();
-            await waitUntilSearchIsReady(integration.mongoClient());
+            await waitUntilSearchIsReady({ mongoClient: integration.mongoClient() });
         });
-
         describe("when the collection does not exist", () => {
             it("throws an error", async () => {
                 const response = await integration.mcpClient().callTool({
@@ -509,12 +493,10 @@ describeWithMongoDB(
                         ],
                     },
                 });
-
                 const content = getResponseContent(response.content);
                 expect(content).toContain(`Collection '${integration.randomDbName()}.foo' does not exist`);
             });
         });
-
         describe("when the database does not exist", () => {
             it("throws an error", async () => {
                 const response = await integration.mcpClient().callTool({
@@ -531,12 +513,10 @@ describeWithMongoDB(
                         ],
                     },
                 });
-
                 const content = getResponseContent(response.content);
                 expect(content).toContain(`Collection 'nonexistent_db.foo' does not exist`);
             });
         });
-
         describe("when the collection exists", () => {
             let collectionName: string;
             let collection: Collection;
@@ -547,11 +527,9 @@ describeWithMongoDB(
                     .db(integration.randomDbName())
                     .createCollection(collectionName);
             });
-
             afterEach(async () => {
                 await collection.drop();
             });
-
             it("creates the index", async () => {
                 const response = await integration.mcpClient().callTool({
                     name: "create-index",
@@ -571,19 +549,16 @@ describeWithMongoDB(
                         ],
                     },
                 });
-
                 const content = getResponseContent(response.content);
                 expect(content).toEqual(
                     `Created the index "vector_1_vector" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a vector search index, it may take a while for the index to build. Use the \`collection-indexes\` tool to check the index status.`
                 );
-
                 // Validate structured content
                 const structuredContent = response.structuredContent as CreateIndexOutput;
                 expect(structuredContent.database).toBe(integration.randomDbName());
                 expect(structuredContent.collection).toBe(collectionName);
                 expect(structuredContent.indexName).toBe("vector_1_vector");
                 expect(structuredContent.indexType).toBe("vectorSearch");
-
                 const indexes = (await collection.listSearchIndexes().toArray()) as unknown as Document[];
                 expect(indexes).toHaveLength(1);
                 expect(indexes[0]?.name).toEqual("vector_1_vector");
@@ -596,11 +571,9 @@ describeWithMongoDB(
                     ],
                 });
             });
-
             it("emits index_type telemetry metadata for vector search indexes", async () => {
                 const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
                 vi.spyOn(integration.mcpServer()["telemetry"], "isTelemetryEnabled").mockReturnValue(true);
-
                 await integration.mcpClient().callTool({
                     name: "create-index",
                     arguments: {
@@ -619,7 +592,6 @@ describeWithMongoDB(
                         ],
                     },
                 });
-
                 expect(mockEmitEvents).toHaveBeenCalled();
                 const emittedEvent = (mockEmitEvents.mock.lastCall?.[0] as ToolEvent[] | undefined)?.[0] as ToolEvent;
                 expectDefined(emittedEvent);
@@ -627,7 +599,6 @@ describeWithMongoDB(
                 expect(emittedEvent.properties.command).toEqual("create-index");
                 expect(emittedEvent.properties.index_type).toEqual("vectorSearch");
             });
-
             it("doesn't duplicate indexes", async () => {
                 const response = await integration.mcpClient().callTool({
                     name: "create-index",
@@ -647,12 +618,10 @@ describeWithMongoDB(
                         ],
                     },
                 });
-
                 const content = getResponseContent(response.content);
                 expect(content).toEqual(
                     `Created the index "vector_1_vector" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a vector search index, it may take a while for the index to build. Use the \`collection-indexes\` tool to check the index status.`
                 );
-
                 // Try to create another vector search index with the same name
                 const duplicateVectorResponse = await integration.mcpClient().callTool({
                     name: "create-index",
@@ -669,14 +638,12 @@ describeWithMongoDB(
                         ],
                     },
                 });
-
                 const duplicateVectorContent = getResponseContent(duplicateVectorResponse.content);
                 expect(duplicateVectorResponse.isError).toBe(true);
                 expect(duplicateVectorContent).toEqual(
                     "Error running create-index: Index vector_1_vector already exists with a different definition. Drop it first if needed."
                 );
             });
-
             it("can create classic and vector search indexes with the same name", async () => {
                 const response = await integration.mcpClient().callTool({
                     name: "create-index",
@@ -696,12 +663,10 @@ describeWithMongoDB(
                         ],
                     },
                 });
-
                 const content = getResponseContent(response.content);
                 expect(content).toEqual(
                     `Created the index "my-super-index" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a vector search index, it may take a while for the index to build. Use the \`collection-indexes\` tool to check the index status.`
                 );
-
                 const classicResponse = await integration.mcpClient().callTool({
                     name: "create-index",
                     arguments: {
@@ -712,13 +677,11 @@ describeWithMongoDB(
                         definition: [{ type: "classic", keys: { field1: 1 } }],
                     },
                 });
-
                 // Create a classic index with the same name
                 const classicContent = getResponseContent(classicResponse.content);
                 expect(classicContent).toEqual(
                     `Created the index "my-super-index" on collection "${collectionName}" in database "${integration.randomDbName()}".`
                 );
-
                 const listIndexesResponse = await integration.mcpClient().callTool({
                     name: "collection-indexes",
                     arguments: {
@@ -727,17 +690,13 @@ describeWithMongoDB(
                         collection: collectionName,
                     },
                 });
-
                 const listIndexesElements = getResponseElements(listIndexesResponse.content);
                 expect(listIndexesElements).toHaveLength(4); // 2 elements for classic indexes, 2 for vector search indexes
-
                 // Expect to find my-super-index in the classic definitions
                 expect(listIndexesElements[1]?.text).toContain('"name":"my-super-index"');
-
                 // Expect to find my-super-index in the vector search definitions
                 expect(listIndexesElements[3]?.text).toContain('"name":"my-super-index"');
             });
-
             it("should fail to create auto-embed vector search index", async () => {
                 const response = await integration.mcpClient().callTool({
                     name: "create-index",
@@ -760,33 +719,30 @@ describeWithMongoDB(
             });
         });
     },
-    {
+    config: {
         downloadOptions: {
             search: true,
         },
-    }
-);
-
-describeWithMongoDB(
-    "createIndex tool with auto-embed vector search indexes",
-    (integration) => {
+    },
+});
+describeWithMongoDB({
+    name: "createIndex tool with auto-embed vector search indexes",
+    fn: (integration) => {
         let collectionName: string;
         let collection: Collection;
         let connectionId: string;
         beforeEach(async () => {
             connectionId = await integration.connectMcpClient();
-            await waitUntilSearchIsReady(integration.mongoClient());
+            await waitUntilSearchIsReady({ mongoClient: integration.mongoClient() });
             collectionName = new ObjectId().toString();
             collection = await integration
                 .mongoClient()
                 .db(integration.randomDbName())
                 .createCollection(collectionName);
         });
-
         afterEach(async () => {
             await collection.drop();
         });
-
         it("should successfully create auto-embed vector search index", async () => {
             const response = await integration.mcpClient().callTool({
                 name: "create-index",
@@ -803,12 +759,10 @@ describeWithMongoDB(
                     ],
                 },
             });
-
             const content = getResponseContent(response.content);
             expect(content).toEqual(
                 `Created the index "vector_1_vector_auto_embed" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a vector search index, it may take a while for the index to build. Use the \`collection-indexes\` tool to check the index status.`
             );
-
             const indexes: Document[] = await collection.listSearchIndexes().toArray();
             expect(indexes).toHaveLength(1);
             expect(indexes[0]?.name).toEqual("vector_1_vector_auto_embed");
@@ -820,25 +774,23 @@ describeWithMongoDB(
             );
         });
     },
-    {
+    config: {
         downloadOptions: {
             autoEmbed: true,
             mongotPassword: process.env.MDB_MONGOT_PASSWORD as string,
             voyageIndexingKey: process.env.MDB_VOYAGE_API_KEY as string,
             voyageQueryKey: process.env.MDB_VOYAGE_API_KEY as string,
         },
-    }
-);
-
-describeWithMongoDB(
-    "createIndex tool with Atlas search indexes",
-    (integration) => {
+    },
+});
+describeWithMongoDB({
+    name: "createIndex tool with Atlas search indexes",
+    fn: (integration) => {
         let connectionId: string;
         beforeEach(async () => {
             connectionId = await integration.connectMcpClient();
-            await waitUntilSearchIsReady(integration.mongoClient());
+            await waitUntilSearchIsReady({ mongoClient: integration.mongoClient() });
         });
-
         // eslint-disable-next-line vitest/no-identical-title
         describe("when the collection does not exist", () => {
             it("throws an error", async () => {
@@ -858,12 +810,10 @@ describeWithMongoDB(
                         ],
                     },
                 });
-
                 const content = getResponseContent(response.content);
                 expect(content).toContain(`Collection '${integration.randomDbName()}.foo' does not exist`);
             });
         });
-
         // eslint-disable-next-line vitest/no-identical-title
         describe("when the database does not exist", () => {
             it("throws an error", async () => {
@@ -883,12 +833,10 @@ describeWithMongoDB(
                         ],
                     },
                 });
-
                 const content = getResponseContent(response.content);
                 expect(content).toContain(`Collection 'nonexistent_db.foo' does not exist`);
             });
         });
-
         // eslint-disable-next-line vitest/no-identical-title
         describe("when the collection exists", () => {
             let collectionName: string;
@@ -900,11 +848,9 @@ describeWithMongoDB(
                     .db(integration.randomDbName())
                     .createCollection(collectionName);
             });
-
             afterEach(async () => {
                 await collection.drop();
             });
-
             it("creates the index with explicit field mappings", async () => {
                 const response = await integration.mcpClient().callTool({
                     name: "create-index",
@@ -929,19 +875,16 @@ describeWithMongoDB(
                         ],
                     },
                 });
-
                 const content = getResponseContent(response.content);
                 expect(content).toEqual(
                     `Created the index "search_index" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a search index, it may take a while for the index to build. Use the \`collection-indexes\` tool to check the index status.`
                 );
-
                 // Validate structured content
                 const structuredContent = response.structuredContent as CreateIndexOutput;
                 expect(structuredContent.database).toBe(integration.randomDbName());
                 expect(structuredContent.collection).toBe(collectionName);
                 expect(structuredContent.indexName).toBe("search_index");
                 expect(structuredContent.indexType).toBe("search");
-
                 const indexes = (await collection.listSearchIndexes().toArray()) as unknown as Document[];
                 expect(indexes).toHaveLength(1);
                 expect(indexes[0]?.name).toEqual("search_index");
@@ -960,11 +903,9 @@ describeWithMongoDB(
                     },
                 });
             });
-
             it("emits index_type telemetry metadata for Atlas search indexes", async () => {
                 const mockEmitEvents = vi.spyOn(integration.mcpServer()["telemetry"], "emitEvents");
                 vi.spyOn(integration.mcpServer()["telemetry"], "isTelemetryEnabled").mockReturnValue(true);
-
                 await integration.mcpClient().callTool({
                     name: "create-index",
                     arguments: {
@@ -986,7 +927,6 @@ describeWithMongoDB(
                         ],
                     },
                 });
-
                 expect(mockEmitEvents).toHaveBeenCalled();
                 const emittedEvent = (mockEmitEvents.mock.lastCall?.[0] as ToolEvent[] | undefined)?.[0] as ToolEvent;
                 expectDefined(emittedEvent);
@@ -994,7 +934,6 @@ describeWithMongoDB(
                 expect(emittedEvent.properties.command).toEqual("create-index");
                 expect(emittedEvent.properties.index_type).toEqual("search");
             });
-
             it("creates the index with dynamic mappings", async () => {
                 const response = await integration.mcpClient().callTool({
                     name: "create-index",
@@ -1013,12 +952,10 @@ describeWithMongoDB(
                         ],
                     },
                 });
-
                 const content = getResponseContent(response.content);
                 expect(content).toEqual(
                     `Created the index "dynamic_search_index" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a search index, it may take a while for the index to build. Use the \`collection-indexes\` tool to check the index status.`
                 );
-
                 const indexes = (await collection.listSearchIndexes().toArray()) as unknown as Document[];
                 expect(indexes).toHaveLength(1);
                 expect(indexes[0]?.name).toEqual("dynamic_search_index");
@@ -1033,7 +970,6 @@ describeWithMongoDB(
                     },
                 });
             });
-
             it("doesn't duplicate search indexes", async () => {
                 const response = await integration.mcpClient().callTool({
                     name: "create-index",
@@ -1055,12 +991,10 @@ describeWithMongoDB(
                         ],
                     },
                 });
-
                 const content = getResponseContent(response.content);
                 expect(content).toEqual(
                     `Created the index "search_index" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a search index, it may take a while for the index to build. Use the \`collection-indexes\` tool to check the index status.`
                 );
-
                 // Try to create another search index with the same name
                 const duplicateSearchResponse = await integration.mcpClient().callTool({
                     name: "create-index",
@@ -1079,14 +1013,12 @@ describeWithMongoDB(
                         ],
                     },
                 });
-
                 const duplicateSearchContent = getResponseContent(duplicateSearchResponse.content);
                 expect(duplicateSearchResponse.isError).toBe(true);
                 expect(duplicateSearchContent).toEqual(
                     "Error running create-index: Index search_index already exists with a different definition. Drop it first if needed."
                 );
             });
-
             it("can create classic and Atlas search indexes with the same name", async () => {
                 const response = await integration.mcpClient().callTool({
                     name: "create-index",
@@ -1105,12 +1037,10 @@ describeWithMongoDB(
                         ],
                     },
                 });
-
                 const content = getResponseContent(response.content);
                 expect(content).toEqual(
                     `Created the index "my-search-index" on collection "${collectionName}" in database "${integration.randomDbName()}". Since this is a search index, it may take a while for the index to build. Use the \`collection-indexes\` tool to check the index status.`
                 );
-
                 const classicResponse = await integration.mcpClient().callTool({
                     name: "create-index",
                     arguments: {
@@ -1121,13 +1051,11 @@ describeWithMongoDB(
                         definition: [{ type: "classic", keys: { field1: 1 } }],
                     },
                 });
-
                 // Create a classic index with the same name
                 const classicContent = getResponseContent(classicResponse.content);
                 expect(classicContent).toEqual(
                     `Created the index "my-search-index" on collection "${collectionName}" in database "${integration.randomDbName()}".`
                 );
-
                 const listIndexesResponse = await integration.mcpClient().callTool({
                     name: "collection-indexes",
                     arguments: {
@@ -1136,21 +1064,18 @@ describeWithMongoDB(
                         collection: collectionName,
                     },
                 });
-
                 const listIndexesElements = getResponseElements(listIndexesResponse.content);
                 expect(listIndexesElements).toHaveLength(4); // 2 elements for classic indexes, 2 for search indexes
-
                 // Expect to find my-search-index in the classic definitions
                 expect(listIndexesElements[1]?.text).toContain('"name":"my-search-index"');
-
                 // Expect to find my-search-index in the search definitions
                 expect(listIndexesElements[3]?.text).toContain('"name":"my-search-index"');
             });
         });
     },
-    {
+    config: {
         downloadOptions: {
             search: true,
         },
-    }
-);
+    },
+});

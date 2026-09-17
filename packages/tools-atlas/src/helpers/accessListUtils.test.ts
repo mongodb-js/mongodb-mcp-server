@@ -12,7 +12,7 @@ describe("accessListUtils", () => {
             createAccessListEntry: vi.fn().mockResolvedValue(undefined),
             logger: new NoopLogger(),
         } as unknown as ApiClient;
-        await expect(ensureCurrentIpInAccessList(apiClient, "projectId")).resolves.toBe("added");
+        await expect(ensureCurrentIpInAccessList({ apiClient, projectId: "projectId" })).resolves.toBe("added");
         // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(apiClient.createAccessListEntry).toHaveBeenCalledWith(
             {
@@ -27,17 +27,17 @@ describe("accessListUtils", () => {
         const apiClient = {
             supportsCurrentIpLookup: true,
             getIpInfo: vi.fn().mockResolvedValue({ currentIpv4Address: "127.0.0.1" }),
-            createAccessListEntry: vi
-                .fn()
-                .mockRejectedValue(
-                    ApiClientError.fromError(
-                        { status: 409, statusText: "Conflict" } as Response,
-                        { message: "Conflict" } as never
-                    )
-                ),
+            createAccessListEntry: vi.fn().mockRejectedValue(
+                ApiClientError.fromError({
+                    response: { status: 409, statusText: "Conflict" } as Response,
+                    error: { message: "Conflict" } as never,
+                })
+            ),
             logger: new NoopLogger(),
         } as unknown as ApiClient;
-        await expect(ensureCurrentIpInAccessList(apiClient, "projectId")).resolves.toBe("already-present");
+        await expect(ensureCurrentIpInAccessList({ apiClient, projectId: "projectId" })).resolves.toBe(
+            "already-present"
+        );
         // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(apiClient.createAccessListEntry).toHaveBeenCalledWith(
             {
@@ -52,18 +52,16 @@ describe("accessListUtils", () => {
         const logger = { debug: vi.fn(), warning: vi.fn() } as unknown as LoggerBase;
         const apiClient = {
             supportsCurrentIpLookup: true,
-            getIpInfo: vi
-                .fn()
-                .mockRejectedValue(
-                    ApiClientError.fromError(
-                        { status: 404, statusText: "Not Found" } as Response,
-                        { message: "Not Found" } as never
-                    )
-                ),
+            getIpInfo: vi.fn().mockRejectedValue(
+                ApiClientError.fromError({
+                    response: { status: 404, statusText: "Not Found" } as Response,
+                    error: { message: "Not Found" } as never,
+                })
+            ),
             createAccessListEntry: vi.fn(),
             logger,
         } as unknown as ApiClient;
-        await expect(ensureCurrentIpInAccessList(apiClient, "projectId")).resolves.toBe("failed");
+        await expect(ensureCurrentIpInAccessList({ apiClient, projectId: "projectId" })).resolves.toBe("failed");
         // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(apiClient.createAccessListEntry).not.toHaveBeenCalled();
         expect((logger as unknown as { warning: ReturnType<typeof vi.fn> }).warning).toHaveBeenCalled();
@@ -76,7 +74,7 @@ describe("accessListUtils", () => {
             createAccessListEntry: vi.fn(),
             logger: new NoopLogger(),
         } as unknown as ApiClient;
-        await expect(ensureCurrentIpInAccessList(apiClient, "projectId")).resolves.toBe("skipped");
+        await expect(ensureCurrentIpInAccessList({ apiClient, projectId: "projectId" })).resolves.toBe("skipped");
         // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(apiClient.getIpInfo).not.toHaveBeenCalled();
         // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -94,12 +92,12 @@ describe("accessListUtils", () => {
             createMock = vi.fn().mockResolvedValue(undefined);
         } else if (createResult === "conflict") {
             createMock = vi.fn().mockRejectedValue(
-                ApiClientError.fromError(
-                    { status: 409, statusText: "Conflict" } as Response,
-                    {
+                ApiClientError.fromError({
+                    response: { status: 409, statusText: "Conflict" } as Response,
+                    error: {
                         message: "Conflict",
-                    } as never
-                )
+                    } as never,
+                })
             );
         } else {
             createMock = vi.fn().mockRejectedValue(new Error("network error"));
@@ -116,7 +114,7 @@ describe("accessListUtils", () => {
         const apiClient = makeSpyApiClient("resolve");
         // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest mock, no this semantics
         const { debug } = apiClient.logger;
-        await ensureCurrentIpInAccessList(apiClient, "proj1", context);
+        await ensureCurrentIpInAccessList({ apiClient, projectId: "proj1", context });
         expect(debug).toHaveBeenCalledWith(
             expect.objectContaining({
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -129,7 +127,7 @@ describe("accessListUtils", () => {
         const apiClient = makeSpyApiClient("conflict");
         // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest mock, no this semantics
         const { debug } = apiClient.logger;
-        await ensureCurrentIpInAccessList(apiClient, "proj1", context);
+        await ensureCurrentIpInAccessList({ apiClient, projectId: "proj1", context });
         expect(debug).toHaveBeenCalledWith(
             expect.objectContaining({
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -142,7 +140,7 @@ describe("accessListUtils", () => {
         const apiClient = makeSpyApiClient("error");
         // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest mock, no this semantics
         const { warning } = apiClient.logger;
-        await ensureCurrentIpInAccessList(apiClient, "proj1", context);
+        await ensureCurrentIpInAccessList({ apiClient, projectId: "proj1", context });
         expect(warning).toHaveBeenCalledWith(
             expect.objectContaining({
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment

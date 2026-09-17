@@ -73,7 +73,15 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
      * `truncation_policy` limit (codex would otherwise truncate the tool
      * definitions from the model request).
      */
-    private copyCatalogWithLiftedTruncation(source: string, dest: string, activeModel: string): void {
+    private copyCatalogWithLiftedTruncation({
+        source,
+        dest,
+        activeModel,
+    }: {
+        source: string;
+        dest: string;
+        activeModel: string;
+    }): void {
         const catalog = JSON.parse(fs.readFileSync(source, "utf8")) as {
             models?: { slug?: string; truncation_policy?: { mode?: string; limit?: number } | null }[];
         };
@@ -141,7 +149,11 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
         const catalogSource = this.resolveHostModelCatalogPath();
         if (catalogSource && existsSync(catalogSource)) {
             const catalogDest = path.join(sessionHomeDir, "model-catalog.json");
-            this.copyCatalogWithLiftedTruncation(catalogSource, catalogDest, resolvedModel);
+            this.copyCatalogWithLiftedTruncation({
+                source: catalogSource,
+                dest: catalogDest,
+                activeModel: resolvedModel,
+            });
             catalogLines.push(`model_catalog_json = ${tomlString(catalogDest)}`);
         }
 

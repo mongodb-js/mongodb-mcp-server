@@ -120,12 +120,17 @@ export function formatCluster(cluster: ClusterDescription20240805): Cluster {
     };
 }
 
-export async function inspectCluster(
-    apiClient: ApiClient,
-    projectId: string,
-    clusterName: string,
-    request?: ToolRequest<IAtlasConfig>
-): Promise<Cluster> {
+export async function inspectCluster({
+    apiClient,
+    projectId,
+    clusterName,
+    request,
+}: {
+    apiClient: ApiClient;
+    projectId: string;
+    clusterName: string;
+    request?: ToolRequest<IAtlasConfig>;
+}): Promise<Cluster> {
     try {
         const cluster = await apiClient.getCluster(
             {
@@ -187,14 +192,19 @@ export function getConnectionString(
     }
 }
 
-export async function getProcessIdsFromCluster(
-    apiClient: ApiClient,
-    projectId: string,
-    clusterName: string,
-    request?: ToolRequest<IAtlasConfig>
-): Promise<Array<string>> {
+export async function getProcessIdsFromCluster({
+    apiClient,
+    projectId,
+    clusterName,
+    request,
+}: {
+    apiClient: ApiClient;
+    projectId: string;
+    clusterName: string;
+    request?: ToolRequest<IAtlasConfig>;
+}): Promise<Array<string>> {
     try {
-        const cluster = await inspectCluster(apiClient, projectId, clusterName, request);
+        const cluster = await inspectCluster({ apiClient, projectId, clusterName, request });
         return cluster.processIds || [];
     } catch (error) {
         throw new Error(

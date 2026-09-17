@@ -407,10 +407,10 @@ describe("CreateClusterTool", () => {
 
         it("defaults to NONE when getEncryptionAtRest call returns 403", async () => {
             mockApiClient.getEncryptionAtRest!.mockRejectedValue(
-                ApiClientError.fromError(
-                    { status: 403, statusText: "Forbidden" } as Response,
-                    { message: "Forbidden" } as never
-                )
+                ApiClientError.fromError({
+                    response: { status: 403, statusText: "Forbidden" } as Response,
+                    error: { message: "Forbidden" } as never,
+                })
             );
 
             const result = await exec(BASE_ARGS);
@@ -464,10 +464,10 @@ describe("CreateClusterTool", () => {
 
         it("does not mention the access list when the current IP is already present", async () => {
             mockApiClient.createAccessListEntry?.mockRejectedValue(
-                ApiClientError.fromError(
-                    { status: 409, statusText: "Conflict" } as Response,
-                    { message: "Conflict" } as never
-                )
+                ApiClientError.fromError({
+                    response: { status: 409, statusText: "Conflict" } as Response,
+                    error: { message: "Conflict" } as never,
+                })
             );
 
             const result = await exec(BASE_ARGS);
@@ -578,10 +578,10 @@ describe("CreateClusterTool", () => {
 
         it("returns error when getEncryptionAtRest call fails with a non-403 error", async () => {
             mockApiClient.getEncryptionAtRest!.mockRejectedValue(
-                ApiClientError.fromError(
-                    { status: 500, statusText: "Internal Server Error" } as Response,
-                    { message: "Internal Server Error" } as never
-                )
+                ApiClientError.fromError({
+                    response: { status: 500, statusText: "Internal Server Error" } as Response,
+                    error: { message: "Internal Server Error" } as never,
+                })
             );
 
             const result = await exec(BASE_ARGS);

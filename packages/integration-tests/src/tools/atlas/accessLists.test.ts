@@ -155,9 +155,9 @@ describeWithAtlas("ip access lists", (integration) => {
                 const projectId = getProjectId();
                 const ipInfo = await apiClient.getIpInfo();
                 // First call should add the IP
-                await expect(ensureCurrentIpInAccessList(apiClient, projectId)).resolves.not.toThrow();
+                await expect(ensureCurrentIpInAccessList({ apiClient, projectId })).resolves.not.toThrow();
                 // Second call should be a no-op (idempotent)
-                await expect(ensureCurrentIpInAccessList(apiClient, projectId)).resolves.not.toThrow();
+                await expect(ensureCurrentIpInAccessList({ apiClient, projectId })).resolves.not.toThrow();
                 // Check that the IP is present in the access list
                 const accessList = await apiClient.listAccessListEntries({
                     params: { path: { groupId: projectId } },

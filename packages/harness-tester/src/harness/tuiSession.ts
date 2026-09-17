@@ -45,7 +45,15 @@ export abstract class TuiSessionBase implements AgentSession {
         return this.currentState;
     }
 
-    protected constructor(terminal: TuiTest, options: AgentHarnessOptions, onState?: (state: TuiState) => void) {
+    protected constructor({
+        terminal,
+        options,
+        onState,
+    }: {
+        terminal: TuiTest;
+        options: AgentHarnessOptions;
+        onState?: (state: TuiState) => void;
+    }) {
         this.terminal = terminal;
         this.options = options;
         this.onState = onState ?? ((state): void => this.printState(state));

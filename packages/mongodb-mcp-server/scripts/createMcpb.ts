@@ -11,7 +11,7 @@ import type { PackageJson as LoosePackageJson, SetRequired, JsonValue } from "ty
 
 export type PackageJson = SetRequired<LoosePackageJson, "name" | "version" | "dependencies">;
 
-function spawnAsync(cmd: string, args: string[], cwd: string): Promise<void> {
+function spawnAsync({ cmd, args, cwd }: { cmd: string; args: string[]; cwd: string }): Promise<void> {
     return new Promise((resolvePromise, rejectPromise) => {
         const child = spawn(cmd, args, { cwd, stdio: "inherit", shell: process.platform === "win32" });
         child.on("error", rejectPromise);
@@ -181,7 +181,7 @@ async function stageFiles(): Promise<void> {
 async function runMcpbValidate(): Promise<void> {
     // pnpm exec changes cwd to the workspace root, so we pass an absolute manifest path.
     const manifestPath = resolve(paths.stagingDir, "manifest.json");
-    await spawnAsync("pnpm", ["exec", "mcpb", "validate", manifestPath], paths.stagingDir);
+    await spawnAsync({ cmd: "pnpm", args: ["exec", "mcpb", "validate", manifestPath], cwd: paths.stagingDir });
 }
 
 // Delete a package directory only if its package.json declares `cpu` or `os` constraints —
@@ -230,7 +230,11 @@ async function stageDependencies(rootPkg: PackageJson): Promise<void> {
     // host's optional deps for the install to succeed; the atlas-local platform binaries we
     // care about are listed as required deps in buildStagingPackageJson, so they install
     // unconditionally.
-    await spawnAsync("pnpm", ["install", "--prod", "--node-linker=hoisted", "--no-frozen-lockfile"], paths.stagingDir);
+    await spawnAsync({
+        cmd: "pnpm",
+        args: ["install", "--prod", "--node-linker=hoisted", "--no-frozen-lockfile"],
+        cwd: paths.stagingDir,
+    });
 
     const stagedNodeModules = resolve(paths.stagingDir, "node_modules");
 
@@ -306,7 +310,7 @@ function verifyStagedDeps(): void {
 async function packMcpb(rootPkg: PackageJson): Promise<void> {
     await mkdir(paths.outputDir, { recursive: true });
     const outFile = resolve(paths.outputDir, `mongodb-mcp-server-${rootPkg.version}.mcpb`);
-    await spawnAsync("pnpm", ["exec", "mcpb", "pack", paths.stagingDir, outFile], paths.repoRoot);
+    await spawnAsync({ cmd: "pnpm", args: ["exec", "mcpb", "pack", paths.stagingDir, outFile], cwd: paths.repoRoot });
     const s = await stat(outFile);
     const mb = (s.size / (1024 * 1024)).toFixed(1);
     console.log(`mcpb: wrote ${outFile} (${mb} MB)`);

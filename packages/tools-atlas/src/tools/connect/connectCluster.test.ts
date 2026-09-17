@@ -242,7 +242,12 @@ describe("ConnectClusterTool", () => {
             };
 
             const entry = await connectionRegistry.createEntry({ name: ATLAS_INFO.clusterName });
-            await tool["connectToCluster"](entry, "mongodb://localhost", ATLAS_INFO, context.request);
+            await tool["connectToCluster"]({
+                entry,
+                connectionString: "mongodb://localhost",
+                atlas: ATLAS_INFO,
+                request: context.request,
+            });
 
             expect(mockLogger.debug).toHaveBeenCalledWith(
                 expect.objectContaining({
@@ -270,7 +275,12 @@ describe("ConnectClusterTool", () => {
             };
 
             const entry = await connectionRegistry.createEntry({ name: ATLAS_INFO.clusterName });
-            await tool["connectToCluster"](entry, "mongodb://localhost", ATLAS_INFO, context.request);
+            await tool["connectToCluster"]({
+                entry,
+                connectionString: "mongodb://localhost",
+                atlas: ATLAS_INFO,
+                request: context.request,
+            });
 
             for (const [payload] of (mockLogger.debug as ReturnType<typeof vi.fn>).mock.calls) {
                 expect((payload as { attributes?: Record<string, string> }).attributes).not.toHaveProperty(
@@ -300,12 +310,12 @@ describe("ConnectClusterTool", () => {
             // running its full 600-retry backoff.
             connectSpy.mockResolvedValueOnce({} as never);
 
-            await tool["connectToCluster"](
+            await tool["connectToCluster"]({
                 entry,
-                "mongodb://mcpUser123:p4ssw0rd456@cluster.example.com:27017/?authSource=admin",
-                ATLAS_INFO,
-                context.request
-            );
+                connectionString: "mongodb://mcpUser123:p4ssw0rd456@cluster.example.com:27017/?authSource=admin",
+                atlas: ATLAS_INFO,
+                request: context.request,
+            });
 
             const all = mockLogger.allLogMessages();
             expect(all).not.toContain("mcpUser123");

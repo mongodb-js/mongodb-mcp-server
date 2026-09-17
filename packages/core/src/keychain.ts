@@ -46,7 +46,7 @@ export class Keychain implements IKeychain {
      * `Set` contents are not.
      */
     redact<T>(value: T): T {
-        return redactDeep(value, toSecretArray(this.secrets), new WeakMap()) as T;
+        return redactDeep({ value, secrets: toSecretArray(this.secrets), redacted: new WeakMap() }) as T;
     }
 
     /**
@@ -85,7 +85,15 @@ function toSecretArray(secrets: Readonly<SecretRecord>): Secret[] {
  */
 const inProgress = Symbol("redactDeep.inProgress");
 
-function redactDeep(value: unknown, secrets: Secret[], redacted: WeakMap<object, unknown>): unknown {
+function redactDeep({
+    value,
+    secrets,
+    redacted,
+}: {
+    value: unknown;
+    secrets: Secret[];
+    redacted: WeakMap<object, unknown>;
+}): unknown {
     if (typeof value === "string") {
         return redactValue(value, secrets);
     }
@@ -100,19 +108,29 @@ function redactDeep(value: unknown, secrets: Secret[], redacted: WeakMap<object,
     }
     redacted.set(value, inProgress);
 
-    const result = redactChildren(value, secrets, redacted);
+    const result = redactChildren({ value, secrets, redacted });
     redacted.set(value, result);
     return result;
 }
 
-function redactChildren(value: object, secrets: Secret[], redacted: WeakMap<object, unknown>): unknown {
+function redactChildren({
+    value,
+    secrets,
+    redacted,
+}: {
+    value: object;
+    secrets: Secret[];
+    redacted: WeakMap<object, unknown>;
+}): unknown {
     if (Array.isArray(value)) {
-        const items = value.map((item) => redactDeep(item, secrets, redacted));
+        const items = value.map((item) => redactDeep({ value: item, secrets, redacted }));
         return items.some((item, index) => item !== value[index]) ? items : value;
     }
 
     const entries = Object.entries(value);
-    const redactedEntries = entries.map(([key, entry]) => [key, redactDeep(entry, secrets, redacted)] as const);
+    const redactedEntries = entries.map(
+        ([key, entry]) => [key, redactDeep({ value: entry, secrets, redacted })] as const
+    );
     if (redactedEntries.every(([, entry], index) => entry === entries[index]?.[1])) {
         return value;
     }

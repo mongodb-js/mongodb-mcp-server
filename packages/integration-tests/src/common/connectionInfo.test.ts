@@ -217,7 +217,7 @@ describe("connectionInfo", () => {
             const connectionString = "mongodb://localhost:27017";
             const config = {} as UserConfig;
 
-            const result = getConnectionStringInfo(connectionString, config);
+            const result = getConnectionStringInfo({ connectionString, connectionInfo: config });
 
             expect(result).toEqual({
                 authType: "scram",
@@ -229,7 +229,7 @@ describe("connectionInfo", () => {
             const connectionString = "mongodb+srv://user:password@cluster.mongodb.net/database";
             const config = {} as UserConfig;
 
-            const result = getConnectionStringInfo(connectionString, config);
+            const result = getConnectionStringInfo({ connectionString, connectionInfo: config });
 
             expect(result).toEqual({
                 authType: "scram",
@@ -241,7 +241,7 @@ describe("connectionInfo", () => {
             const connectionString = "mongodb://localhost:27017";
             const config = {} as UserConfig;
 
-            const result = getConnectionStringInfo(connectionString, config, "atlas");
+            const result = getConnectionStringInfo({ connectionString, connectionInfo: config, hostType: "atlas" });
 
             expect(result).toEqual({
                 authType: "scram",
@@ -253,7 +253,7 @@ describe("connectionInfo", () => {
             const connectionString = "mongodb://localhost:27017";
             const config = {} as UserConfig;
 
-            const result = getConnectionStringInfo(connectionString, config, "atlas");
+            const result = getConnectionStringInfo({ connectionString, connectionInfo: config, hostType: "atlas" });
 
             expect(result).toEqual({
                 authType: "scram",
@@ -265,7 +265,7 @@ describe("connectionInfo", () => {
             const connectionString = "mongodb://localhost:27017";
             const config = {} as UserConfig;
 
-            const result = getConnectionStringInfo(connectionString, config, undefined);
+            const result = getConnectionStringInfo({ connectionString, connectionInfo: config });
 
             expect(result).toEqual({
                 authType: "scram",
@@ -277,7 +277,7 @@ describe("connectionInfo", () => {
             const connectionString = "mongodb+srv://user@cluster.mongodb.net/database?authMechanism=MONGODB-OIDC";
             const config = { transport: "stdio", browser: "firefox" } as UserConfig;
 
-            const result = getConnectionStringInfo(connectionString, config);
+            const result = getConnectionStringInfo({ connectionString, connectionInfo: config });
 
             expect(result).toEqual({
                 authType: "oidc-auth-flow",
@@ -289,7 +289,7 @@ describe("connectionInfo", () => {
             const connectionString = "mongodb+srv://user@cluster.mongodb.net/database?authMechanism=MONGODB-X509";
             const config = {} as UserConfig;
 
-            const result = getConnectionStringInfo(connectionString, config);
+            const result = getConnectionStringInfo({ connectionString, connectionInfo: config });
 
             expect(result).toEqual({
                 authType: "x.509",
@@ -302,7 +302,7 @@ describe("connectionInfo", () => {
             const connectionString = "mongodb+srv://user:password@cluster.mongodb.net/database";
             const config = {} as UserConfig;
 
-            const result = getConnectionStringInfo(connectionString, config, undefined);
+            const result = getConnectionStringInfo({ connectionString, connectionInfo: config });
 
             expect(result.hostType).toBe("atlas");
         });
@@ -311,7 +311,7 @@ describe("connectionInfo", () => {
             const connectionString = "mongodb://localhost:27017?authMechanism=PLAIN&authSource=$external";
             const config = {} as UserConfig;
 
-            const result = getConnectionStringInfo(connectionString, config);
+            const result = getConnectionStringInfo({ connectionString, connectionInfo: config });
 
             expect(result).toEqual({
                 authType: "ldap",
@@ -325,7 +325,7 @@ describe("connectionInfo", () => {
             const connectionString = "mongodb://private-endpoint.example.com:27017";
             const config = {} as UserConfig;
 
-            const result = getConnectionStringInfo(connectionString, config, "atlas");
+            const result = getConnectionStringInfo({ connectionString, connectionInfo: config, hostType: "atlas" });
 
             expect(result).toEqual({
                 authType: "scram",

@@ -26,6 +26,7 @@ export class DiskBasedResultStorage implements AccuracyResultStorage {
         return this.withFileLock<AccuracyResult | null>(filePath, () => this.getAccuracyResultWithoutLock(filePath));
     }
 
+    // eslint-disable-next-line max-params
     async updateRunStatus(commitSHA: string, runId: string, status: AccuracyRunStatuses): Promise<void> {
         const resultFilePath = this.getAccuracyResultFilePath(commitSHA, runId);
         await this.withFileLock(resultFilePath, async () => {

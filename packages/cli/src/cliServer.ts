@@ -275,12 +275,12 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
                 message: `Server with version ${this.serverMetadata.version} started and agent runner ${JSON.stringify(this.mcpServer.server.getClientVersion())}`,
             });
 
-            this.emitServerTelemetryEvent("start", Date.now() - this.startTime);
+            this.emitServerTelemetryEvent({ command: "start", commandDuration: Date.now() - this.startTime });
         };
 
         this.mcpServer.server.onclose = (): void => {
             const closeTime = Date.now();
-            this.emitServerTelemetryEvent("stop", Date.now() - closeTime);
+            this.emitServerTelemetryEvent({ command: "stop", commandDuration: Date.now() - closeTime });
             // Reap the request-scoped connection registry view when the underlying
             // McpServer closes. This covers the modern stateless (2026-07-28)
             // path, where the SDK closes each per-request McpServer and never
@@ -293,7 +293,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
 
         this.mcpServer.server.onerror = (error: Error): void => {
             const closeTime = Date.now();
-            this.emitServerTelemetryEvent("stop", Date.now() - closeTime, error);
+            this.emitServerTelemetryEvent({ command: "stop", commandDuration: Date.now() - closeTime, error });
         };
 
         this.registered = true;
@@ -341,7 +341,15 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
         }
     }
 
-    private emitServerTelemetryEvent(command: TelemetryServerCommand, commandDuration: number, error?: Error): void {
+    private emitServerTelemetryEvent({
+        command,
+        commandDuration,
+        error,
+    }: {
+        command: TelemetryServerCommand;
+        commandDuration: number;
+        error?: Error;
+    }): void {
         const event: TelemetryServerEvent = {
             timestamp: new Date().toISOString(),
             source: "mdbmcp",
