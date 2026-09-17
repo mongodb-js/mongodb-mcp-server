@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { toToolExecutionContext } from "./toolBase.js";
-import type { ServerContext } from "@modelcontextprotocol/server";
+import { CLIENT_INFO_META_KEY, type ServerContext } from "@modelcontextprotocol/server";
 
 function makeCtx(overrides: Partial<ServerContext> = {}): ServerContext {
     return {
@@ -71,5 +71,45 @@ describe("toToolExecutionContext", () => {
         const ctx = makeCtx({ mcpReq: {} as never });
         const result = toToolExecutionContext(ctx, { name: "my-client", version: "1.0.0" });
         expect(result.request.clientInfo).toEqual({ name: "my-client", version: "1.0.0", title: "unknown" });
+    });
+
+    it("reads client info from the per-request envelope (2026-07-28 modern path)", () => {
+        const ctx = makeCtx({
+            mcpReq: { envelope: { [CLIENT_INFO_META_KEY]: { name: "envelope-client", version: "2.0.0" } } } as never,
+        });
+        const result = toToolExecutionContext(ctx);
+        expect(result.request.clientInfo).toEqual({
+            name: "envelope-client",
+            version: "2.0.0",
+            title: "unknown",
+        });
+    });
+
+    it("falls back to the negotiated client info when no envelope declaration exists (2025-era legacy path)", () => {
+        const ctx = makeCtx({ mcpReq: {} as never });
+        const result = toToolExecutionContext(ctx, { name: "legacy-client", version: "1.0.0" });
+        expect(result.request.clientInfo).toEqual({
+            name: "legacy-client",
+            version: "1.0.0",
+            title: "unknown",
+        });
+    });
+
+    it("prefers the envelope client info even when a negotiated value is also supplied", () => {
+        const ctx = makeCtx({
+            mcpReq: { envelope: { [CLIENT_INFO_META_KEY]: { name: "envelope-client", version: "2.0.0" } } } as never,
+        });
+        const result = toToolExecutionContext(ctx, { name: "negotiated-client", version: "1.0.0" });
+        expect(result.request.clientInfo).toEqual({
+            name: "envelope-client",
+            version: "2.0.0",
+            title: "unknown",
+        });
+    });
+
+    it("leaves clientInfo undefined when neither envelope nor negotiated value is present", () => {
+        const ctx = makeCtx({ mcpReq: {} as never });
+        const result = toToolExecutionContext(ctx);
+        expect(result.request.clientInfo).toBeUndefined();
     });
 });

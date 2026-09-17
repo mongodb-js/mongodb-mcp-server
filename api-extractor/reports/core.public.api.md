@@ -71,6 +71,15 @@ export const ASCII_ONLY_NON_CC_ERROR = "String cannot contain control characters
 
 export { CallToolResult }
 
+// @public
+export function clientTelemetryProperties(clientInfo: {
+    name?: string;
+    version?: string;
+} | undefined): {
+    mcp_client_name?: string;
+    mcp_client_version?: string;
+};
+
 // @public (undocumented)
 export const CommonArgs: {
     asciiOnlyString: () => ZodString;
