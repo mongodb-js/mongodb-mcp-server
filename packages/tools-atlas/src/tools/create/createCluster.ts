@@ -46,11 +46,15 @@ type ReplicationSpec = {
     }>;
 };
 
-function buildAutoScaling(
-    instanceSize: StandardInstanceSize,
-    computeEnabled: boolean,
-    provider: AtlasCloudProvider
-): AutoScalingConfig {
+function buildAutoScaling({
+    instanceSize,
+    computeEnabled,
+    provider,
+}: {
+    instanceSize: StandardInstanceSize;
+    computeEnabled: boolean;
+    provider: AtlasCloudProvider;
+}): AutoScalingConfig {
     return {
         compute: {
             enabled: computeEnabled,
@@ -64,13 +68,19 @@ function buildAutoScaling(
 
 const ELECTABLE_NODE_DISTRIBUTIONS = [[3], [2, 1], [2, 2, 1]] as const;
 
-function buildReplicationSpecs(
-    provider: AtlasCloudProvider,
-    regions: string[],
-    instanceSize: StandardInstanceSize,
-    autoScaling: AutoScalingConfig,
-    diskSizeGB?: number
-): ReplicationSpec[] {
+function buildReplicationSpecs({
+    provider,
+    regions,
+    instanceSize,
+    autoScaling,
+    diskSizeGB,
+}: {
+    provider: AtlasCloudProvider;
+    regions: string[];
+    instanceSize: StandardInstanceSize;
+    autoScaling: AutoScalingConfig;
+    diskSizeGB?: number;
+}): ReplicationSpec[] {
     const nodeDistribution = ELECTABLE_NODE_DISTRIBUTIONS[regions.length - 1] ?? [];
 
     return [
@@ -253,8 +263,14 @@ export class CreateClusterTool extends AtlasToolBase {
             instanceSize = (existing.results?.length ?? 0) < 2 ? "M10" : "M30";
         }
 
-        const autoScaling = buildAutoScaling(instanceSize, args.computeAutoScaling, provider);
-        const replicationSpecs = buildReplicationSpecs(provider, regions, instanceSize, autoScaling, args.diskSizeGB);
+        const autoScaling = buildAutoScaling({ instanceSize, computeEnabled: args.computeAutoScaling, provider });
+        const replicationSpecs = buildReplicationSpecs({
+            provider,
+            regions,
+            instanceSize,
+            autoScaling,
+            diskSizeGB: args.diskSizeGB,
+        });
         const backupConfig = buildBackupConfig(args.backup);
         const versionConfig = buildVersionConfig(args.mongoDBVersion);
 

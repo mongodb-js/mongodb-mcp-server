@@ -418,14 +418,21 @@ export async function waitUntilSearchIsReady(
     );
 }
 
-async function waitUntilSearchIndexIs(
-    collection: Collection,
-    searchIndex: string,
-    indexValidator: (index: { name: string; status: string; queryable: boolean }) => boolean,
-    timeout: number,
-    interval: number,
-    getValidationFailedMessage: (searchIndexes: Document[]) => string = () => "Search index did not pass validation"
-): Promise<void> {
+async function waitUntilSearchIndexIs({
+    collection,
+    searchIndex,
+    indexValidator,
+    timeout,
+    interval,
+    getValidationFailedMessage = (): string => "Search index did not pass validation",
+}: {
+    collection: Collection;
+    searchIndex: string;
+    indexValidator: (index: { name: string; status: string; queryable: boolean }) => boolean;
+    timeout: number;
+    interval: number;
+    getValidationFailedMessage?: (searchIndexes: Document[]) => string;
+}): Promise<void> {
     await vi.waitFor(
         async () => {
             const searchIndexes = (await collection.listSearchIndexes(searchIndex).toArray()) as {
@@ -451,15 +458,15 @@ export async function waitUntilSearchIndexIsListed(
     timeout: number = SEARCH_WAIT_TIMEOUT,
     interval: number = DEFAULT_RETRY_INTERVAL
 ): Promise<void> {
-    return waitUntilSearchIndexIs(
+    return waitUntilSearchIndexIs({
         collection,
         searchIndex,
-        (index) => index.name === searchIndex,
+        indexValidator: (index) => index.name === searchIndex,
         timeout,
         interval,
-        (searchIndexes) =>
-            `Index ${searchIndex} is not yet in the index list (${searchIndexes.map(({ name }) => String(name)).join(", ")})`
-    );
+        getValidationFailedMessage: (searchIndexes) =>
+            `Index ${searchIndex} is not yet in the index list (${searchIndexes.map(({ name }) => String(name)).join(", ")})`,
+    });
 }
 
 export async function waitUntilSearchIndexIsQueryable(
@@ -468,17 +475,17 @@ export async function waitUntilSearchIndexIsQueryable(
     timeout: number = SEARCH_WAIT_TIMEOUT,
     interval: number = DEFAULT_RETRY_INTERVAL
 ): Promise<void> {
-    return waitUntilSearchIndexIs(
+    return waitUntilSearchIndexIs({
         collection,
         searchIndex,
-        (index) => index.name === searchIndex && index.status === "READY",
+        indexValidator: (index) => index.name === searchIndex && index.status === "READY",
         timeout,
         interval,
-        (searchIndexes) => {
+        getValidationFailedMessage: (searchIndexes) => {
             const index = searchIndexes.find((index) => index.name === searchIndex);
             return `Index ${searchIndex} in ${collection.dbName}.${collection.collectionName} is not ready. Last known status - ${JSON.stringify(index)}`;
-        }
-    );
+        },
+    });
 }
 
 export async function createVectorSearchIndexAndWait(

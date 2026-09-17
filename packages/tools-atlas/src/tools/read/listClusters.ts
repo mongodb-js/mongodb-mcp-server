@@ -106,7 +106,7 @@ export class ListClustersTool extends AtlasToolBase {
             const clusters = clustersResult.status === "fulfilled" ? clustersResult.value : undefined;
             const flexClusters = flexClustersResult.status === "fulfilled" ? flexClustersResult.value : undefined;
 
-            return this.formatClustersTable(project, clusters, flexClusters);
+            return this.formatClustersTable({ project, clusters, flexClusters });
         }
     }
 
@@ -151,11 +151,15 @@ export class ListClustersTool extends AtlasToolBase {
         };
     }
 
-    private formatClustersTable(
-        project: Group,
-        clusters: PaginatedClusterDescription20240805 | undefined,
-        flexClusters: PaginatedFlexClusters20241113 | undefined
-    ): ToolResult<typeof ListClustersOutputSchema> {
+    private formatClustersTable({
+        project,
+        clusters,
+        flexClusters,
+    }: {
+        project: Group;
+        clusters: PaginatedClusterDescription20240805 | undefined;
+        flexClusters: PaginatedFlexClusters20241113 | undefined;
+    }): ToolResult<typeof ListClustersOutputSchema> {
         // Check if both traditional clusters and flex clusters are absent
         if (!clusters?.results?.length && !flexClusters?.results?.length) {
             return {

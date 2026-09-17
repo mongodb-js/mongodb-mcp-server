@@ -441,7 +441,7 @@ export function validateToolMetadata(
         expectDefined(tool);
         expect(tool.description).toBe(description);
 
-        validateToolAnnotations(tool, name, operationType);
+        validateToolAnnotations({ tool, name, operationType });
         const toolParameters = getParameters(tool);
         expect(toolParameters).toHaveLength(parameters.length);
         expect(toolParameters).toIncludeSameMembers(parameters);
@@ -472,7 +472,15 @@ export function expectDefined<T>(arg: T): asserts arg is Exclude<T, undefined | 
     expect(arg).not.toBeNull();
 }
 
-function validateToolAnnotations(tool: ToolInfo, name: string, operationType: OperationType): void {
+function validateToolAnnotations({
+    tool,
+    name,
+    operationType,
+}: {
+    tool: ToolInfo;
+    name: string;
+    operationType: OperationType;
+}): void {
     expectDefined(tool.annotations);
     expect(tool.annotations.title).toBe(name);
     expect(tool.annotations.openWorldHint).toBe(true);

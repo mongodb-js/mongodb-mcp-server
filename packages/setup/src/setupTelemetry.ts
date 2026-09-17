@@ -115,11 +115,15 @@ export class SetupTelemetry {
      * defaults to "success" — callers pass "failure" only when the step's
      * own code path failed (e.g. writing the editor config threw).
      */
-    private emit(
-        stage: TelemetrySetupStage,
-        extra: Partial<TelemetrySetupEventProperties> = {},
-        result: TelemetryResult = "success"
-    ): void {
+    private emit({
+        stage,
+        extra = {},
+        result = "success",
+    }: {
+        stage: TelemetrySetupStage;
+        extra?: Partial<TelemetrySetupEventProperties>;
+        result?: TelemetryResult;
+    }): void {
         const now = Date.now();
         const event: TelemetrySetupEvent = {
             timestamp: new Date(now).toISOString(),
@@ -143,7 +147,7 @@ export class SetupTelemetry {
     }
 
     public emitStarted(): void {
-        this.emit("started");
+        this.emit({ stage: "started" });
     }
 
     public emitPrerequisitesChecked(props: { nodeVersionOk: boolean; hasDocker?: boolean }): void {
@@ -151,17 +155,17 @@ export class SetupTelemetry {
             node_version_ok: toBoolSet(props.nodeVersionOk),
             has_docker: toBoolSet(props.hasDocker),
         });
-        this.emit("prerequisites_checked");
+        this.emit({ stage: "prerequisites_checked" });
     }
 
     public emitAiToolSelected(aiTool: string): void {
         this.updateContext({ ai_tool: aiTool });
-        this.emit("ai_tool_selected");
+        this.emit({ stage: "ai_tool_selected" });
     }
 
     public emitReadOnlySelected(isReadOnly: boolean): void {
         this.updateContext({ read_only_mode: toBoolSet(isReadOnly) });
-        this.emit("read_only_selected");
+        this.emit({ stage: "read_only_selected" });
     }
 
     public emitConnectionStringEntered(props: {
@@ -179,21 +183,21 @@ export class SetupTelemetry {
         // test result on this step event (success/failure). If they skipped
         // the test, the step itself still "succeeded" — the user chose not
         // to validate — so we default to success.
-        this.emit("connection_string_entered", {}, props.testResult ?? "success");
+        this.emit({ stage: "connection_string_entered", extra: {}, result: props.testResult ?? "success" });
     }
 
     public emitServiceAccountIdEntered(provided: boolean): void {
         this.updateContext({ service_account_id_provided: toBoolSet(provided) });
-        this.emit("service_account_id_entered");
+        this.emit({ stage: "service_account_id_entered" });
     }
 
     public emitServiceAccountSecretEntered(provided: boolean): void {
         this.updateContext({ service_account_secret_provided: toBoolSet(provided) });
-        this.emit("service_account_secret_entered");
+        this.emit({ stage: "service_account_secret_entered" });
     }
 
     public emitCredentialsValidated(): void {
-        this.emit("credentials_validated");
+        this.emit({ stage: "credentials_validated" });
     }
 
     public emitEditorConfigured(props: {
@@ -204,7 +208,11 @@ export class SetupTelemetry {
         this.updateContext({
             used_default_config_path: toBoolSet(props.usedDefaultConfigPath),
         });
-        this.emit("editor_configured", props.error ? { error_type: errorName(props.error) } : {}, props.result);
+        this.emit({
+            stage: "editor_configured",
+            extra: props.error ? { error_type: errorName(props.error) } : {},
+            result: props.result,
+        });
     }
 
     public emitSkillsInstallPrompted(outcome: SkillsInstallOutcome): void {
@@ -215,16 +223,20 @@ export class SetupTelemetry {
             patch.skills_install_exit_code = outcome.exitCode;
         }
         this.updateContext(patch);
-        this.emit("skills_install_prompted");
+        this.emit({ stage: "skills_install_prompted" });
     }
 
     public emitOpenConfigPrompted(props: { opened: boolean; result: TelemetryResult; error?: unknown }): void {
         this.updateContext({ opened_config_file: toBoolSet(props.opened) });
-        this.emit("open_config_prompted", props.error ? { error_type: errorName(props.error) } : {}, props.result);
+        this.emit({
+            stage: "open_config_prompted",
+            extra: props.error ? { error_type: errorName(props.error) } : {},
+            result: props.result,
+        });
     }
 
     public emitCompleted(): void {
-        this.emit("completed", { total_duration_ms: Date.now() - this.startedAt });
+        this.emit({ stage: "completed", extra: { total_duration_ms: Date.now() - this.startedAt } });
     }
 
     /**
@@ -234,22 +246,25 @@ export class SetupTelemetry {
      * abandoned runs from completed ones.
      */
     public emitCancelled(): void {
-        this.emit("cancelled", {
-            last_stage: this.lastStep,
-            total_duration_ms: Date.now() - this.startedAt,
+        this.emit({
+            stage: "cancelled",
+            extra: {
+                last_stage: this.lastStep,
+                total_duration_ms: Date.now() - this.startedAt,
+            },
         });
     }
 
     public emitFailed(error: unknown): void {
-        this.emit(
-            "failed",
-            {
+        this.emit({
+            stage: "failed",
+            extra: {
                 last_stage: this.lastStep,
                 error_type: errorName(error),
                 total_duration_ms: Date.now() - this.startedAt,
             },
-            "failure"
-        );
+            result: "failure",
+        });
     }
 
     /**

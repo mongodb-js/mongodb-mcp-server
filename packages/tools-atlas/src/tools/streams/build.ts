@@ -347,7 +347,11 @@ export class StreamsBuildTool extends StreamsToolBase {
 
         const config = { ...ConnectionConfig.parse(args.connectionConfig ?? {}) };
 
-        const missingInfo = this.normalizeAndValidateConnectionConfig(config, args.connectionType, request);
+        const missingInfo = this.normalizeAndValidateConnectionConfig({
+            config,
+            connectionType: args.connectionType,
+            request,
+        });
         if (missingInfo) {
             return missingInfo;
         }
@@ -393,11 +397,15 @@ export class StreamsBuildTool extends StreamsToolBase {
      * @returns null if config is valid and ready to send, or a CallToolResult
      *          describing what information is still needed.
      */
-    private normalizeAndValidateConnectionConfig(
-        config: Record<string, unknown>,
-        connectionType: string,
-        request: ToolRequest<IAtlasConfig>
-    ): CallToolResult | InputRequiredResult | null {
+    private normalizeAndValidateConnectionConfig({
+        config,
+        connectionType,
+        request,
+    }: {
+        config: Record<string, unknown>;
+        connectionType: string;
+        request: ToolRequest<IAtlasConfig>;
+    }): CallToolResult | InputRequiredResult | null {
         switch (connectionType) {
             case "Kafka":
                 return this.validateKafkaConfig(config, request);
@@ -406,7 +414,7 @@ export class StreamsBuildTool extends StreamsToolBase {
             case "S3":
             case "AWSKinesisDataStreams":
             case "AWSLambda":
-                return this.validateAwsConfig(config, connectionType, request);
+                return this.validateAwsConfig({ config, connectionType, request });
             case "SchemaRegistry":
                 return this.validateSchemaRegistryConfig(config, request);
             case "Https":
@@ -432,12 +440,18 @@ export class StreamsBuildTool extends StreamsToolBase {
                 { key: "mechanism", present: false, schema: KAFKA_FIELDS.mechanism },
                 { key: "protocol", present: !!security?.protocol, schema: KAFKA_FIELDS.protocol },
             ]);
-            const result = this.elicitOrReportMissing("Kafka", config, mechanismFields, request, (fields, cfg) => {
-                if (fields.bootstrapServers) cfg.bootstrapServers = fields.bootstrapServers;
-                if (!cfg.authentication) cfg.authentication = {};
-                if (fields.mechanism) (cfg.authentication as Record<string, unknown>).mechanism = fields.mechanism;
-                if (!cfg.security) cfg.security = {};
-                if (fields.protocol) (cfg.security as Record<string, unknown>).protocol = fields.protocol;
+            const result = this.elicitOrReportMissing({
+                connectionType: "Kafka",
+                config,
+                missingFields: mechanismFields,
+                request,
+                applyFields: (fields, cfg) => {
+                    if (fields.bootstrapServers) cfg.bootstrapServers = fields.bootstrapServers;
+                    if (!cfg.authentication) cfg.authentication = {};
+                    if (fields.mechanism) (cfg.authentication as Record<string, unknown>).mechanism = fields.mechanism;
+                    if (!cfg.security) cfg.security = {};
+                    if (fields.protocol) (cfg.security as Record<string, unknown>).protocol = fields.protocol;
+                },
             });
             return result ?? this.validateKafkaConfig(config, request);
         }
@@ -461,20 +475,26 @@ export class StreamsBuildTool extends StreamsToolBase {
             return null;
         }
 
-        return this.elicitOrReportMissing("Kafka", config, missingFields, request, (fields, cfg) => {
-            if (fields.bootstrapServers) cfg.bootstrapServers = fields.bootstrapServers;
-            if (!cfg.authentication) cfg.authentication = {};
-            const authObj = cfg.authentication as Record<string, unknown>;
-            if (fields.mechanism) authObj.mechanism = fields.mechanism;
-            if (fields.username) authObj.username = fields.username;
-            if (fields.password) authObj.password = fields.password;
-            if (fields.roleArn) {
-                if (!authObj.aws) authObj.aws = {};
-                (authObj.aws as Record<string, unknown>).roleArn = fields.roleArn;
-            }
-            if (!cfg.security) cfg.security = {};
-            const secObj = cfg.security as Record<string, unknown>;
-            if (fields.protocol) secObj.protocol = fields.protocol;
+        return this.elicitOrReportMissing({
+            connectionType: "Kafka",
+            config,
+            missingFields,
+            request,
+            applyFields: (fields, cfg) => {
+                if (fields.bootstrapServers) cfg.bootstrapServers = fields.bootstrapServers;
+                if (!cfg.authentication) cfg.authentication = {};
+                const authObj = cfg.authentication as Record<string, unknown>;
+                if (fields.mechanism) authObj.mechanism = fields.mechanism;
+                if (fields.username) authObj.username = fields.username;
+                if (fields.password) authObj.password = fields.password;
+                if (fields.roleArn) {
+                    if (!authObj.aws) authObj.aws = {};
+                    (authObj.aws as Record<string, unknown>).roleArn = fields.roleArn;
+                }
+                if (!cfg.security) cfg.security = {};
+                const secObj = cfg.security as Record<string, unknown>;
+                if (fields.protocol) secObj.protocol = fields.protocol;
+            },
         });
     }
 
@@ -495,16 +515,26 @@ export class StreamsBuildTool extends StreamsToolBase {
             return null;
         }
 
-        return this.elicitOrReportMissing("Cluster", config, missingFields, request, (fields, cfg) => {
-            if (fields.clusterName) cfg.clusterName = fields.clusterName;
+        return this.elicitOrReportMissing({
+            connectionType: "Cluster",
+            config,
+            missingFields,
+            request,
+            applyFields: (fields, cfg) => {
+                if (fields.clusterName) cfg.clusterName = fields.clusterName;
+            },
         });
     }
 
-    private validateAwsConfig(
-        config: Record<string, unknown>,
-        connectionType: string,
-        request: ToolRequest<IAtlasConfig>
-    ): CallToolResult | InputRequiredResult | null {
+    private validateAwsConfig({
+        config,
+        connectionType,
+        request,
+    }: {
+        config: Record<string, unknown>;
+        connectionType: string;
+        request: ToolRequest<IAtlasConfig>;
+    }): CallToolResult | InputRequiredResult | null {
         const aws = config.aws as Record<string, unknown> | undefined;
 
         const missingFields = StreamsBuildTool.collectMissingFields([
@@ -515,21 +545,22 @@ export class StreamsBuildTool extends StreamsToolBase {
             return null;
         }
 
-        return this.elicitOrReportMissing(
+        return this.elicitOrReportMissing({
             connectionType,
             config,
             missingFields,
             request,
-            (fields, cfg) => {
+            applyFields: (fields, cfg) => {
                 if (fields.roleArn) {
                     if (!cfg.aws) cfg.aws = {};
                     (cfg.aws as Record<string, unknown>).roleArn = fields.roleArn;
                 }
             },
-            `Note: The IAM role ARN must first be registered in the Atlas project via Cloud Provider Access.\n` +
+            additionalNote:
+                `Note: The IAM role ARN must first be registered in the Atlas project via Cloud Provider Access.\n` +
                 `To find available ARNs: Atlas UI → Project Settings → Cloud Provider Access.\n` +
-                `To register a new one: Atlas UI → Project Settings → Cloud Provider Access → Authorize an AWS IAM role.`
-        );
+                `To register a new one: Atlas UI → Project Settings → Cloud Provider Access → Authorize an AWS IAM role.`,
+        });
     }
 
     private validateSchemaRegistryConfig(
@@ -598,13 +629,19 @@ export class StreamsBuildTool extends StreamsToolBase {
             return null;
         }
 
-        return this.elicitOrReportMissing("SchemaRegistry", config, missingFields, request, (fields, cfg) => {
-            if (fields.schemaRegistryUrl) {
-                cfg.schemaRegistryUrls = [fields.schemaRegistryUrl];
-            }
-            const authObj = cfg.schemaRegistryAuthentication as Record<string, unknown>;
-            if (fields.username) authObj.username = fields.username;
-            if (fields.password) authObj.password = fields.password;
+        return this.elicitOrReportMissing({
+            connectionType: "SchemaRegistry",
+            config,
+            missingFields,
+            request,
+            applyFields: (fields, cfg) => {
+                if (fields.schemaRegistryUrl) {
+                    cfg.schemaRegistryUrls = [fields.schemaRegistryUrl];
+                }
+                const authObj = cfg.schemaRegistryAuthentication as Record<string, unknown>;
+                if (fields.username) authObj.username = fields.username;
+                if (fields.password) authObj.password = fields.password;
+            },
         });
     }
 
@@ -620,8 +657,14 @@ export class StreamsBuildTool extends StreamsToolBase {
             return null;
         }
 
-        return this.elicitOrReportMissing("Https", config, missingFields, request, (fields, cfg) => {
-            if (fields.url) cfg.url = fields.url;
+        return this.elicitOrReportMissing({
+            connectionType: "Https",
+            config,
+            missingFields,
+            request,
+            applyFields: (fields, cfg) => {
+                if (fields.url) cfg.url = fields.url;
+            },
         });
     }
 
@@ -640,18 +683,25 @@ export class StreamsBuildTool extends StreamsToolBase {
      */
     private static readonly ELICIT_INPUT_KEY = "connection-fields";
 
-    private elicitOrReportMissing(
-        connectionType: string,
-        config: Record<string, unknown>,
-        missingFields: MissingField[],
-        request: ToolRequest<IAtlasConfig>,
-        applyFields: (fields: Record<string, string>, config: Record<string, unknown>) => void,
-        additionalNote?: string
-    ): CallToolResult | InputRequiredResult | null {
+    private elicitOrReportMissing({
+        connectionType,
+        config,
+        missingFields,
+        request,
+        applyFields,
+        additionalNote,
+    }: {
+        connectionType: string;
+        config: Record<string, unknown>;
+        missingFields: MissingField[];
+        request: ToolRequest<IAtlasConfig>;
+        applyFields: (fields: Record<string, string>, config: Record<string, unknown>) => void;
+        additionalNote?: string;
+    }): CallToolResult | InputRequiredResult | null {
         // Clients that do not declare elicitation support cannot answer
         // embedded requests: report the missing fields instead of eliciting.
         if (!this.server.elicitation.supportsElicitation()) {
-            return StreamsBuildTool.missingFieldsResponse(connectionType, missingFields, additionalNote);
+            return StreamsBuildTool.missingFieldsResponse({ connectionType, missingFields, additionalNote });
         }
 
         const schema = StreamsBuildTool.buildElicitationSchema(connectionType, missingFields);
@@ -666,12 +716,16 @@ export class StreamsBuildTool extends StreamsToolBase {
                 // Re-check: did the user leave any fields empty in the form?
                 const stillMissing = missingFields.filter((f) => !elicited.fields[f.key]);
                 if (stillMissing.length > 0) {
-                    return StreamsBuildTool.missingFieldsResponse(connectionType, stillMissing, additionalNote);
+                    return StreamsBuildTool.missingFieldsResponse({
+                        connectionType,
+                        missingFields: stillMissing,
+                        additionalNote,
+                    });
                 }
                 return null;
             }
 
-            return StreamsBuildTool.missingFieldsResponse(connectionType, missingFields, additionalNote);
+            return StreamsBuildTool.missingFieldsResponse({ connectionType, missingFields, additionalNote });
         }
 
         // First entry: ask for the missing fields.
@@ -704,11 +758,15 @@ export class StreamsBuildTool extends StreamsToolBase {
         };
     }
 
-    private static missingFieldsResponse(
-        connectionType: string,
-        missingFields: MissingField[],
-        additionalNote?: string
-    ): CallToolResult {
+    private static missingFieldsResponse({
+        connectionType,
+        missingFields,
+        additionalNote,
+    }: {
+        connectionType: string;
+        missingFields: MissingField[];
+        additionalNote?: string;
+    }): CallToolResult {
         const list = missingFields.map((f) => `  - ${f.title}: ${f.description}`).join("\n");
         const note = additionalNote ? `\n\n${additionalNote}` : "";
         return {
@@ -781,13 +839,19 @@ export class StreamsBuildTool extends StreamsToolBase {
         return null;
     }
 
-    private async validatePipelineConnections(
-        projectId: string,
-        workspaceName: string,
-        pipeline: Record<string, unknown>[],
-        request: ToolRequest<IAtlasConfig>,
-        dlq?: { connectionName: string; db: string; coll: string }
-    ): Promise<CallToolResult | null> {
+    private async validatePipelineConnections({
+        projectId,
+        workspaceName,
+        pipeline,
+        request,
+        dlq,
+    }: {
+        projectId: string;
+        workspaceName: string;
+        pipeline: Record<string, unknown>[];
+        request: ToolRequest<IAtlasConfig>;
+        dlq?: { connectionName: string; db: string; coll: string };
+    }): Promise<CallToolResult | null> {
         const referencedNames = StreamsToolBase.extractConnectionNames(pipeline);
         if (dlq?.connectionName) referencedNames.add(dlq.connectionName);
         if (referencedNames.size === 0) return null;
@@ -848,13 +912,13 @@ export class StreamsBuildTool extends StreamsToolBase {
         const structureError = StreamsBuildTool.validatePipelineStructure(args.pipeline);
         if (structureError) return structureError;
 
-        const connectionError = await this.validatePipelineConnections(
-            args.projectId,
+        const connectionError = await this.validatePipelineConnections({
+            projectId: args.projectId,
             workspaceName,
-            args.pipeline,
+            pipeline: args.pipeline,
             request,
-            args.dlq
-        );
+            dlq: args.dlq,
+        });
         if (connectionError) return connectionError;
 
         const options = {

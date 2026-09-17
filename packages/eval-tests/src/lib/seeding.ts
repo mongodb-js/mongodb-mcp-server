@@ -21,14 +21,21 @@ const DEFAULT_INDEX_READY_INTERVAL_MS = 1_000;
  * @param timeoutMs - The timeout in milliseconds to wait for the indexes to be queryable.
  * @param intervalMs - The interval in milliseconds to check the indexes.
  */
-async function waitForIndexesQueryable(
-    client: MongoClient,
-    db: string,
-    collection: string,
-    indexNames: string[],
+async function waitForIndexesQueryable({
+    client,
+    db,
+    collection,
+    indexNames,
     timeoutMs = DEFAULT_INDEX_READY_TIMEOUT_MS,
-    intervalMs = DEFAULT_INDEX_READY_INTERVAL_MS
-): Promise<void> {
+    intervalMs = DEFAULT_INDEX_READY_INTERVAL_MS,
+}: {
+    client: MongoClient;
+    db: string;
+    collection: string;
+    indexNames: string[];
+    timeoutMs?: typeof DEFAULT_INDEX_READY_TIMEOUT_MS;
+    intervalMs?: typeof DEFAULT_INDEX_READY_INTERVAL_MS;
+}): Promise<void> {
     if (indexNames.length === 0) return;
 
     const coll = client.db(db).collection(collection);
@@ -93,7 +100,7 @@ export async function seedTempDb(dbClient: MongoClient, db: string, dbSeed: DbSe
             }
         }
 
-        await waitForIndexesQueryable(dbClient, db, collection, searchIndexNames);
+        await waitForIndexesQueryable({ client: dbClient, db, collection, indexNames: searchIndexNames });
     }
 }
 

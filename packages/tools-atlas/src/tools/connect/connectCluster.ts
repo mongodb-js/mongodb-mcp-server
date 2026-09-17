@@ -58,12 +58,17 @@ export class ConnectClusterTool extends AtlasToolBase {
         return ConnectClusterOutputSchema;
     }
 
-    private async prepareClusterConnection(
-        projectId: string,
-        clusterName: string,
-        connectionType: "standard" | "private" | "privateEndpoint" | undefined = "standard",
-        request: ToolRequest<IAtlasConfig>
-    ): Promise<{ connectionString: string; atlas: AtlasClusterConnectionInfo; temporaryUser: TemporaryDatabaseUser }> {
+    private async prepareClusterConnection({
+        projectId,
+        clusterName,
+        connectionType = "standard",
+        request,
+    }: {
+        projectId: string;
+        clusterName: string;
+        connectionType?: "standard" | "private" | "privateEndpoint" | undefined;
+        request: ToolRequest<IAtlasConfig>;
+    }): Promise<{ connectionString: string; atlas: AtlasClusterConnectionInfo; temporaryUser: TemporaryDatabaseUser }> {
         const cluster = await inspectCluster(this.server.apiClient, projectId, clusterName, request);
 
         if (cluster.clusterId === undefined) {
@@ -160,12 +165,17 @@ export class ConnectClusterTool extends AtlasToolBase {
             });
     }
 
-    private async connectToCluster(
-        entry: ConnectionEntry,
-        connectionString: string,
-        atlas: AtlasClusterConnectionInfo,
-        request: ToolRequest<IAtlasConfig>
-    ): Promise<void> {
+    private async connectToCluster({
+        entry,
+        connectionString,
+        atlas,
+        request,
+    }: {
+        entry: ConnectionEntry;
+        connectionString: string;
+        atlas: AtlasClusterConnectionInfo;
+        request: ToolRequest<IAtlasConfig>;
+    }): Promise<void> {
         let lastError: Error | undefined = undefined;
 
         // The temporary user's credentials live only in the connection string
@@ -260,7 +270,7 @@ export class ConnectClusterTool extends AtlasToolBase {
         const createdTemporaryUser = !entry;
 
         if (!entry) {
-            const prepared = await this.prepareClusterConnection(projectId, clusterName, connectionType, request);
+            const prepared = await this.prepareClusterConnection({ projectId, clusterName, connectionType, request });
             atlas = prepared.atlas;
 
             // Cluster names are only unique within a project, so the slug includes
@@ -279,16 +289,19 @@ export class ConnectClusterTool extends AtlasToolBase {
             });
 
             // try to connect for about 5 minutes asynchronously
-            void this.connectToCluster(entry, prepared.connectionString, prepared.atlas, request).catch(
-                (err: unknown) => {
-                    const error = err instanceof Error ? err : new Error(String(err));
-                    this.server.logger.error({
-                        id: LogId.atlasConnectFailure,
-                        context: "atlas-connect-cluster",
-                        message: `error connecting to cluster: ${error.message}`,
-                    });
-                }
-            );
+            void this.connectToCluster({
+                entry,
+                connectionString: prepared.connectionString,
+                atlas: prepared.atlas,
+                request,
+            }).catch((err: unknown) => {
+                const error = err instanceof Error ? err : new Error(String(err));
+                this.server.logger.error({
+                    id: LogId.atlasConnectFailure,
+                    context: "atlas-connect-cluster",
+                    message: `error connecting to cluster: ${error.message}`,
+                });
+            });
         }
 
         for (let i = 0; i < 60; i++) {
@@ -322,7 +335,7 @@ export class ConnectClusterTool extends AtlasToolBase {
                     ...(createdTemporaryUser && { temporaryUserClarification: createdUserMessage }),
                 };
 
-                const sharedTierFields = await this.runSharedTierHook(atlas, content, request);
+                const sharedTierFields = await this.runSharedTierHook({ atlas, content, request });
                 return { content, structuredContent: { ...baseStructuredContent, ...sharedTierFields } };
             }
 
@@ -354,7 +367,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             });
         }
 
-        const sharedTierFields = await this.runSharedTierHook(atlas, content, request);
+        const sharedTierFields = await this.runSharedTierHook({ atlas, content, request });
         return {
             content,
             structuredContent: {
@@ -368,11 +381,15 @@ export class ConnectClusterTool extends AtlasToolBase {
         };
     }
 
-    private async runSharedTierHook(
-        atlas: AtlasClusterConnectionInfo | undefined,
-        content: ToolResult<typeof ConnectClusterOutputSchema>["content"],
-        request: ToolRequest<IAtlasConfig>
-    ): Promise<{
+    private async runSharedTierHook({
+        atlas,
+        content,
+        request,
+    }: {
+        atlas: AtlasClusterConnectionInfo | undefined;
+        content: ToolResult<typeof ConnectClusterOutputSchema>["content"];
+        request: ToolRequest<IAtlasConfig>;
+    }): Promise<{
         sharedTierAlertsDetected?: boolean;
         sharedTierTier?: SharedTierTier;
         sharedTierAlerts?: SharedTierMetricName[];

@@ -60,6 +60,7 @@ export default defineConfig([
             eqeqeq: "error",
             "no-self-compare": "error",
             "no-unassigned-vars": "error",
+            "max-params": ["error", 2],
             "@typescript-eslint/await-thenable": "error",
             "@typescript-eslint/explicit-function-return-type": "error",
         },
@@ -100,6 +101,8 @@ export default defineConfig([
         rules: {
             /** Allow null assertions in test files */
             "@typescript-eslint/no-non-null-assertion": "off",
+            /** Allow helpers/mock callbacks with more params in test files */
+            "max-params": "off",
         },
     },
     globalIgnores([
