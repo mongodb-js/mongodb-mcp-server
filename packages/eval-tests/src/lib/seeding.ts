@@ -33,8 +33,8 @@ async function waitForIndexesQueryable({
     db: string;
     collection: string;
     indexNames: string[];
-    timeoutMs?: typeof DEFAULT_INDEX_READY_TIMEOUT_MS;
-    intervalMs?: typeof DEFAULT_INDEX_READY_INTERVAL_MS;
+    timeoutMs?: number;
+    intervalMs?: number;
 }): Promise<void> {
     if (indexNames.length === 0) return;
 
@@ -70,7 +70,7 @@ async function waitForIndexesQueryable({
 /**
  * Seed the temporary database with the given database seed.
  *
- * @param client - The MongoDB client.
+ * @param dbClient - The MongoDB client.
  * @param db - The database name.
  * @param dbSeed - The database seed.
  */
