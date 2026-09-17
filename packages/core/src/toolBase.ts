@@ -30,6 +30,7 @@ import { createUIResource, type UIResource } from "@mcp-ui/server";
 import { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
 import { getRandomUUID } from "@mongodb-js/mcp-core";
 import { requestIdAttr } from "./helpers/requestIdAttr.js";
+import { clientTelemetryProperties } from "./helpers/clientTelemetry.js";
 
 import { LogId } from "./logId.js";
 
@@ -579,7 +580,7 @@ export abstract class ToolBase<
             // spent working, so it counts towards neither duration below.
             const executionStartTime = startTime + (context.request.elicitationDurationMs ?? 0);
 
-            this.emitToolEvent(args, { startTime: executionStartTime, result });
+            this.emitToolEvent(args, { startTime: executionStartTime, result, clientInfo: context.request.clientInfo });
 
             this.server.metrics.get("toolExecutionDuration").observe(
                 {
@@ -952,7 +953,11 @@ export abstract class ToolBase<
      */
     private emitToolEvent(
         args: ToolArgs<ReturnType<typeof this.argsShape>>,
-        { startTime, result }: { startTime: number; result: CallToolResult }
+        {
+            startTime,
+            result,
+            clientInfo,
+        }: { startTime: number; result: CallToolResult; clientInfo?: { name?: string; version?: string } }
     ): void {
         if (!this.server.telemetry.isTelemetryEnabled()) {
             return;
@@ -970,6 +975,7 @@ export abstract class ToolBase<
                     component: "tool",
                     duration_ms: duration,
                     result: result.isError ? "failure" : "success",
+                    ...clientTelemetryProperties(clientInfo),
                     ...metadata,
                 },
             };

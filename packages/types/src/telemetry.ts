@@ -113,6 +113,9 @@ export type ToolEventProperties = {
     error_code?: string;
     error_type?: string;
     is_atlas?: boolean;
+    /** The MCP client that issued the request, per-request (see {@link TelemetryCommonProperties}). */
+    mcp_client_name?: string;
+    mcp_client_version?: string;
 } & TelemetryToolMetadata;
 
 export type ToolEvent = TelemetryEvent<ToolEventProperties>;

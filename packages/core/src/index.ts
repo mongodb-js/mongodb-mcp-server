@@ -41,6 +41,7 @@ export {
     type CreateSessionStoreFn,
 } from "./sessionStore.js";
 export { requestIdAttr } from "./helpers/requestIdAttr.js";
+export { clientTelemetryProperties } from "./helpers/clientTelemetry.js";
 
 // Web-friendly transports
 export { InMemoryTransport } from "./inMemoryTransport.js";
