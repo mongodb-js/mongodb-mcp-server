@@ -131,12 +131,12 @@ NOTE: The connection string can be configured to connect to any MongoDB cluster,
 
 When working with MongoDB Atlas, the recommended approach is to install the [`mongodb-atlas` plugin](#using-the-official-mongodb-plugins-for-ai-agents) for your AI agent, which handles OAuth authentication automatically.
 
-For manual configuration, see the [client-specific instructions](https://www.mongodb.com/docs/mcp-server/get-started/) for setting up the Atlas Remote MCP server with OAuth. Alternatively, you can connect using the [`mongodb-atlas-mcp-remote`](packages/mongodb-atlas-mcp-remote/README.md) package with Service Account credentials — see the [package README](packages/mongodb-atlas-mcp-remote/README.md) for setup instructions.
+For manual configuration, see the [client-specific instructions](https://www.mongodb.com/docs/mcp-server/get-started/) for setting up the Atlas Remote MCP server with OAuth. Alternatively, you can connect using the [`mongodb-atlas-mcp-remote`](https://github.com/mongodb-js/mongodb-mcp-server/blob/main/packages/mongodb-atlas-mcp-remote/README.md) package with Service Account credentials — see the [package README](https://github.com/mongodb-js/mongodb-mcp-server/blob/main/packages/mongodb-atlas-mcp-remote/README.md) for setup instructions.
 
 > **Note:** You cannot authenticate to the remote MongoDB MCP server using a static API key over HTTP. You must either:
 >
 > - Use a client that supports the OAuth flow.
-> - Use the [`mongodb-atlas-mcp-remote`](packages/mongodb-atlas-mcp-remote/README.md) stdio server, which you can authenticate into using the static `MDB_MCP_API_CLIENT_ID` and `MDB_MCP_API_CLIENT_SECRET` environment variables.
+> - Use the [`mongodb-atlas-mcp-remote`](https://github.com/mongodb-js/mongodb-mcp-server/blob/main/packages/mongodb-atlas-mcp-remote/README.md) stdio server, which you can authenticate into using the static `MDB_MCP_API_CLIENT_ID` and `MDB_MCP_API_CLIENT_SECRET` environment variables.
 
 To connect with the `mongodb-atlas-mcp-remote` stdio server using Service Account credentials, add it to your client's MCP configuration:
 
@@ -925,7 +925,7 @@ You can deploy the MongoDB MCP Server to your preferred cloud provider using the
 
 ### Azure
 
-For detailed Azure instructions, see [deploy/azure/README.md](deploy/azure/README.md).
+For detailed Azure instructions, see [deploy/azure/README.md](https://github.com/mongodb-js/mongodb-mcp-server/blob/main/deploy/azure/README.md).
 
 ## Deployment Constraints
 
@@ -947,8 +947,8 @@ For multi-tenant or public deployments, **build an authenticated solution** usin
 
 **Already on MongoDB Atlas?** For multi-tenant Atlas cluster usage, the simplest alternative is the **MongoDB Atlas-Managed MCP server** — a hosted, authenticated deployment that handles per-user identity (OAuth / service-account) for you instead of you standing up your own. See [Option 2](#option-2-connect-to-the-mongodb-atlas-managed-mcp-server) above.
 
-See [MCP_SERVER_LIBRARY.md](MCP_SERVER_LIBRARY.md) for the embedding API, `createHttpTransportRunnerFromConfig` / `CliMcpHttpServer` and the `connectionScope` policy seam, and the per-user scoping example to copy.
+See [MCP_SERVER_LIBRARY.md](https://github.com/mongodb-js/mongodb-mcp-server/blob/main/MCP_SERVER_LIBRARY.md) for the embedding API, `createHttpTransportRunnerFromConfig` / `CliMcpHttpServer` and the `connectionScope` policy seam, and the per-user scoping example to copy.
 
 ## 🤝Contributing
 
-Interested in contributing? Great! Please check our [Contributing Guide](CONTRIBUTING.md) for guidelines on code contributions, standards, adding new tools, and troubleshooting information.
+Interested in contributing? Great! Please check our [Contributing Guide](https://github.com/mongodb-js/mongodb-mcp-server/blob/main/CONTRIBUTING.md) for guidelines on code contributions, standards, adding new tools, and troubleshooting information.
