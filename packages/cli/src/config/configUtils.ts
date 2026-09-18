@@ -59,21 +59,12 @@ export function commaSeparatedToArray<T extends string[]>(str: string | string[]
         return undefined;
     }
 
-    if (typeof str === "string") {
-        return str
-            .split(",")
-            .map((e) => e.trim())
-            .filter((e) => e.length > 0) as T;
-    }
-
-    if (str.length === 1) {
-        return str[0]
-            ?.split(",")
-            .map((e) => e.trim())
-            .filter((e) => e.length > 0) as T;
-    }
-
-    return str as T;
+    // Split every entry, so comma-separated and space-separated values can be mixed
+    // (for example, --disabledTools create,update delete).
+    return (typeof str === "string" ? [str] : str)
+        .flatMap((entry) => entry.split(","))
+        .map((e) => e.trim())
+        .filter((e) => e.length > 0) as T;
 }
 
 /**

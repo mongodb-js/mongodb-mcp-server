@@ -595,6 +595,26 @@ describe("config", () => {
                     cli: ["--loggers", "disk,mcp"],
                     expected: { loggers: ["disk", "mcp"] },
                 },
+                {
+                    cli: ["--disabledTools", "create", "update", "delete", "atlas"],
+                    expected: { disabledTools: ["create", "update", "delete", "atlas"] },
+                },
+                {
+                    cli: ["--disabledTools", "find", "--disabledTools", "aggregate"],
+                    expected: { disabledTools: ["find", "aggregate"] },
+                },
+                {
+                    cli: ["--disabledTools", "find", "aggregate", "--readOnly"],
+                    expected: { disabledTools: ["find", "aggregate"], readOnly: true },
+                },
+                {
+                    cli: ["--disabledTools", "create,update", "delete", "atlas"],
+                    expected: { disabledTools: ["create", "update", "delete", "atlas"] },
+                },
+                {
+                    cli: ["--disabledTools", "create,update,", "delete"],
+                    expected: { disabledTools: ["create", "update", "delete"] },
+                },
             ] as { cli: string[]; expected: Partial<UserConfig> }[];
 
             for (const { cli, expected } of testCases) {
@@ -607,6 +627,33 @@ describe("config", () => {
                     }
                 });
             }
+
+            it("should not treat a space-separated list value as the connection target", () => {
+                const { parsed: actual, error } = parseUserConfig({
+                    args: ["--disabledTools", "find", "aggregate"],
+                });
+                expect(error).toBeUndefined();
+                expect(actual?.connectionString).toBeUndefined();
+            });
+
+            it("should reject a connection string consumed by a list option", () => {
+                const { parsed: actual, error } = parseUserConfig({
+                    args: ["--disabledTools", "find", "mongodb://localhost"],
+                });
+                expect(actual).toBeUndefined();
+                expect(error).toContain("--disabledTools option received a connection string");
+            });
+
+            it("should still accept a connection string placed before list options", () => {
+                const { parsed: actual, error } = parseUserConfig({
+                    args: ["mongodb://localhost", "--disabledTools", "find", "aggregate"],
+                });
+                expect(error).toBeUndefined();
+                expect(actual?.disabledTools).toEqual(["find", "aggregate"]);
+                expect(actual?.connectionString).toBe(
+                    "mongodb://localhost/?directConnection=true&serverSelectionTimeoutMS=2000"
+                );
+            });
         });
     });
 

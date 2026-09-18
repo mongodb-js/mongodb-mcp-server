@@ -24,6 +24,9 @@ export const defaultParserOptions: ParserOptions = {
         // To avoid populating `_` with end-of-flag arguments we explicitly
         // populate `--` variable and altogether ignore them later.
         "populate--": true,
+        // Accept space-separated values for array options, as documented
+        // (for example, --disabledTools create update delete).
+        "greedy-arrays": true,
     },
 };
 
@@ -117,8 +120,36 @@ function parseUserConfigSources<T extends typeof UserConfigSchema>({
         parsed = parsedResult;
         deprecated = deprecatedResult as Record<string, string>;
 
-        // Delete fileNames - this is a field populated by mongosh but not used by us.
+        // fileNames is populated by mongosh with any leftover positional
+        // arguments. The MCP Server doesn't use them, so report them instead of
+        // silently dropping them.
+        const leftoverArgs = parsed.fileNames ?? [];
         delete parsed.fileNames;
+        if (leftoverArgs.length > 0) {
+            return {
+                error: `Error: Unexpected command line argument(s): ${leftoverArgs.join(" ")}.`,
+                warnings: [],
+                parsed: {},
+            };
+        }
+
+        // With greedy arrays, a positional connection string placed after a
+        // list option (for example, --disabledTools find mongodb://...) is
+        // consumed as a list value. Catch that instead of ignoring it.
+        for (const [key, value] of Object.entries(parsed)) {
+            if (Array.isArray(value)) {
+                const hasConnectionString = (value as unknown[]).some(
+                    (v) => typeof v === "string" && /^mongodb(\+srv)?:\/\//i.test(v)
+                );
+                if (hasConnectionString) {
+                    return {
+                        error: `Error: The --${key} option received a connection string. Place the connection string before any options, or set MDB_MCP_CONNECTION_STRING.`,
+                        warnings: [],
+                        parsed: {},
+                    };
+                }
+            }
+        }
     } catch (error) {
         let errorMessage: string | undefined;
         if (error instanceof UnknownArgumentError) {
