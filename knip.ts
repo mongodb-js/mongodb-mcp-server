@@ -69,7 +69,7 @@ const config: KnipConfig = {
             entry: ["src/**/*.ts"],
         },
         "packages/harness-tester": {
-            entry: ["src/**/*.test.ts"],
+            entry: ["src/index.ts!", "src/**/*.test.ts"],
         },
         "packages/e2e-tests": {
             entry: ["src/**/*.test.ts"],
