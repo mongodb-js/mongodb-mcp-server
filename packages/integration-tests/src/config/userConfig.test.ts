@@ -71,6 +71,7 @@ const expectedDefaults = {
 const CONFIG_FIXTURES = {
     VALID: path.resolve(import.meta.dirname, "fixtures", "valid-config.json"),
     WITH_INVALID_VALUE: path.resolve(import.meta.dirname, "fixtures", "config-with-invalid-value.json"),
+    WITH_NON_STRING_ARRAY: path.resolve(import.meta.dirname, "fixtures", "config-with-non-string-array.json"),
 };
 
 describe("config", () => {
@@ -595,6 +596,23 @@ describe("config", () => {
                     cli: ["--loggers", "disk,mcp"],
                     expected: { loggers: ["disk", "mcp"] },
                 },
+                {
+                    cli: ["--disabledTools", "create", "update", "delete", "atlas"],
+                    expected: { disabledTools: ["create", "update", "delete", "atlas"] },
+                },
+                {
+                    cli: ["--disabledTools", "create,update", "delete", "atlas"],
+                    expected: { disabledTools: ["create", "update", "delete", "atlas"] },
+                },
+                {
+                    cli: ["--disabledTools", "create", "update", "--readOnly", "true"],
+                    expected: { disabledTools: ["create", "update"] },
+                },
+                {
+                    // End-of-flag arguments are not consumed as list entries.
+                    cli: ["--disabledTools", "create", "update", "--", "extra"],
+                    expected: { disabledTools: ["create", "update"] },
+                },
             ] as { cli: string[]; expected: Partial<UserConfig> }[];
 
             for (const { cli, expected } of testCases) {
@@ -607,6 +625,75 @@ describe("config", () => {
                     }
                 });
             }
+        });
+
+        it("space-separated disabledTools values do not override the configured connection string", () => {
+            const { setVariable, clearVariables } = createEnvironment();
+            setVariable("MDB_MCP_CONNECTION_STRING", "mongodb://127.0.0.1:27017/mydb");
+            try {
+                const { parsed: actual } = parseUserConfig({
+                    args: ["--disabledTools", "create", "update", "delete", "atlas"],
+                });
+                expect(actual?.disabledTools).toEqual(["create", "update", "delete", "atlas"]);
+                expect(actual?.connectionString).toEqual("mongodb://127.0.0.1:27017/mydb");
+            } finally {
+                clearVariables();
+            }
+        });
+
+        it("should error on leftover positional arguments instead of silently dropping them", () => {
+            const { error, parsed } = parseUserConfig({
+                args: ["mongodb://127.0.0.1:27017/admin", "extra"],
+            });
+            expect(parsed).toBeUndefined();
+            expect(error).toEqual(expect.stringContaining("Unexpected positional argument(s): 'extra'"));
+        });
+
+        it("should error on --file arguments", () => {
+            const { error, parsed } = parseUserConfig({
+                args: ["--file", "script.js"],
+            });
+            expect(parsed).toBeUndefined();
+            expect(error).toEqual(expect.stringContaining("The --file argument is not supported"));
+        });
+
+        for (const connectionStringLike of [
+            "mongodb://127.0.0.1:27017/admin",
+            "mongodb+srv://cluster.mongodb.net",
+            "localhost:27017",
+        ]) {
+            it(`should error when a list option consumes '${connectionStringLike}'`, () => {
+                const { error, parsed } = parseUserConfig({
+                    args: ["--disabledTools", "find", connectionStringLike],
+                });
+                expect(parsed).toBeUndefined();
+                expect(error).toEqual(expect.stringContaining("looks like a connection string"));
+            });
+        }
+
+        it("should error when a list option with a schema-validated value consumes a connection string", () => {
+            const { error, parsed } = parseUserConfig({
+                args: ["--loggers", "stderr", "mongodb://127.0.0.1:27017/admin"],
+            });
+            expect(parsed).toBeUndefined();
+            expect(error).toEqual(expect.stringContaining("looks like a connection string"));
+        });
+
+        for (const flag of ["--readonly", "--unknownFlag"]) {
+            it(`should error when a list option consumes '${flag}'`, () => {
+                const { error, parsed } = parseUserConfig({
+                    args: ["--disabledTools", "create", flag],
+                });
+                expect(parsed).toBeUndefined();
+                expect(error).toEqual(expect.stringContaining(`Invalid command line argument '${flag}'`));
+            });
+        }
+
+        it("should suggest the intended option when a list option consumes a mistyped flag", () => {
+            const { error } = parseUserConfig({
+                args: ["--disabledTools", "create", "--readonly"],
+            });
+            expect(error).toEqual(expect.stringContaining("Did you mean '--readOnly'?"));
         });
     });
 
@@ -654,6 +741,14 @@ describe("config", () => {
                 });
                 expect(warnings).toHaveLength(0);
                 expect(error).toEqual(expect.stringContaining("loggers - Duplicate loggers found in config"));
+                expect(parsed).toBeUndefined();
+            });
+
+            it("should report an error for a list option with non-string entries", () => {
+                const { error, parsed } = parseUserConfig({
+                    args: ["--config", CONFIG_FIXTURES.WITH_NON_STRING_ARRAY],
+                });
+                expect(error).toEqual(expect.stringContaining("disabledTools.0"));
                 expect(parsed).toBeUndefined();
             });
         });
