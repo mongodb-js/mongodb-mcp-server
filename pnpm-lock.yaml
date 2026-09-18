@@ -984,9 +984,15 @@ importers:
       '@mongodb-js/mcp-core':
         specifier: workspace:*
         version: link:../core
+      '@mongodb-js/mcp-metrics':
+        specifier: workspace:*
+        version: link:../metrics
       '@mongodb-js/mcp-tools-mongodb':
         specifier: workspace:*
         version: link:../tools-mongodb
+      '@mongodb-js/mcp-types':
+        specifier: workspace:*
+        version: link:../types
       mongodb-connection-string-url:
         specifier: ^7.0.1
         version: 7.0.1
@@ -1003,15 +1009,9 @@ importers:
       '@mongodb-js/mcp-cli':
         specifier: workspace:*
         version: link:../cli
-      '@mongodb-js/mcp-metrics':
-        specifier: workspace:*
-        version: link:../metrics
       '@mongodb-js/mcp-test-utils':
         specifier: workspace:*
         version: link:../test-utils
-      '@mongodb-js/mcp-types':
-        specifier: workspace:*
-        version: link:../types
       '@mongodb-js/mcp-ui':
         specifier: workspace:*
         version: link:../ui
