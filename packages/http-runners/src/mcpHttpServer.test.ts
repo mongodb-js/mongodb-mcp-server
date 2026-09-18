@@ -527,6 +527,120 @@ describe("MCPHttpServer stateless serving", () => {
             expect(res.status).toBe(200);
         });
     });
+
+    describe("modern-only methods", () => {
+        // `server/discover` and `subscriptions/listen` exist only on the
+        // 2026-07-28 registry, so a request naming one is modern-intent even
+        // without the envelope claim. Routing them to the modern handler lets
+        // the SDK's validation ladder answer with the protocol-version error
+        // (-32022, listing the versions this endpoint serves) instead of the
+        // legacy path's session error.
+        const claimless = (method: string, id = 10): string =>
+            JSON.stringify({ jsonrpc: "2.0", method, id, params: {} });
+
+        const postRaw = (body: string, headers: Record<string, string> = {}): Promise<Response> =>
+            fetch(`${server.serverAddress}/mcp`, {
+                method: "POST",
+                headers: {
+                    "content-type": "application/json",
+                    accept: "application/json, text/event-stream",
+                    ...headers,
+                },
+                body,
+            });
+
+        it("answers a claim-less server/discover with the unsupported-protocol-version error", async () => {
+            await startServer();
+
+            const res = await postRaw(claimless("server/discover"));
+
+            expect(res.status).toBe(400);
+            await expect(res.json()).resolves.toMatchObject({
+                id: 10,
+                error: { code: -32022, data: { supported: ["2026-07-28"] } },
+            });
+        });
+
+        it("answers a claim-less server/discover carrying a live session id with the unsupported-protocol-version error", async () => {
+            await startServer();
+            const init = await postRaw(
+                JSON.stringify({
+                    jsonrpc: "2.0",
+                    method: "initialize",
+                    id: 1,
+                    params: {
+                        protocolVersion: "2025-11-25",
+                        capabilities: {},
+                        clientInfo: { name: "legacy-test", version: "1.0" },
+                    },
+                }),
+                { "mcp-protocol-version": "2025-11-25" }
+            );
+            const sessionId = init.headers.get("mcp-session-id");
+            expect(sessionId).toBeTruthy();
+
+            const res = await postRaw(claimless("server/discover", 11), {
+                "mcp-session-id": sessionId as string,
+            });
+
+            expect(res.status).toBe(400);
+            await expect(res.json()).resolves.toMatchObject({
+                id: 11,
+                error: { code: -32022, data: { supported: ["2026-07-28"] } },
+            });
+        });
+
+        it("answers a claim-less subscriptions/listen with the unsupported-protocol-version error", async () => {
+            await startServer();
+
+            const res = await postRaw(claimless("subscriptions/listen", 12));
+
+            expect(res.status).toBe(400);
+            await expect(res.json()).resolves.toMatchObject({
+                id: 12,
+                error: { code: -32022 },
+            });
+        });
+
+        it("serves an enveloped server/discover normally", async () => {
+            await startServer();
+
+            const res = await postRaw(
+                JSON.stringify({
+                    jsonrpc: "2.0",
+                    method: "server/discover",
+                    id: 13,
+                    params: {
+                        _meta: {
+                            "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+                            "io.modelcontextprotocol/clientCapabilities": {},
+                            "io.modelcontextprotocol/clientInfo": { name: "test", version: "1.0" },
+                        },
+                    },
+                }),
+                { "mcp-protocol-version": "2026-07-28", "mcp-method": "server/discover" }
+            );
+
+            expect(res.status).toBe(200);
+            await expect(res.json()).resolves.toMatchObject({
+                id: 13,
+                result: { supportedVersions: ["2026-07-28"] },
+            });
+        });
+
+        it("leaves claim-less requests to dual-era methods on the legacy path", async () => {
+            await startServer();
+
+            const res = await postRaw(claimless("tools/list", 14));
+
+            // `tools/list` exists in both eras, so a claim-less POST is genuine
+            // 2025-era traffic and keeps the legacy session contract.
+            expect(res.status).toBe(400);
+            await expect(res.json()).resolves.toMatchObject({
+                error: { code: -32004, message: "invalid request" },
+            });
+        });
+    });
 });
 
 describe("MCPHttpServer dangerous-host binding guard", () => {
