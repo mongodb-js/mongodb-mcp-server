@@ -1,5 +1,5 @@
 The following third-party software is used by and included in **MongoDB MCP Server**.
-This document was automatically generated on Thu Sep 17 2026.
+This document was automatically generated on Fri Sep 18 2026.
 
 ## List of dependencies
 
