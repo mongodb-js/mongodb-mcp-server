@@ -46,6 +46,30 @@ export type MCPHttpServerOptions<TMetrics extends DefaultMetricDefinitions = Def
 };
 
 /**
+ * Request methods the 2026-07-28 registry introduced with no 2025-era
+ * counterpart. A request naming one of them is modern-intent even when it
+ * arrives without the per-request `_meta` envelope claim, because no 2025-era
+ * client has a code path that emits it.
+ */
+const MODERN_ONLY_METHODS = new Set<string>(["server/discover", "subscriptions/listen"]);
+
+/**
+ * Whether a parsed POST body is a single JSON-RPC message naming a
+ * {@link MODERN_ONLY_METHODS} method. Those are routed to the modern handler
+ * regardless of the envelope claim, so the SDK's validation ladder answers a
+ * claim-less one with the unsupported-protocol-version error naming the
+ * versions this endpoint serves — the answer a modern client can act on. A
+ * claim-less request to a method both eras share stays 2025-era traffic.
+ */
+function isModernOnlyMethodRequest(body: unknown): boolean {
+    if (typeof body !== "object" || body === null || Array.isArray(body)) {
+        return false;
+    }
+    const { method } = body as { method?: unknown };
+    return typeof method === "string" && MODERN_ONLY_METHODS.has(method);
+}
+
+/**
  * HTTP server that serves MCP requests over HTTP.
  *
  * The 2026-07-28 protocol is served **statelessly** through the SDK's
@@ -201,9 +225,10 @@ export abstract class MCPHttpServer<
             this.withErrorHandling(async (req: express.Request, res: express.Response) => {
                 // 2025-era (no envelope claim) requests are served sessionfully so
                 // the legacy elicitation shim has a live return channel. Everything
-                // else (modern-enveloped) goes to the stateless modern handler.
+                // else (modern-enveloped, or naming a method only the 2026-07-28
+                // era has) goes to the stateless modern handler.
                 const webRequest = await toWebRequest(req, req.body);
-                if (await isLegacyRequest(webRequest)) {
+                if (!isModernOnlyMethodRequest(req.body) && (await isLegacyRequest(webRequest))) {
                     return await this.legacyHandler.handle(req, res);
                 }
                 return await toNodeHandler({ fetch: (request, opts) => this.modernHandler.fetch(request, opts) })(
