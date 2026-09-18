@@ -12,7 +12,6 @@ import { sleep } from "@mongodb-js/mcp-core";
 import path from "path";
 import type { OIDCMockProviderConfig } from "@mongodb-js/oidc-mock-provider";
 import { OIDCMockProvider } from "@mongodb-js/oidc-mock-provider";
-
 /**
  * Returns the registry entry created by the `connect` call in the suite's
  * beforeEach. Each test dials exactly one connection, so the first entry is
@@ -25,21 +24,18 @@ async function connectionEntry(integration: MongoDBIntegrationTestCase): Promise
     }
     return entry;
 }
-
-const DEFAULT_TIMEOUT = 60_000;
+const DEFAULT_TIMEOUT = 60000;
 const DEFAULT_RETRIES = 5;
 // Long-lived token for tests that only need a successful connection. A short (1s) lifetime
 // races the OIDC handshake under CI load and intermittently produces server-side
 // "Authentication failed" (code 18) errors. Only the token-refresh test deliberately
 // overrides this with a short lifetime.
 const DEFAULT_TOKEN_EXPIRY_SECONDS = 3600;
-
 // OIDC is only supported on Linux servers
 describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", async () => {
     function setParameter(param: string): ["--setParameter", string] {
         return ["--setParameter", param];
     }
-
     const defaultOidcConfig = {
         issuer: "mockta",
         clientId: "mocktaTestServer",
@@ -48,9 +44,7 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
         audience: "resource-server-audience-value",
         authNamePrefix: "dev",
     } as const;
-
     const fetchBrowserFixture = `"${path.resolve(__dirname, "../fixtures/curl.mjs")}"`;
-
     let tokenFetches: number = 0;
     let tokenExpiresInSeconds: number = DEFAULT_TOKEN_EXPIRY_SECONDS;
     let getTokenPayload: OIDCMockProviderConfig["getTokenPayload"];
@@ -60,11 +54,9 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
         },
     };
     const oidcMockProvider: OIDCMockProvider = await OIDCMockProvider.create(oidcMockProviderConfig);
-
     afterAll(async () => {
         await oidcMockProvider.close();
     }, DEFAULT_TIMEOUT);
-
     beforeEach(() => {
         tokenFetches = 0;
         getTokenPayload = (metadata): ReturnType<OIDCMockProviderConfig["getTokenPayload"]> => {
@@ -80,7 +72,6 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
             };
         };
     });
-
     /**
      * We define a test function for the OIDC tests because we will run the test suite on different MongoDB Versions, to make sure
      * we don't break compatibility with older or newer versions. So this is kind of a test factory for a single server version.
@@ -91,13 +82,11 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
         additionalServerParams: string[];
         tokenExpiresInSeconds: number;
     };
-
     type OidcIt = (
         name: string,
         callback: (context: TestContext, integration: MongoDBIntegrationTestCase) => Promise<void>
     ) => void;
     type OidcTestCases = (it: OidcIt) => void;
-
     function describeOidcTest(
         mongodbVersion: string,
         context: string,
@@ -111,7 +100,6 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
             ...setParameter("enableTestCommands=true"),
             ...(args?.additionalServerParams ?? []),
         ];
-
         const oidcConfig = {
             ...defaultTestConfig,
             oidcRedirectUri: "http://localhost:0/",
@@ -122,10 +110,9 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
             browser: fetchBrowserFixture,
             ...args?.additionalConfig,
         };
-
-        describeWithMongoDB(
-            `${mongodbVersion} Enterprise  :: ${context}`,
-            (integration) => {
+        describeWithMongoDB({
+            name: `${mongodbVersion} Enterprise  :: ${context}`,
+            fn: (integration) => {
                 function oidcIt(name: string, cb: Parameters<OidcIt>[1]): void {
                     /* eslint-disable vitest/expect-expect */
                     it(name, { timeout: DEFAULT_TIMEOUT, retry: DEFAULT_RETRIES }, async (context) => {
@@ -141,78 +128,71 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
                             }),
                             "OIDC is only supported on MongoDB newer than 7.0"
                         );
-
                         await cb?.(context, integration);
                     });
                     /* eslint-enable vitest/expect-expect */
                 }
-
                 beforeEach(async () => {
                     tokenExpiresInSeconds = args?.tokenExpiresInSeconds ?? DEFAULT_TOKEN_EXPIRY_SECONDS;
-
                     // Each connect creates a fresh registry entry with its own connection
                     // manager; entries from previous tests are revoked by the shared
                     // integration-test afterEach.
                     await connect(integration.mcpClient(), integration.connectionString());
                 }, DEFAULT_TIMEOUT);
-
                 addCb?.(oidcIt);
             },
-            {
+            config: {
                 getUserConfig: () => oidcConfig,
                 downloadOptions: {
                     runner: true,
                     downloadOptions: { enterprise: true, version: mongodbVersion },
                     serverArgs,
                 },
-            }
-        );
+            },
+        });
     }
-
     const baseTestMatrix = [
         { version: "8.0.12", nonce: false },
         { version: "8.0.12", nonce: true },
     ] as const;
-
     for (const { version, nonce } of baseTestMatrix) {
         describeOidcTest(version, `auth-flow;nonce=${nonce}`, { additionalConfig: { oidcNoNonce: !nonce } }, (it) => {
             it("can connect with the expected user", async ({ signal }, integration) => {
-                const state = await waitUntil<ConnectionStateConnected>(
-                    "connected",
-                    await connectionEntry(integration),
-                    signal
-                );
-
+                const state = await waitUntil<ConnectionStateConnected>({
+                    tag: "connected",
+                    source: await connectionEntry(integration),
+                    signal,
+                });
                 type ConnectionStatus = {
                     authInfo: {
-                        authenticatedUsers: { user: string; db: string }[];
-                        authenticatedUserRoles: { role: string; db: string }[];
+                        authenticatedUsers: {
+                            user: string;
+                            db: string;
+                        }[];
+                        authenticatedUserRoles: {
+                            role: string;
+                            db: string;
+                        }[];
                     };
                 };
-
                 const status: ConnectionStatus = await vi.waitFor(
                     async () => {
                         const result = (await state.serviceProvider.runCommand("admin", {
                             connectionStatus: 1,
                         })) as unknown as ConnectionStatus | undefined;
-
                         if (!result) {
                             throw new Error("Status can not be undefined. Retrying.");
                         }
-
                         if (!result.authInfo.authenticatedUsers.length) {
                             throw new Error("No authenticated users found. Retrying.");
                         }
-
                         if (!result.authInfo.authenticatedUserRoles.length) {
                             throw new Error("No authenticated user roles found. Retrying.");
                         }
-
                         return result;
                     },
                     { timeout: 5000 }
                 );
-
                 expect(status.authInfo.authenticatedUsers[0]).toEqual({
                     user: "dev/testuser",
                     db: "$external",
@@ -222,21 +202,18 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
                     db: "admin",
                 });
             });
-
             it("can list existing databases", async ({ signal }, integration) => {
-                const state = await waitUntil<ConnectionStateConnected>(
-                    "connected",
-                    await connectionEntry(integration),
-                    signal
-                );
-
+                const state = await waitUntil<ConnectionStateConnected>({
+                    tag: "connected",
+                    source: await connectionEntry(integration),
+                    signal,
+                });
                 const listDbResult = await state.serviceProvider.listDatabases("admin");
                 const databases = listDbResult.databases as unknown[];
                 expect(databases.length).toBeGreaterThan(0);
             });
         });
     }
-
     // Token refresh behaviour is independent of the nonce setting, so we run it once per
     // server version. It deliberately uses a short-lived (1s) token so the token expires
     // during the test and the next operation triggers a refresh.
@@ -244,22 +221,19 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
     for (const version of refreshMatrix) {
         describeOidcTest(version, "token-refresh", { tokenExpiresInSeconds: 1 }, (it) => {
             it("can refresh a token once expired", async ({ signal }, integration) => {
-                const state = await waitUntil<ConnectionStateConnected>(
-                    "connected",
-                    await connectionEntry(integration),
-                    signal
-                );
-
+                const state = await waitUntil<ConnectionStateConnected>({
+                    tag: "connected",
+                    source: await connectionEntry(integration),
+                    signal,
+                });
                 await sleep(2000);
                 await state.serviceProvider.listDatabases("admin");
                 expect(tokenFetches).toBeGreaterThan(1);
             });
         });
     }
-
     // just infer from all the versions in the base test matrix, so it doesn't need to be maintained separately
     const deviceAuthMatrix = new Set(baseTestMatrix.map((base) => base.version));
-
     for (const version of deviceAuthMatrix) {
         describeOidcTest(
             version,
@@ -268,33 +242,28 @@ describe.skipIf(process.platform !== "linux")("ConnectionManager OIDC Tests", as
             (it) => {
                 it("gets requested by the agent to connect", async ({ signal }, integration) => {
                     const entry = await connectionEntry(integration);
-                    const state = await waitUntil<ConnectionStateConnecting>(
-                        "connecting",
-                        entry,
+                    const state = await waitUntil<ConnectionStateConnecting>({
+                        tag: "connecting",
+                        source: entry,
                         signal,
-                        (state) => !!state.oidcLoginUrl && !!state.oidcUserCode
-                    );
-
+                        additionalCondition: (state) => !!state.oidcLoginUrl && !!state.oidcUserCode,
+                    });
                     const response = responseAsText(
                         await integration
                             .mcpClient()
                             .callTool({ name: "list-databases", arguments: { connectionId: entry.connectionId } })
                     );
-
                     expect(response).toContain("The user needs to finish their OIDC connection by opening");
                     expect(response).toContain(state.oidcLoginUrl);
                     expect(response).toContain(state.oidcUserCode);
                     expect(response).not.toContain("Please use one of the following tools");
                     expect(response).not.toContain("There are no tools available to connect.");
-
-                    await waitUntil<ConnectionStateConnected>("connected", entry, signal);
-
+                    await waitUntil<ConnectionStateConnected>({ tag: "connected", source: entry, signal });
                     const connectedResponse = responseAsText(
                         await integration
                             .mcpClient()
                             .callTool({ name: "list-databases", arguments: { connectionId: entry.connectionId } })
                     );
-
                     expect(connectedResponse).toContain("admin");
                     expect(connectedResponse).toContain("config");
                     expect(connectedResponse).toContain("local");

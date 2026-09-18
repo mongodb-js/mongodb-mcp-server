@@ -211,6 +211,27 @@ describe("StreamsDiscoverTool", () => {
                 },
             });
         });
+
+        it("should redact secret-valued fields from the detailed workspace output", async () => {
+            mockApiClient.getStreamWorkspace!.mockResolvedValue({
+                name: "ws1",
+                dataProcessRegion: { cloudProvider: "AWS", region: "VIRGINIA_USA" },
+                streamConfig: { tier: "SP10" },
+                connections: [
+                    { name: "c1", type: "Kafka", authentication: { mechanism: "SCRAM", password: "LeakyWsP4ss" } },
+                ],
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "inspect-workspace",
+                workspaceName: "ws1",
+            });
+
+            const untrusted = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(untrusted).not.toContain("LeakyWsP4ss");
+            expect(untrusted).toContain("<redacted>");
+        });
     });
 
     describe("diagnose-processor", () => {
@@ -475,6 +496,36 @@ describe("StreamsDiscoverTool", () => {
             });
         });
 
+        it("masks secret-valued authentication fields from the returned content", async () => {
+            mockApiClient.getStreamConnection!.mockResolvedValue({
+                name: "kafka-in",
+                type: "Kafka",
+                bootstrapServers: "broker:9092",
+                authentication: {
+                    mechanism: "SCRAM",
+                    username: "svc-user",
+                    password: "LeakyP4ssw0rd",
+                },
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "inspect-connection",
+                workspaceName: "ws1",
+                resourceName: "kafka-in",
+            });
+
+            const untrusted = result.content.map((c) => (c as { text: string }).text).join("\n");
+            // The secret value never surfaces; the useful auth metadata does.
+            expect(untrusted).not.toContain("LeakyP4ssw0rd");
+            expect(untrusted).toContain("<redacted>");
+            expect(untrusted).toContain("svc-user");
+            expect(untrusted).toContain("SCRAM");
+            expect(result.structuredContent).toEqual({
+                connection: { type: "Kafka", bootstrapServers: "broker:9092" },
+            });
+        });
+
         it("should throw when resourceName is missing", async () => {
             await expect(exec({ ...baseArgs, action: "inspect-connection", workspaceName: "ws1" })).rejects.toThrow(
                 "resourceName is required"
@@ -486,8 +537,23 @@ describe("StreamsDiscoverTool", () => {
         it("should return processor list when processors exist", async () => {
             mockApiClient.getStreamProcessors!.mockResolvedValue({
                 results: [
-                    { name: "proc1", state: "STARTED", tier: "SP10" },
-                    { name: "proc2", state: "STOPPED", tier: "SP30" },
+                    {
+                        name: "proc1",
+                        state: "STARTED",
+                        tier: "SP10",
+                        effectiveTier: "SP30",
+                        // Atlas responses echo a read-only HAL `links` inside StreamsAutoscaling;
+                        // assert toStreamsAutoscaling strips it before structured output.
+                        options: {
+                            autoscaling: {
+                                enabled: true,
+                                minTier: "SP5",
+                                maxTier: "SP30",
+                                links: [{ href: "https://example.com", rel: "self" }],
+                            },
+                        },
+                    },
+                    { name: "proc2", state: "STOPPED", tier: "SP30", effectiveTier: "SP30" },
                 ],
             });
 
@@ -501,8 +567,14 @@ describe("StreamsDiscoverTool", () => {
             expect(text).toContain("2 processor(s)");
             expect(result.structuredContent).toEqual({
                 processors: [
-                    { name: "proc1", state: "STARTED", tier: "SP10" },
-                    { name: "proc2", state: "STOPPED", tier: "SP30" },
+                    {
+                        name: "proc1",
+                        state: "STARTED",
+                        tier: "SP10",
+                        effectiveTier: "SP30",
+                        autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" },
+                    },
+                    { name: "proc2", state: "STOPPED", tier: "SP30", effectiveTier: "SP30" },
                 ],
             });
         });
@@ -531,6 +603,17 @@ describe("StreamsDiscoverTool", () => {
                 name: "proc1",
                 state: "STARTED",
                 tier: "SP10",
+                effectiveTier: "SP30",
+                // Atlas responses echo a read-only HAL `links` inside StreamsAutoscaling;
+                // assert toStreamsAutoscaling strips it before structured output.
+                options: {
+                    autoscaling: {
+                        enabled: true,
+                        minTier: "SP5",
+                        maxTier: "SP30",
+                        links: [{ href: "https://example.com", rel: "self" }],
+                    },
+                },
                 pipeline: [{ $source: { connectionName: "kafka-in" } }],
             });
 
@@ -547,6 +630,8 @@ describe("StreamsDiscoverTool", () => {
             expect(result.structuredContent).toEqual({
                 processorState: "STARTED",
                 tier: "SP10",
+                effectiveTier: "SP30",
+                autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" },
                 pipeline: [{ $source: { connectionName: "kafka-in" } }],
             });
         });

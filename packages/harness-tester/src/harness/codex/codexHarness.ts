@@ -86,7 +86,7 @@ export class CodexTuiHarness implements AgentHarness {
             waitReady: false,
         });
 
-        const session = new CodexTuiSession(terminal, options, this.onState);
+        const session = new CodexTuiSession({ terminal, options, onState: this.onState });
         await session.initialise();
         return session;
     }

@@ -2,15 +2,16 @@ import type { Mocked, MockedFunction } from "vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MongoServerError } from "mongodb";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import { CompositeLogger } from "@mongodb-js/mcp-core";
+import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import { MCPConnectionManager, type ConnectionManager } from "./connectionManager.js";
 import { MCPConnectionStore, type ConnectionStoreConfig } from "./connectionStore.js";
-import type { ConnectionEntry, ConnectionRegistry } from "./connectionRegistry.js";
+import { ConnectionEntry, type ConnectionRegistry } from "./connectionRegistry.js";
 import { DeviceId } from "../helpers/deviceId.js";
 import { ErrorCodes, MongoDBError } from "./errors.js";
 
 const defaultTestConfig: ConnectionStoreConfig = {
     maxActiveConnections: 10,
+    connectionIdleTimeoutMs: 600_000,
     transport: "stdio",
     httpHost: "127.0.0.1",
 };
@@ -42,6 +43,7 @@ describe("ConnectionEntry with MCPConnectionManager", () => {
             options: defaultTestConfig,
             logger,
             deviceId: mockDeviceId,
+            keychain: new Keychain(),
         }).view();
 
         MockNodeDriverServiceProvider.connect = vi.fn().mockResolvedValue({});
@@ -129,6 +131,51 @@ describe("ConnectionEntry with MCPConnectionManager", () => {
 
             // Should use 'unknown' for client name when it was not provided
             expect(connectionString).toContain("--test-device-id--unknown");
+        });
+    });
+
+    describe("atlasCluster", () => {
+        const atlas = { projectId: "proj1", clusterName: "cluster1", clusterId: "cluster-id-1" };
+
+        it("is the cluster the entry was created for and marks the connection's host type as atlas", async () => {
+            const entry = await registry.connect({
+                settings: { connectionString: "mongodb://localhost:27017" },
+                atlasCluster: atlas,
+            });
+
+            expect(entry.atlasCluster).toEqual(atlas);
+            expect(entry.state.connectionStringInfo?.hostType).toBe("atlas");
+        });
+
+        it("is undefined for an entry that has not connected to an Atlas cluster", async () => {
+            const entry = await registry.createEntry({ name: "cold" });
+
+            expect(entry.atlasCluster).toBeUndefined();
+        });
+    });
+
+    describe("lastError", () => {
+        it("should not contain the raw connection string when the connect attempt fails", async () => {
+            const entry = new ConnectionEntry({
+                connectionId: "preconfigured",
+                name: "preconfigured",
+                source: "preconfigured",
+                manager: new MCPConnectionManager({
+                    logger,
+                    deviceId: mockDeviceId,
+                    serverMetadata: { mcpServerName: "MongoDB MCP Server", version: "1.0.0" },
+                    connectionInfo: { transport: "stdio", httpHost: "127.0.0.1" },
+                }),
+                keychain: new Keychain(),
+            });
+
+            await expect(
+                entry.connect({ connectionString: "mongodb+srv://dbadmin:Real$ecretPass9@" })
+            ).rejects.toThrow();
+
+            expect(entry.lastError).toBeDefined();
+            expect(entry.lastError).not.toContain("Real$ecretPass9");
+            expect(entry.lastError).toContain("<mongodb uri>");
         });
     });
 

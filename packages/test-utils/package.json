@@ -1,6 +1,6 @@
 {
   "name": "@mongodb-js/mcp-test-utils",
-  "version": "3.0.0-prerelease.4",
+  "version": "3.0.2",
   "private": true,
   "type": "module",
   "description": "Test utilities for the MongoDB MCP server",
@@ -25,7 +25,7 @@
   "devDependencies": {
     "@mongodb-js/mcp-types": "workspace:*",
     "@types/node": "^25.6.0",
-    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/jest-dom": "^7.0.1",
     "typescript": "^5.9.2"
   }
 }

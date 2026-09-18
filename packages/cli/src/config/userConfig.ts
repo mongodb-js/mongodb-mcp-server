@@ -165,6 +165,13 @@ const ServerConfigSchema = z.object({
             "Header that the HTTP server will validate when making requests (only used when transport is 'http')."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    dangerousHostBinding: z
+        .preprocess(parseBoolean, z.boolean())
+        .default(false)
+        .describe(
+            "When set to true, allows binding the HTTP server (and monitoring server) to a non-loopback host such as 0.0.0.0, a LAN IP, or an empty host (all interfaces). Binding to a non-loopback host exposes the server to the entire network and can allow unauthorized access. Off by default: the server refuses to start on a non-loopback host unless this is true."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
     httpBodyLimit: z.coerce
         .number()
         .int()
@@ -183,7 +190,29 @@ const ServerConfigSchema = z.object({
         .min(1, "Invalid maxActiveConnections: must be at least 1")
         .default(10)
         .describe(
-            "Maximum number of MongoDB connections the server can hold open at once. When exceeded, the least-recently-used connection is closed and its connectionId revoked. The preconfigured connection does not count towards the limit."
+            "Maximum number of MongoDB connections a single scope (an MCP session by default, see connectionScope) can hold open. When exceeded, the scope's least-recently-used connection is closed and its connectionId revoked. The preconfigured connection does not count towards the limit."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    connectionIdleTimeoutMs: z.coerce
+        .number()
+        .int()
+        .min(0, "Invalid connectionIdleTimeoutMs: must be a non-negative integer")
+        .default(600_000)
+        .describe(
+            "Milliseconds a MongoDB connection may stay unused (no tool call touching it) before it is closed to release the underlying connection pool and its server-side state. Applied per connection regardless of its connection scope; the preconfigured connection is excluded, and the reaper runs on this cadence. Set to 0 to disable reaping; must not be negative."
+        )
+        .register(configRegistry, { overrideBehavior: onlyLowerThanBaseValueOverride() }),
+    /**
+     * @deprecated The MCP protocol is moving to sessionless, so this option will
+     * soon be removed and the connection scope will default to "global". For
+     * shared-server use cases, use the Atlas-Managed MCP server or build an
+     * authenticated library using the `@mongodb-js/mcp-cli` package.
+     */
+    connectionScope: z
+        .enum(["session", "global"])
+        .default("session")
+        .describe(
+            "Visibility scope for MongoDB connections created at runtime. With 'session' (the default), each MCP session only sees the connections it created (plus the shared 'preconfigured' one) and they are closed when the session ends. With 'global', connections are shared across all sessions and survive session rotation. Deprecated: the MCP protocol is moving to sessionless, so this option will soon be removed and the connection scope will default to 'global'. For shared-server use cases, use the Atlas-Managed MCP server or build an authenticated library using the @mongodb-js/mcp-cli package. Note: on the sessionless (2026-07-28) HTTP path, a request without an mcp-session-id falls back to the shared ('global') scope so it can still persist connections across requests; the legacy sessionful path always carries a server-issued session."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
     maxSessions: z.coerce

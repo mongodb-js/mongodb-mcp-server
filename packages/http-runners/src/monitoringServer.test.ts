@@ -217,4 +217,32 @@ describe("MonitoringServer", () => {
             expect(() => server!.serverAddress).toThrow("Server is not started yet");
         });
     });
+
+    describe("dangerous host binding", () => {
+        it("throws when binding to 0.0.0.0 without the opt-in", async () => {
+            server = new MonitoringServer({
+                options: {
+                    http: { host: "0.0.0.0", port: 0 },
+                    features: ["health-check"],
+                },
+                logger,
+                metrics,
+            });
+
+            await expect(server.start()).rejects.toThrow(/non-loopback host "0.0.0.0"/);
+        });
+
+        it("starts on 0.0.0.0 when dangerousHostBinding is set", async () => {
+            server = new MonitoringServer({
+                options: {
+                    http: { host: "0.0.0.0", port: 0, dangerousHostBinding: true },
+                    features: ["health-check"],
+                },
+                logger,
+                metrics,
+            });
+
+            await expect(server.start()).resolves.toBeUndefined();
+        });
+    });
 });

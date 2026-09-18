@@ -90,20 +90,28 @@ describe("/metrics endpoint", () => {
         const body = await (await fetch(monitoringUrl("/metrics"))).text();
 
         expect(
-            parsePrometheusValue(body, "mcp_tool_execution_duration_seconds_count", {
-                tool_name: "echo-tool",
-                category: "mongodb",
-                status: "success",
-                operation_type: "read",
+            parsePrometheusValue({
+                body,
+                metricName: "mcp_tool_execution_duration_seconds_count",
+                labels: {
+                    tool_name: "echo-tool",
+                    category: "mongodb",
+                    status: "success",
+                    operation_type: "read",
+                },
             })
         ).toBe(2);
 
         expect(
-            parsePrometheusValue(body, "mcp_tool_execution_duration_seconds_sum", {
-                tool_name: "echo-tool",
-                category: "mongodb",
-                status: "success",
-                operation_type: "read",
+            parsePrometheusValue({
+                body,
+                metricName: "mcp_tool_execution_duration_seconds_sum",
+                labels: {
+                    tool_name: "echo-tool",
+                    category: "mongodb",
+                    status: "success",
+                    operation_type: "read",
+                },
             })
         ).toBeGreaterThanOrEqual(0);
     });
@@ -121,11 +129,15 @@ describe("/metrics endpoint", () => {
         const body = await (await fetch(monitoringUrl("/metrics"))).text();
 
         expect(
-            parsePrometheusValue(body, "mcp_tool_execution_duration_seconds_count", {
-                tool_name: "error-tool",
-                status: "error",
-                operation_type: "read",
-                error_type: "TypeError",
+            parsePrometheusValue({
+                body,
+                metricName: "mcp_tool_execution_duration_seconds_count",
+                labels: {
+                    tool_name: "error-tool",
+                    status: "error",
+                    operation_type: "read",
+                    error_type: "TypeError",
+                },
             })
         ).toBe(1);
     });
@@ -182,15 +194,21 @@ describe("/metrics endpoint", () => {
         const body = await fetch(monitoringUrl("/metrics")).then((r) => r.text());
 
         // Custom counter is registered in the runner's registry and appears in the scrape
-        expect(parsePrometheusValue(body, "custom_tool_call_count", { tool_name: "custom-tool" })).toBe(3);
+        expect(
+            parsePrometheusValue({ body, metricName: "custom_tool_call_count", labels: { tool_name: "custom-tool" } })
+        ).toBe(3);
 
         // Built-in metrics are still present alongside custom ones
         expect(
-            parsePrometheusValue(body, "mcp_tool_execution_duration_seconds_count", {
-                tool_name: "custom-tool",
-                category: "mongodb",
-                status: "success",
-                operation_type: "read",
+            parsePrometheusValue({
+                body,
+                metricName: "mcp_tool_execution_duration_seconds_count",
+                labels: {
+                    tool_name: "custom-tool",
+                    category: "mongodb",
+                    status: "success",
+                    operation_type: "read",
+                },
             })
         ).toBe(3);
     });

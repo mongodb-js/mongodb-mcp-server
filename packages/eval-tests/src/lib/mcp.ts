@@ -1,8 +1,8 @@
 import { InMemoryTransport } from "@modelcontextprotocol/server";
 import { experimental_createMCPClient } from "@ai-sdk/mcp";
 import { tool as createTool, type Tool } from "ai";
-import { Keychain } from "@mongodb-js/mcp-core";
 import {
+    createKeychainFromConfig,
     createLoggerFromConfig,
     createServerFromConfig,
     createSharedServicesFromConfig,
@@ -44,13 +44,15 @@ export class InMemoryMcpConnection {
             ...userConfig,
         });
 
-        const logger = await createLoggerFromConfig({ config, keychain: Keychain.root });
+        const keychain = createKeychainFromConfig({ config });
+        const logger = await createLoggerFromConfig({ config, keychain });
         const sharedServices = await createSharedServicesFromConfig({
             config,
             serverMetadata: packageInfo,
             tools: AllTools,
             resources: Resources,
             logger,
+            keychain,
         });
         const server = createServerFromConfig({ config, sharedServices });
 

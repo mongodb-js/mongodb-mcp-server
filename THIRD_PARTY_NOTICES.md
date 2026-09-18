@@ -1,5 +1,5 @@
 The following third-party software is used by and included in **MongoDB MCP Server**.
-This document was automatically generated on Thu Sep 10 2026.
+This document was automatically generated on Thu Sep 17 2026.
 
 ## List of dependencies
 
@@ -551,6 +551,7 @@ Package|Version|License
 **[pend](#5280e611ad1ea93993866458fee5ac2505dffaa230bd5f5c52d409d07e22650c)**|1.2.0|MIT
 **[picocolors](#7c5f372425355293c448d7405cb3b0a1fe19402bd0298caae8e341077624f0b7)**|1.1.1|ISC
 **[picomatch](#c78c64a6fc75782d50e698a11df7376076bd26035eb4e2dc8dc6e3f216b85f70)**|4.0.5|MIT
+**[picomatch](#0eb48e249822c101af2ccb1be899a48ebfc1ae80e3ac026a4a819454887bc22d)**|4.0.7|MIT
 **[pify](#fa563a6186184316465656f6e608f9e4989e4c4d5a87195874ab68f6cecb5433)**|2.3.0|MIT
 **[pify](#95369d58f1d1199d1e592e0ce52033ab973f27ab3e49926f7ecd02652c387fe3)**|3.0.0|MIT
 **[pinkie-promise](#93c64c2afc117932e69534a865511191963c97dcc96651a1d0d7ba0ea5754f9a)**|2.0.1|MIT
@@ -703,7 +704,7 @@ Package|Version|License
 **[unbzip2-stream](#8624e2dceaa1f8ccf8652c8c7f13ca7a609584520166d44758fdf0d1d96d17db)**|1.4.3|MIT
 **[undici-types](#bd50bc60a9b5c2ca9c8085450b1ba8acf312e451bccdca5d2399e268338d9a63)**|5.26.5|MIT
 **[undici-types](#b0d2c11cf977876b41bc2854498debbc94808c37e6b3c3eb5d00c3b84f2e17ed)**|7.19.2|MIT
-**[undici](#9f3dc2d15b893a0f515fa401e072b90067b8f11b68e74b6337227e48809af6e8)**|7.29.0|MIT
+**[undici](#962be31618d54a6976f0fb7d8e970d5c8dfd4ebfe8af852e8856fdcd128698fa)**|7.29.1|MIT
 **[undici](#7d5944af5afd449853589be095945f6d6f870a8f9e29062128984fb698d6e226)**|8.10.0|MIT
 **[unpipe](#3a555405bd00c7e7e52b07a5600248bdaa683db613d7c286e425511cee8ed14a)**|1.0.0|MIT
 **[unplugin](#c3ae9c0ff2de2ae7f7f568e3f8266119a5088cd96b8cff02db75345c3a10ab66)**|2.3.11|MIT
@@ -3552,6 +3553,11 @@ License tags: ISC
 License tags: MIT
 
 
+<a id="0eb48e249822c101af2ccb1be899a48ebfc1ae80e3ac026a4a819454887bc22d"></a>
+### [picomatch](https://www.npmjs.com/package/picomatch) (version 4.0.7)
+License tags: MIT
+
+
 <a id="fa563a6186184316465656f6e608f9e4989e4c4d5a87195874ab68f6cecb5433"></a>
 ### [pify](https://www.npmjs.com/package/pify) (version 2.3.0)
 License tags: MIT
@@ -4377,8 +4383,8 @@ License tags: MIT
 License tags: MIT
 
 
-<a id="9f3dc2d15b893a0f515fa401e072b90067b8f11b68e74b6337227e48809af6e8"></a>
-### [undici](https://www.npmjs.com/package/undici) (version 7.29.0)
+<a id="962be31618d54a6976f0fb7d8e970d5c8dfd4ebfe8af852e8856fdcd128698fa"></a>
+### [undici](https://www.npmjs.com/package/undici) (version 7.29.1)
 License tags: MIT
 
 

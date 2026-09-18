@@ -1,5 +1,3 @@
-import type { Secret } from "mongodb-redact";
-
 export type { Secret } from "mongodb-redact";
 
 /**
@@ -17,9 +15,17 @@ export interface IRedactor {
      * redacted. Never mutates `value`, and terminates on self-referencing input.
      */
     redact<T>(value: T): T;
+    /**
+     * Returns the message of an `error` (or the string form of a non-error) with
+     * this redactor's secrets removed, for safe logging or display.
+     */
+    redactErrorMessage(error: unknown): string;
 }
 
-export interface IKeychain extends IRedactor {
-    register(value: Secret["value"], kind: Secret["kind"]): void;
-    clearAllSecrets(): void;
-}
+/**
+ * A keychain, for consumers that hold one and need to redact secrets (loggers,
+ * tools, the server). It is immutable: its secrets are fixed at construction and
+ * cannot be registered or cleared afterwards, so it never grows over a process
+ * lifetime. The only action is {@link IRedactor.redact}.
+ */
+export type IKeychain = IRedactor;

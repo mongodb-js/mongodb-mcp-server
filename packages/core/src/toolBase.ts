@@ -1,6 +1,7 @@
 import { z, type ZodRawShape } from "zod";
 import {
     isInputRequiredResult,
+    CLIENT_INFO_META_KEY,
     type RegisteredTool,
     type CallToolResult,
     type InputRequiredResult,
@@ -23,11 +24,13 @@ import type {
     IToolConfig,
     SupportedConnectionState,
     TransportRequestContext,
+    AtlasClusterConnectionInfo,
 } from "@mongodb-js/mcp-types";
 import { createUIResource, type UIResource } from "@mcp-ui/server";
 import { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
 import { getRandomUUID } from "@mongodb-js/mcp-core";
 import { requestIdAttr } from "./helpers/requestIdAttr.js";
+import { clientTelemetryProperties } from "./helpers/clientTelemetry.js";
 
 import { LogId } from "./logId.js";
 
@@ -68,9 +71,47 @@ export function toToolExecutionContext<TConfig extends IToolConfig = IToolConfig
             sendNotification: mcpReq?.notify
                 ? (notification: unknown): Promise<void> => mcpReq.notify(notification as Notification)
                 : undefined,
-            clientInfo: normalizeClientInfo(clientInfo),
+            clientInfo: normalizeClientInfo(resolveClientInfo(mcpReq, clientInfo)),
         },
     };
+}
+
+/**
+ * Resolves the client identity for a request. The 2026-07-28 protocol declares
+ * it on the per-request `_meta` envelope (`mcpReq.envelope[CLIENT_INFO_META_KEY]`),
+ * which is how a stateless per-request server learns it without an `initialize`
+ * handshake; the deprecated `Server.getClientVersion()` is only populated via the
+ * legacy `initialize` negotiation (or is backfilled from that same envelope).
+ * Prefer the envelope declaration, falling back to the negotiated value so both
+ * the modern (2026-07-28) and legacy (2025-era) paths report the client name.
+ */
+function resolveClientInfo(
+    mcpReq: ServerContext["mcpReq"] | undefined,
+    negotiated: Implementation | undefined
+): Implementation | undefined {
+    const envelope = mcpReq?.envelope;
+    if (isRecord(envelope)) {
+        const declared = envelope[CLIENT_INFO_META_KEY];
+        if (isImplementation(declared)) {
+            return declared;
+        }
+    }
+    return negotiated;
+}
+
+/** Narrow a possibly-undefined per-request envelope to a keyed object. */
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null;
+}
+
+/** Narrow for the per-request envelope's client identity value. */
+function isImplementation(value: unknown): value is Implementation {
+    return (
+        typeof value === "object" &&
+        value !== null &&
+        (typeof (value as { name?: unknown }).name === "string" ||
+            typeof (value as { version?: unknown }).version === "string")
+    );
 }
 
 /** Normalizes client identity fields, defaulting missing ones to `"unknown"`. */
@@ -539,7 +580,7 @@ export abstract class ToolBase<
             // spent working, so it counts towards neither duration below.
             const executionStartTime = startTime + (context.request.elicitationDurationMs ?? 0);
 
-            this.emitToolEvent(args, { startTime: executionStartTime, result });
+            this.emitToolEvent(args, { startTime: executionStartTime, result, clientInfo: context.request.clientInfo });
 
             this.server.metrics.get("toolExecutionDuration").observe(
                 {
@@ -709,7 +750,7 @@ export abstract class ToolBase<
             // raw `z.ZodType` shapes assembled from `ZodRawShape` here, TypeScript
             // cannot infer the callback's args type, so we register through a
             // structurally-typed wrapper and route through `invoke`.
-            /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion -- the generic registers are not directly assignable to this callback shape */
+            /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion, max-params -- the generic registers are not directly assignable to this callback shape, and registerTool's signature is a fixed (name, config, cb) contract */
             (
                 this.server.mcpServer.registerTool as unknown as (
                     name: string,
@@ -726,7 +767,7 @@ export abstract class ToolBase<
                     ) => Promise<CallToolResult | InputRequiredResult>
                 ) => RegisteredTool
             )(
-                /* eslint-enable @typescript-eslint/no-unnecessary-type-assertion */ this.name,
+                /* eslint-enable @typescript-eslint/no-unnecessary-type-assertion, max-params */ this.name,
                 {
                     description: this.description,
                     // Wrap the raw shape in a strict object so the SDK rejects unrecognized
@@ -912,7 +953,11 @@ export abstract class ToolBase<
      */
     private emitToolEvent(
         args: ToolArgs<ReturnType<typeof this.argsShape>>,
-        { startTime, result }: { startTime: number; result: CallToolResult }
+        {
+            startTime,
+            result,
+            clientInfo,
+        }: { startTime: number; result: CallToolResult; clientInfo?: { name?: string; version?: string } }
     ): void {
         if (!this.server.telemetry.isTelemetryEnabled()) {
             return;
@@ -930,6 +975,7 @@ export abstract class ToolBase<
                     component: "tool",
                     duration_ms: duration,
                     result: result.isError ? "failure" : "success",
+                    ...clientTelemetryProperties(clientInfo),
                     ...metadata,
                 },
             };
@@ -948,22 +994,33 @@ export abstract class ToolBase<
         return this.server.config.previewFeatures.includes(feature);
     }
 
-    protected getConnectionInfoMetadata(connectionState?: SupportedConnectionState): ConnectionMetadata {
+    /**
+     * Telemetry metadata for the connection entry a tool call ran against.
+     * Auth and host type come from the live state; Atlas attribution comes
+     * from the entry's `atlasCluster`, which a registry may know without a
+     * live connection.
+     */
+    protected getConnectionInfoMetadata(entry?: {
+        state: SupportedConnectionState;
+        atlasCluster?: AtlasClusterConnectionInfo;
+    }): ConnectionMetadata {
         const metadata: ConnectionMetadata = {};
 
-        if (connectionState === undefined) {
+        if (entry === undefined) {
             return metadata;
         }
 
-        if (connectionState.connectionStringInfo !== undefined) {
-            metadata.connection_auth_type = connectionState.connectionStringInfo.authType;
-            metadata.connection_host_type = connectionState.connectionStringInfo.hostType;
+        if (entry.state.connectionStringInfo !== undefined) {
+            metadata.connection_auth_type = entry.state.connectionStringInfo.authType;
+            metadata.connection_host_type = entry.state.connectionStringInfo.hostType;
         }
 
-        if (connectionState.connectedAtlasCluster) {
-            metadata.project_id = connectionState.connectedAtlasCluster.projectId;
-            metadata.cluster_name = connectionState.connectedAtlasCluster.clusterName;
-            metadata.cluster_id = connectionState.connectedAtlasCluster.clusterId;
+        if (entry.atlasCluster) {
+            metadata.project_id = entry.atlasCluster.projectId;
+            metadata.cluster_name = entry.atlasCluster.clusterName;
+            if (entry.atlasCluster.clusterId !== undefined) {
+                metadata.cluster_id = entry.atlasCluster.clusterId;
+            }
         }
 
         return metadata;

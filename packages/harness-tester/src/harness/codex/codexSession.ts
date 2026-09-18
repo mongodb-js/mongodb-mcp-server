@@ -9,8 +9,16 @@ export type CodexState = TuiState;
 const COMPOSER_IDLE_MARKER = "Ask Codex to do anything";
 
 export class CodexTuiSession extends TuiSessionBase {
-    constructor(terminal: TuiTest, options: AgentHarnessOptions, onState?: (state: TuiState) => void) {
-        super(terminal, options, onState);
+    constructor({
+        terminal,
+        options,
+        onState,
+    }: {
+        terminal: TuiTest;
+        options: AgentHarnessOptions;
+        onState?: (state: TuiState) => void;
+    }) {
+        super({ terminal, options, onState });
     }
 
     protected get label(): string {

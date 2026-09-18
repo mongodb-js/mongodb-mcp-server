@@ -4,6 +4,7 @@
 
 ```ts
 
+import type { AtlasClusterConnectionInfo } from '@mongodb-js/mcp-types';
 import { CallToolResult } from '@modelcontextprotocol/server';
 import type { ClientCapabilities } from '@modelcontextprotocol/server';
 import type { CloseableTransport } from '@mongodb-js/mcp-types';
@@ -69,6 +70,15 @@ export type AnyToolClass = Omit<ToolClass<any, any>, "new"> & {
 export const ASCII_ONLY_NON_CC_ERROR = "String cannot contain control characters or non-ASCII characters";
 
 export { CallToolResult }
+
+// @public
+export function clientTelemetryProperties(clientInfo: {
+    name?: string;
+    version?: string;
+} | undefined): {
+    mcp_client_name?: string;
+    mcp_client_version?: string;
+};
 
 // @public (undocumented)
 export const CommonArgs: {
@@ -177,14 +187,9 @@ export const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
 
 // @public
 export class Keychain implements IKeychain {
-    constructor();
-    // (undocumented)
-    clearAllSecrets(): void;
+    constructor(secrets?: SecretRecord);
     redact<T>(value: T): T;
-    // (undocumented)
-    register(value: Secret["value"], kind: Secret["kind"]): void;
-    // (undocumented)
-    static get root(): Keychain;
+    redactErrorMessage(error: unknown): string;
 }
 
 // @public
@@ -372,13 +377,13 @@ export abstract class RedactingLoggerBase<T extends EventMap<T> = DefaultEventMa
     protected abstract readonly type?: LoggerType;
 }
 
-// @public (undocumented)
-export function registerGlobalSecretToRedact(value: Secret["value"], kind: Secret["kind"]): void;
-
 // @public
 export function requestIdAttr(headers: Record<string, unknown> | undefined): Record<string, string>;
 
 export { Secret }
+
+// @public
+export type SecretKind = Secret["kind"];
 
 // @public @deprecated (undocumented)
 export class SessionLimitExceededError extends Error {
@@ -463,8 +468,10 @@ export abstract class ToolBase<TServer extends ToolServer = ToolServer, TMetrics
     enable(): void;
     protected abstract execute(args: ToolArgs<ReturnType<typeof ToolBase.argsShape>>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
     protected getConfirmationMessage(args: ToolArgs<ReturnType<typeof ToolBase.argsShape>>): string;
-    // (undocumented)
-    protected getConnectionInfoMetadata(connectionState?: SupportedConnectionState): ConnectionMetadata;
+    protected getConnectionInfoMetadata(entry?: {
+        state: SupportedConnectionState;
+        atlasCluster?: AtlasClusterConnectionInfo;
+    }): ConnectionMetadata;
     protected handleError(error: unknown, args: z.infer<z.ZodObject<ReturnType<typeof ToolBase.argsShape>>>): Promise<CallToolResult> | CallToolResult;
     invoke(args: ToolArgs<ReturnType<typeof ToolBase.argsShape>>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
     // (undocumented)

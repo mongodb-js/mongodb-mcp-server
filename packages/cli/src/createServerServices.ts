@@ -1,7 +1,14 @@
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
-import { Elicitation, Keychain, McpServer, LogId } from "@mongodb-js/mcp-core";
-import type { IMetrics, IDeviceId, ServerMetadata, TransportRequestContext } from "@mongodb-js/mcp-types";
+import { Elicitation, McpServer, LogId } from "@mongodb-js/mcp-core";
+import type { Keychain } from "@mongodb-js/mcp-core";
+import type {
+    IMetrics,
+    IDeviceId,
+    ServerMetadata,
+    TransportRequestContext,
+    ConnectionScopePolicy,
+} from "@mongodb-js/mcp-types";
 import type { Client as AtlasLocalClient } from "@mongodb-js/atlas-local";
 import type { ResourceRegistry, ToolRegistry } from "./cliServer.js";
 import { CliServer } from "./cliServer.js";
@@ -28,6 +35,12 @@ export type CreateServerServicesOptions = {
     tools: ToolRegistry;
     resources: ResourceRegistry;
     logger: CompositeLogger;
+    /**
+     * The server's immutable redaction keychain, built once from config secrets
+     * and threaded through every service. Required: no code may create or
+     * mutate a keychain after this point.
+     */
+    keychain: Keychain;
 };
 
 /**
@@ -126,16 +139,21 @@ export async function validateAppConfig({
 export async function createSharedServicesFromConfig(
     options: CreateServerServicesOptions
 ): Promise<SharedServerServices> {
-    const { config, serverMetadata, logger } = options;
+    const { config, serverMetadata, logger, keychain } = options;
     const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
     const monitoringServer = createMonitoringServerFromConfig({ config, logger, metrics });
 
-    const keychain = Keychain.root;
     const deviceId = DeviceId.create(logger);
 
     // Shared across requests; a single app-level view ([no scope]) means every
     // request sees the same connections, keyed by opaque connectionId.
-    const connectionStore = new MCPConnectionStore({ options: config, logger, deviceId, serverMetadata });
+    const connectionStore = new MCPConnectionStore({
+        options: config,
+        logger,
+        deviceId,
+        serverMetadata,
+        keychain,
+    });
     const connectionRegistry = connectionStore.view();
 
     const exportsManager = createExportsManagerFromConfig({ config, logger });
@@ -175,34 +193,67 @@ export async function createSharedServicesFromConfig(
 }
 
 /**
- * The HTTP header a client may send to identify itself for connection
- * scoping (multi-tenant HTTP deployments). When present, connections the
- * client creates are scoped to this value: they survive across that client's
- * requests (same scope) but are invisible to other clients (different scope).
- * Clients that don't send it share the global registry, matching the
- * pre-Phase-3 behavior.
- *
- * Deliberately outside the `x-mongodb-mcp-` prefix used by request config
- * overrides (see applyConfigOverrides), so it is never mistaken for one.
+ * The scope key every request resolves to under `connectionScope: "global"`:
+ * one namespace shared by all clients, surviving session rotation — the
+ * v2.x `connectionScope: "global"` behavior.
  */
-export const CLIENT_SCOPE_HEADER = "x-mcp-client-name";
+export const GLOBAL_CONNECTION_SCOPE = "global";
 
 /**
- * Derives a connection scope from the request. Precedence:
- *  1. `authInfo.state.clientId` — the verified identity (auth mode): stable,
- *     cannot be forged by the client, so each authenticated client gets its
- *     own isolated namespace.
- *  2. the `x-mcp-client-name` header — opt-in label for unauthenticated
- *     deployments (see {@link CLIENT_SCOPE_HEADER}).
- *  3. none — the caller falls back to an ephemeral scope.
+ * The `mcp-session-id` header. On the sessionful (legacy) path the server
+ * issues this id; on the sessionless (desktop 2026-07-28) path a client may
+ * supply one. In both cases requests that share a session id resolve to the
+ * same connection scope, so connections persist across a session's requests.
  */
-function clientScopeFromRequest(request?: TransportRequestContext): string | undefined {
-    if (request?.authInfo?.mode === "authenticated") {
-        return request.authInfo.state.clientId;
+export const SESSION_ID_HEADER = "mcp-session-id";
+
+/** Guards against an absurdly large session id being used as a scope key. */
+const MAX_SESSION_ID_LENGTH = 512;
+
+/**
+ * Scope keyed on the client's `mcp-session-id`: requests carrying the same id
+ * (whether a server-issued legacy session id or a client-supplied one on the
+ * sessionless path) share connections, enabling cross-request persistence. A
+ * request without a usable id returns `undefined` (the caller decides the
+ * fallback — {@link connectionScopeFromConfig} shares the global scope on the
+ * sessionless path, ephemeral otherwise). The id is a capability token —
+ * unguessable when server-issued, self-asserted otherwise — so possession of it
+ * is what grants access to the scope's connections.
+ */
+export function connectionScopeBySessionId(request: TransportRequestContext): string | undefined {
+    const header = request.headers?.[SESSION_ID_HEADER];
+    if (typeof header !== "string") {
+        return undefined;
     }
-    const header = request?.headers?.[CLIENT_SCOPE_HEADER];
-    const name = (typeof header === "string" && header.trim()) || undefined;
-    return name;
+    const id = header.trim();
+    return id && id.length <= MAX_SESSION_ID_LENGTH ? id : undefined;
+}
+
+/**
+ * Derives the CLI runner's connection-scope policy from the user config — the
+ * `connectionScope` option restored from v2.x:
+ *  - `"session"` (default): connection scope keyed on the client's
+ *    `mcp-session-id` — requests that carry the same session id share a scope
+ *    (persisting their connections across requests). When a request has no
+ *    usable session id, the sessionless 2026-07-28 path falls back to the
+ *    shared scope ({@link GLOBAL_CONNECTION_SCOPE}) so anonymous clients can
+ *    still persist connections across requests, while the sessionful legacy
+ *    path (which always has a server-issued session) stays ephemeral.
+ *  - `"global"`: every request shares one scope ({@link GLOBAL_CONNECTION_SCOPE}),
+ *    so connections are visible to all clients and survive session rotation.
+ */
+export function connectionScopeFromConfig(config: UserConfig): ConnectionScopePolicy {
+    if (config.connectionScope === "global") {
+        return () => GLOBAL_CONNECTION_SCOPE;
+    }
+    return (request) => {
+        const id = connectionScopeBySessionId(request);
+        // No usable session id. On the sessionless (2026-07-28) path this server
+        // has no session machinery, so share the global scope so anonymous
+        // clients can still persist connections. The legacy sessionful path
+        // always has a server-issued session; leave it ephemeral (undefined).
+        return id ?? (request.protocol === "2026-07-28" ? GLOBAL_CONNECTION_SCOPE : undefined);
+    };
 }
 
 /** A fresh, unguessable scope for a request whose client did not identify itself. */
@@ -218,22 +269,31 @@ function ephemeralClientScope(): string {
  * every heavy dependency comes from {@link SharedServerServices}.
  *
  * When `request` is present (HTTP), the server's connection registry is an
- * isolated scoped+owned view over the shared store: a client that identifies
- * itself (`x-mongodb-mcp-client-name`) gets a stable scope — its connections
- * survive across its requests while staying invisible to other clients — and
- * an anonymous request gets an ephemeral scope (no cross-request state, and
- * it can never see identified clients' connections). Without a request
- * (stdio/dry-run, a single client per process) the app-level registry is
- * used as-is.
+ * isolated scoped view over the shared store, keyed by the
+ * `connectionScope` policy: connections in a scope survive across requests
+ * resolving to that scope while staying invisible to every other scope, and a
+ * request the policy declines to key (`undefined`) gets an ephemeral scope —
+ * no cross-request state, it can never see scoped connections, and its
+ * connections are reaped when the request-scoped server closes (on the legacy
+ * sessionful path: when the session ends). Without a request (stdio/dry-run,
+ * a single client per process) the app-level registry is used as-is.
  */
 export function createServerFromConfig({
     config,
     sharedServices,
     request,
+    connectionScope,
 }: {
     config: UserConfig;
     sharedServices: SharedServerServices;
     request?: TransportRequestContext;
+    /**
+     * Decides which connection scope HTTP requests get (see
+     * {@link ConnectionScopePolicy}) and is required for HTTP — see
+     * {@link CliMcpHttpServer}. It is optional here only so non-HTTP callers
+     * (stdio, dry-run) that never supply a `request` do not have to set it.
+     */
+    connectionScope?: ConnectionScopePolicy;
 }): CliServer {
     const {
         serverMetadata,
@@ -250,11 +310,32 @@ export function createServerFromConfig({
         atlasLocalClient,
     } = sharedServices;
 
-    // HTTP: every request gets an isolated view (identified → stable scope,
-    // anonymous → ephemeral scope). Non-HTTP (no request): the shared registry.
-    const scope = request ? (clientScopeFromRequest(request) ?? ephemeralClientScope()) : undefined;
-    const requestConnectionRegistry =
-        scope !== undefined ? connectionStore.view({ scope, owned: true }) : connectionRegistry;
+    // HTTP: every request must be scoped — fail closed rather than default to
+    // some policy the caller didn't choose (an implicit default is exactly how
+    // users end up sharing connections). A policy that returns `undefined`
+    // yields an ephemeral scope with no cross-request state. Non-HTTP (no
+    // request): the shared registry.
+    //
+    // `owned` decides what happens when the request-scoped server closes (for
+    // the legacy sessionful path: when the session ends). An ephemeral scope
+    // dies with its session, so its view is owned and `close()` reaps its
+    // connections (the v2.x `connectionScope: "session"` behavior). A stable
+    // scope key (a named client, a verified principal, the global scope) is
+    // meant to survive the request/session that created the view, so its view
+    // is unowned and `close()` leaves the connections alone.
+    let requestConnectionRegistry: ConnectionRegistry = connectionRegistry;
+    if (request) {
+        if (!connectionScope) {
+            throw new Error(
+                "createServerFromConfig: an HTTP request was provided but no connectionScope policy was set."
+            );
+        }
+        const scope = connectionScope(request);
+        requestConnectionRegistry =
+            scope !== undefined
+                ? connectionStore.view({ scope, owned: false })
+                : connectionStore.view({ scope: ephemeralClientScope(), owned: true });
+    }
 
     const mcpServer = new McpServer({
         name: serverMetadata.mcpServerName,

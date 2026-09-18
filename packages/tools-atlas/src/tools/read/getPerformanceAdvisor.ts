@@ -78,23 +78,38 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
         const [suggestedIndexesResult, dropIndexSuggestionsResult, slowQueryLogsResult, schemaSuggestionsResult] =
             await Promise.allSettled([
                 operations.includes("suggestedIndexes")
-                    ? getSuggestedIndexes(this.server.apiClient, projectId, clusterName, request)
-                    : Promise.resolve(undefined),
-                operations.includes("dropIndexSuggestions")
-                    ? getDropIndexSuggestions(this.server.apiClient, projectId, clusterName, request)
-                    : Promise.resolve(undefined),
-                operations.includes("slowQueryLogs")
-                    ? getSlowQueries(
-                          this.server.apiClient,
+                    ? getSuggestedIndexes({
+                          apiClient: this.server.apiClient,
                           projectId,
                           clusterName,
-                          since ? new Date(since) : undefined,
+                          request,
+                      })
+                    : Promise.resolve(undefined),
+                operations.includes("dropIndexSuggestions")
+                    ? getDropIndexSuggestions({
+                          apiClient: this.server.apiClient,
+                          projectId,
+                          clusterName,
+                          request,
+                      })
+                    : Promise.resolve(undefined),
+                operations.includes("slowQueryLogs")
+                    ? getSlowQueries({
+                          apiClient: this.server.apiClient,
+                          projectId,
+                          clusterName,
+                          since: since ? new Date(since) : undefined,
                           namespaces,
-                          request
-                      )
+                          request,
+                      })
                     : Promise.resolve(undefined),
                 operations.includes("schemaSuggestions")
-                    ? getSchemaAdvice(this.server.apiClient, projectId, clusterName, request)
+                    ? getSchemaAdvice({
+                          apiClient: this.server.apiClient,
+                          projectId,
+                          clusterName,
+                          request,
+                      })
                     : Promise.resolve(undefined),
             ]);
 

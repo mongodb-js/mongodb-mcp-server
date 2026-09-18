@@ -21,7 +21,7 @@ describe("McpLogger", () => {
 
     beforeEach(() => {
         vi.spyOn(console, "error").mockImplementation(() => {});
-        keychain = Keychain.root;
+        keychain = new Keychain();
 
         mcpLoggerSpy = vi.fn();
         mcpLogger = new DynamicMcpLogger({
@@ -35,7 +35,6 @@ describe("McpLogger", () => {
     });
 
     afterEach(() => {
-        keychain.clearAllSecrets();
         vi.restoreAllMocks();
     });
 

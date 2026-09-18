@@ -59,7 +59,7 @@ class ConfigOverrideMCPHttpServer extends MCPHttpServer<CliServer> {
 // Helper to create a full Server instance for tests
 async function createTestServer(config: UserConfig): Promise<CliServer> {
     const logger = new CompositeLogger({ loggers: [] });
-    const keychain = Keychain.root;
+    const keychain = new Keychain();
 
     const exportsManager = ExportsManager.init({
         options: {
@@ -74,6 +74,7 @@ async function createTestServer(config: UserConfig): Promise<CliServer> {
         options: config,
         logger,
         deviceId: {} as unknown as DeviceId,
+        keychain,
     }).view();
 
     const apiClient = createTestApiClient({
@@ -140,7 +141,6 @@ function createConfigOverrideRunner(baseConfig: UserConfig): Promise<{
                 host: baseConfig.httpHost,
                 port: baseConfig.httpPort,
                 responseType: baseConfig.httpResponseType,
-                authMode: "unauthenticated",
             },
         },
         logger,

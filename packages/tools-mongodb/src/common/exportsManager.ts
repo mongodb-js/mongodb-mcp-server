@@ -227,11 +227,11 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
                 // partial and incorrect export so we remove it entirely.
                 delete this.storedExports[inProgressExport.exportName];
                 // do not block the user, just delete the file in the background
-                void this.silentlyRemoveExport(
-                    inProgressExport.exportPath,
-                    LogId.exportCreationCleanupError,
-                    `Error when removing incomplete export ${inProgressExport.exportName}`
-                );
+                void this.silentlyRemoveExport({
+                    exportPath: inProgressExport.exportPath,
+                    logId: LogId.exportCreationCleanupError,
+                    logContext: `Error when removing incomplete export ${inProgressExport.exportName}`,
+                });
                 throw error;
             } finally {
                 if (pipeSuccessful) {
@@ -270,6 +270,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         const result = Object.assign(
             new Transform({
                 objectMode: true,
+                // eslint-disable-next-line max-params -- Node stream Transform callback signature
                 transform(chunk: unknown, encoding, callback): void {
                     try {
                         const doc = EJSON.stringify(chunk, undefined, undefined, ejsonOptions);
@@ -323,11 +324,11 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
             const allDeletionPromises: Promise<void>[] = [];
             for (const { exportPath, exportName } of exportsForCleanup) {
                 allDeletionPromises.push(
-                    this.silentlyRemoveExport(
+                    this.silentlyRemoveExport({
                         exportPath,
-                        LogId.exportCleanupError,
-                        `Considerable error when removing export ${exportName}`
-                    )
+                        logId: LogId.exportCleanupError,
+                        logContext: `Considerable error when removing export ${exportName}`,
+                    })
                 );
             }
 
@@ -343,7 +344,15 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         }
     }
 
-    private async silentlyRemoveExport(exportPath: string, logId: MongoLogId, logContext: string): Promise<void> {
+    private async silentlyRemoveExport({
+        exportPath,
+        logId,
+        logContext,
+    }: {
+        exportPath: string;
+        logId: MongoLogId;
+        logContext: string;
+    }): Promise<void> {
         try {
             await fs.unlink(exportPath);
         } catch (error) {

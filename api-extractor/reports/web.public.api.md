@@ -19,6 +19,7 @@ import { InputRequiredResult } from '@modelcontextprotocol/server';
 import type { InputResponses } from '@modelcontextprotocol/server';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/server';
 import type { McpServer } from '@modelcontextprotocol/server';
+import { MongoClient } from 'mongodb';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import type { RequestMeta } from '@modelcontextprotocol/server';
 import { Secret } from 'mongodb-redact';
@@ -203,8 +204,7 @@ export interface ApiClientOptions {
 export type AtlasClusterConnectionInfo = {
     projectId: string;
     clusterName: string;
-    clusterId: string;
-    username?: string;
+    clusterId?: string;
     instanceType?: "FREE" | "FLEX" | "DEDICATED";
 };
 
@@ -348,15 +348,13 @@ export type ConnectionMetadata = AtlasMetadata & AtlasLocalToolMetadata & {
 
 // @public (undocumented)
 export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"> {
-    // (undocumented)
-    atlas?: AtlasClusterConnectionInfo;
     driverOptions?: ConnectionInfo["driverOptions"];
+    hostType?: ConnectionStringHostType;
+    mongoClient?: MongoClient;
 }
 
 // @public (undocumented)
 export interface ConnectionState {
-    // (undocumented)
-    connectedAtlasCluster?: AtlasClusterConnectionInfo;
     // (undocumented)
     connectionStringInfo?: ConnectionStringInfo;
     // (undocumented)
@@ -368,10 +366,7 @@ export class ConnectionStateConnected implements ConnectionState {
     constructor(input: {
         serviceProvider: NodeDriverServiceProvider;
         connectionStringInfo?: ConnectionStringInfo;
-        connectedAtlasCluster?: AtlasClusterConnectionInfo;
     });
-    // (undocumented)
-    connectedAtlasCluster?: AtlasClusterConnectionInfo;
     // (undocumented)
     connectionStringInfo?: ConnectionStringInfo;
     // (undocumented)
@@ -573,14 +568,9 @@ export const jsonExportFormat: z.ZodEnum<{
 
 // @public
 export class Keychain implements IKeychain {
-    constructor();
-    // (undocumented)
-    clearAllSecrets(): void;
+    constructor(secrets?: SecretRecord);
     redact<T>(value: T): T;
-    // (undocumented)
-    register(value: Secret["value"], kind: Secret["kind"]): void;
-    // (undocumented)
-    static get root(): Keychain;
+    redactErrorMessage(error: unknown): string;
 }
 
 // @public (undocumented)
@@ -682,7 +672,7 @@ export class Telemetry implements ITelemetry {
     // (undocumented)
     protected readonly serverMetadata: ServerMetadata;
     // (undocumented)
-    protected setup(): Promise<void>;
+    setup(): Promise<void>;
     setupPromise: Promise<[string, boolean]> | undefined;
 }
 
@@ -771,8 +761,10 @@ export abstract class ToolBase<TServer extends ToolServer = ToolServer, TMetrics
     enable(): void;
     protected abstract execute(args: ToolArgs<ReturnType<typeof ToolBase.argsShape>>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
     protected getConfirmationMessage(args: ToolArgs<ReturnType<typeof ToolBase.argsShape>>): string;
-    // (undocumented)
-    protected getConnectionInfoMetadata(connectionState?: SupportedConnectionState): ConnectionMetadata;
+    protected getConnectionInfoMetadata(entry?: {
+        state: SupportedConnectionState;
+        atlasCluster?: AtlasClusterConnectionInfo;
+    }): ConnectionMetadata;
     protected handleError(error: unknown, args: z.infer<z.ZodObject<ReturnType<typeof ToolBase.argsShape>>>): Promise<CallToolResult> | CallToolResult;
     invoke(args: ToolArgs<ReturnType<typeof ToolBase.argsShape>>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
     // (undocumented)
@@ -840,7 +832,7 @@ export type ToolServerParam<TServer extends ToolServer = ToolServer> = {
 export type TransportRequestContext = {
     headers?: Record<string, string | string[] | undefined>;
     query?: Record<string, string | string[] | undefined>;
-    authInfo?: RequestAuthState;
+    authInfo?: RequestAuthInfo;
     protocol?: McpProtocol;
 };
 

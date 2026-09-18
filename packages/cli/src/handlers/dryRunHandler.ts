@@ -1,4 +1,3 @@
-import { Keychain } from "@mongodb-js/mcp-core";
 import type { CliHandler, CliHandlerContext } from "../cliHandler.js";
 import { DryRunModeRunner } from "../transports/dryModeRunner.js";
 import { createLoggerFromConfig } from "../createLoggerFromConfig.js";
@@ -33,20 +32,21 @@ export class DryRunHandler implements CliHandler {
         this.resources = resources;
     }
 
-    async handle({ config, consoleLogger, onExit, serverMetadata }: CliHandlerContext): Promise<boolean> {
+    async handle({ config, consoleLogger, onExit, serverMetadata, keychain }: CliHandlerContext): Promise<boolean> {
         if (!config.dryRun) {
             return false;
         }
 
         try {
             // Create a minimal server just for listing tools
-            const logger = await createLoggerFromConfig({ config, keychain: Keychain.root });
+            const logger = await createLoggerFromConfig({ config, keychain });
             const sharedServices = await createSharedServicesFromConfig({
                 config,
                 serverMetadata,
                 tools: this.tools,
                 resources: this.resources,
                 logger,
+                keychain,
             });
             const server = createServerFromConfig({ config, sharedServices });
 

@@ -8,7 +8,7 @@ param containerAppEnvironmentName string = ''
 param containerAppName string = 'mongo-mcp-server-app'
 
 @description('Docker image to deploy')
-param containerImage string = 'mongodb/mongodb-mcp-server:2.1.0'
+param containerImage string = 'mongodb/mongodb-mcp-server:3.0.2'
 
 @description('Container CPU (vCPU) as string. Allowed: 0.25 - 2.0 in 0.25 increments')
 @allowed([
@@ -123,6 +123,15 @@ var authEnvVars = authMode == 'MicrosoftMIBasedAuth'
         // Client ID of the Azure AD App representing your container app
         name: 'MDB_MCP_AZURE_MANAGED_IDENTITY_CLIENT_ID'
         value: authClientId
+      }
+      {
+        // Binding to all interfaces is intentional: the app is fronted by the
+        // Azure Container Apps platform auth (MicrosoftMIBasedAuth), which
+        // enforces the Entra 401 for unauthenticated requests before the MCP
+        // server is reached. NOAUTH omits this flag so the server refuses to
+        // start (fail closed) on an all-interfaces bind without auth.
+        name: 'MDB_MCP_DANGEROUS_HOST_BINDING'
+        value: 'true'
       }
     ], length(authAllowedClientApps) > 0 ? [
       {

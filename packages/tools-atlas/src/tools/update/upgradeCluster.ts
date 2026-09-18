@@ -96,27 +96,45 @@ function resolveM10AutoScaling(autoScalingArgs: AutoScalingArgs, provider: strin
     };
 }
 
-function buildM10UpgradeBody(
-    baseTier: "FREE",
-    clusterName: string,
-    autoScaling: ResolvedM10AutoScaling,
-    provider?: string,
-    region?: string
-): FreeToM10Body;
-function buildM10UpgradeBody(
-    baseTier: "FLEX",
-    clusterName: string,
-    autoScaling: ResolvedM10AutoScaling,
-    provider?: string,
-    region?: string
-): FlexToM10Body;
-function buildM10UpgradeBody(
-    baseTier: "FREE" | "FLEX",
-    clusterName: string,
-    autoScaling: ResolvedM10AutoScaling,
-    provider?: string,
-    region?: string
-): FreeToM10Body | FlexToM10Body {
+function buildM10UpgradeBody({
+    baseTier,
+    clusterName,
+    autoScaling,
+    provider,
+    region,
+}: {
+    baseTier: "FREE";
+    clusterName: string;
+    autoScaling: ResolvedM10AutoScaling;
+    provider?: string;
+    region?: string;
+}): FreeToM10Body;
+function buildM10UpgradeBody({
+    baseTier,
+    clusterName,
+    autoScaling,
+    provider,
+    region,
+}: {
+    baseTier: "FLEX";
+    clusterName: string;
+    autoScaling: ResolvedM10AutoScaling;
+    provider?: string;
+    region?: string;
+}): FlexToM10Body;
+function buildM10UpgradeBody({
+    baseTier,
+    clusterName,
+    autoScaling,
+    provider,
+    region,
+}: {
+    baseTier: "FREE" | "FLEX";
+    clusterName: string;
+    autoScaling: ResolvedM10AutoScaling;
+    provider?: string;
+    region?: string;
+}): FreeToM10Body | FlexToM10Body {
     const { enabled, minInstanceSize, maxInstanceSize } = autoScaling;
 
     if (baseTier === "FREE") {
@@ -163,13 +181,19 @@ type ResolvedClusterInfo = {
     instanceSize?: string;
 };
 
-async function resolveClusterInfo(
-    apiClient: Pick<ApiClient, "getCluster" | "getFlexCluster">,
-    projectId: string,
-    clusterName: string,
-    argOverrides: { provider?: string; region?: string },
-    request: ToolRequest<IAtlasConfig>
-): Promise<ResolvedClusterInfo> {
+async function resolveClusterInfo({
+    apiClient,
+    projectId,
+    clusterName,
+    argOverrides,
+    request,
+}: {
+    apiClient: Pick<ApiClient, "getCluster" | "getFlexCluster">;
+    projectId: string;
+    clusterName: string;
+    argOverrides: { provider?: string; region?: string };
+    request: ToolRequest<IAtlasConfig>;
+}): Promise<ResolvedClusterInfo> {
     try {
         const raw = await apiClient.getCluster({ params: { path: { groupId: projectId, clusterName } } }, request);
         const cluster = formatCluster(raw);
@@ -215,11 +239,15 @@ type ScaleClusterBody = {
     replicationSpecs: Array<{ regionConfigs: ScaleRegionConfig[] } & Record<string, unknown>>;
 };
 
-function buildScaleClusterBody(
-    raw: ClusterDescription20240805 | undefined,
-    targetSize: string,
-    compute: ComputeAutoScaling
-): ScaleClusterBody {
+function buildScaleClusterBody({
+    raw,
+    targetSize,
+    compute,
+}: {
+    raw: ClusterDescription20240805 | undefined;
+    targetSize: string;
+    compute: ComputeAutoScaling;
+}): ScaleClusterBody {
     const replicationSpecs = (raw?.replicationSpecs ?? []).map((spec) => {
         const regionConfigs = ((spec.regionConfigs ?? []) as Array<Record<string, unknown>>).map((rc) => {
             const electableSpecs = rc.electableSpecs as Record<string, unknown> | undefined;
@@ -259,11 +287,15 @@ type CurrentAutoScaling = { enabled?: boolean; minInstanceSize?: string; maxInst
 
 // Validates that a DEDICATED cluster can be safely scaled, and returns its current autoscaling
 // settings (read from the first region, already confirmed consistent across all regions below).
-function validateDedicatedScaling(
-    clusterInfo: ResolvedClusterInfo,
-    args: DedicatedScalingArgs,
-    clusterName: string
-): CurrentAutoScaling | undefined {
+function validateDedicatedScaling({
+    clusterInfo,
+    args,
+    clusterName,
+}: {
+    clusterInfo: ResolvedClusterInfo;
+    args: DedicatedScalingArgs;
+    clusterName: string;
+}): CurrentAutoScaling | undefined {
     if (args.targetTier === "FLEX") {
         throw new UpgradeClusterError(
             `Cluster "${clusterName}" is already Dedicated. targetTier must be an instance size (M10-M80) to scale it in place, not FLEX.`
@@ -401,13 +433,13 @@ export class UpgradeClusterTool extends AtlasToolBase {
     ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const { projectId, clusterName } = args;
 
-        const clusterInfo = await resolveClusterInfo(
-            this.server.apiClient,
+        const clusterInfo = await resolveClusterInfo({
+            apiClient: this.server.apiClient,
             projectId,
             clusterName,
-            { provider: args.provider, region: args.region },
-            request
-        );
+            argOverrides: { provider: args.provider, region: args.region },
+            request,
+        });
 
         let clusterId: string | undefined;
         let targetInstanceSize: string | undefined;
@@ -419,7 +451,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
 
         switch (clusterInfo.instanceType) {
             case "DEDICATED": {
-                const currentAutoScaling = validateDedicatedScaling(clusterInfo, args, clusterName);
+                const currentAutoScaling = validateDedicatedScaling({ clusterInfo, args, clusterName });
 
                 // Target size: an explicit resize, or unchanged if only autoscaling is being adjusted.
                 let resolvedInstanceSize: StandardInstanceSize;
@@ -486,11 +518,15 @@ export class UpgradeClusterTool extends AtlasToolBase {
                     );
                 }
 
-                const body = buildScaleClusterBody(clusterInfo.raw, resolvedInstanceSize, {
-                    enabled: resolvedEnabled,
-                    scaleDownEnabled: resolvedEnabled,
-                    minInstanceSize: resolvedMin,
-                    maxInstanceSize: resolvedMax,
+                const body = buildScaleClusterBody({
+                    raw: clusterInfo.raw,
+                    targetSize: resolvedInstanceSize,
+                    compute: {
+                        enabled: resolvedEnabled,
+                        scaleDownEnabled: resolvedEnabled,
+                        minInstanceSize: resolvedMin,
+                        maxInstanceSize: resolvedMax,
+                    },
                 });
 
                 const result = await this.server.apiClient.updateCluster(
@@ -519,13 +555,13 @@ export class UpgradeClusterTool extends AtlasToolBase {
                 ({ id: clusterId } = await this.server.apiClient.tenantUpgrade(
                     {
                         params: { path: { groupId: projectId } },
-                        body: buildM10UpgradeBody(
-                            "FLEX",
+                        body: buildM10UpgradeBody({
+                            baseTier: "FLEX",
                             clusterName,
-                            resolvedAutoScaling,
-                            clusterInfo.provider,
-                            clusterInfo.region
-                        ),
+                            autoScaling: resolvedAutoScaling,
+                            provider: clusterInfo.provider,
+                            region: clusterInfo.region,
+                        }),
                     } as unknown as Parameters<typeof this.server.apiClient.tenantUpgrade>[0],
                     request
                 ));
@@ -544,15 +580,15 @@ export class UpgradeClusterTool extends AtlasToolBase {
                     );
                 }
 
-                ({ id: clusterId } = await this.upgradeFreeCluster(
+                ({ id: clusterId } = await this.upgradeFreeCluster({
                     projectId,
                     clusterName,
                     target,
-                    clusterInfo.provider,
-                    clusterInfo.region,
-                    args,
-                    request
-                ));
+                    backingProviderName: clusterInfo.provider,
+                    regionName: clusterInfo.region,
+                    autoScalingArgs: args,
+                    request,
+                }));
                 break;
         }
 
@@ -631,15 +667,23 @@ export class UpgradeClusterTool extends AtlasToolBase {
         return super.handleError(error, args) as CallToolResult;
     }
 
-    private async upgradeFreeCluster(
-        projectId: string,
-        clusterName: string,
-        target: "FLEX" | "M10",
-        backingProviderName: string | undefined,
-        regionName: string | undefined,
-        autoScalingArgs: AutoScalingArgs,
-        request: ToolRequest<IAtlasConfig>
-    ): Promise<{ id?: string }> {
+    private async upgradeFreeCluster({
+        projectId,
+        clusterName,
+        target,
+        backingProviderName,
+        regionName,
+        autoScalingArgs,
+        request,
+    }: {
+        projectId: string;
+        clusterName: string;
+        target: "FLEX" | "M10";
+        backingProviderName: string | undefined;
+        regionName: string | undefined;
+        autoScalingArgs: AutoScalingArgs;
+        request: ToolRequest<IAtlasConfig>;
+    }): Promise<{ id?: string }> {
         // upgradeTenantUpgrade: upgrades Free (M0/shared) clusters to Flex or Dedicated (M10+)
         switch (target) {
             case "FLEX":
@@ -662,13 +706,13 @@ export class UpgradeClusterTool extends AtlasToolBase {
                 return await this.server.apiClient.upgradeTenantUpgrade(
                     {
                         params: { path: { groupId: projectId } },
-                        body: buildM10UpgradeBody(
-                            "FREE",
+                        body: buildM10UpgradeBody({
+                            baseTier: "FREE",
                             clusterName,
-                            resolveM10AutoScaling(autoScalingArgs, backingProviderName),
-                            backingProviderName,
-                            regionName
-                        ),
+                            autoScaling: resolveM10AutoScaling(autoScalingArgs, backingProviderName),
+                            provider: backingProviderName,
+                            region: regionName,
+                        }),
                     } as unknown as Parameters<typeof this.server.apiClient.upgradeTenantUpgrade>[0],
                     request
                 );

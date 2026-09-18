@@ -6,12 +6,12 @@
     "url": "https://github.com/mongodb-js/mongodb-mcp-server",
     "source": "github"
   },
-  "version": "3.0.0-prerelease.4",
+  "version": "3.0.2",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "mongodb-mcp-server",
-      "version": "3.0.0-prerelease.4",
+      "version": "3.0.2",
       "transport": {
         "type": "stdio"
       },
@@ -66,11 +66,32 @@
           "isSecret": false
         },
         {
+          "name": "MDB_MCP_CONNECTION_IDLE_TIMEOUT_MS",
+          "description": "Milliseconds a MongoDB connection may stay unused (no tool call touching it) before it is closed to release the underlying connection pool and its server-side state. Applied per connection regardless of its connection scope; the preconfigured connection is excluded, and the reaper runs on this cadence. Set to 0 to disable reaping; must not be negative.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_CONNECTION_SCOPE",
+          "description": "Visibility scope for MongoDB connections created at runtime. With 'session' (the default), each MCP session only sees the connections it created (plus the shared 'preconfigured' one) and they are closed when the session ends. With 'global', connections are shared across all sessions and survive session rotation. Deprecated: the MCP protocol is moving to sessionless, so this option will soon be removed and the connection scope will default to 'global'. For shared-server use cases, use the Atlas-Managed MCP server or build an authenticated library using the @mongodb-js/mcp-cli package. Note: on the sessionless (2026-07-28) HTTP path, a request without an mcp-session-id falls back to the shared ('global') scope so it can still persist connections across requests; the legacy sessionful path always carries a server-issued session.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_CONNECTION_STRING",
           "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
           "isRequired": false,
           "format": "string",
           "isSecret": true
+        },
+        {
+          "name": "MDB_MCP_DANGEROUS_HOST_BINDING",
+          "description": "When set to true, allows binding the HTTP server (and monitoring server) to a non-loopback host such as 0.0.0.0, a LAN IP, or an empty host (all interfaces). Binding to a non-loopback host exposes the server to the entire network and can allow unauthorized access. Off by default: the server refuses to start on a non-loopback host unless this is true.",
+          "isRequired": false,
+          "format": "boolean",
+          "isSecret": false
         },
         {
           "name": "MDB_MCP_DISABLE_SERVER_SIDE_JS",
@@ -214,7 +235,7 @@
         },
         {
           "name": "MDB_MCP_MAX_ACTIVE_CONNECTIONS",
-          "description": "Maximum number of MongoDB connections the server can hold open at once. When exceeded, the least-recently-used connection is closed and its connectionId revoked. The preconfigured connection does not count towards the limit.",
+          "description": "Maximum number of MongoDB connections a single scope (an MCP session by default, see connectionScope) can hold open. When exceeded, the scope's least-recently-used connection is closed and its connectionId revoked. The preconfigured connection does not count towards the limit.",
           "isRequired": false,
           "format": "number",
           "isSecret": false
@@ -373,9 +394,29 @@
         },
         {
           "type": "named",
+          "name": "--connectionIdleTimeoutMs",
+          "description": "Milliseconds a MongoDB connection may stay unused (no tool call touching it) before it is closed to release the underlying connection pool and its server-side state. Applied per connection regardless of its connection scope; the preconfigured connection is excluded, and the reaper runs on this cadence. Set to 0 to disable reaping; must not be negative.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--connectionScope",
+          "description": "Visibility scope for MongoDB connections created at runtime. With 'session' (the default), each MCP session only sees the connections it created (plus the shared 'preconfigured' one) and they are closed when the session ends. With 'global', connections are shared across all sessions and survive session rotation. Deprecated: the MCP protocol is moving to sessionless, so this option will soon be removed and the connection scope will default to 'global'. For shared-server use cases, use the Atlas-Managed MCP server or build an authenticated library using the @mongodb-js/mcp-cli package. Note: on the sessionless (2026-07-28) HTTP path, a request without an mcp-session-id falls back to the shared ('global') scope so it can still persist connections across requests; the legacy sessionful path always carries a server-issued session.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
           "name": "--connectionString",
           "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
           "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--dangerousHostBinding",
+          "description": "When set to true, allows binding the HTTP server (and monitoring server) to a non-loopback host such as 0.0.0.0, a LAN IP, or an empty host (all interfaces). Binding to a non-loopback host exposes the server to the entire network and can allow unauthorized access. Off by default: the server refuses to start on a non-loopback host unless this is true.",
+          "isRequired": false,
+          "format": "boolean"
         },
         {
           "type": "named",
@@ -512,7 +553,7 @@
         {
           "type": "named",
           "name": "--maxActiveConnections",
-          "description": "Maximum number of MongoDB connections the server can hold open at once. When exceeded, the least-recently-used connection is closed and its connectionId revoked. The preconfigured connection does not count towards the limit.",
+          "description": "Maximum number of MongoDB connections a single scope (an MCP session by default, see connectionScope) can hold open. When exceeded, the scope's least-recently-used connection is closed and its connectionId revoked. The preconfigured connection does not count towards the limit.",
           "isRequired": false,
           "format": "number"
         },
@@ -618,7 +659,7 @@
     },
     {
       "registryType": "oci",
-      "identifier": "docker.io/mongodb/mongodb-mcp-server:3.0.0-prerelease.4",
+      "identifier": "docker.io/mongodb/mongodb-mcp-server:3.0.2",
       "transport": {
         "type": "stdio"
       },
@@ -673,11 +714,32 @@
           "isSecret": false
         },
         {
+          "name": "MDB_MCP_CONNECTION_IDLE_TIMEOUT_MS",
+          "description": "Milliseconds a MongoDB connection may stay unused (no tool call touching it) before it is closed to release the underlying connection pool and its server-side state. Applied per connection regardless of its connection scope; the preconfigured connection is excluded, and the reaper runs on this cadence. Set to 0 to disable reaping; must not be negative.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_CONNECTION_SCOPE",
+          "description": "Visibility scope for MongoDB connections created at runtime. With 'session' (the default), each MCP session only sees the connections it created (plus the shared 'preconfigured' one) and they are closed when the session ends. With 'global', connections are shared across all sessions and survive session rotation. Deprecated: the MCP protocol is moving to sessionless, so this option will soon be removed and the connection scope will default to 'global'. For shared-server use cases, use the Atlas-Managed MCP server or build an authenticated library using the @mongodb-js/mcp-cli package. Note: on the sessionless (2026-07-28) HTTP path, a request without an mcp-session-id falls back to the shared ('global') scope so it can still persist connections across requests; the legacy sessionful path always carries a server-issued session.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_CONNECTION_STRING",
           "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
           "isRequired": false,
           "format": "string",
           "isSecret": true
+        },
+        {
+          "name": "MDB_MCP_DANGEROUS_HOST_BINDING",
+          "description": "When set to true, allows binding the HTTP server (and monitoring server) to a non-loopback host such as 0.0.0.0, a LAN IP, or an empty host (all interfaces). Binding to a non-loopback host exposes the server to the entire network and can allow unauthorized access. Off by default: the server refuses to start on a non-loopback host unless this is true.",
+          "isRequired": false,
+          "format": "boolean",
+          "isSecret": false
         },
         {
           "name": "MDB_MCP_DISABLE_SERVER_SIDE_JS",
@@ -821,7 +883,7 @@
         },
         {
           "name": "MDB_MCP_MAX_ACTIVE_CONNECTIONS",
-          "description": "Maximum number of MongoDB connections the server can hold open at once. When exceeded, the least-recently-used connection is closed and its connectionId revoked. The preconfigured connection does not count towards the limit.",
+          "description": "Maximum number of MongoDB connections a single scope (an MCP session by default, see connectionScope) can hold open. When exceeded, the scope's least-recently-used connection is closed and its connectionId revoked. The preconfigured connection does not count towards the limit.",
           "isRequired": false,
           "format": "number",
           "isSecret": false
@@ -980,9 +1042,29 @@
         },
         {
           "type": "named",
+          "name": "--connectionIdleTimeoutMs",
+          "description": "Milliseconds a MongoDB connection may stay unused (no tool call touching it) before it is closed to release the underlying connection pool and its server-side state. Applied per connection regardless of its connection scope; the preconfigured connection is excluded, and the reaper runs on this cadence. Set to 0 to disable reaping; must not be negative.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--connectionScope",
+          "description": "Visibility scope for MongoDB connections created at runtime. With 'session' (the default), each MCP session only sees the connections it created (plus the shared 'preconfigured' one) and they are closed when the session ends. With 'global', connections are shared across all sessions and survive session rotation. Deprecated: the MCP protocol is moving to sessionless, so this option will soon be removed and the connection scope will default to 'global'. For shared-server use cases, use the Atlas-Managed MCP server or build an authenticated library using the @mongodb-js/mcp-cli package. Note: on the sessionless (2026-07-28) HTTP path, a request without an mcp-session-id falls back to the shared ('global') scope so it can still persist connections across requests; the legacy sessionful path always carries a server-issued session.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
           "name": "--connectionString",
           "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
           "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--dangerousHostBinding",
+          "description": "When set to true, allows binding the HTTP server (and monitoring server) to a non-loopback host such as 0.0.0.0, a LAN IP, or an empty host (all interfaces). Binding to a non-loopback host exposes the server to the entire network and can allow unauthorized access. Off by default: the server refuses to start on a non-loopback host unless this is true.",
+          "isRequired": false,
+          "format": "boolean"
         },
         {
           "type": "named",
@@ -1119,7 +1201,7 @@
         {
           "type": "named",
           "name": "--maxActiveConnections",
-          "description": "Maximum number of MongoDB connections the server can hold open at once. When exceeded, the least-recently-used connection is closed and its connectionId revoked. The preconfigured connection does not count towards the limit.",
+          "description": "Maximum number of MongoDB connections a single scope (an MCP session by default, see connectionScope) can hold open. When exceeded, the scope's least-recently-used connection is closed and its connectionId revoked. The preconfigured connection does not count towards the limit.",
           "isRequired": false,
           "format": "number"
         },

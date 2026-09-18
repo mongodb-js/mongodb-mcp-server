@@ -15,13 +15,18 @@ export class ClaudeTuiSession extends TuiSessionBase {
     private readonly claudeHome: string;
     private readonly seenCallKeys = new Set<string>();
 
-    constructor(
-        terminal: TuiTest,
-        options: AgentHarnessOptions,
-        claudeHome: string,
-        onState?: (state: TuiState) => void
-    ) {
-        super(terminal, options, onState);
+    constructor({
+        terminal,
+        options,
+        claudeHome,
+        onState,
+    }: {
+        terminal: TuiTest;
+        options: AgentHarnessOptions;
+        claudeHome: string;
+        onState?: (state: TuiState) => void;
+    }) {
+        super({ terminal, options, onState });
         this.claudeHome = claudeHome;
     }
 

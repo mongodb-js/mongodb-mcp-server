@@ -1,6 +1,6 @@
 {
   "name": "@mongodb-js/mcp-cli",
-  "version": "3.0.0-prerelease.4",
+  "version": "3.0.2",
   "type": "module",
   "description": "Generic CLI helpers for building MCP servers",
   "license": "Apache-2.0",
@@ -48,7 +48,7 @@
   },
   "devDependencies": {
     "@mongodb-js/mcp-types": "workspace:*",
-    "@mongodb-js/atlas-local": "^1.3.0",
+    "@mongodb-js/atlas-local": "^1.3.1",
     "@types/node": "^25.6.0",
     "@types/yargs-parser": "^21.0.3",
     "yargs-parser": "^20.2.4",

@@ -136,12 +136,9 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
         return {
             headers: req.headers,
             query: req.query as Record<string, string | string[] | undefined>,
-            // The explicit auth state of this request. Legacy serving does not
-            // normalize authInfo itself; hosts supply it via `req.auth` when
-            // using authenticated mode.
-            authInfo: (req as express.Request & { auth?: RequestAuthInfo }).auth
-                ? { mode: "authenticated", state: (req as express.Request & { auth: RequestAuthInfo }).auth }
-                : { mode: "unauthenticated" },
+            // The verified identity of this request, if the host injected it
+            // via `req.auth`. Absent when the host supplied none.
+            authInfo: (req as express.Request & { auth?: RequestAuthInfo }).auth,
             protocol: "legacy",
         };
     }
@@ -245,11 +242,15 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
      * are serialized so they don't race on `addSession` (see
      * {@link createSessionInstance}).
      */
-    private async createSession(
-        req: express.Request,
-        providedSessionId?: string,
-        isImplicitInitialization = false
-    ): Promise<NodeStreamableHTTPServerTransport> {
+    private async createSession({
+        req,
+        providedSessionId,
+        isImplicitInitialization = false,
+    }: {
+        req: express.Request;
+        providedSessionId?: string;
+        isImplicitInitialization?: boolean;
+    }): Promise<NodeStreamableHTTPServerTransport> {
         const sessionId = providedSessionId ?? getRandomUUID();
 
         // An externally managed session may already exist in the store (e.g. a
@@ -277,7 +278,7 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
             }
         }
 
-        const initPromise = this.createSessionInstance(req, sessionId, isImplicitInitialization);
+        const initPromise = this.createSessionInstance({ req, sessionId, isImplicitInitialization });
         this.pendingInitializations.set(sessionId, initPromise);
         try {
             return await initPromise;
@@ -287,11 +288,15 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
     }
 
     /** Builds the server/transport pair and registers it in the session store. */
-    private async createSessionInstance(
-        req: express.Request,
-        sessionId: string,
-        isImplicitInitialization: boolean
-    ): Promise<NodeStreamableHTTPServerTransport> {
+    private async createSessionInstance({
+        req,
+        sessionId,
+        isImplicitInitialization,
+    }: {
+        req: express.Request;
+        sessionId: string;
+        isImplicitInitialization: boolean;
+    }): Promise<NodeStreamableHTTPServerTransport> {
         const transport = new NodeStreamableHTTPServerTransport({
             sessionIdGenerator: (): string => sessionId,
             enableJsonResponse: this.http.responseType === "json",
@@ -369,9 +374,9 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
         }
 
         if (isImplicitInitialization) {
-            await this.restoreNegotiatedClientState(server, sessionId, req.headers);
+            await this.restoreNegotiatedClientState({ server, sessionId, headers: req.headers });
         } else {
-            this.captureNegotiatedClientStateOnInitialize(server, sessionId, req.headers);
+            this.captureNegotiatedClientStateOnInitialize({ server, sessionId, headers: req.headers });
         }
 
         return transport;
@@ -392,12 +397,12 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
                 res.status(405).set("Allow", ["POST", "DELETE"]).send("Method Not Allowed");
                 return;
             }
-            await this.handleSessionRequest(req, res, sessionId);
+            await this.handleSessionRequest({ req, res, sessionId });
             return;
         }
 
         if (req.method === "DELETE") {
-            await this.handleSessionRequest(req, res, sessionId);
+            await this.handleSessionRequest({ req, res, sessionId });
             return;
         }
 
@@ -435,7 +440,7 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
 
             let transport: NodeStreamableHTTPServerTransport;
             try {
-                transport = await this.createSession(req, resolvedSessionId);
+                transport = await this.createSession({ req, providedSessionId: resolvedSessionId });
             } catch (error) {
                 if (error instanceof SessionLimitExceededError) {
                     this.logger.warning({
@@ -458,15 +463,19 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
             return;
         }
 
-        await this.handleSessionRequest(req, res, sessionId);
+        await this.handleSessionRequest({ req, res, sessionId });
     }
 
     /** Routes a session-carrying request to its live transport; reports a session error when missing. */
-    private async handleSessionRequest(
-        req: express.Request,
-        res: express.Response,
-        sessionId: string | string[] | undefined
-    ): Promise<void> {
+    private async handleSessionRequest({
+        req,
+        res,
+        sessionId,
+    }: {
+        req: express.Request;
+        res: express.Response;
+        sessionId: string | string[] | undefined;
+    }): Promise<void> {
         if (!sessionId) {
             this.reportSessionError(res, JSON_RPC_ERROR_CODE_SESSION_ID_REQUIRED);
             return;
@@ -499,7 +508,7 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
                 message: `Session with ID ${sessionId} not found, implicitly re-initializing`,
                 attributes: { ...requestIdAttr(req.headers) },
             });
-            transport = await this.createSession(req, sessionId, true);
+            transport = await this.createSession({ req, providedSessionId: sessionId, isImplicitInitialization: true });
         }
         await transport.handleRequest(req, res, req.body);
     }
@@ -512,11 +521,15 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
      * skipping confirmation elicitation for destructive tools. No-op when the
      * session store does not persist negotiated client state.
      */
-    private async restoreNegotiatedClientState(
-        server: SessionfulServer,
-        sessionId: string,
-        headers: Record<string, unknown>
-    ): Promise<void> {
+    private async restoreNegotiatedClientState({
+        server,
+        sessionId,
+        headers,
+    }: {
+        server: SessionfulServer;
+        sessionId: string;
+        headers: Record<string, unknown>;
+    }): Promise<void> {
         let state: NegotiatedClientState | undefined;
         try {
             state = await this.sessions.loadNegotiatedClientState(sessionId, headers);
@@ -552,11 +565,15 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
      * of this session can restore it. Wraps the `oninitialized` callback
      * installed by `server.connect`, hence must run after it.
      */
-    private captureNegotiatedClientStateOnInitialize(
-        server: SessionfulServer,
-        sessionId: string,
-        headers: Record<string, unknown>
-    ): void {
+    private captureNegotiatedClientStateOnInitialize({
+        server,
+        sessionId,
+        headers,
+    }: {
+        server: SessionfulServer;
+        sessionId: string;
+        headers: Record<string, unknown>;
+    }): void {
         const protocolServer = server.mcpServer.server;
         const originalOnInitialized = protocolServer.oninitialized;
         protocolServer.oninitialized = (): void => {

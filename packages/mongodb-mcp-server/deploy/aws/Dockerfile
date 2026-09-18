@@ -16,6 +16,10 @@ ENV MDB_MCP_HTTP_RESPONSE_TYPE=json
 ENV MDB_MCP_TRANSPORT=http
 ENV MDB_MCP_HTTP_HOST=0.0.0.0
 ENV MDB_MCP_HTTP_PORT=8000
+# Bind to all interfaces is intentional here: the container is fronted by Bedrock
+# AgentCore (a managed, authenticated runtime) and is never directly reachable
+# from the internet. The flag asserts that explicit intent.
+ENV MDB_MCP_DANGEROUS_HOST_BINDING=true
 
 # Run as non-root user
 USER mcp

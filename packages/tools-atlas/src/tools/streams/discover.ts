@@ -4,15 +4,34 @@ import type { IAtlasConfig } from "../../atlasTool.js";
 import type { CallToolResult, OperationType, ToolExecutionContext, ToolRequest } from "@mongodb-js/mcp-types";
 import { formatUntrustedData, type ToolArgs } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
-import { StreamsArgs } from "../../streams/streamsArgs.js";
+import {
+    StreamsArgs,
+    StreamsAutoscaling,
+    StreamsTier,
+    type StreamsTierValue,
+    toStreamsAutoscaling,
+} from "../../streams/streamsArgs.js";
 import { StreamsInvalidArgumentError } from "../../streams/errors.js";
+import { redactSensitiveKeys } from "../../helpers/redactSensitiveKeys.js";
 
 type StreamsProcessorWithStats = {
     name?: string;
     state?: string;
-    tier?: string;
+    tier?: StreamsTierValue;
+    effectiveTier?: StreamsTierValue;
     stats?: Record<string, unknown>;
-    options?: { dlq?: { connectionName?: string; db?: string; coll?: string } };
+    options?: {
+        dlq?: { connectionName?: string; db?: string; coll?: string };
+        // Raw Atlas response model: the generated client types options.autoscaling as
+        // nullable, but the API omits it when disabled/cleared and never returns a null
+        // `enabled` (only minTier/maxTier may be null). toStreamsAutoscaling normalizes
+        // this to the tool's non-null surface before structured output.
+        autoscaling?: {
+            enabled?: boolean | null;
+            minTier?: StreamsTierValue | null;
+            maxTier?: StreamsTierValue | null;
+        } | null;
+    };
     pipeline?: Record<string, unknown>[];
 };
 
@@ -76,10 +95,14 @@ function toConnectionInspect(data: Record<string, unknown>): ConnectionInspect {
     } as ConnectionInspect;
 }
 
+const AutoscalingSchema = StreamsAutoscaling;
+
 const ProcessorSummarySchema = z.object({
     name: z.string(),
     state: z.string().optional(),
-    tier: z.string().optional(),
+    tier: StreamsTier.optional(),
+    effectiveTier: StreamsTier.optional(),
+    autoscaling: AutoscalingSchema.optional(),
 });
 
 const ProcessorState = z.enum(["STARTED", "STOPPED", "CREATED", "FAILED"]);
@@ -154,7 +177,9 @@ export const DiscoverOutputSchema = z.object({
     processors: z.array(ProcessorSummarySchema).optional(),
     workspace: WorkspaceInspectConciseSchema.optional(),
     processorState: ProcessorState.optional(),
-    tier: z.string().optional(),
+    tier: StreamsTier.optional(),
+    effectiveTier: StreamsTier.optional(),
+    autoscaling: AutoscalingSchema.optional(),
     stats: ProcessorStatsSchema.optional(),
     dlq: DlqConfigSchema.optional(),
     pipeline: z.array(z.record(z.string(), z.unknown())).optional(),
@@ -178,6 +203,13 @@ function buildProcessorStructuredContent(
     }
     if (proc.tier !== undefined) {
         structuredContent.tier = proc.tier;
+    }
+    if (proc.effectiveTier !== undefined) {
+        structuredContent.effectiveTier = proc.effectiveTier;
+    }
+    const autoscaling = toStreamsAutoscaling(proc.options?.autoscaling);
+    if (autoscaling !== undefined) {
+        structuredContent.autoscaling = autoscaling;
     }
     if (proc.stats && Object.keys(proc.stats).length > 0) {
         structuredContent.stats = {
@@ -271,55 +303,55 @@ export class StreamsDiscoverTool extends StreamsToolBase {
     ): Promise<CallToolResult> {
         switch (action) {
             case "list-workspaces":
-                return this.listWorkspaces(projectId, responseFormat, limit, pageNum, request);
+                return this.listWorkspaces({ projectId, responseFormat, limit, pageNum, request });
             case "inspect-workspace":
-                return this.inspectWorkspace(
+                return this.inspectWorkspace({
                     projectId,
-                    this.requireWorkspaceName(workspaceName),
+                    workspaceName: this.requireWorkspaceName(workspaceName),
                     responseFormat,
-                    request
-                );
+                    request,
+                });
             case "list-connections":
-                return this.listConnections(
+                return this.listConnections({
                     projectId,
-                    this.requireWorkspaceName(workspaceName),
+                    workspaceName: this.requireWorkspaceName(workspaceName),
                     responseFormat,
                     limit,
                     pageNum,
-                    request
-                );
+                    request,
+                });
             case "inspect-connection":
-                return this.inspectConnection(
+                return this.inspectConnection({
                     projectId,
-                    this.requireWorkspaceName(workspaceName),
-                    this.requireResourceName(resourceName, "connection"),
-                    request
-                );
+                    workspaceName: this.requireWorkspaceName(workspaceName),
+                    connectionName: this.requireResourceName(resourceName, "connection"),
+                    request,
+                });
             case "list-processors":
-                return this.listProcessors(
+                return this.listProcessors({
                     projectId,
-                    this.requireWorkspaceName(workspaceName),
+                    workspaceName: this.requireWorkspaceName(workspaceName),
                     responseFormat,
                     limit,
                     pageNum,
-                    request
-                );
+                    request,
+                });
             case "inspect-processor":
-                return this.inspectProcessor(
+                return this.inspectProcessor({
                     projectId,
-                    this.requireWorkspaceName(workspaceName),
-                    this.requireResourceName(resourceName, "processor"),
-                    request
-                );
+                    workspaceName: this.requireWorkspaceName(workspaceName),
+                    processorName: this.requireResourceName(resourceName, "processor"),
+                    request,
+                });
             case "diagnose-processor":
-                return this.diagnoseProcessor(
+                return this.diagnoseProcessor({
                     projectId,
-                    this.requireWorkspaceName(workspaceName),
-                    this.requireResourceName(resourceName, "processor"),
-                    request
-                );
+                    workspaceName: this.requireWorkspaceName(workspaceName),
+                    processorName: this.requireResourceName(resourceName, "processor"),
+                    request,
+                });
             case "get-networking":
-                return this.getNetworking(projectId, cloudProvider, region, request);
+                return this.getNetworking({ projectId, cloudProvider, region, request });
             default:
                 return {
                     content: [{ type: "text", text: `Unknown action: ${action as string}` }],
@@ -347,13 +379,19 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         return resourceName;
     }
 
-    private async listWorkspaces(
-        projectId: string,
-        responseFormat: string | undefined,
-        limit: number | undefined,
-        pageNum: number | undefined,
-        request: ToolRequest<IAtlasConfig>
-    ): Promise<CallToolResult> {
+    private async listWorkspaces({
+        projectId,
+        responseFormat,
+        limit,
+        pageNum,
+        request,
+    }: {
+        projectId: string;
+        responseFormat: string | undefined;
+        limit: number | undefined;
+        pageNum: number | undefined;
+        request: ToolRequest<IAtlasConfig>;
+    }): Promise<CallToolResult> {
         const data = await this.server.apiClient.listStreamWorkspaces(
             {
                 params: { path: { groupId: projectId }, query: { itemsPerPage: limit ?? 20, pageNum: pageNum ?? 1 } },
@@ -393,12 +431,17 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         };
     }
 
-    private async inspectWorkspace(
-        projectId: string,
-        workspaceName: string,
-        responseFormat: string | undefined,
-        request: ToolRequest<IAtlasConfig>
-    ): Promise<CallToolResult> {
+    private async inspectWorkspace({
+        projectId,
+        workspaceName,
+        responseFormat,
+        request,
+    }: {
+        projectId: string;
+        workspaceName: string;
+        responseFormat: string | undefined;
+        request: ToolRequest<IAtlasConfig>;
+    }): Promise<CallToolResult> {
         const data = await this.server.apiClient.getStreamWorkspace(
             {
                 params: {
@@ -422,7 +465,10 @@ export class StreamsDiscoverTool extends StreamsToolBase {
             maxTier: data.streamConfig?.maxTierSize ?? "unknown",
             connectionCount: data.connections?.length ?? 0,
         };
-        const output = format === "concise" ? conciseWorkspace : data;
+        // The detailed form carries the raw workspace object (with embedded
+        // connections when `includeConnections` is set), so mask secret-valued
+        // fields first; the concise form is already a safe summary.
+        const output = format === "concise" ? conciseWorkspace : redactSensitiveKeys(data);
 
         return {
             content: formatUntrustedData("Details for the requested workspace:", JSON.stringify(output, null, 2)),
@@ -430,14 +476,21 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         };
     }
 
-    private async listConnections(
-        projectId: string,
-        workspaceName: string,
-        responseFormat: string | undefined,
-        limit: number | undefined,
-        pageNum: number | undefined,
-        request: ToolRequest<IAtlasConfig>
-    ): Promise<CallToolResult> {
+    private async listConnections({
+        projectId,
+        workspaceName,
+        responseFormat,
+        limit,
+        pageNum,
+        request,
+    }: {
+        projectId: string;
+        workspaceName: string;
+        responseFormat: string | undefined;
+        limit: number | undefined;
+        pageNum: number | undefined;
+        request: ToolRequest<IAtlasConfig>;
+    }): Promise<CallToolResult> {
         const data = await this.server.apiClient.listStreamConnections(
             {
                 params: {
@@ -462,7 +515,9 @@ export class StreamsDiscoverTool extends StreamsToolBase {
 
         const format = responseFormat ?? "concise";
         const conciseConnections = data.results.map(toConnectionSummary);
-        const connections = format === "concise" ? conciseConnections : data.results;
+        // The concise form is already safe; the verbose form carries the raw
+        // connection objects, so mask any secret-valued fields first.
+        const connections = format === "concise" ? conciseConnections : data.results.map(redactSensitiveKeys);
 
         return {
             content: formatUntrustedData(
@@ -473,12 +528,17 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         };
     }
 
-    private async inspectConnection(
-        projectId: string,
-        workspaceName: string,
-        connectionName: string,
-        request: ToolRequest<IAtlasConfig>
-    ): Promise<CallToolResult> {
+    private async inspectConnection({
+        projectId,
+        workspaceName,
+        connectionName,
+        request,
+    }: {
+        projectId: string;
+        workspaceName: string;
+        connectionName: string;
+        request: ToolRequest<IAtlasConfig>;
+    }): Promise<CallToolResult> {
         const data = (await this.server.apiClient.getStreamConnection(
             {
                 params: { path: { groupId: projectId, tenantName: workspaceName, connectionName } },
@@ -496,20 +556,32 @@ export class StreamsDiscoverTool extends StreamsToolBase {
 
         const connection = toConnectionInspect(data);
 
+        // Mask any secret-valued fields (e.g. authentication.password) that the
+        // Atlas API response may include: those values are never useful to the
+        // agent, and the keychain does not register runtime connection secrets.
+        const safeData = redactSensitiveKeys(data);
+
         return {
-            content: formatUntrustedData(header, JSON.stringify(data, null, 2)),
+            content: formatUntrustedData(header, JSON.stringify(safeData, null, 2)),
             ...(Object.keys(connection).length > 0 && { structuredContent: { connection } }),
         };
     }
 
-    private async listProcessors(
-        projectId: string,
-        workspaceName: string,
-        responseFormat: string | undefined,
-        limit: number | undefined,
-        pageNum: number | undefined,
-        request: ToolRequest<IAtlasConfig>
-    ): Promise<CallToolResult> {
+    private async listProcessors({
+        projectId,
+        workspaceName,
+        responseFormat,
+        limit,
+        pageNum,
+        request,
+    }: {
+        projectId: string;
+        workspaceName: string;
+        responseFormat: string | undefined;
+        limit: number | undefined;
+        pageNum: number | undefined;
+        request: ToolRequest<IAtlasConfig>;
+    }): Promise<CallToolResult> {
         const data = await this.server.apiClient.getStreamProcessors(
             {
                 params: {
@@ -533,11 +605,16 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         }
 
         const format = responseFormat ?? "concise";
-        const conciseProcessors = data.results.map((p) => ({
-            name: p.name,
-            state: p.state,
-            tier: p.tier,
-        }));
+        const conciseProcessors = data.results.map((p) => {
+            const autoscaling = toStreamsAutoscaling(p.options?.autoscaling);
+            return {
+                name: p.name,
+                state: p.state,
+                tier: p.tier,
+                effectiveTier: p.effectiveTier,
+                ...(autoscaling !== undefined && { autoscaling }),
+            };
+        });
         const processors = format === "concise" ? conciseProcessors : data.results;
 
         return {
@@ -549,12 +626,17 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         };
     }
 
-    private async inspectProcessor(
-        projectId: string,
-        workspaceName: string,
-        processorName: string,
-        request: ToolRequest<IAtlasConfig>
-    ): Promise<CallToolResult> {
+    private async inspectProcessor({
+        projectId,
+        workspaceName,
+        processorName,
+        request,
+    }: {
+        projectId: string;
+        workspaceName: string;
+        processorName: string;
+        request: ToolRequest<IAtlasConfig>;
+    }): Promise<CallToolResult> {
         const data = await this.server.apiClient.getStreamProcessor(
             {
                 params: { path: { groupId: projectId, tenantName: workspaceName, processorName } },
@@ -569,12 +651,17 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         };
     }
 
-    private async diagnoseProcessor(
-        projectId: string,
-        workspaceName: string,
-        processorName: string,
-        request: ToolRequest<IAtlasConfig>
-    ): Promise<CallToolResult> {
+    private async diagnoseProcessor({
+        projectId,
+        workspaceName,
+        processorName,
+        request,
+    }: {
+        projectId: string;
+        workspaceName: string;
+        processorName: string;
+        request: ToolRequest<IAtlasConfig>;
+    }): Promise<CallToolResult> {
         const [processorResult, connectionsResult] = await Promise.allSettled([
             this.server.apiClient.getStreamProcessor(
                 {
@@ -599,8 +686,12 @@ export class StreamsDiscoverTool extends StreamsToolBase {
             Object.assign(structuredContent, buildProcessorStructuredContent(proc));
 
             sections.push(
-                `## Processor State\n- Name: ${proc.name}\n- State: ${proc.state}\n- Tier: ${proc.tier ?? "default"}`
+                `## Processor State\n- Name: ${proc.name}\n- State: ${proc.state}\n- Baseline Tier: ${proc.tier ?? "default"}\n- Effective Tier: ${proc.effectiveTier ?? proc.tier ?? "default"}`
             );
+
+            if (proc.options?.autoscaling !== undefined) {
+                sections.push(`## Autoscaling\n${JSON.stringify(proc.options.autoscaling, null, 2)}`);
+            }
 
             if (proc.stats && Object.keys(proc.stats).length > 0 && structuredContent.stats) {
                 const stats = structuredContent.stats;
@@ -674,12 +765,17 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         };
     }
 
-    private async getNetworking(
-        projectId: string,
-        cloudProvider: string | undefined,
-        region: string | undefined,
-        request: ToolRequest<IAtlasConfig>
-    ): Promise<CallToolResult> {
+    private async getNetworking({
+        projectId,
+        cloudProvider,
+        region,
+        request,
+    }: {
+        projectId: string;
+        cloudProvider: string | undefined;
+        region: string | undefined;
+        request: ToolRequest<IAtlasConfig>;
+    }): Promise<CallToolResult> {
         const [privateLinkResult] = await Promise.allSettled([
             this.server.apiClient.listPrivateLinkConnections(
                 {

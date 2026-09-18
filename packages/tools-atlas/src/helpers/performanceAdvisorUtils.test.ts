@@ -38,7 +38,9 @@ describe("performanceAdvisorUtils debug logging", () => {
     it("getSuggestedIndexes logs a debug message with x-request-id on failure", async () => {
         const apiClient = makeApiClient({});
         const { debug } = apiClient.logger;
-        await expect(getSuggestedIndexes(apiClient, "proj1", "cluster1", context)).rejects.toThrow();
+        await expect(
+            getSuggestedIndexes({ apiClient, projectId: "proj1", clusterName: "cluster1", request: context })
+        ).rejects.toThrow();
         expect(debug).toHaveBeenCalledWith(
             expect.objectContaining({
                 message: expect.stringContaining("Failed to list suggested indexes"),
@@ -50,7 +52,9 @@ describe("performanceAdvisorUtils debug logging", () => {
     it("getDropIndexSuggestions logs a debug message with x-request-id on failure", async () => {
         const apiClient = makeApiClient({});
         const { debug } = apiClient.logger;
-        await expect(getDropIndexSuggestions(apiClient, "proj1", "cluster1", context)).rejects.toThrow();
+        await expect(
+            getDropIndexSuggestions({ apiClient, projectId: "proj1", clusterName: "cluster1", request: context })
+        ).rejects.toThrow();
         expect(debug).toHaveBeenCalledWith(
             expect.objectContaining({
                 message: expect.stringContaining("Failed to list drop index suggestions"),
@@ -62,7 +66,9 @@ describe("performanceAdvisorUtils debug logging", () => {
     it("getSchemaAdvice logs a debug message with x-request-id on failure", async () => {
         const apiClient = makeApiClient({});
         const { debug } = apiClient.logger;
-        await expect(getSchemaAdvice(apiClient, "proj1", "cluster1", context)).rejects.toThrow();
+        await expect(
+            getSchemaAdvice({ apiClient, projectId: "proj1", clusterName: "cluster1", request: context })
+        ).rejects.toThrow();
         expect(debug).toHaveBeenCalledWith(
             expect.objectContaining({
                 message: expect.stringContaining("Failed to list schema advice"),
@@ -76,7 +82,16 @@ describe("performanceAdvisorUtils debug logging", () => {
         // block in getSlowQueries fires and logs.
         const apiClient = makeApiClient({});
         const { debug } = apiClient.logger;
-        await expect(getSlowQueries(apiClient, "proj1", "cluster1", undefined, undefined, context)).rejects.toThrow();
+        await expect(
+            getSlowQueries({
+                apiClient,
+                projectId: "proj1",
+                clusterName: "cluster1",
+                since: undefined,
+                namespaces: undefined,
+                request: context,
+            })
+        ).rejects.toThrow();
         expect(debug).toHaveBeenCalledWith(
             expect.objectContaining({
                 message: expect.stringContaining("Failed to list slow query logs"),

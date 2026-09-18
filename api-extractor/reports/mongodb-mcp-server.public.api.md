@@ -25,6 +25,7 @@ import type { InputResponses } from '@modelcontextprotocol/server';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/server';
 import { McpHttpHandler } from '@modelcontextprotocol/server';
 import { McpServer } from '@modelcontextprotocol/server';
+import { MongoClient } from 'mongodb';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import type { ReadResourceCallback } from '@modelcontextprotocol/server';
 import { Registry } from 'prom-client';
@@ -243,7 +244,7 @@ export class AtlasTelemetry implements ITelemetry {
     // (undocumented)
     protected readonly serverMetadata: ServerMetadata;
     // (undocumented)
-    protected setup(): Promise<void>;
+    setup(): Promise<void>;
     setupPromise: Promise<[string, boolean]> | undefined;
 }
 
@@ -440,15 +441,13 @@ export interface ConnectionManagerEvents {
 
 // @public (undocumented)
 export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"> {
-    // (undocumented)
-    atlas?: AtlasClusterConnectionInfo;
     driverOptions?: ConnectionInfo["driverOptions"];
+    hostType?: ConnectionStringHostType;
+    mongoClient?: MongoClient;
 }
 
 // @public (undocumented)
 export interface ConnectionState {
-    // (undocumented)
-    connectedAtlasCluster?: AtlasClusterConnectionInfo;
     // (undocumented)
     connectionStringInfo?: ConnectionStringInfo;
     // (undocumented)
@@ -460,10 +459,7 @@ export class ConnectionStateConnected implements ConnectionState {
     constructor(input: {
         serviceProvider: NodeDriverServiceProvider;
         connectionStringInfo?: ConnectionStringInfo;
-        connectedAtlasCluster?: AtlasClusterConnectionInfo;
     });
-    // (undocumented)
-    connectedAtlasCluster?: AtlasClusterConnectionInfo;
     // (undocumented)
     connectionStringInfo?: ConnectionStringInfo;
     // (undocumented)
@@ -663,14 +659,9 @@ export const JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED = -32000;
 
 // @public
 export class Keychain implements IKeychain {
-    constructor();
-    // (undocumented)
-    clearAllSecrets(): void;
+    constructor(secrets?: SecretRecord);
     redact<T>(value: T): T;
-    // (undocumented)
-    register(value: Secret["value"], kind: Secret["kind"]): void;
-    // (undocumented)
-    static get root(): Keychain;
+    redactErrorMessage(error: unknown): string;
 }
 
 // @public
@@ -796,6 +787,7 @@ export type MonitoringServerOptions<TMetrics extends DefaultMetricDefinitions = 
         http: {
             host: string;
             port: number;
+            dangerousHostBinding?: boolean;
         };
         features: MonitoringServerFeature_2[];
         version?: string;
@@ -865,9 +857,6 @@ export interface PrometheusMetricsOptions<TMetricsDefinitions extends DefaultMet
 
 // @public
 export const QUERY_COUNT_MAX_TIME_MS_CAP: number;
-
-// @public (undocumented)
-export function registerGlobalSecretToRedact(value: Secret["value"], kind: Secret["kind"]): void;
 
 export { Registry }
 
@@ -979,8 +968,10 @@ export abstract class ToolBase<TServer extends ToolServer = ToolServer, TMetrics
     enable(): void;
     protected abstract execute(args: ToolArgs<ReturnType<typeof ToolBase.argsShape>>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
     protected getConfirmationMessage(args: ToolArgs<ReturnType<typeof ToolBase.argsShape>>): string;
-    // (undocumented)
-    protected getConnectionInfoMetadata(connectionState?: SupportedConnectionState): ConnectionMetadata;
+    protected getConnectionInfoMetadata(entry?: {
+        state: SupportedConnectionState;
+        atlasCluster?: AtlasClusterConnectionInfo;
+    }): ConnectionMetadata;
     protected handleError(error: unknown, args: z.infer<z.ZodObject<ReturnType<typeof ToolBase.argsShape>>>): Promise<CallToolResult> | CallToolResult;
     invoke(args: ToolArgs<ReturnType<typeof ToolBase.argsShape>>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
     // (undocumented)
@@ -1045,7 +1036,7 @@ export const TRANSPORT_PAYLOAD_LIMITS: Record<TransportType, number>;
 export type TransportRequestContext = {
     headers?: Record<string, string | string[] | undefined>;
     query?: Record<string, string | string[] | undefined>;
-    authInfo?: RequestAuthState;
+    authInfo?: RequestAuthInfo;
     protocol?: McpProtocol;
 };
 
@@ -1101,8 +1092,14 @@ export const UserConfigSchema: z.ZodObject<{
     httpPort: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     httpHost: z.ZodDefault<z.ZodString>;
     httpHeaders: z.ZodDefault<z.ZodObject<{}, z.core.$catchall<z.ZodString>>>;
+    dangerousHostBinding: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
     httpBodyLimit: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxActiveConnections: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    connectionIdleTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    connectionScope: z.ZodDefault<z.ZodEnum<{
+        session: "session";
+        global: "global";
+    }>>;
     maxSessions: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     idleTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     notificationTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;

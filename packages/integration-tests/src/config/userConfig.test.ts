@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import { type UserConfig, UserConfigSchema } from "@mongodb-js/mcp-cli";
 import { parseUserConfig, defaultParserOptions } from "@mongodb-js/mcp-cli";
 import {
@@ -6,8 +6,8 @@ import {
     getExportsPath,
     onlyLowerThanBaseValueOverride,
     onlySubsetOfBaseValueOverride,
+    createKeychainFromConfig,
 } from "@mongodb-js/mcp-cli";
-import { Keychain } from "@mongodb-js/mcp-core";
 import type { Secret } from "@mongodb-js/mcp-core";
 import { createEnvironment, useClearEnvironment } from "@mongodb-js/mcp-test-utils";
 import path from "path";
@@ -45,12 +45,15 @@ const expectedDefaults = {
     mcpClientLogLevel: "debug",
     loggers: ["disk", "mcp"],
     maxActiveConnections: 10,
+    connectionIdleTimeoutMs: 600000,
+    connectionScope: "session",
     maxSessions: 1000,
     idleTimeoutMs: 600000,
     notificationTimeoutMs: 540000,
     evictionIdleGraceMS: 120000,
     externallyManagedSessions: false,
     httpHeaders: {},
+    dangerousHostBinding: false,
     httpBodyLimit: TRANSPORT_PAYLOAD_LIMITS.http,
     maxDocumentsPerQuery: 100,
     maxBytesPerQuery: 16 * 1024 * 1024, // ~16 mb
@@ -196,6 +199,32 @@ describe("config", () => {
 
     describe("cli parsing", () => {
         useClearEnvironment("MDB_MCP_");
+
+        it("warns when --connectionScope is used (deprecated option)", () => {
+            const { warnings } = parseUserConfig({ args: ["--connectionScope", "global"] });
+            expect(warnings).toHaveLength(1);
+            expect(warnings[0]).toContain("--connectionScope");
+            expect(warnings[0]).toContain("deprecated");
+            expect(warnings[0]).toContain("sessionless");
+            expect(warnings[0]).toContain("Atlas-Managed MCP server");
+        });
+
+        it("warns when MDB_MCP_CONNECTION_SCOPE env var is set (deprecated option)", () => {
+            const { setVariable, clearVariables } = createEnvironment();
+            setVariable("MDB_MCP_CONNECTION_SCOPE", "global");
+            try {
+                const { warnings } = parseUserConfig({ args: [] });
+                expect(warnings).toHaveLength(1);
+                expect(warnings[0]).toContain("deprecated");
+            } finally {
+                clearVariables();
+            }
+        });
+
+        it("does not warn for connectionScope when it is not set", () => {
+            const { warnings } = parseUserConfig({ args: [] });
+            expect(warnings).toHaveLength(0);
+        });
 
         it("should not try to parse a multiple-host urls", () => {
             const { parsed: actual } = parseUserConfig({
@@ -893,20 +922,11 @@ describe("keychain management", () => {
         { cliArg: "tlsCertificateKeyFilePassword", secretKind: "password" },
         { cliArg: "username", secretKind: "user" },
     ] as TestCase[];
-    let keychain: Keychain;
-
-    beforeEach(() => {
-        keychain = Keychain.root;
-        keychain.clearAllSecrets();
-    });
-
-    afterEach(() => {
-        keychain.clearAllSecrets();
-    });
 
     for (const { cliArg, secretKind } of testCases) {
         it(`should register ${cliArg} as a secret of kind ${secretKind} in the root keychain`, () => {
-            parseUserConfig({ args: [`--${cliArg}`, cliArg] });
+            const { parsed } = parseUserConfig({ args: [`--${cliArg}`, cliArg] });
+            const keychain = createKeychainFromConfig({ config: parsed ?? {} });
             expect(keychain.redact(cliArg)).toBe(`<${secretKind}>`);
         });
     }
@@ -918,7 +938,8 @@ describe("keychain management", () => {
 
     for (const secretKey of secretsFromSchema) {
         it(`should register ${secretKey} as a secret in the root keychain`, () => {
-            parseUserConfig({ args: [`--${secretKey}`, secretKey] });
+            const { parsed } = parseUserConfig({ args: [`--${secretKey}`, secretKey] });
+            const keychain = createKeychainFromConfig({ config: parsed ?? {} });
 
             expect(keychain.redact(secretKey)).toMatch(/^<[a-z ]+>$/);
         });

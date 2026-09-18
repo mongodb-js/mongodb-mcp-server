@@ -21,7 +21,7 @@ import { MongoDBClusterProcess } from "@mongodb-js/mcp-test-utils";
 import type { MongoClusterConfiguration } from "@mongodb-js/mcp-test-utils";
 import type { createMockElicitInput, MockClientCapabilities } from "@mongodb-js/mcp-test-utils";
 import { ConnectionEntry, type ConnectionManager, PRECONFIGURED_CONNECTION_ID } from "@mongodb-js/mcp-tools-mongodb";
-import { sleep } from "@mongodb-js/mcp-core";
+import { Keychain, sleep } from "@mongodb-js/mcp-core";
 
 export const DEFAULT_WAIT_TIMEOUT = 1000;
 export const DEFAULT_RETRY_INTERVAL = 100;
@@ -108,14 +108,18 @@ export const defaultTestSuiteConfig: TestSuiteConfig = {
     downloadOptions: DEFAULT_MONGODB_PROCESS_OPTIONS,
 };
 
-export function describeWithMongoDB(
-    name: string,
-    fn: (integration: MongoDBIntegrationTestCase) => void,
-    partialTestSuiteConfig?: Partial<TestSuiteConfig>
-): void {
+export function describeWithMongoDB({
+    name,
+    fn,
+    config,
+}: {
+    name: string;
+    fn: (integration: MongoDBIntegrationTestCase) => void;
+    config?: Partial<TestSuiteConfig>;
+}): void {
     const merged: TestSuiteConfig = {
         ...defaultTestSuiteConfig,
-        ...partialTestSuiteConfig,
+        ...config,
     };
     const {
         getUserConfig,
@@ -233,16 +237,21 @@ export function setupMongoDBIntegrationTest(
     };
 }
 
-export function validateAutoConnectBehavior(
-    integration: IntegrationTest & MongoDBIntegrationTest,
-    name: string,
+export function validateAutoConnectBehavior({
+    integration,
+    name,
+    validation,
+    beforeEachImpl,
+}: {
+    integration: IntegrationTest & MongoDBIntegrationTest;
+    name: string;
     validation: () => {
         args: { [x: string]: unknown };
         expectedResponse?: string;
         validate?: (content: unknown) => void;
-    },
-    beforeEachImpl?: () => Promise<void>
-): void {
+    };
+    beforeEachImpl?: () => Promise<void>;
+}): void {
     describe("when no connection was explicitly established", () => {
         if (beforeEachImpl) {
             beforeEach(() => beforeEachImpl());
@@ -282,6 +291,7 @@ export function validateAutoConnectBehavior(
                     name: PRECONFIGURED_CONNECTION_ID,
                     source: "preconfigured",
                     manager: seam.createConnectionManager(),
+                    keychain: new Keychain(),
                 }),
             });
 
@@ -401,11 +411,15 @@ export async function getServerVersion(integration: MongoDBIntegrationTestCase):
 }
 export const SEARCH_WAIT_TIMEOUT = 20_000;
 
-export async function waitUntilSearchIsReady(
-    mongoClient: MongoClient,
-    timeout: number = SEARCH_WAIT_TIMEOUT,
-    interval: number = DEFAULT_RETRY_INTERVAL
-): Promise<void> {
+export async function waitUntilSearchIsReady({
+    mongoClient,
+    timeout = SEARCH_WAIT_TIMEOUT,
+    interval = DEFAULT_RETRY_INTERVAL,
+}: {
+    mongoClient: MongoClient;
+    timeout?: number;
+    interval?: number;
+}): Promise<void> {
     await vi.waitFor(
         async () => {
             const testCollection = mongoClient.db("tempDB").collection("tempCollection");
@@ -417,14 +431,21 @@ export async function waitUntilSearchIsReady(
     );
 }
 
-async function waitUntilSearchIndexIs(
-    collection: Collection,
-    searchIndex: string,
-    indexValidator: (index: { name: string; status: string; queryable: boolean }) => boolean,
-    timeout: number,
-    interval: number,
-    getValidationFailedMessage: (searchIndexes: Document[]) => string = () => "Search index did not pass validation"
-): Promise<void> {
+async function waitUntilSearchIndexIs({
+    collection,
+    searchIndex,
+    indexValidator,
+    timeout,
+    interval,
+    getValidationFailedMessage = (): string => "Search index did not pass validation",
+}: {
+    collection: Collection;
+    searchIndex: string;
+    indexValidator: (index: { name: string; status: string; queryable: boolean }) => boolean;
+    timeout: number;
+    interval: number;
+    getValidationFailedMessage?: (searchIndexes: Document[]) => string;
+}): Promise<void> {
     await vi.waitFor(
         async () => {
             const searchIndexes = (await collection.listSearchIndexes(searchIndex).toArray()) as {
@@ -444,48 +465,63 @@ async function waitUntilSearchIndexIs(
     );
 }
 
-export async function waitUntilSearchIndexIsListed(
-    collection: Collection,
-    searchIndex: string,
-    timeout: number = SEARCH_WAIT_TIMEOUT,
-    interval: number = DEFAULT_RETRY_INTERVAL
-): Promise<void> {
-    return waitUntilSearchIndexIs(
+export async function waitUntilSearchIndexIsListed({
+    collection,
+    searchIndex,
+    timeout = SEARCH_WAIT_TIMEOUT,
+    interval = DEFAULT_RETRY_INTERVAL,
+}: {
+    collection: Collection;
+    searchIndex: string;
+    timeout?: number;
+    interval?: number;
+}): Promise<void> {
+    return waitUntilSearchIndexIs({
         collection,
         searchIndex,
-        (index) => index.name === searchIndex,
+        indexValidator: (index) => index.name === searchIndex,
         timeout,
         interval,
-        (searchIndexes) =>
-            `Index ${searchIndex} is not yet in the index list (${searchIndexes.map(({ name }) => String(name)).join(", ")})`
-    );
+        getValidationFailedMessage: (searchIndexes) =>
+            `Index ${searchIndex} is not yet in the index list (${searchIndexes.map(({ name }) => String(name)).join(", ")})`,
+    });
 }
 
-export async function waitUntilSearchIndexIsQueryable(
-    collection: Collection,
-    searchIndex: string,
-    timeout: number = SEARCH_WAIT_TIMEOUT,
-    interval: number = DEFAULT_RETRY_INTERVAL
-): Promise<void> {
-    return waitUntilSearchIndexIs(
+export async function waitUntilSearchIndexIsQueryable({
+    collection,
+    searchIndex,
+    timeout = SEARCH_WAIT_TIMEOUT,
+    interval = DEFAULT_RETRY_INTERVAL,
+}: {
+    collection: Collection;
+    searchIndex: string;
+    timeout?: number;
+    interval?: number;
+}): Promise<void> {
+    return waitUntilSearchIndexIs({
         collection,
         searchIndex,
-        (index) => index.name === searchIndex && index.status === "READY",
+        indexValidator: (index) => index.name === searchIndex && index.status === "READY",
         timeout,
         interval,
-        (searchIndexes) => {
+        getValidationFailedMessage: (searchIndexes) => {
             const index = searchIndexes.find((index) => index.name === searchIndex);
             return `Index ${searchIndex} in ${collection.dbName}.${collection.collectionName} is not ready. Last known status - ${JSON.stringify(index)}`;
-        }
-    );
+        },
+    });
 }
 
-export async function createVectorSearchIndexAndWait(
-    mongoClient: MongoClient,
-    database: string,
-    collection: string,
-    fields: Document[]
-): Promise<void> {
+export async function createVectorSearchIndexAndWait({
+    mongoClient,
+    database,
+    collection,
+    fields,
+}: {
+    mongoClient: MongoClient;
+    database: string;
+    collection: string;
+    fields: Document[];
+}): Promise<void> {
     const coll = await mongoClient.db(database).createCollection(collection);
     await coll.createSearchIndex({
         name: "default",
@@ -495,5 +531,5 @@ export async function createVectorSearchIndexAndWait(
         },
     });
 
-    await waitUntilSearchIndexIsQueryable(coll, "default");
+    await waitUntilSearchIndexIsQueryable({ collection: coll, searchIndex: "default" });
 }

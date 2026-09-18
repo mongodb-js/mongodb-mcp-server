@@ -16,7 +16,7 @@ describe("CompositeLogger", () => {
 
     beforeEach(() => {
         consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-        keychain = Keychain.root;
+        keychain = new Keychain();
 
         consoleLogger = new ConsoleLogger({ keychain });
 
@@ -32,7 +32,6 @@ describe("CompositeLogger", () => {
     });
 
     afterEach(() => {
-        keychain.clearAllSecrets();
         vi.restoreAllMocks();
     });
 

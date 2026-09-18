@@ -42,13 +42,14 @@ describe("debug resource", () => {
     }
 
     function setup(config: UserConfig = defaultTestConfig): void {
+        const keychain = new Keychain();
         registry = new TestStore({
             options: config,
             logger,
             deviceId,
+            keychain,
         }).view();
 
-        const keychain = new Keychain();
         const apiClient = new ApiClient({
             options: {
                 baseUrl: config.apiBaseUrl,
@@ -144,15 +145,12 @@ describe("debug resource", () => {
 
     it("should show the atlas cluster information when provided", async () => {
         const entry = await registry.connect({
-            settings: {
-                connectionString: "mongodb://localhost:27017",
-                atlas: {
-                    clusterName: "My Test Cluster",
-                    projectId: "COFFEEFABADA",
-                    clusterId: "DEADBEEF",
-                    username: "",
-                    instanceType: "FREE",
-                },
+            settings: { connectionString: "mongodb://localhost:27017" },
+            atlasCluster: {
+                clusterName: "My Test Cluster",
+                projectId: "COFFEEFABADA",
+                clusterId: "DEADBEEF",
+                instanceType: "FREE",
             },
         });
         vi.spyOn(entry, "isSearchSupported").mockResolvedValue(false);

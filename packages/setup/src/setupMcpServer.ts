@@ -7,22 +7,26 @@ import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver
 import type { AIToolType } from "./aiTool.js";
 import { AI_TOOL_REGISTRY, openConfigSettings, TOOLS_WITHOUT_EDITORS } from "./aiTool.js";
 import type { Platform } from "./setupAiToolsUtils.js";
-import { formatError, getPlatform } from "./setupAiToolsUtils.js";
+import { getPlatform } from "./setupAiToolsUtils.js";
 import { getAuthType } from "@mongodb-js/mcp-tools-mongodb";
 import type { ServerMetadata } from "@mongodb-js/mcp-types";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { NoopLogger } from "@mongodb-js/mcp-core";
 import type { TelemetryResult } from "@mongodb-js/mcp-atlas-telemetry";
 import { SetupTelemetry } from "./setupTelemetry.js";
-import { Keychain, registerGlobalSecretToRedact } from "@mongodb-js/mcp-core";
+import type { Keychain } from "@mongodb-js/mcp-core";
 import { promptAndInstallSkills, type SkillsInstallOutcome } from "./installSkills.js";
 import type { SetupConfig } from "./types.js";
 
-const buildEnvObject = (
-    connectionString: string,
-    serviceWorkerId: string,
-    serviceWorkerSecret: string
-): Record<string, string> => {
+const buildEnvObject = ({
+    connectionString,
+    serviceWorkerId,
+    serviceWorkerSecret,
+}: {
+    connectionString: string;
+    serviceWorkerId: string;
+    serviceWorkerSecret: string;
+}): Record<string, string> => {
     const env: Record<string, string> = {};
     if (connectionString) {
         env.MDB_MCP_CONNECTION_STRING = connectionString;
@@ -37,7 +41,8 @@ const buildEnvObject = (
 };
 
 const testConnectionString = async (
-    connectionString: string
+    connectionString: string,
+    keychain: Keychain
 ): Promise<{
     connectionString: string;
     /** Final result of the connection attempt, or undefined if the user never tested. */
@@ -61,7 +66,7 @@ const testConnectionString = async (
             console.log(chalk.green("✓ Connection successful!"));
             return { connectionString, testResult: "success", attempts };
         } catch (error: unknown) {
-            console.log(chalk.red("\n✗ Connection failed: " + formatError(error)));
+            console.log(chalk.red("\n✗ Connection failed: " + keychain.redactErrorMessage(error)));
             console.log(chalk.yellow("\nPlease check:"));
             console.log(chalk.yellow("  • Your database user credentials are correct"));
             console.log(chalk.yellow("  • Your IP address is allowed in Network Access"));
@@ -88,13 +93,21 @@ const testConnectionString = async (
     }
 };
 
-const configureEditor = async (
-    tool: AIToolType,
-    connectionString: string,
-    serviceWorkerId: string,
-    serviceWorkerSecret: string,
-    isReadOnly: boolean
-): Promise<{
+const configureEditor = async ({
+    tool,
+    connectionString,
+    serviceWorkerId,
+    serviceWorkerSecret,
+    isReadOnly,
+    keychain,
+}: {
+    tool: AIToolType;
+    connectionString: string;
+    serviceWorkerId: string;
+    serviceWorkerSecret: string;
+    isReadOnly: boolean;
+    keychain: Keychain;
+}): Promise<{
     usedDefaultConfigPath: boolean;
     result: TelemetryResult;
     error?: unknown;
@@ -118,13 +131,13 @@ const configureEditor = async (
     // Resolve to absolute path and trim so we always write to the intended file
     configPath = path.resolve(configPath.trim());
 
-    const env = buildEnvObject(connectionString, serviceWorkerId, serviceWorkerSecret);
+    const env = buildEnvObject({ connectionString, serviceWorkerId, serviceWorkerSecret });
     try {
-        AI_TOOL_REGISTRY[tool].updateConfig(configPath, env, isReadOnly);
+        AI_TOOL_REGISTRY[tool].updateConfig({ configPath, env, isReadOnly, keychain });
         console.log(`\nConfiguration saved to ${configPath}`);
         return { usedDefaultConfigPath: useDetectedPath, result: "success" };
     } catch (error: unknown) {
-        console.log(chalk.red(`\nFailed to save configuration: ${formatError(error)}`));
+        console.log(chalk.red(`\nFailed to save configuration: ${keychain.redactErrorMessage(error)}`));
         return { usedDefaultConfigPath: useDetectedPath, result: "failure", error };
     }
 };
@@ -209,7 +222,8 @@ const promptForReadonly = async (): Promise<boolean> => {
 };
 
 const promptForConnectionString = async (
-    config: SetupConfig
+    config: SetupConfig,
+    keychain: Keychain
 ): Promise<{
     connectionString: string;
     provided: boolean;
@@ -227,7 +241,10 @@ const promptForConnectionString = async (
         return { connectionString: "", provided: false, tested: false, attempts: 0 };
     }
 
-    registerGlobalSecretToRedact(connectionString, "mongodb uri");
+    // The connection string is a `mongodb://` URI: even though the keychain is
+    // fixed once at construction and cannot grow, the built-in mongodb-redact
+    // pattern scrubs the whole URI run (`<mongodb uri>`) from any error or log
+    // it reaches, so there is no need to register it here.
 
     try {
         const auth = getAuthType(config, connectionString);
@@ -235,7 +252,7 @@ const promptForConnectionString = async (
             const shouldTest = await confirm({ message: "Test your connection string?", default: true });
 
             if (shouldTest) {
-                const outcome = await testConnectionString(connectionString);
+                const outcome = await testConnectionString(connectionString, keychain);
                 return {
                     connectionString: outcome.connectionString,
                     provided: true,
@@ -263,19 +280,23 @@ const promptForServiceAccountSecret = async (): Promise<string> => {
         mask: true,
     });
 
-    if (secret.trim()) {
-        registerGlobalSecretToRedact(secret, "private key");
-    }
-
+    // The service account secret is never printed or logged by the setup
+    // wizard (it only goes into the on-disk config), so it is not registered on
+    // the keychain, which is immutable after construction.
     return secret;
 };
 
-const validateCredentials = (
-    connectionString: string,
-    serviceAccountId: string,
-    serviceAccountSecret: string,
-    hasDocker: boolean
-): void => {
+const validateCredentials = ({
+    connectionString,
+    serviceAccountId,
+    serviceAccountSecret,
+    hasDocker,
+}: {
+    connectionString: string;
+    serviceAccountId: string;
+    serviceAccountSecret: string;
+    hasDocker: boolean;
+}): void => {
     // If either the connection string is missing or one of the service account credentials, throw error
     if (!connectionString && (!serviceAccountId || !serviceAccountSecret)) {
         console.log(
@@ -306,12 +327,17 @@ const validateCredentials = (
     }
 };
 
-const getAvailablePrompts = (
-    connectionString: string,
-    serviceAccountId: string,
-    serviceAccountSecret: string,
-    hasDocker: boolean
-): string[] => {
+const getAvailablePrompts = ({
+    connectionString,
+    serviceAccountId,
+    serviceAccountSecret,
+    hasDocker,
+}: {
+    connectionString: string;
+    serviceAccountId: string;
+    serviceAccountSecret: string;
+    hasDocker: boolean;
+}): string[] => {
     const availablePrompts: string[] = [];
     if (connectionString) {
         availablePrompts.push('\t"List the collections in my MongoDB instance"');
@@ -337,10 +363,15 @@ const getAvailablePrompts = (
     return availablePrompts;
 };
 
-const promptToOpenConfigFile = async (
-    displayName: string,
-    tool: AIToolType
-): Promise<{
+const promptToOpenConfigFile = async ({
+    displayName,
+    tool,
+    keychain,
+}: {
+    displayName: string;
+    tool: AIToolType;
+    keychain: Keychain;
+}): Promise<{
     opened: boolean;
     result: TelemetryResult;
     error?: unknown;
@@ -362,7 +393,7 @@ const promptToOpenConfigFile = async (
         await openConfigSettings(tool);
         return { opened: true, result: "success" };
     } catch (error: unknown) {
-        console.log(chalk.red(`Failed to open config file: ${formatError(error)}`));
+        console.log(chalk.red(`Failed to open config file: ${keychain.redactErrorMessage(error)}`));
         return { opened: true, result: "failure", error };
     }
 };
@@ -378,11 +409,15 @@ const formatSkillsResult = (result: SkillsInstallOutcome): string => {
     }
 };
 
-const guideUserWithSetupSuccess = (
-    displayName: string,
-    availablePrompts: string[],
-    skillsResult: SkillsInstallOutcome
-): void => {
+const guideUserWithSetupSuccess = ({
+    displayName,
+    availablePrompts,
+    skillsResult,
+}: {
+    displayName: string;
+    availablePrompts: string[];
+    skillsResult: SkillsInstallOutcome;
+}): void => {
     printNewLine();
     console.log(
         chalk.green(
@@ -412,11 +447,14 @@ class UnsupportedPlatformError extends Error {
 export const runSetup = async ({
     config,
     serverMetadata,
+    keychain,
 }: {
     config: SetupConfig;
     serverMetadata: ServerMetadata;
+    /** The server's immutable redaction keychain, built from config secrets. */
+    keychain: Keychain;
 }): Promise<never> => {
-    const setupTelemetry = SetupTelemetry.create({ config, keychain: Keychain.root, serverMetadata });
+    const setupTelemetry = SetupTelemetry.create({ config, keychain, serverMetadata });
 
     // Ensure hard cancellations (SIGINT/SIGTERM outside of an Inquirer prompt)
     // are still captured. Inquirer itself converts Ctrl+C during prompts into
@@ -467,7 +505,7 @@ export const runSetup = async ({
         setupTelemetry.emitReadOnlySelected(isReadOnly);
         printNewLine();
 
-        const connectionOutcome = await promptForConnectionString(config);
+        const connectionOutcome = await promptForConnectionString(config, keychain);
         setupTelemetry.emitConnectionStringEntered({
             provided: connectionOutcome.provided,
             tested: connectionOutcome.tested,
@@ -482,29 +520,35 @@ export const runSetup = async ({
         setupTelemetry.emitServiceAccountSecretEntered(Boolean(serviceAccountSecret));
         printNewLine();
 
-        validateCredentials(connectionOutcome.connectionString, serviceAccountId, serviceAccountSecret, hasDocker);
-        setupTelemetry.emitCredentialsValidated();
-
-        const editorOutcome = await configureEditor(
-            tool,
-            connectionOutcome.connectionString,
+        validateCredentials({
+            connectionString: connectionOutcome.connectionString,
             serviceAccountId,
             serviceAccountSecret,
-            isReadOnly
-        );
+            hasDocker,
+        });
+        setupTelemetry.emitCredentialsValidated();
+
+        const editorOutcome = await configureEditor({
+            tool,
+            connectionString: connectionOutcome.connectionString,
+            serviceWorkerId: serviceAccountId,
+            serviceWorkerSecret: serviceAccountSecret,
+            isReadOnly,
+            keychain,
+        });
         setupTelemetry.emitEditorConfigured(editorOutcome);
 
         const skillsResult = await promptAndInstallSkills({ tool, cwd: process.cwd() });
         setupTelemetry.emitSkillsInstallPrompted(skillsResult);
 
-        const availablePrompts = getAvailablePrompts(
-            connectionOutcome.connectionString,
+        const availablePrompts = getAvailablePrompts({
+            connectionString: connectionOutcome.connectionString,
             serviceAccountId,
             serviceAccountSecret,
-            hasDocker
-        );
-        guideUserWithSetupSuccess(displayName, availablePrompts, skillsResult);
-        const openOutcome = await promptToOpenConfigFile(displayName, tool);
+            hasDocker,
+        });
+        guideUserWithSetupSuccess({ displayName, availablePrompts, skillsResult });
+        const openOutcome = await promptToOpenConfigFile({ displayName, tool, keychain });
         setupTelemetry.emitOpenConfigPrompted(openOutcome);
 
         setupTelemetry.emitCompleted();

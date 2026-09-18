@@ -33,12 +33,17 @@ interface SchemaAdviceResponse {
 }
 export type SchemaRecommendation = SchemaAdvisorItemRecommendation;
 
-export async function getSuggestedIndexes(
-    apiClient: ApiClient,
-    projectId: string,
-    clusterName: string,
-    request?: ToolRequest<IAtlasConfig>
-): Promise<{ suggestedIndexes: Array<SuggestedIndex> }> {
+export async function getSuggestedIndexes({
+    apiClient,
+    projectId,
+    clusterName,
+    request,
+}: {
+    apiClient: ApiClient;
+    projectId: string;
+    clusterName: string;
+    request?: ToolRequest<IAtlasConfig>;
+}): Promise<{ suggestedIndexes: Array<SuggestedIndex> }> {
     try {
         const response = await apiClient.listClusterSuggestedIndexes(
             {
@@ -67,12 +72,17 @@ export async function getSuggestedIndexes(
     }
 }
 
-export async function getDropIndexSuggestions(
-    apiClient: ApiClient,
-    projectId: string,
-    clusterName: string,
-    request?: ToolRequest<IAtlasConfig>
-): Promise<{
+export async function getDropIndexSuggestions({
+    apiClient,
+    projectId,
+    clusterName,
+    request,
+}: {
+    apiClient: ApiClient;
+    projectId: string;
+    clusterName: string;
+    request?: ToolRequest<IAtlasConfig>;
+}): Promise<{
     hiddenIndexes: Array<DropIndexSuggestion>;
     redundantIndexes: Array<DropIndexSuggestion>;
     unusedIndexes: Array<DropIndexSuggestion>;
@@ -107,12 +117,17 @@ export async function getDropIndexSuggestions(
     }
 }
 
-export async function getSchemaAdvice(
-    apiClient: ApiClient,
-    projectId: string,
-    clusterName: string,
-    request?: ToolRequest<IAtlasConfig>
-): Promise<{ recommendations: Array<SchemaRecommendation> }> {
+export async function getSchemaAdvice({
+    apiClient,
+    projectId,
+    clusterName,
+    request,
+}: {
+    apiClient: ApiClient;
+    projectId: string;
+    clusterName: string;
+    request?: ToolRequest<IAtlasConfig>;
+}): Promise<{ recommendations: Array<SchemaRecommendation> }> {
     try {
         const response = await apiClient.listSchemaAdvice(
             {
@@ -139,16 +154,23 @@ export async function getSchemaAdvice(
     }
 }
 
-export async function getSlowQueries(
-    apiClient: ApiClient,
-    projectId: string,
-    clusterName: string,
-    since?: Date,
-    namespaces?: Array<string>,
-    request?: ToolRequest<IAtlasConfig>
-): Promise<{ slowQueryLogs: Array<SlowQueryLog> }> {
+export async function getSlowQueries({
+    apiClient,
+    projectId,
+    clusterName,
+    since,
+    namespaces,
+    request,
+}: {
+    apiClient: ApiClient;
+    projectId: string;
+    clusterName: string;
+    since?: Date;
+    namespaces?: Array<string>;
+    request?: ToolRequest<IAtlasConfig>;
+}): Promise<{ slowQueryLogs: Array<SlowQueryLog> }> {
     try {
-        const processIds = await getProcessIdsFromCluster(apiClient, projectId, clusterName, request);
+        const processIds = await getProcessIdsFromCluster({ apiClient, projectId, clusterName, request });
 
         if (processIds.length === 0) {
             return { slowQueryLogs: [] };

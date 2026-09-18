@@ -15,236 +15,166 @@ import { describeWithMongoDB, waitUntilSearchIsReady } from "../mongodbHelpers.j
 import { MongoServerError } from "mongodb";
 import { describe, beforeEach, expect, it, vi, afterEach } from "vitest";
 import type { MockInstance } from "vitest";
-
-describeWithMongoDB("Connection Manager", (integration) => {
-    describe("when successfully connected", () => {
-        type ConnectionManagerSpies = {
-            "connection-request": (event: ConnectionManagerEvents["connection-request"][0]) => void;
-            "connection-success": (event: ConnectionManagerEvents["connection-success"][0]) => void;
-            "connection-time-out": (event: ConnectionManagerEvents["connection-time-out"][0]) => void;
-            "connection-close": (event: ConnectionManagerEvents["connection-close"][0]) => void;
-            "connection-error": (event: ConnectionManagerEvents["connection-error"][0]) => void;
-        };
-
-        let connectionManagerSpies: ConnectionManagerSpies;
-        let manager: MCPConnectionManager;
-
-        beforeEach(async () => {
-            connectionManagerSpies = {
-                "connection-request": vi.fn(),
-                "connection-success": vi.fn(),
-                "connection-time-out": vi.fn(),
-                "connection-close": vi.fn(),
-                "connection-error": vi.fn(),
+describeWithMongoDB({
+    name: "Connection Manager",
+    fn: (integration) => {
+        describe("when successfully connected", () => {
+            type ConnectionManagerSpies = {
+                "connection-request": (event: ConnectionManagerEvents["connection-request"][0]) => void;
+                "connection-success": (event: ConnectionManagerEvents["connection-success"][0]) => void;
+                "connection-time-out": (event: ConnectionManagerEvents["connection-time-out"][0]) => void;
+                "connection-close": (event: ConnectionManagerEvents["connection-close"][0]) => void;
+                "connection-error": (event: ConnectionManagerEvents["connection-error"][0]) => void;
             };
-
-            // Construct the manager directly and attach the spies before the
-            // initial dial so they observe the full lifecycle.
-            const logger = new CompositeLogger();
-            manager = new MCPConnectionManager({
-                logger,
-                deviceId: DeviceId.create(new CompositeLogger()),
-                serverMetadata: { mcpServerName: "test-server", version: "1.0" },
-                connectionInfo: { transport: "stdio", httpHost: "localhost" },
-            });
-
-            for (const [event, spy] of Object.entries(connectionManagerSpies)) {
-                manager.events.on(
-                    event as keyof ConnectionManagerEvents,
-                    spy as (...args: ConnectionManagerEvents[keyof ConnectionManagerEvents]) => void
-                );
-            }
-
-            await manager.connect({
-                connectionString: integration.connectionString(),
-            });
-        });
-
-        afterEach(async () => {
-            await manager.close().catch(() => undefined);
-        });
-
-        it("should be marked explicitly as connected", () => {
-            expect(manager.currentConnectionState.tag).toEqual("connected");
-        });
-
-        it("can query mongodb successfully", async () => {
-            const connectionState = manager.currentConnectionState as ConnectionStateConnected;
-            const collections = await connectionState.serviceProvider.listCollections("admin");
-            expect(collections).not.toBe([]);
-        });
-
-        it("should notify that the connection was requested", () => {
-            expect(connectionManagerSpies["connection-request"]).toHaveBeenCalledOnce();
-        });
-
-        it("should notify that the connection was successful", () => {
-            expect(connectionManagerSpies["connection-success"]).toHaveBeenCalledOnce();
-        });
-
-        describe("when disconnects", () => {
+            let connectionManagerSpies: ConnectionManagerSpies;
+            let manager: MCPConnectionManager;
             beforeEach(async () => {
-                await manager.disconnect();
-            });
-
-            it("should notify that it was disconnected before connecting", () => {
-                expect(connectionManagerSpies["connection-close"]).toHaveBeenCalled();
-            });
-
-            it("should be marked explicitly as disconnected", () => {
-                expect(manager.currentConnectionState.tag).toEqual("disconnected");
-            });
-        });
-
-        describe("when reconnects", () => {
-            beforeEach(async () => {
+                connectionManagerSpies = {
+                    "connection-request": vi.fn(),
+                    "connection-success": vi.fn(),
+                    "connection-time-out": vi.fn(),
+                    "connection-close": vi.fn(),
+                    "connection-error": vi.fn(),
+                };
+                // Construct the manager directly and attach the spies before the
+                // initial dial so they observe the full lifecycle.
+                const logger = new CompositeLogger();
+                manager = new MCPConnectionManager({
+                    logger,
+                    deviceId: DeviceId.create(new CompositeLogger()),
+                    serverMetadata: { mcpServerName: "test-server", version: "1.0" },
+                    connectionInfo: { transport: "stdio", httpHost: "localhost" },
+                });
+                for (const [event, spy] of Object.entries(connectionManagerSpies)) {
+                    manager.events.on(
+                        event as keyof ConnectionManagerEvents,
+                        spy as (...args: ConnectionManagerEvents[keyof ConnectionManagerEvents]) => void
+                    );
+                }
                 await manager.connect({
                     connectionString: integration.connectionString(),
                 });
             });
-
-            it("should notify that it was disconnected before connecting", () => {
-                expect(connectionManagerSpies["connection-close"]).toHaveBeenCalled();
+            afterEach(async () => {
+                await manager.close().catch(() => undefined);
             });
-
-            it("should notify that it was connected again", () => {
-                expect(connectionManagerSpies["connection-success"]).toHaveBeenCalled();
-            });
-
             it("should be marked explicitly as connected", () => {
                 expect(manager.currentConnectionState.tag).toEqual("connected");
             });
-        });
-
-        describe("when fails to connect to a new cluster", () => {
-            beforeEach(async () => {
-                try {
-                    await manager.connect({
-                        connectionString: "mongodb://localhost:xxxxx",
-                    });
-                } catch (_error: unknown) {
-                    void _error;
-                }
+            it("can query mongodb successfully", async () => {
+                const connectionState = manager.currentConnectionState as ConnectionStateConnected;
+                const collections = await connectionState.serviceProvider.listCollections("admin");
+                expect(collections).not.toBe([]);
             });
-
-            it("should notify that it was disconnected before connecting", () => {
-                expect(connectionManagerSpies["connection-close"]).toHaveBeenCalled();
+            it("should notify that the connection was requested", () => {
+                expect(connectionManagerSpies["connection-request"]).toHaveBeenCalledOnce();
             });
-
-            it("should notify that it failed connecting", () => {
-                expect(connectionManagerSpies["connection-error"]).toHaveBeenCalledWith({
-                    tag: "errored",
-                    connectedAtlasCluster: undefined,
-                    connectionStringInfo: {
-                        authType: "scram",
-                        hostType: "local",
-                    },
-                    errorReason: "Unable to parse localhost:xxxxx with URL",
+            it("should notify that the connection was successful", () => {
+                expect(connectionManagerSpies["connection-success"]).toHaveBeenCalledOnce();
+            });
+            describe("when disconnects", () => {
+                beforeEach(async () => {
+                    await manager.disconnect();
+                });
+                it("should notify that it was disconnected before connecting", () => {
+                    expect(connectionManagerSpies["connection-close"]).toHaveBeenCalled();
+                });
+                it("should be marked explicitly as disconnected", () => {
+                    expect(manager.currentConnectionState.tag).toEqual("disconnected");
                 });
             });
-
-            it("should be marked explicitly as errored and expose the error reason", () => {
-                expect(manager.currentConnectionState.tag).toEqual("errored");
-                expect((manager.currentConnectionState as ConnectionStateErrored).errorReason).toContain(
-                    "Unable to parse localhost:xxxxx with URL"
-                );
-            });
-        });
-
-        describe("when fails to connect to a new atlas cluster", () => {
-            const atlas = {
-                username: "",
-                projectId: "",
-                clusterName: "My Atlas Cluster",
-                clusterId: "my-atlas-cluster-id",
-                instanceType: "FREE" as const,
-            };
-
-            beforeEach(async () => {
-                try {
+            describe("when reconnects", () => {
+                beforeEach(async () => {
                     await manager.connect({
-                        connectionString: "mongodb://localhost:xxxxx",
-                        atlas,
+                        connectionString: integration.connectionString(),
                     });
-                } catch (_error: unknown) {
-                    void _error;
-                }
-            });
-
-            it("should notify that it was disconnected before connecting", () => {
-                expect(connectionManagerSpies["connection-close"]).toHaveBeenCalled();
-            });
-
-            it("should notify that it failed connecting", () => {
-                expect(connectionManagerSpies["connection-error"]).toHaveBeenCalledWith({
-                    tag: "errored",
-                    connectedAtlasCluster: atlas,
-                    connectionStringInfo: {
-                        authType: "scram",
-                        hostType: "atlas",
-                    },
-                    errorReason: "Unable to parse localhost:xxxxx with URL",
+                });
+                it("should notify that it was disconnected before connecting", () => {
+                    expect(connectionManagerSpies["connection-close"]).toHaveBeenCalled();
+                });
+                it("should notify that it was connected again", () => {
+                    expect(connectionManagerSpies["connection-success"]).toHaveBeenCalled();
+                });
+                it("should be marked explicitly as connected", () => {
+                    expect(manager.currentConnectionState.tag).toEqual("connected");
                 });
             });
-
-            it("should be marked explicitly as errored", () => {
-                expect(manager.currentConnectionState.tag).toEqual("errored");
-            });
-        });
-
-        describe("when fails to connect to a new atlas cluster given only its coordinates", () => {
-            // A host that issues its own credentials (X.509, a pre-provisioned
-            // user, a proxy) knows the cluster but none of the temporary-user
-            // details, and must still be able to mark the connection as Atlas.
-            const atlas = {
-                projectId: "test-project-id",
-                clusterName: "My Atlas Cluster",
-                clusterId: "my-atlas-cluster-id",
-            };
-
-            beforeEach(async () => {
-                try {
-                    await manager.connect({
-                        connectionString: "mongodb://localhost:xxxxx",
-                        atlas,
+            describe("when fails to connect to a new cluster", () => {
+                beforeEach(async () => {
+                    try {
+                        await manager.connect({
+                            connectionString: "mongodb://localhost:xxxxx",
+                        });
+                    } catch (_error: unknown) {
+                        void _error;
+                    }
+                });
+                it("should notify that it was disconnected before connecting", () => {
+                    expect(connectionManagerSpies["connection-close"]).toHaveBeenCalled();
+                });
+                it("should notify that it failed connecting", () => {
+                    expect(connectionManagerSpies["connection-error"]).toHaveBeenCalledWith({
+                        tag: "errored",
+                        connectionStringInfo: {
+                            authType: "scram",
+                            hostType: "local",
+                        },
+                        errorReason: "Unable to parse localhost:xxxxx with URL",
                     });
-                } catch (_error: unknown) {
-                    void _error;
-                }
+                });
+                it("should be marked explicitly as errored and expose the error reason", () => {
+                    expect(manager.currentConnectionState.tag).toEqual("errored");
+                    expect((manager.currentConnectionState as ConnectionStateErrored).errorReason).toContain(
+                        "Unable to parse localhost:xxxxx with URL"
+                    );
+                });
             });
-
-            it("should carry the coordinates and the atlas host type on the errored state", () => {
-                expect(connectionManagerSpies["connection-error"]).toHaveBeenCalledWith({
-                    tag: "errored",
-                    connectedAtlasCluster: atlas,
-                    connectionStringInfo: {
-                        authType: "scram",
-                        hostType: "atlas",
-                    },
-                    errorReason: "Unable to parse localhost:xxxxx with URL",
+            describe("when fails to connect to a new cluster marked as atlas", () => {
+                beforeEach(async () => {
+                    try {
+                        await manager.connect({
+                            connectionString: "mongodb://localhost:xxxxx",
+                            hostType: "atlas",
+                        });
+                    } catch (_error: unknown) {
+                        void _error;
+                    }
+                });
+                it("should notify that it was disconnected before connecting", () => {
+                    expect(connectionManagerSpies["connection-close"]).toHaveBeenCalled();
+                });
+                it("should notify that it failed connecting", () => {
+                    expect(connectionManagerSpies["connection-error"]).toHaveBeenCalledWith({
+                        tag: "errored",
+                        connectionStringInfo: {
+                            authType: "scram",
+                            hostType: "atlas",
+                        },
+                        errorReason: "Unable to parse localhost:xxxxx with URL",
+                    });
+                });
+                it("should be marked explicitly as errored", () => {
+                    expect(manager.currentConnectionState.tag).toEqual("errored");
                 });
             });
         });
-    });
-
-    describe("when disconnected", () => {
-        it("should be marked explicitly as disconnected", async () => {
-            const entry = await integration.mcpServer().connectionRegistry.createEntry({
-                name: "disconnected-test",
+        describe("when disconnected", () => {
+            it("should be marked explicitly as disconnected", async () => {
+                const entry = await integration.mcpServer().connectionRegistry.createEntry({
+                    name: "disconnected-test",
+                });
+                expect(entry.state.tag).toEqual("disconnected");
             });
-            expect(entry.state.tag).toEqual("disconnected");
         });
-    });
+    },
 });
-
 const SEARCH_PROBE_ROOT_USER = { username: "root", password: "rootpw" };
 const SEARCH_PROBE_SINGLE_DB_USER = { username: "singledb", password: "singledbpw" };
 const SEARCH_PROBE_NO_USER_DB_USER = { username: "adminonly", password: "adminonlypw" };
 const SEARCH_PROBE_USER_DB = "userdata";
-
-describeWithMongoDB(
-    "Connection Manager — isSearchSupported database probe",
-    (integration) => {
+describeWithMongoDB({
+    name: "Connection Manager — isSearchSupported database probe",
+    fn: (integration) => {
         async function connectAndSpy(connectionString: string): Promise<{
             getSearchIndexesSpy: MockInstance;
             listDatabasesSpy: MockInstance;
@@ -254,19 +184,16 @@ describeWithMongoDB(
             const entry = await session.connectionRegistry.connect({
                 settings: { connectionString },
             });
-
             const state = entry.state;
             if (state.tag !== "connected") {
                 throw new Error(`Expected state 'connected', got '${state.tag}'`);
             }
-
             return {
                 getSearchIndexesSpy: vi.spyOn(state.serviceProvider, "getSearchIndexes"),
                 listDatabasesSpy: vi.spyOn(state.serviceProvider, "listDatabases"),
                 connectionState: state,
             };
         }
-
         beforeEach(async () => {
             await integration
                 .mongoClient()
@@ -274,7 +201,6 @@ describeWithMongoDB(
                 .collection("fixture")
                 .insertOne({ ensureDbExists: true });
         });
-
         afterEach(async () => {
             // Connections established via the registry are revoked by the shared
             // integration-test afterEach; only the fixture database needs cleanup.
@@ -284,7 +210,6 @@ describeWithMongoDB(
                 // best-effort cleanup
             }
         });
-
         describe("when the connected user has access to a single non-system database", () => {
             it("probes search support against that accessible database", async () => {
                 const restrictedConnectionString = integration.connectionStringForUser({
@@ -293,18 +218,14 @@ describeWithMongoDB(
                     authSource: "admin",
                     defaultDatabase: SEARCH_PROBE_USER_DB,
                 });
-
                 const { getSearchIndexesSpy, connectionState } = await connectAndSpy(restrictedConnectionString);
-
                 const result = await connectionState.isSearchSupported(integration.mcpServer().logger);
                 expect(result).toBe(false);
-
                 expect(getSearchIndexesSpy).toHaveBeenCalledTimes(1);
                 expect(getSearchIndexesSpy.mock.calls[0]?.[0]).toBe(SEARCH_PROBE_USER_DB);
                 expect(getSearchIndexesSpy.mock.calls[0]?.[0]).not.toBe("#mongodb-mcp");
             });
         });
-
         describe("when the connected user has no accessible non-system databases", () => {
             it("still probes the hardcoded #mongodb-mcp database after the initial DB", async () => {
                 const restrictedConnectionString = integration.connectionStringForUser({
@@ -312,13 +233,10 @@ describeWithMongoDB(
                     password: SEARCH_PROBE_NO_USER_DB_USER.password,
                     authSource: "admin",
                 });
-
                 const { getSearchIndexesSpy, listDatabasesSpy, connectionState } =
                     await connectAndSpy(restrictedConnectionString);
-
                 const result = await connectionState.isSearchSupported(integration.mcpServer().logger);
                 expect(result).toBe(true);
-
                 expect(listDatabasesSpy).toHaveBeenCalledTimes(1);
                 const probedDatabases = getSearchIndexesSpy.mock.calls.map((call) => call[0] as string);
                 expect(probedDatabases).toHaveLength(2);
@@ -326,7 +244,6 @@ describeWithMongoDB(
                 expect(probedDatabases[1]).toBe("#mongodb-mcp");
             });
         });
-
         describe("when the connection default database is system database", () => {
             it("does not probe it and falls back to #mongodb-mcp", async () => {
                 const connectionString = integration.connectionStringForUser({
@@ -335,28 +252,21 @@ describeWithMongoDB(
                     authSource: "admin",
                     defaultDatabase: "admin",
                 });
-
                 const { getSearchIndexesSpy, listDatabasesSpy, connectionState } =
                     await connectAndSpy(connectionString);
-
                 expect(connectionState.serviceProvider.mongoClient.options.dbName).toBe("admin");
-
                 listDatabasesSpy.mockResolvedValue({
                     databases: [{ name: "admin" }, { name: "config" }, { name: "local" }],
                 });
-
                 const result = await connectionState.isSearchSupported(integration.mcpServer().logger);
-
                 // False because when probing #mongodb-mcp, it will fail with SearchNotEnabled
                 // because the instance we're connected to is not search-capable.
                 expect(result).toBe(false);
-
                 const probedDatabases = getSearchIndexesSpy.mock.calls.map((call) => call[0] as string);
                 expect(probedDatabases).not.toContain("admin");
                 expect(probedDatabases).toEqual(["#mongodb-mcp"]);
             });
         });
-
         describe("when listDatabases returns many non-system databases", () => {
             it("only probes the first 10 non-system names from the listing (plus initial DB and fallback)", async () => {
                 const rootConnectionString = integration.connectionStringForUser({
@@ -365,20 +275,15 @@ describeWithMongoDB(
                     authSource: "admin",
                     defaultDatabase: "probeanchor",
                 });
-
                 const { getSearchIndexesSpy, listDatabasesSpy, connectionState } =
                     await connectAndSpy(rootConnectionString);
-
                 expect(connectionState.serviceProvider.initialDb).toBe("probeanchor");
-
                 const dbs = Array.from({ length: 15 }, (_, i) => ({
                     name: `extradb${i}`,
                 }));
-
                 listDatabasesSpy.mockResolvedValue({
                     databases: [{ name: "admin" }, { name: "local" }, { name: "config" }, ...dbs],
                 });
-
                 getSearchIndexesSpy.mockRejectedValue(
                     new MongoServerError({
                         message: "not authorized",
@@ -386,10 +291,8 @@ describeWithMongoDB(
                         codeName: "Unauthorized",
                     })
                 );
-
                 const result = await connectionState.isSearchSupported(integration.mcpServer().logger);
                 expect(result).toBe(true);
-
                 const probed = getSearchIndexesSpy.mock.calls.map((call) => call[0] as string);
                 expect(probed[0]).toBe("probeanchor");
                 for (let i = 0; i < 10; i++) {
@@ -402,7 +305,6 @@ describeWithMongoDB(
                 expect(probed).toHaveLength(12);
             });
         });
-
         describe("when listDatabases itself fails", () => {
             it("still probes using the service provider initial database first", async () => {
                 const rootConnectionString = integration.connectionStringForUser({
@@ -410,23 +312,18 @@ describeWithMongoDB(
                     password: SEARCH_PROBE_ROOT_USER.password,
                     authSource: "admin",
                 });
-
                 const { getSearchIndexesSpy, listDatabasesSpy, connectionState } =
                     await connectAndSpy(rootConnectionString);
-
                 listDatabasesSpy.mockRejectedValueOnce(new Error("simulated failure"));
-
                 const result = await connectionState.isSearchSupported(integration.mcpServer().logger);
                 // False because when probing #mongodb-mcp, it will fail with SearchNotEnabled
                 // because the instance we're connected to is not search-capable.
                 expect(result).toBe(false);
-
                 expect(listDatabasesSpy).toHaveBeenCalledTimes(1);
                 expect(getSearchIndexesSpy).toHaveBeenCalledTimes(1);
                 expect(getSearchIndexesSpy.mock.calls[0]?.[0]).toBe(connectionState.serviceProvider.initialDb);
             });
         });
-
         describe("caching behaviour", () => {
             it("only probes the server once across multiple isSearchSupported() calls", async () => {
                 const rootConnectionString = integration.connectionStringForUser({
@@ -434,15 +331,12 @@ describeWithMongoDB(
                     password: SEARCH_PROBE_ROOT_USER.password,
                     authSource: "admin",
                 });
-
                 const { getSearchIndexesSpy, listDatabasesSpy, connectionState } =
                     await connectAndSpy(rootConnectionString);
-
                 const logger = integration.mcpServer().logger;
                 const first = await connectionState.isSearchSupported(logger);
                 const second = await connectionState.isSearchSupported(logger);
                 const third = await connectionState.isSearchSupported(logger);
-
                 expect(first).toBe(false);
                 expect(first).toBe(second);
                 expect(second).toBe(third);
@@ -451,7 +345,7 @@ describeWithMongoDB(
             });
         });
     },
-    {
+    config: {
         downloadOptions: {
             runner: true,
             downloadOptions: { enterprise: false },
@@ -474,36 +368,31 @@ describeWithMongoDB(
                 },
             ],
         },
-    }
-);
-
-describeWithMongoDB(
-    "Connection Manager — isSearchSupported on search-capable cluster",
-    (integration) => {
+    },
+});
+describeWithMongoDB({
+    name: "Connection Manager — isSearchSupported on search-capable cluster",
+    fn: (integration) => {
         beforeEach(async () => {
-            await waitUntilSearchIsReady(integration.mongoClient());
+            await waitUntilSearchIsReady({ mongoClient: integration.mongoClient() });
         });
-
         it("returns true when Atlas Local Search is enabled", async () => {
             const session = integration.mcpServer();
             const entry = await session.connectionRegistry.connect({
                 settings: { connectionString: integration.connectionString() },
             });
-
             const state = entry.state;
             if (state.tag !== "connected") {
                 throw new Error(`Expected state 'connected', got '${state.tag}'`);
             }
-
             const result = await state.isSearchSupported(integration.mcpServer().logger);
             expect(result).toBe(true);
         });
     },
-    {
+    config: {
         downloadOptions: { search: true },
-    }
-);
-
+    },
+});
 describe("Connection Manager connection type inference", () => {
     const testCases = [
         { userConfig: {}, connectionString: "mongodb://localhost:27017", connectionType: "scram" },
@@ -548,11 +437,9 @@ describe("Connection Manager connection type inference", () => {
         connectionString: string;
         connectionType: ConnectionStringAuthType;
     }[];
-
     for (const { userConfig, connectionString, connectionType } of testCases) {
         it(`infers ${connectionType} from ${connectionString}`, () => {
             const actualConnectionType = getAuthType(userConfig as UserConfig, connectionString);
-
             expect(actualConnectionType).toBe(connectionType);
         });
     }

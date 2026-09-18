@@ -49,7 +49,15 @@ export function usesIndex(explainResult: Document): boolean {
 /**
  * Generate an error message for index check failure
  */
-export function getIndexCheckErrorMessage(database: string, collection: string, operation: string): string {
+export function getIndexCheckErrorMessage({
+    database,
+    collection,
+    operation,
+}: {
+    database: string;
+    collection: string;
+    operation: string;
+}): string {
     return `Index check failed: The ${operation} operation on "${database}.${collection}" performs a collection scan (COLLSCAN) instead of using an index. Consider adding an index for better performance. Use 'explain' tool for query plan analysis or 'collection-indexes' to view existing indexes. To disable this check, set MDB_MCP_INDEX_CHECK to false.`;
 }
 
@@ -75,7 +83,7 @@ export async function checkIndexUsage({
         if (!usesIndex(explainResult)) {
             throw new MongoDBError(
                 ErrorCodes.ForbiddenCollscan,
-                getIndexCheckErrorMessage(database, collection, operation)
+                getIndexCheckErrorMessage({ database, collection, operation })
             );
         }
     } catch (error) {

@@ -76,7 +76,7 @@ export class ClaudeTuiHarness implements AgentHarness {
 
         // Pre-seed onboarding/trust state + MCP config (whitelists MCP tools, so no permission flags needed).
         const mcpServerName = options.mcpServerName ?? "mongo";
-        seedClaudeHome(claudeHome, options.workDir, mcpServerName);
+        seedClaudeHome({ homeDir: claudeHome, workDir: options.workDir, mcpServerName });
         const mcpConfig = config.buildConfig(options);
         const mcpConfigPath = path.join(claudeHome, config.configFileName);
         await fs.writeFile(mcpConfigPath, mcpConfig);
@@ -113,7 +113,7 @@ export class ClaudeTuiHarness implements AgentHarness {
             }
         );
 
-        const session = new ClaudeTuiSession(terminal, options, claudeHome, this.onState);
+        const session = new ClaudeTuiSession({ terminal, options, claudeHome, onState: this.onState });
         await session.initialise();
         return session;
     }

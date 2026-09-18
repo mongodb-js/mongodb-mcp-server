@@ -1,6 +1,7 @@
 import { EventEmitter } from "events";
-import { MongoServerError } from "mongodb";
+import { MongoServerError, type MongoClient } from "mongodb";
 import { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
+import { ConnectionString } from "mongodb-connection-string-url";
 import {
     generateConnectionInfoFromCliArgs,
     type CliOptions,
@@ -13,12 +14,12 @@ import { type AppNameComponents, setAppNameParamIfMissing } from "../helpers/con
 import {
     getConnectionStringInfo,
     type ConnectionStringInfo,
-    type AtlasClusterConnectionInfo,
+    type ConnectionStringHostType,
     type ConnectionInfo,
 } from "./connectionInfo.js";
 import type { ServerMetadata } from "@mongodb-js/mcp-types";
 
-export type { ConnectionStringInfo, AtlasClusterConnectionInfo } from "./connectionInfo.js";
+export type { ConnectionStringInfo } from "./connectionInfo.js";
 
 export interface ConnectionSettings extends Omit<MongoshConnectionInfo, "driverOptions"> {
     /**
@@ -28,7 +29,21 @@ export interface ConnectionSettings extends Omit<MongoshConnectionInfo, "driverO
      * mirroring the preconfigured-connection path.
      */
     driverOptions?: MongoshConnectionInfo["driverOptions"];
-    atlas?: AtlasClusterConnectionInfo;
+    /**
+     * Overrides the host type inferred from the connection string. An entry
+     * bound to an Atlas cluster passes `"atlas"` so a connection through a
+     * private or mesh address is still classified as Atlas.
+     */
+    hostType?: ConnectionStringHostType;
+    /**
+     * A pre-connected {@link MongoClient} to wrap instead of building one via
+     * devtools-connect. When set, the manager skips the devtools-connect path
+     * (which builds a per-connection proxy Agent and merges the system CA
+     * bundle) and wraps the provided client directly. Callers that dial a
+     * plain connection requiring no proxy/OIDC (e.g. a manual X.509 data-plane
+     * connect) use this to avoid that per-connection overhead.
+     */
+    mongoClient?: MongoClient;
 }
 
 export type ConnectionTag = "connected" | "connecting" | "disconnected" | "errored";
@@ -37,7 +52,6 @@ export type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
 export interface ConnectionState {
     tag: ConnectionTag;
     connectionStringInfo?: ConnectionStringInfo;
-    connectedAtlasCluster?: AtlasClusterConnectionInfo;
 }
 
 const SEARCH_PROBE_COLLECTION_NAME = "test";
@@ -64,20 +78,16 @@ export class ConnectionStateConnected implements ConnectionState {
 
     public serviceProvider: NodeDriverServiceProvider;
     public connectionStringInfo?: ConnectionStringInfo;
-    public connectedAtlasCluster?: AtlasClusterConnectionInfo;
 
     constructor({
         serviceProvider,
         connectionStringInfo,
-        connectedAtlasCluster,
     }: {
         serviceProvider: NodeDriverServiceProvider;
         connectionStringInfo?: ConnectionStringInfo;
-        connectedAtlasCluster?: AtlasClusterConnectionInfo;
     }) {
         this.serviceProvider = serviceProvider;
         this.connectionStringInfo = connectionStringInfo;
-        this.connectedAtlasCluster = connectedAtlasCluster;
     }
 
     private _isSearchSupported?: boolean;
@@ -434,29 +444,38 @@ export class MCPConnectionManager extends ConnectionManager {
             mongoshConnectionInfo.driverOptions.proxy ??= { useEnvironmentVariableProxies: true };
             mongoshConnectionInfo.driverOptions.applyProxyToOIDC ??= true;
 
-            connectionStringInfo = getConnectionStringInfo(
-                mongoshConnectionInfo.connectionString,
-                this.connectionInfo,
-                settings.atlas
-            );
+            connectionStringInfo = getConnectionStringInfo({
+                connectionString: mongoshConnectionInfo.connectionString,
+                connectionInfo: this.connectionInfo,
+                hostType: settings.hostType,
+            });
 
-            serviceProvider = NodeDriverServiceProvider.connect(
-                mongoshConnectionInfo.connectionString,
-                {
-                    productDocsLink: "https://github.com/mongodb-js/mongodb-mcp-server/",
-                    productName: "MongoDB MCP",
-                    ...mongoshConnectionInfo.driverOptions,
-                },
-                undefined,
-                this.bus
-            );
+            const clientOptions = {
+                productDocsLink: "https://github.com/mongodb-js/mongodb-mcp-server/",
+                productName: "MongoDB MCP",
+                ...mongoshConnectionInfo.driverOptions,
+            };
+            serviceProvider = settings.mongoClient
+                ? Promise.resolve(
+                      new NodeDriverServiceProvider(
+                          settings.mongoClient,
+                          this.bus,
+                          clientOptions,
+                          new ConnectionString(mongoshConnectionInfo.connectionString)
+                      )
+                  )
+                : NodeDriverServiceProvider.connect(
+                      mongoshConnectionInfo.connectionString,
+                      clientOptions,
+                      undefined,
+                      this.bus
+                  );
         } catch (error: unknown) {
             const errorReason = error instanceof Error ? error.message : `${error as string}`;
             this.changeState("connection-error", {
                 tag: "errored",
                 errorReason,
                 connectionStringInfo,
-                connectedAtlasCluster: settings.atlas,
             });
             throw new MongoDBError(ErrorCodes.MisconfiguredConnectionString, errorReason);
         }
@@ -466,7 +485,6 @@ export class MCPConnectionManager extends ConnectionManager {
                 return this.changeState("connection-request", {
                     tag: "connecting",
                     serviceProvider,
-                    connectedAtlasCluster: settings.atlas,
                     connectionStringInfo,
                     oidcConnectionType: connectionStringInfo.authType as OIDCConnectionAuthType,
                 });
@@ -477,7 +495,6 @@ export class MCPConnectionManager extends ConnectionManager {
                 new ConnectionStateConnected({
                     serviceProvider: await serviceProvider,
                     connectionStringInfo,
-                    connectedAtlasCluster: settings.atlas,
                 })
             );
         } catch (error: unknown) {
@@ -486,7 +503,6 @@ export class MCPConnectionManager extends ConnectionManager {
                 tag: "errored",
                 errorReason,
                 connectionStringInfo,
-                connectedAtlasCluster: settings.atlas,
             });
             throw new MongoDBError(ErrorCodes.NotConnectedToMongoDB, errorReason);
         }
@@ -561,7 +577,6 @@ export class MCPConnectionManager extends ConnectionManager {
                 new ConnectionStateConnected({
                     serviceProvider: await this.currentConnectionState.serviceProvider,
                     connectionStringInfo: this.currentConnectionState.connectionStringInfo,
-                    connectedAtlasCluster: this.currentConnectionState.connectedAtlasCluster,
                 })
             );
         }

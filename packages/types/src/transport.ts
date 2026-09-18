@@ -13,18 +13,31 @@ export type RequestAuthInfo = {
     scopes: string[];
     /** When the token expires (in seconds since epoch). */
     expiresAt?: number;
+    /**
+     * Additional verified claims about the token, mirroring the SDK's
+     * `AuthInfo.extra`. Per-user scoping reads the OIDC `sub` claim here:
+     * `clientId` identifies the OAuth client application, not the end user, so
+     * deployments where several users authenticate through one shared client
+     * need a per-user principal claim (carried here) for per-user isolation.
+     */
+    extra?: Record<string, unknown>;
 };
 
 /**
- * The explicit authentication state of a request. Every HTTP request carries
- * one or the other — there is no "unknown" — so per-request servers always
- * know whether they are serving an authenticated client, and scope shared
- * state (e.g. connections) by the verified `clientId` when authenticated.
- * Identity is injected by the host (e.g. `req.auth` via the node adapter's
- * pass-through, or directly on the request context); the server never
- * authenticates on its own.
+ * Decides which connection scope a request gets — i.e. which connections it
+ * can see and where connections it creates are stored. Returns the scope key,
+ * or `undefined` for an ephemeral scope (no cross-request state, isolated
+ * from every other request).
+ *
+ * This is the knob that controls connection isolation: it must be keyed on
+ * whatever actually distinguishes the calling principals (per-user principal,
+ * OAuth client id, token, tenant, …) for correct, per-caller isolation with
+ * no shared state. Keyed on `clientId` alone, for example, it groups every
+ * user of one client registration together — fine for service accounts,
+ * wrong for a multi-user OIDC deployment. Returning `undefined` declines
+ * cross-request state for a request entirely.
  */
-export type RequestAuthState = { mode: "unauthenticated" } | { mode: "authenticated"; state: RequestAuthInfo };
+export type ConnectionScopePolicy = (request: TransportRequestContext) => string | undefined;
 
 export type McpProtocol = "legacy" | "2026-07-28";
 
@@ -32,11 +45,13 @@ export type TransportRequestContext = {
     headers?: Record<string, string | string[] | undefined>;
     query?: Record<string, string | string[] | undefined>;
     /**
-     * The explicit auth state of this request. When authenticated, shared state
-     * (connections) is scoped by `state.clientId`; unauthenticated requests are
-     * isolated from authenticated clients.
+     * The verified identity of this request, if the host injected one (via
+     * `req.auth`, which the node adapter forwards, or directly). Absent means
+     * the host did not verify an identity for this request. Connection
+     * scoping and per-request authorization decisions key on this rather than
+     * self-asserted headers.
      */
-    authInfo?: RequestAuthState;
+    authInfo?: RequestAuthInfo;
     protocol?: McpProtocol;
 };
 

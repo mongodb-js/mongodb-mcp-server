@@ -145,7 +145,7 @@ async function deleteAllClustersOnStaleProject(client: ApiClient, projectId: str
 async function main(): Promise<void> {
     const baseUrl = process.env.MDB_MCP_API_BASE_URL || "https://cloud-dev.mongodb.com";
     const testServerMetadata = { mcpServerName: "mongodb-mcp-test-cleanup", version: "1" };
-    const logger = new ConsoleLogger({ keychain: Keychain.root });
+    const logger = new ConsoleLogger({ keychain: new Keychain() });
     const clientId = process.env.MDB_MCP_API_CLIENT_ID || "";
     const clientSecret = process.env.MDB_MCP_API_CLIENT_SECRET || "";
     const httpClient = {

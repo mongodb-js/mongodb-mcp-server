@@ -48,6 +48,7 @@ export interface AccuracyTestConfig {
      * is typically needed if we want to do extra validations for the tool calls beyond
      * what the baseline scorer will do.
      */
+    // eslint-disable-next-line max-params
     customScorer?: (
         baselineScore: number,
         actualToolCalls: LLMToolCall[],

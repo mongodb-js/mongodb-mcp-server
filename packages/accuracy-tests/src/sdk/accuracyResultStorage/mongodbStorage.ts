@@ -18,7 +18,15 @@ export class MongoDBBasedResultStorage implements AccuracyResultStorage {
     private client: MongoClient;
     private resultCollection: Collection<AccuracyResult>;
 
-    constructor(connectionString: string, database: string, collection: string) {
+    constructor({
+        connectionString,
+        database,
+        collection,
+    }: {
+        connectionString: string;
+        database: string;
+        collection: string;
+    }) {
         this.client = new MongoClient(connectionString);
         this.resultCollection = this.client.db(database).collection<AccuracyResult>(collection);
     }
@@ -39,6 +47,7 @@ export class MongoDBBasedResultStorage implements AccuracyResultStorage {
         });
     }
 
+    // eslint-disable-next-line max-params
     async updateRunStatus(commitSHA: string, runId: string, status: AccuracyRunStatuses): Promise<void> {
         await this.resultCollection.updateOne(
             { commitSHA, runId },

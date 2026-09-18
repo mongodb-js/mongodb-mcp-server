@@ -15,7 +15,7 @@ export {
     closeSharedServices,
     type SharedServerServices,
     type CreateServerServicesOptions,
-    CLIENT_SCOPE_HEADER,
+    connectionScopeFromConfig,
     CliMcpHttpServer,
     CliStdioRunner,
     createHttpTransportRunnerFromConfig,
@@ -37,6 +37,7 @@ export type { CliHandler, CliHandlerContext } from "./cliHandler.js";
 // Config parsing and types
 export { parseUserConfig, type ParserOptions, defaultParserOptions } from "./config/parseUserConfig.js";
 export { UserConfigSchema, configRegistry, ALL_CONFIG_KEYS, type UserConfig } from "./config/userConfig.js";
+export { createKeychainFromConfig } from "./config/createKeychainFromConfig.js";
 
 // Config utilities
 export {

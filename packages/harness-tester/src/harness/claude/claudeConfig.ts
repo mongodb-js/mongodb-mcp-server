@@ -70,7 +70,15 @@ export class ClaudeHarnessConfig implements AgentHarnessConfig {
  *
  * @param mcpServerName MCP server name; the allow list is scoped to its tools (`mcp__<name>__*`).
  */
-export function seedClaudeHome(homeDir: string, workDir: string, mcpServerName = "mongo"): void {
+export function seedClaudeHome({
+    homeDir,
+    workDir,
+    mcpServerName = "mongo",
+}: {
+    homeDir: string;
+    workDir: string;
+    mcpServerName?: string;
+}): void {
     const canonical = canonicalPath(workDir);
     const claudeJson = {
         hasCompletedOnboarding: true,

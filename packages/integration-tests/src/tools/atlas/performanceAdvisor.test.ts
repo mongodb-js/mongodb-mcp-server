@@ -30,7 +30,7 @@ describeWithAtlas("performanceAdvisor", (integration) => {
             const projectId = getProjectId();
             if (projectId) {
                 const session = integration.mcpServer();
-                await deleteCluster(session, projectId, clusterName);
+                await deleteCluster({ session, projectId, clusterName });
             }
         }, DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS);
 
@@ -73,16 +73,16 @@ describeWithAtlas("performanceAdvisor", (integration) => {
                     },
                 });
 
-                await waitCluster(
+                await waitCluster({
                     session,
                     projectId,
                     clusterName,
-                    (cluster) => {
+                    check: (cluster) => {
                         return cluster.stateName === "IDLE";
                     },
-                    10000,
-                    120
-                );
+                    pollingInterval: 10000,
+                    maxPollingIterations: 120,
+                });
             }, DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS);
 
             afterEach(() => {

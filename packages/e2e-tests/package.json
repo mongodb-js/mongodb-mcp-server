@@ -1,6 +1,6 @@
 {
   "name": "@mongodb-js/mcp-e2e-tests",
-  "version": "3.0.0-prerelease.4",
+  "version": "3.0.2",
   "private": true,
   "type": "module",
   "description": "End-to-end tests driving the MongoDB MCP server through a real LLM coding agent",
@@ -11,7 +11,6 @@
     "@modelcontextprotocol/client": "^2.0.0",
     "@mongodb-js/mcp-cli": "workspace:*",
     "@mongodb-js/harness-tester": "workspace:*",
-    "@mongodb-js/mcp-core": "workspace:*",
     "@mongodb-js/mcp-test-utils": "workspace:*",
     "@types/node": "^25.6.0",
     "mongodb": "^7.1.1",

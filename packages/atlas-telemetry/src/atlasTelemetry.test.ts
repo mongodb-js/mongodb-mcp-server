@@ -170,10 +170,10 @@ describe("AtlasTelemetry", () => {
     }
 
     function createRateLimitedError(): ApiClientError {
-        return ApiClientError.fromError(
-            { status: 429, statusText: "Too Many Requests" } as Response,
-            "Too Many Requests"
-        );
+        return ApiClientError.fromError({
+            response: { status: 429, statusText: "Too Many Requests" } as Response,
+            error: "Too Many Requests",
+        });
     }
 
     beforeEach(() => {
@@ -628,12 +628,14 @@ describe("AtlasTelemetry", () => {
     describe("when secrets are registered", () => {
         describe("comprehensive redaction coverage", () => {
             it("should redact sensitive data from CommonStaticProperties", async () => {
-                keychain.register("secret-server-version", "password");
-                keychain.register("secret-server-name", "password");
-                keychain.register("secret-password", "password");
-                keychain.register("secret-key", "password");
-                keychain.register("secret-token", "password");
-                keychain.register("secret-password-version", "password");
+                keychain = new Keychain({
+                    "secret-server-version": "password",
+                    "secret-server-name": "password",
+                    "secret-password": "password",
+                    "secret-key": "password",
+                    "secret-token": "password",
+                    "secret-password-version": "password",
+                });
 
                 const sensitiveStaticProps = {
                     mcp_server_version: "secret-server-version",
@@ -666,8 +668,10 @@ describe("AtlasTelemetry", () => {
             });
 
             it("should redact sensitive data from CommonProperties", async () => {
-                keychain.register("test-device-id", "password");
+                keychain = new Keychain({ "test-device-id": "password" });
 
+                vi.clearAllTimers();
+                telemetry = createAtlasTelemetry({});
                 await telemetry.setupPromise;
                 await emitEventsForTest([createTestEvent()]);
 
@@ -681,9 +685,13 @@ describe("AtlasTelemetry", () => {
             });
 
             it("should redact sensitive data that is added to events", async () => {
-                keychain.register("test-device-id", "password");
-                keychain.register("test-component", "password");
+                keychain = new Keychain({
+                    "test-device-id": "password",
+                    "test-component": "password",
+                });
 
+                vi.clearAllTimers();
+                telemetry = createAtlasTelemetry({});
                 await telemetry.setupPromise;
                 await emitEventsForTest([createTestEvent()]);
 

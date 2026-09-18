@@ -10,7 +10,7 @@ export {
     createServerFromConfig,
     createSharedServicesFromConfig,
     closeSharedServices,
-    CLIENT_SCOPE_HEADER,
+    connectionScopeFromConfig,
 } from "./createServerServices.js";
 export type { SharedServerServices, CreateServerServicesOptions } from "./createServerServices.js";
 export { CliMcpHttpServer, createHttpTransportRunnerFromConfig } from "./cliMcpHttpServer.js";

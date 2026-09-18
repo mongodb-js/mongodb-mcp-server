@@ -22,9 +22,8 @@ describe("config resource", () => {
     const logger = new CompositeLogger();
     const deviceId = DeviceId.create(logger);
 
-    function createResource(config: UserConfig): ConfigResource {
-        const connectionRegistry = new MCPConnectionStore({ options: config, logger, deviceId }).view();
-        const keychain = new Keychain();
+    function createResource(config: UserConfig, keychain = new Keychain()): ConfigResource {
+        const connectionRegistry = new MCPConnectionStore({ options: config, logger, deviceId, keychain }).view();
         const apiClient = new ApiClient({
             options: {
                 baseUrl: config.apiBaseUrl,
@@ -92,9 +91,8 @@ describe("config resource", () => {
             connectionString: "mongodb://localhost:27017",
         } as unknown as UserConfig;
 
-        const resource = createResource(config);
-        // Register a secret that would otherwise appear in the output (logPath).
-        (resource as unknown as { server: { keychain: Keychain } }).server.keychain.register(config.logPath, "url");
+        // Seed a keychain with a secret that would otherwise appear in the output (logPath).
+        const resource = createResource(config, new Keychain({ [config.logPath]: "url" }));
 
         const output = resource.toOutput();
         expect(output).not.toContain(config.logPath);
