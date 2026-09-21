@@ -40,6 +40,21 @@ Tests **skip** when a harness binary or credentials are missing (not part of the
 - Claude (`ClaudeHarnessConfig`) seeds a hermetic `CLAUDE_CONFIG_DIR` that suppresses onboarding/trust dialogs and whitelists MCP tools (no bash/file/web), and registers the server via `--mcp-config --strict-mcp-config`; auth is `ANTHROPIC_AUTH_TOKEN` against grove's Anthropic endpoint.
 - `prompt()` types into the composer, waits for the idle marker (`Ask Codex to do anything` / `❯`), then captures the raw terminal content (scrollback delta + live viewport) and parses tool calls. Tests keyword-match the raw content — exact reply extraction is unreliable across TUIs.
 
+### Pointing at a remote server
+
+`useMcpAgent` defaults `serverUrl` to the local in-process server. Override it to drive a remote MCP server, optionally with headers or pre-seeded OAuth credentials:
+
+```ts
+const options = ctx.buildOptions({
+  serverUrl: "https://mcp.mongodb.com",
+  headers: { "x-extra": "..." },
+  oauth: { accessToken: "...", refreshToken: "..." },
+});
+const session = await ctx.harness.start(options);
+```
+
+See the `@mongodb-js/harness-tester` README for where each harness persists `oauth` credentials.
+
 ## CI
 
 `.github/workflows/e2e-tests.yml` runs on `main` pushes, `workflow_dispatch`, and PRs labeled `e2e-tests` (the release PR from `prepare-release.yml` carries the label automatically). Requires the `GROVE_API_KEY` secret; tui-test bundles headless emulators for all platforms, so no extra system dependencies.

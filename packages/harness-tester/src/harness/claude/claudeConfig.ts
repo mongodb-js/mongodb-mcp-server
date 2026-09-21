@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { canonicalPath } from "../shared.js";
+import { canonicalPath, oauthCredentialStoreKey } from "../shared.js";
 import type { AgentHarnessConfig, AgentHarnessOptions } from "../types.js";
 
 /** Default model: grove serves the undated id; `haiku` resolves to a dated id it lacks. */
@@ -59,9 +59,65 @@ export class ClaudeHarnessConfig implements AgentHarnessConfig {
                   args: options.stdioServer.args,
                   env: options.stdioServer.env,
               }
-            : { type: "http", url: options.serverUrl ?? "" };
+            : {
+                  type: "http",
+                  url: options.serverUrl ?? "",
+                  ...(options.headers && Object.keys(options.headers).length > 0 ? { headers: options.headers } : {}),
+              };
         return JSON.stringify({ mcpServers: { [mcpServerName]: server } }, null, 2);
     }
+}
+
+/** Read and parse a JSON file, or `undefined` when missing/unreadable. */
+function readJsonFile(filePath: string): Record<string, unknown> | undefined {
+    try {
+        return JSON.parse(fs.readFileSync(filePath, "utf8")) as Record<string, unknown>;
+    } catch {
+        return undefined;
+    }
+}
+
+/**
+ * Pre-seed `mcpOAuth` tokens in the session's `.credentials.json`, keyed by
+ * {@link oauthCredentialStoreKey}, so claude connects to a remote server without
+ * an interactive browser login. No-op unless `options.oauth` is set.
+ *
+ * Caveat: on macOS claude normally reads the `Claude Code-credentials` OS
+ * keychain, which this file does not override; the file store is the fallback
+ * (and what CI/Linux use).
+ */
+export function seedClaudeOAuthCredentials({
+    homeDir,
+    options,
+}: {
+    homeDir: string;
+    options: AgentHarnessOptions;
+}): void {
+    if (!options.oauth || !options.serverUrl) {
+        return;
+    }
+    const { oauth } = options;
+    const serverName = options.mcpServerName ?? "mongo";
+    const credentialsPath = path.join(homeDir, ".credentials.json");
+    const existing = readJsonFile(credentialsPath) ?? {};
+    const mcpOAuth = { ...((existing.mcpOAuth as Record<string, unknown> | undefined) ?? {}) };
+    const key = oauthCredentialStoreKey({
+        serverName,
+        serverUrl: options.serverUrl,
+        headers: options.headers,
+    });
+    mcpOAuth[key] = {
+        serverName,
+        serverUrl: options.serverUrl,
+        accessToken: oauth.accessToken,
+        ...(oauth.refreshToken !== undefined ? { refreshToken: oauth.refreshToken } : {}),
+        ...(oauth.expiresAt !== undefined ? { expiresAt: oauth.expiresAt } : {}),
+        ...(oauth.clientId !== undefined ? { clientId: oauth.clientId } : {}),
+        ...(oauth.clientSecret !== undefined ? { clientSecret: oauth.clientSecret } : {}),
+        ...(oauth.issuer !== undefined ? { issuer: oauth.issuer } : {}),
+        discoveryState: { authorizationServerUrl: oauth.issuer ?? options.serverUrl },
+    };
+    fs.writeFileSync(credentialsPath, JSON.stringify({ ...existing, mcpOAuth }, null, 2), { mode: 0o600 });
 }
 
 /**
