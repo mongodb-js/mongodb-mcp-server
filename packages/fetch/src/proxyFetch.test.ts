@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createFetch } from "@mongodb-js/devtools-proxy-support";
+import { Request as NodeFetchRequest } from "node-fetch";
 
 vi.mock("@mongodb-js/devtools-proxy-support", () => ({
     createFetch: vi.fn(),
@@ -31,7 +32,7 @@ describe("getSharedProxyFetch", () => {
         expect(createFetch).toHaveBeenCalledWith({ useEnvironmentVariableProxies: true });
     });
 
-    it("getDefaultHttpClient pairs the shared fetch with the platform Request", async () => {
+    it("getDefaultHttpClient pairs the shared fetch with node-fetch's Request in Node", async () => {
         const { getDefaultHttpClient: freshGetDefaultHttpClient, getSharedProxyFetch: freshGetSharedProxyFetch } =
             await import("./proxyFetch.js");
 
@@ -43,7 +44,9 @@ describe("getSharedProxyFetch", () => {
 
         expect(client1.fetch).toBe(client2.fetch);
         expect(client1.fetch).toBe(freshGetSharedProxyFetch());
-        expect(client1.Request).toBe(globalThis.Request);
+        // The proxy fetch is node-fetch-backed, so the paired Request must be
+        // node-fetch's: a platform Request would be coerced to a string URL.
+        expect(client1.Request).toBe(NodeFetchRequest);
         expect(createFetch).toHaveBeenCalledTimes(1);
     });
 });

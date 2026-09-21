@@ -1,4 +1,5 @@
 import { createFetch } from "@mongodb-js/devtools-proxy-support";
+import { Request as NodeFetchRequest } from "node-fetch";
 
 let sharedProxyFetch: typeof fetch | undefined;
 
@@ -26,16 +27,24 @@ export function getSharedProxyFetch(): typeof fetch {
     return sharedProxyFetch;
 }
 
-/** A matched `fetch`/`Request` pair (must come from the same implementation). */
+/**
+ * A matched `fetch`/`Request` pair. Both must come from the same implementation:
+ * a `Request` built by one implementation is not recognized as a `Request` by
+ * another and gets coerced to a string, producing a bogus URL.
+ */
 export type HttpClient = {
     fetch: typeof fetch;
     Request: typeof globalThis.Request;
 };
 
-/** Default `httpClient`: the shared proxy-aware `fetch` + platform `Request`. */
+/**
+ * The `HttpClient` used when an embedder doesn't provide one: the shared
+ * proxy-aware `fetch` paired with the `Request` implementation it understands.
+ */
 export function getDefaultHttpClient(): HttpClient {
     return {
         fetch: getSharedProxyFetch(),
-        Request: globalThis.Request,
+        // The proxy fetch delegates to node-fetch, so pair it with node-fetch's Request here.
+        Request: (isNodeRuntime() ? NodeFetchRequest : globalThis.Request) as unknown as typeof globalThis.Request,
     };
 }
