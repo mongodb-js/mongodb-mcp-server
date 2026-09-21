@@ -1059,8 +1059,8 @@ importers:
   packages/tools-mongodb:
     dependencies:
       '@mongodb-js/device-id':
-        specifier: ^0.4.6
-        version: 0.4.11
+        specifier: ^0.4.18
+        version: 0.4.18
       '@mongodb-js/mcp-atlas-telemetry':
         specifier: workspace:*
         version: link:../atlas-telemetry
@@ -2519,8 +2519,8 @@ packages:
     resolution: {integrity: sha512-rf+ve4jSRQhsdZsWR9fCxVieMEczpzFbWMg6Zqabf1Vfj0W2hW3Y5idCA7VvogSj6WNZiskIl018ykvObx4iAw==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
 
-  '@mongodb-js/device-id@0.4.11':
-    resolution: {integrity: sha512-CWeKFNT1dk8oNQazq9o11VrKdRm9JF5Tc5f9ffRHniQdSHGF/u/PbP3NWZVMLExY8t9C4q19pRpX/onreE4+Uw==}
+  '@mongodb-js/device-id@0.4.18':
+    resolution: {integrity: sha512-H5Fvla5w5FfrXJrzi+BFTiVmDbVq9iG+UeIJsQOsHjQYW0IF0/pBkQsWGPBYpA9Irv1mclGGu6Xf6+0Iqr2N6A==}
 
   '@mongodb-js/devtools-connect@3.14.11':
     resolution: {integrity: sha512-pXKYvO4cQM/iYDBttiw8gi07dtXFqZK56AS/gy6gx0XVFujuycExwUtvE6rNMuURD9rrLOFem90nOMUSCoeVRA==}
@@ -9871,7 +9871,7 @@ snapshots:
       '@mongodb-js/atlas-local-linux-x64-gnu': 1.3.1
       '@mongodb-js/atlas-local-win32-x64-msvc': 1.3.1
 
-  '@mongodb-js/device-id@0.4.11': {}
+  '@mongodb-js/device-id@0.4.18': {}
 
   '@mongodb-js/devtools-connect@3.14.11(@mongodb-js/oidc-plugin@2.0.8)(mongodb-log-writer@2.5.13(bson@7.3.1))(mongodb@7.2.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9))':
     dependencies:
