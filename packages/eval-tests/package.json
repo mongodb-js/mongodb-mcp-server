@@ -18,9 +18,9 @@
   },
   "dependencies": {
     "braintrust": "^3.20.0",
-    "@ai-sdk/openai": "^3.0.61",
-    "@ai-sdk/mcp": "^1.0.40",
-    "ai": "^6.0.175",
+    "@ai-sdk/openai": "^4.0.66",
+    "@ai-sdk/mcp": "^2.0.49",
+    "ai": "^7.0.101",
     "mongodb": "^7.1.1",
     "bson": "^7.2.0",
     "zod": "^4.4.2",
