@@ -67,24 +67,32 @@ export type MongoClusterConfiguration =
 
 const DOWNLOAD_RETRIES = 10;
 
-// TODO: Revert this to generic tag 8, once the problem with atlas-local image
-// is addressed.
-const DEFAULT_LOCAL_IMAGE = "mongodb/mongodb-atlas-local:8.2.2-20251125T154829Z";
+const DEFAULT_LOCAL_IMAGE = "mongodb/mongodb-atlas-local:8";
 export class MongoDBClusterProcess {
     static async spinUp(config: MongoClusterConfiguration): Promise<MongoDBClusterProcess> {
         if (MongoDBClusterProcess.isSearchOption(config)) {
             const runningContainer = await new GenericContainer(config.image ?? DEFAULT_LOCAL_IMAGE)
                 .withExposedPorts(27017)
                 .withCommand(["/usr/local/bin/runner", "server"])
-                // Require an elected, writable primary *and* search readiness before
-                // declaring the container ready. `getSearchIndexes()` is a read that
-                // succeeds before the single-node replica set finishes electing a
-                // primary, so gating on it alone lets the first connect/write race the
-                // election (manifesting as a flaky "not connected"/"not primary" error).
+                // Gate on the image's own healthcheck *and* an elected, writable primary.
+                //
+                // The image healthcheck is the only signal that covers mongot: it verifies
+                // mongod, mongot and the seeding scripts. The shell probe alone does not --
+                // `getSearchIndexes()` starts succeeding intermittently while mongot is still
+                // refusing connections on :27027, and testcontainers latches the first success,
+                // so tests would start against a search backend that is not up yet (surfacing as
+                // "Error connecting to localhost:27027 ... Connection refused" or "CallbackCanceled").
+                //
+                // The shell probe is kept because the healthcheck does not guarantee the
+                // single-node replica set has finished electing a primary, and the first
+                // connect/write can otherwise race the election ("not connected"/"not primary").
                 .withWaitStrategy(
-                    new ShellWaitStrategy(
-                        `mongosh --quiet --eval 'db.hello().isWritablePrimary || quit(1); db.test.getSearchIndexes()'`
-                    )
+                    Wait.forAll([
+                        Wait.forHealthCheck(),
+                        new ShellWaitStrategy(
+                            `mongosh --quiet --eval 'db.hello().isWritablePrimary || quit(1); db.test.getSearchIndexes()'`
+                        ),
+                    ]).withStartupTimeout(180_000)
                 )
                 .start();
 
