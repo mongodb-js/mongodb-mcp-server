@@ -118,7 +118,10 @@ function extractZodDescriptions(): Record<string, ConfigMetadata> {
         if ("innerType" in schema.def) {
             // "pipe" is also used for our comma-separated arrays
             if (schema.def.innerType.def.type === "pipe") {
-                description = description.replace("An array of", "Comma separated values of");
+                description = description.replace(
+                    "An array of",
+                    "Comma separated (environment variable or config file) or space separated (command line) values of"
+                );
             }
         }
 
