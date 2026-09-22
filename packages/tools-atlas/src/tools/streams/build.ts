@@ -174,8 +174,9 @@ const StreamsBuildArgsShape = {
         .optional()
         .describe(
             "Pipeline stages for the stream processor. Required when resource='processor'. " +
-                "Must start with a $source stage and end with a terminal stage ($merge, $emit, $https, or $externalFunction). " +
+                "Must start with a $source stage and end with a sink stage ($merge, $emit, $iceberg, $https, or $externalFunction). " +
                 "Use $merge to write to Atlas cluster collections: {$merge: {into: {connectionName, db, coll}}}. " +
+                "Use $iceberg to write to Apache Iceberg tables on an S3 connection (must be the last stage): {$iceberg: {connectionName, bucket, databaseName, tableName, path}}. " +
                 "Use $emit to write to Kafka or Kinesis sinks: {$emit: {connectionName, topic}}. $emit only works with Kafka/Kinesis connections — do NOT use $emit with Https connections. " +
                 "Use $https to POST data to an Https connection: {$https: {connectionName}}. " +
                 "Use $externalFunction for Lambda: {$externalFunction: {connectionName, functionName, execution: 'async', as: 'result'}}. Lambda does NOT use $emit — use $externalFunction with execution='async' as a terminal stage or execution='sync' for mid-pipeline enrichment. " +
@@ -783,8 +784,6 @@ export class StreamsBuildTool extends StreamsToolBase {
     }
 
     private static validatePipelineStructure(pipeline: Record<string, unknown>[]): CallToolResult | null {
-        const TERMINAL_STAGES = new Set(["$merge", "$emit", "$https", "$externalFunction"]);
-
         const firstStage = pipeline[0];
         const firstStageKey = firstStage ? Object.keys(firstStage)[0] : undefined;
         if (firstStageKey !== "$source") {
@@ -796,23 +795,6 @@ export class StreamsBuildTool extends StreamsToolBase {
                             `Invalid pipeline: first stage must be \`$source\`, but found \`${firstStageKey}\`.\n\n` +
                             `A streaming pipeline must start with $source to define the input data stream. ` +
                             `Example: {$source: {connectionName: "myConnection", topic: "myTopic"}}`,
-                    },
-                ],
-                isError: true,
-            };
-        }
-
-        const lastStage = pipeline[pipeline.length - 1];
-        const lastStageKey = lastStage ? Object.keys(lastStage)[0] : undefined;
-        if (!lastStageKey || !TERMINAL_STAGES.has(lastStageKey)) {
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text:
-                            `Invalid pipeline: last stage must be a terminal stage (\`$merge\`, \`$emit\`, \`$https\`, or \`$externalFunction\`), but found \`${lastStageKey}\`.\n\n` +
-                            `Use $merge to write to Atlas clusters: {$merge: {into: {connectionName, db, coll}}}.\n` +
-                            `Use $emit to write to Kafka/Kinesis/external sinks: {$emit: {connectionName, topic}}.`,
                     },
                 ],
                 isError: true,
@@ -905,7 +887,7 @@ export class StreamsBuildTool extends StreamsToolBase {
         }
         if (!args.pipeline || args.pipeline.length === 0) {
             throw new StreamsInvalidArgumentError(
-                "pipeline is required. Provide an array of aggregation stages starting with $source and ending with a terminal stage ($merge, $emit, $https, or $externalFunction)."
+                "pipeline is required. Provide an array of aggregation stages starting with $source and ending with a sink stage ($merge, $emit, $iceberg, $https, or $externalFunction)."
             );
         }
 
