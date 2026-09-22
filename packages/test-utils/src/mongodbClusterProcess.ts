@@ -61,7 +61,9 @@ export type MongoAutoEmbedSearchConfiguration = {
     voyageIndexingKey: string;
 };
 export type MongoClusterConfiguration =
-    MongoRunnerConfiguration | MongoSearchConfiguration | MongoAutoEmbedSearchConfiguration;
+    | MongoRunnerConfiguration
+    | MongoSearchConfiguration
+    | MongoAutoEmbedSearchConfiguration;
 
 const DOWNLOAD_RETRIES = 10;
 
