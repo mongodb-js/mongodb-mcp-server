@@ -222,3 +222,78 @@ describe("MCPHttpServer x-request-id logging", () => {
         expect(log?.payload.attributes).toEqual(expect.objectContaining({ "x-request-id": "req-throw" }));
     });
 });
+
+describe("MCPHttpServer modern-era method probes", () => {
+    let server: MCPHttpServer;
+
+    afterEach(async () => {
+        await server?.stop();
+    });
+
+    async function startServer(): Promise<void> {
+        server = new MCPHttpServer({
+            userConfig: { ...defaultTestConfig, httpPort: 0 },
+            createServerForRequest: vi.fn(),
+            logger: new InMemoryLogger(Keychain.root),
+            metrics: new MockMetrics(),
+            sessionStore: makeSessionStore(() => Promise.resolve(null)),
+        });
+        await server.start();
+    }
+
+    async function post(body: string, headers: Record<string, string> = {}): Promise<Response> {
+        return fetch(`${server.serverAddress}/mcp`, {
+            method: "POST",
+            headers: { "content-type": "application/json", ...headers },
+            body,
+        });
+    }
+
+    it("answers a session-less server/discover with Method not found", async () => {
+        await startServer();
+
+        const res = await post(JSON.stringify({ jsonrpc: "2.0", method: "server/discover", id: 7, params: {} }));
+
+        expect(res.status).toBe(200);
+        await expect(res.json()).resolves.toEqual({
+            jsonrpc: "2.0",
+            id: 7,
+            error: { code: -32601, message: "Method not found" },
+        });
+    });
+
+    it("answers a session-less subscriptions/listen with Method not found", async () => {
+        await startServer();
+
+        const res = await post(JSON.stringify({ jsonrpc: "2.0", method: "subscriptions/listen", id: 8, params: {} }));
+
+        expect(res.status).toBe(200);
+        await expect(res.json()).resolves.toMatchObject({
+            id: 8,
+            error: { code: -32601, message: "Method not found" },
+        });
+    });
+
+    it("answers a notification-shaped modern-era probe with Method not found and a null id", async () => {
+        await startServer();
+
+        const res = await post(JSON.stringify({ jsonrpc: "2.0", method: "server/discover", params: {} }));
+
+        expect(res.status).toBe(200);
+        await expect(res.json()).resolves.toMatchObject({
+            id: null,
+            error: { code: -32601 },
+        });
+    });
+
+    it("keeps the session error for session-less requests to 2025-era methods", async () => {
+        await startServer();
+
+        const res = await post(NON_INIT_BODY);
+
+        expect(res.status).toBe(400);
+        await expect(res.json()).resolves.toMatchObject({
+            error: { code: -32004, message: "invalid request" },
+        });
+    });
+});

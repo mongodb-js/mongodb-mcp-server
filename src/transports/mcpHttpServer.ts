@@ -1,5 +1,10 @@
 import { type StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { isInitializeRequest, type ClientCapabilities, type Implementation } from "@modelcontextprotocol/sdk/types.js";
+import {
+    ErrorCode,
+    isInitializeRequest,
+    type ClientCapabilities,
+    type Implementation,
+} from "@modelcontextprotocol/sdk/types.js";
 import express from "express";
 import { LogId } from "../common/logging/loggingDefinitions.js";
 import { getRandomUUID } from "../helpers/getRandomUUID.js";
@@ -25,6 +30,31 @@ import {
     JSON_RPC_ERROR_CODE_PROCESSING_REQUEST_FAILED,
     JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED,
 } from "./jsonRpcErrorCodes.js";
+
+/**
+ * Request methods the 2026-07-28 protocol revision introduced, which this
+ * server does not implement. A client negotiating its protocol era sends one
+ * of them — `server/discover` — before any handshake, so the probe arrives
+ * with no `mcp-session-id` and must not be met with the session error: the
+ * fallback to the 2025-era `initialize` handshake keys on `Method not found`,
+ * the same answer these methods already get once a session exists.
+ */
+const MODERN_ONLY_METHODS = new Set<string>(["server/discover", "subscriptions/listen"]);
+
+/** Whether a parsed POST body is a JSON-RPC message naming a {@link MODERN_ONLY_METHODS} method. */
+function isModernOnlyMethodRequest(body: unknown): boolean {
+    if (typeof body !== "object" || body === null || Array.isArray(body)) {
+        return false;
+    }
+    const { method } = body as { method?: unknown };
+    return typeof method === "string" && MODERN_ONLY_METHODS.has(method);
+}
+
+/** The JSON-RPC id to echo in a response, when the body carries a usable one. */
+function requestIdOf(body: unknown): string | number | null {
+    const { id } = (body ?? {}) as { id?: unknown };
+    return typeof id === "string" || typeof id === "number" ? id : null;
+}
 
 export type MCPHttpServerConstructorArgs<
     TUserConfig extends UserConfig = UserConfig,
@@ -87,6 +117,29 @@ export class MCPHttpServer<
 
     public async stop(): Promise<void> {
         await Promise.all([this.sessionStore.closeAllSessions(), super.stop()]);
+    }
+
+    /**
+     * Answers a request for a method this server does not implement the way
+     * JSON-RPC dispatch would: HTTP 200 carrying the error, not an HTTP-level
+     * rejection.
+     */
+    private reportMethodNotFound(req: express.Request, res: express.Response): void {
+        this.logger.debug({
+            id: LogId.streamableHttpTransportRequestFailure,
+            context: "streamableHttpTransport",
+            message: `Received a request for unimplemented method ${String((req.body as { method?: unknown }).method)}`,
+            attributes: requestIdAttr(req.headers),
+        });
+
+        res.status(200).json({
+            jsonrpc: "2.0",
+            id: requestIdOf(req.body),
+            error: {
+                code: ErrorCode.MethodNotFound,
+                message: "Method not found",
+            },
+        });
     }
 
     private reportSessionError(res: express.Response, errorCode: number): void {
@@ -504,6 +557,10 @@ export class MCPHttpServer<
 
                 if (sessionId) {
                     return await handleSessionRequest(req, res);
+                }
+
+                if (isModernOnlyMethodRequest(req.body)) {
+                    return this.reportMethodNotFound(req, res);
                 }
 
                 return this.reportSessionError(res, JSON_RPC_ERROR_CODE_INVALID_REQUEST);
