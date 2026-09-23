@@ -41,19 +41,22 @@ import {
  */
 const MODERN_ONLY_METHODS = new Set<string>(["server/discover", "subscriptions/listen"]);
 
-/** Whether a parsed POST body is a JSON-RPC message naming a {@link MODERN_ONLY_METHODS} method. */
-function isModernOnlyMethodRequest(body: unknown): boolean {
+/**
+ * The method and the id to echo back when a parsed POST body is a single
+ * JSON-RPC message naming a {@link MODERN_ONLY_METHODS} method, or `undefined`
+ * for anything else. The id is `null` when the body carries none (a
+ * notification) or an unusable one, as JSON-RPC requires of a response whose
+ * request id could not be determined.
+ */
+function modernOnlyMethodRequest(body: unknown): { method: string; id: string | number | null } | undefined {
     if (typeof body !== "object" || body === null || Array.isArray(body)) {
-        return false;
+        return undefined;
     }
-    const { method } = body as { method?: unknown };
-    return typeof method === "string" && MODERN_ONLY_METHODS.has(method);
-}
-
-/** The JSON-RPC id to echo in a response, when the body carries a usable one. */
-function requestIdOf(body: unknown): string | number | null {
-    const { id } = (body ?? {}) as { id?: unknown };
-    return typeof id === "string" || typeof id === "number" ? id : null;
+    const { method, id } = body as { method?: unknown; id?: unknown };
+    if (typeof method !== "string" || !MODERN_ONLY_METHODS.has(method)) {
+        return undefined;
+    }
+    return { method, id: typeof id === "string" || typeof id === "number" ? id : null };
 }
 
 export type MCPHttpServerConstructorArgs<
@@ -124,17 +127,21 @@ export class MCPHttpServer<
      * JSON-RPC dispatch would: HTTP 200 carrying the error, not an HTTP-level
      * rejection.
      */
-    private reportMethodNotFound(req: express.Request, res: express.Response): void {
+    private reportMethodNotFound(
+        req: express.Request,
+        res: express.Response,
+        request: { method: string; id: string | number | null }
+    ): void {
         this.logger.debug({
             id: LogId.streamableHttpTransportRequestFailure,
             context: "streamableHttpTransport",
-            message: `Received a request for unimplemented method ${String((req.body as { method?: unknown }).method)}`,
+            message: `Received a request for unimplemented method ${request.method}`,
             attributes: requestIdAttr(req.headers),
         });
 
         res.status(200).json({
             jsonrpc: "2.0",
-            id: requestIdOf(req.body),
+            id: request.id,
             error: {
                 code: ErrorCode.MethodNotFound,
                 message: "Method not found",
@@ -559,8 +566,9 @@ export class MCPHttpServer<
                     return await handleSessionRequest(req, res);
                 }
 
-                if (isModernOnlyMethodRequest(req.body)) {
-                    return this.reportMethodNotFound(req, res);
+                const modernOnlyRequest = modernOnlyMethodRequest(req.body);
+                if (modernOnlyRequest) {
+                    return this.reportMethodNotFound(req, res, modernOnlyRequest);
                 }
 
                 return this.reportSessionError(res, JSON_RPC_ERROR_CODE_INVALID_REQUEST);
