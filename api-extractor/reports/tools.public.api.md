@@ -793,6 +793,10 @@ export class DisconnectTool extends MongoDBToolBase {
         }>;
     };
     // (undocumented)
+    protected resolveTelemetryMetadata(args: ToolArgs<typeof DisconnectTool.argsShape>, input: {
+        result: CallToolResult;
+    }): Promise<ConnectionMetadata>;
+    // (undocumented)
     static toolName: string;
 }
 
