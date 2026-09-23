@@ -4,7 +4,13 @@ export type { StreamableHttpRunnerOptions } from "./streamableHttpRunner.js";
 export { StreamableHttpRunner } from "./streamableHttpRunner.js";
 
 // HTTP Servers
-export { MCPHttpServer, type MCPHttpServerOptions } from "./mcpHttpServer.js";
+export {
+    MCPHttpServer,
+    type MCPHttpServerOptions,
+    MODERN_ONLY_METHODS,
+    isModernOnlyMethodRequest,
+} from "./mcpHttpServer.js";
+export { isLegacyRequest, classifyInboundRequest } from "@modelcontextprotocol/server";
 export {
     LegacyMcpHttpHandler,
     type LegacyMcpHttpHandlerOptions,
