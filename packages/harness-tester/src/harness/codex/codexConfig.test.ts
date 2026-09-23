@@ -39,6 +39,26 @@ describe("CodexHarnessConfig", () => {
         expect(buildConfig(buildOptions())).not.toContain("[mcp_servers.mongo.http_headers]");
     });
 
+    it("keeps sandbox scalars top-level, not inside a stdio env table", () => {
+        const config = buildConfig(
+            buildOptions({
+                serverUrl: undefined,
+                stdioServer: {
+                    command: process.execPath,
+                    args: ["/path/to/cli.js"],
+                    env: { MDB_MCP_API_CLIENT_ID: "id", MDB_MCP_API_CLIENT_SECRET: "secret" },
+                },
+            })
+        );
+        // The sandbox scalars must precede the first table header, so they are not
+        // absorbed into `[mcp_servers.mongo.env]` (codex rejects a non-string env value).
+        expect(config).toContain('sandbox_mode = "read-only"');
+        expect(config).toContain("allow_login_shell = false");
+        expect(config).toContain("[mcp_servers.mongo.env]");
+        expect(config.indexOf('sandbox_mode')).toBeLessThan(config.indexOf('['));
+        expect(config.indexOf('allow_login_shell')).toBeLessThan(config.indexOf('['));
+    });
+
     it("forces the file credential store only when oauth is seeded", () => {
         expect(buildConfig(buildOptions({ oauth: { accessToken: "t" } }))).toContain(
             'mcp_oauth_credentials_store = "file"'

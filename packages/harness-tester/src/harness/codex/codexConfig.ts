@@ -103,16 +103,16 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
     }
 
     /**
-     * Whitelist the session to MCP tools only: disable shell + web-search and
-     * pin the sandbox to read-only (the MCP HTTP call runs in the orchestrator,
-     * outside the sandbox).
+     * Top-level scalars; must precede every table header (otherwise TOML absorbs them into the
+     * following `[mcp_servers.X.env]`/`.http_headers` table and codex rejects a non-string env value).
      */
+    private buildSandboxTopLevelToml(): string {
+        return ['sandbox_mode = "read-only"', "allow_login_shell = false"].join("\n");
+    }
+
+    /** Whitelist the session to MCP tools only: disable shell + web-search. */
     private buildSandboxToml(): string {
         return [
-            'sandbox_mode = "read-only"',
-            // Top-level scalars must precede the table headers below.
-            "allow_login_shell = false",
-            "",
             "[features]",
             "shell_tool = false",
             "",
@@ -176,6 +176,9 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
             // Keep pre-seeded OAuth tokens in the hermetic home instead of the OS keyring.
             ...(options.oauth ? [`mcp_oauth_credentials_store = "file"`] : []),
             ...catalogLines,
+            "",
+            // Top-level scalars must precede the table headers below.
+            this.buildSandboxTopLevelToml(),
             "",
             this.buildProviderToml(),
             "",
