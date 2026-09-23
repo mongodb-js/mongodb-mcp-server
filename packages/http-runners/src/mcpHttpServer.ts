@@ -51,7 +51,7 @@ export type MCPHttpServerOptions<TMetrics extends DefaultMetricDefinitions = Def
  * arrives without the per-request `_meta` envelope claim, because no 2025-era
  * client has a code path that emits it.
  */
-const MODERN_ONLY_METHODS = new Set<string>(["server/discover", "subscriptions/listen"]);
+export const MODERN_ONLY_METHODS = new Set<string>(["server/discover", "subscriptions/listen"]);
 
 /**
  * Whether a parsed POST body is a single JSON-RPC message naming a
@@ -61,7 +61,7 @@ const MODERN_ONLY_METHODS = new Set<string>(["server/discover", "subscriptions/l
  * versions this endpoint serves — the answer a modern client can act on. A
  * claim-less request to a method both eras share stays 2025-era traffic.
  */
-function isModernOnlyMethodRequest(body: unknown): boolean {
+export function isModernOnlyMethodRequest(body: unknown): boolean {
     if (typeof body !== "object" || body === null || Array.isArray(body)) {
         return false;
     }
