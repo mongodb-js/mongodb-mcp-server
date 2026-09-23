@@ -1,6 +1,8 @@
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import type { Backend } from "@microsoft/tui-test";
+import type { AgentHarnessOptions } from "./types.js";
 
 /**
  * Canonicalize a path so config keys match the agent's view of the filesystem
@@ -50,4 +52,37 @@ export function resolveBackend(explicit?: Backend): Backend {
 export function normalizeToolName(name: string): string {
     const lastSegment = name.split(/__|\./).pop();
     return lastSegment ?? name;
+}
+
+/**
+ * Key under which claude/codex persist MCP OAuth credentials for a remote
+ * server: `<name>|<sha256(JSON.stringify({type,url,headers}))[0..16]>`.
+ *
+ * The payload field order (`type`, `url`, `headers`) is load-bearing: both CLIs
+ * serialize it verbatim, so reordering changes the key and the token is missed.
+ * Codex only uses this as the file-store key (it matches entries by
+ * `server_name` + `server_url`), but claude looks the entry up by this exact key.
+ */
+export function oauthCredentialStoreKey({
+    serverName,
+    serverUrl,
+    headers = {},
+}: {
+    serverName: string;
+    serverUrl: string;
+    headers?: Record<string, string>;
+}): string {
+    const payload = JSON.stringify({ type: "http", url: serverUrl, headers });
+    const hash = createHash("sha256").update(payload).digest("hex").slice(0, 16);
+    return `${serverName}|${hash}`;
+}
+
+/** Guard `oauth` against stdio/missing-URL misuse (it only applies to a remote server). */
+export function assertRemoteServerOptions(options: AgentHarnessOptions): void {
+    if (options.oauth && options.stdioServer) {
+        throw new Error("`oauth` cannot be combined with `stdioServer`; use a remote `serverUrl` server");
+    }
+    if (options.oauth && !options.serverUrl) {
+        throw new Error("`oauth` requires a remote `serverUrl` server");
+    }
 }
