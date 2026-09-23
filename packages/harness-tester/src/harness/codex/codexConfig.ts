@@ -112,13 +112,7 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
 
     /** Whitelist the session to MCP tools only: disable shell + web-search. */
     private buildSandboxToml(): string {
-        return [
-            "[features]",
-            "shell_tool = false",
-            "",
-            "[tools]",
-            "web_search = false",
-        ].join("\n");
+        return ["[features]", "shell_tool = false", "", "[tools]", "web_search = false"].join("\n");
     }
 
     private buildMcpServerToml(options: AgentHarnessOptions, mcpServerName: string): string {

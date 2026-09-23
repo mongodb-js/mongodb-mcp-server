@@ -1,10 +1,6 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-    useAgent,
-    type AgentHarness,
-    type AgentHarnessOptions,
-} from "@mongodb-js/harness-tester";
+import { useAgent, type AgentHarness, type AgentHarnessOptions } from "@mongodb-js/harness-tester";
 
 export interface RemoteAtlasContext {
     harness: AgentHarness;
