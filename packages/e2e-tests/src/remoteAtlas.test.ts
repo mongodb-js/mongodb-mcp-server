@@ -23,7 +23,8 @@ describe.skipIf(!hasRemoteAtlasCreds())("remote Atlas MCP (mongodb-atlas-mcp-rem
                     [
                         `You have access to a remote Atlas MCP server named "atlas" through MCP tools. `,
                         `Call the "atlas-list-projects" tool to list the Atlas projects you can access. `,
-                        `Then reply with the number of projects you see. `,
+                        `If there are none, say it. Otherwise, end your reply with exactly the line `,
+                        `"PROJECT_COUNT: <n>" where <n> is the number of projects you can access. `,
                         `Use only the provided MCP tools - do not use any shell commands.`,
                     ].join("")
                 );
@@ -36,10 +37,9 @@ describe.skipIf(!hasRemoteAtlasCreds())("remote Atlas MCP (mongodb-atlas-mcp-rem
                 expect(turn.toolCalls.some((tc) => tc.name === "atlas-list-projects")).toBe(true);
 
                 // No auth/transport failure leaked into the transcript, and the agent
-                // reports a concrete count (or explicitly that there are none) — not just
-                // a passing mention of the word "project".
+                // emits the exact PROJECT_COUNT line (or says there are none).
                 expect(turn.text).not.toMatch(/\b(error|failed|forbidden|unable|unauthori[sz]\w*|\b403)\b/i);
-                expect(turn.text).toMatch(/(\d+)\s+projects?|no projects/i);
+                expect(turn.text).toMatch(/PROJECT_COUNT:\s*\d+|no projects/i);
             } finally {
                 await session.dispose();
             }
