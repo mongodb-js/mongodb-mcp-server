@@ -29,14 +29,14 @@ export interface ConnectionStringInfo {
  * connection with its own credentials (X.509, a pre-provisioned user, a proxy)
  * still knows which cluster it connected to and should supply this.
  *
- * `clusterId` should be resolved through the Atlas API before connecting; it is
- * optional only because a registry can know which cluster a handle addresses
- * before the handle has dialed and resolved the id.
+ * `clusterId` is resolved through the Atlas API and required: the cluster
+ * can only be attributed to telemetry once its id is known, and an entry
+ * cannot be marked as an Atlas one without a fully-resolved cluster.
  */
 export interface AtlasClusterConnectionInfo {
     projectId: string;
     clusterName: string;
-    clusterId?: string;
+    clusterId: string;
 
     /** The cluster's tier, set when the host resolved it. */
     instanceType?: "FREE" | "FLEX" | "DEDICATED";

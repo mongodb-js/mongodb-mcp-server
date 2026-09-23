@@ -219,7 +219,7 @@ export interface ApiClientOptions {
 // @public
 export interface AtlasClusterConnectionInfo {
     // (undocumented)
-    clusterId?: string;
+    clusterId: string;
     // (undocumented)
     clusterName: string;
     instanceType?: "FREE" | "FLEX" | "DEDICATED";

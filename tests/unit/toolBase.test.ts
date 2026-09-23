@@ -388,11 +388,18 @@ describe("ToolBase", () => {
         it("should attribute the entry's atlasCluster even when the live state has no connected cluster", () => {
             const metadata = testTool["getConnectionInfoMetadata"]({
                 state: { tag: "disconnected" },
-                atlasCluster: { projectId: "test-project-id", clusterName: "test-cluster" },
+                atlasCluster: {
+                    projectId: "test-project-id",
+                    clusterName: "test-cluster",
+                    clusterId: "test-cluster-id",
+                },
             });
 
-            expect(metadata).toEqual({ project_id: "test-project-id", cluster_name: "test-cluster" });
-            expect(metadata).not.toHaveProperty("cluster_id");
+            expect(metadata).toEqual({
+                project_id: "test-project-id",
+                cluster_name: "test-cluster",
+                cluster_id: "test-cluster-id",
+            });
         });
 
         it("should return empty metadata when no connection state is provided", () => {

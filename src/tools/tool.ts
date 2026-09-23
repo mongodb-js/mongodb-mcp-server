@@ -1124,11 +1124,7 @@ export abstract class ToolBase<
         if (atlasCluster) {
             metadata.project_id = atlasCluster.projectId;
             metadata.cluster_name = atlasCluster.clusterName;
-            // Only set when known: `properties` is spread over the common
-            // telemetry properties, so an explicit undefined would override them.
-            if (atlasCluster.clusterId !== undefined) {
-                metadata.cluster_id = atlasCluster.clusterId;
-            }
+            metadata.cluster_id = atlasCluster.clusterId;
         }
 
         return metadata;
