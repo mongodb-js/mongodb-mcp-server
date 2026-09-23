@@ -2,6 +2,7 @@ import { randomBytes } from "crypto";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import type { LoggerBase } from "./logging/index.js";
 import type { AnyConnectionState, ConnectionManager, ConnectionSettings } from "./connectionManager.js";
+import type { AtlasClusterConnectionInfo } from "./connectionInfo.js";
 import { ErrorCodes, MongoDBError } from "./errors.js";
 
 /**
@@ -37,6 +38,12 @@ export type CreateConnectionEntryOptions = {
      * are logged, never thrown.
      */
     onRevoke?: () => Promise<void>;
+    /**
+     * The Atlas cluster the connection addresses, when known. Marks the
+     * connection as an Atlas one for telemetry attribution and cluster lookups
+     * such as `pause-resume-cluster`.
+     */
+    atlasCluster?: AtlasClusterConnectionInfo;
 };
 
 export type CreateConnectionOptions = {
@@ -55,6 +62,12 @@ export type CreateConnectionOptions = {
      * the driver `appName` so connections are attributable in server logs.
      */
     clientName?: string;
+    /**
+     * The Atlas cluster the connection addresses, when known. Marks the
+     * connection as an Atlas one for telemetry attribution and cluster lookups
+     * such as `pause-resume-cluster`.
+     */
+    atlasCluster?: AtlasClusterConnectionInfo;
 };
 
 /**
@@ -108,6 +121,7 @@ type ConnectionEntryOptions = {
     source: ConnectionSource;
     manager: ConnectionManager;
     onRevoke?: () => Promise<void>;
+    atlasCluster?: AtlasClusterConnectionInfo;
 };
 
 /**
@@ -136,17 +150,30 @@ export class ConnectionEntry {
     private onRevoke?: () => Promise<void>;
 
     private readonly manager: ConnectionManager;
+    private _atlasCluster?: AtlasClusterConnectionInfo;
 
-    constructor({ connectionId, name, source, manager, onRevoke }: ConnectionEntryOptions) {
+    constructor({ connectionId, name, source, manager, onRevoke, atlasCluster }: ConnectionEntryOptions) {
         this.connectionId = connectionId;
         this.name = name;
         this.source = source;
         this.manager = manager;
         this.onRevoke = onRevoke;
+        this._atlasCluster = atlasCluster;
+        // The state's deprecated `connectedAtlasCluster` mirrors the entry.
+        this.manager.setAtlasClusterSource(() => this._atlasCluster);
     }
 
     get state(): AnyConnectionState {
         return this.manager.currentConnectionState;
+    }
+
+    /**
+     * The Atlas cluster this entry addresses, if any. The cluster identifies
+     * the handle independently of whether a live connection to it exists, so
+     * telemetry attribution and cluster lookups read it from here.
+     */
+    get atlasCluster(): AtlasClusterConnectionInfo | undefined {
+        return this._atlasCluster;
     }
 
     /**
@@ -161,6 +188,9 @@ export class ConnectionEntry {
     }
 
     async connect(settings: ConnectionSettings): Promise<AnyConnectionState> {
+        // Deprecated input path: a caller that still passes the cluster on the
+        // dial settings gets the same result as passing it at creation.
+        this._atlasCluster ??= settings.atlas;
         try {
             const state = await this.manager.connect({ ...settings });
             this.lastError = undefined;
@@ -182,10 +212,10 @@ export class ConnectionEntry {
             return state.serviceProvider;
         }
 
-        if (state.connectedAtlasCluster && (state.tag === "connecting" || state.tag === "disconnected")) {
+        if (this.atlasCluster && (state.tag === "connecting" || state.tag === "disconnected")) {
             throw new MongoDBError(
                 ErrorCodes.NotConnectedToMongoDB,
-                `Connection "${this.connectionId}" is still being established to Atlas cluster "${state.connectedAtlasCluster.clusterName}", try again in a few seconds.`
+                `Connection "${this.connectionId}" is still being established to Atlas cluster "${this.atlasCluster.clusterName}", try again in a few seconds.`
             );
         }
 

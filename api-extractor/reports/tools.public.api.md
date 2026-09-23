@@ -793,6 +793,10 @@ export class DisconnectTool extends MongoDBToolBase {
         }>;
     };
     // (undocumented)
+    protected resolveTelemetryMetadata(args: ToolArgs<typeof DisconnectTool.argsShape>, input: {
+        result: CallToolResult;
+    }): Promise<ConnectionMetadata>;
+    // (undocumented)
     static toolName: string;
 }
 
@@ -2134,8 +2138,7 @@ export abstract class ToolBase<TUserConfig extends UserConfig = UserConfig, TCon
     enable(): void;
     protected abstract execute(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     protected getConfirmationMessage(args: ToolArgs<typeof ToolBase.argsShape>): string;
-    // (undocumented)
-    protected getConnectionInfoMetadata(connectionState?: AnyConnectionState): ConnectionMetadata;
+    protected getConnectionInfoMetadata(source?: Pick<ConnectionEntry, "state" | "atlasCluster"> | AnyConnectionState): ConnectionMetadata;
     protected handleError(error: unknown, args: z.infer<z.ZodObject<typeof ToolBase.argsShape>>): Promise<CallToolResult> | CallToolResult;
     invoke(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)

@@ -1,6 +1,8 @@
 import { z } from "zod";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { MongoDBToolBase } from "../mongodbTool.js";
 import type { ToolArgs, OperationType, ToolResult } from "../../tool.js";
+import type { ConnectionMetadata } from "../../../telemetry/types.js";
 import { PRECONFIGURED_CONNECTION_ID } from "../../../common/connectionRegistry.js";
 
 const DisconnectOutputSchema = {
@@ -21,9 +23,21 @@ export class DisconnectTool extends MongoDBToolBase {
 
     public override outputSchema = DisconnectOutputSchema;
 
+    /**
+     * The connection metadata captured before the entry is revoked.
+     * `disconnect` removes explicit entries from the registry, so the
+     * post-execute telemetry lookup alone can no longer attribute the cluster;
+     * snapshot it here instead.
+     */
+    private disconnectedMetadata?: ConnectionMetadata;
+
     protected override async execute({
         connectionId,
     }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+        // Capture Atlas attribution before revocation: `disconnect` deletes the
+        // explicit entry, and its state loses `connectionStringInfo` on close.
+        const entry = await this.peekConnection(connectionId);
+        this.disconnectedMetadata = entry ? this.getConnectionInfoMetadata(entry) : undefined;
         await this.session.connectionRegistry.disconnect(connectionId);
 
         if (connectionId === PRECONFIGURED_CONNECTION_ID) {
@@ -46,6 +60,23 @@ export class DisconnectTool extends MongoDBToolBase {
                 },
             ],
             structuredContent: { outcome: "removed" },
+        };
+    }
+
+    protected override async resolveTelemetryMetadata(
+        args: ToolArgs<typeof this.argsShape>,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        { result }: { result: CallToolResult }
+    ): Promise<ConnectionMetadata> {
+        const { connectionId } = args as { connectionId?: string };
+        // Prefer the snapshot taken before revocation; fall back to a live peek
+        // (e.g. the preconfigured entry is closed, not removed, so still peekable).
+        const metadata =
+            this.disconnectedMetadata ?? this.getConnectionInfoMetadata(await this.peekConnection(connectionId));
+        this.disconnectedMetadata = undefined;
+        return {
+            ...(connectionId && { connection_id: connectionId }),
+            ...(metadata ?? {}),
         };
     }
 }

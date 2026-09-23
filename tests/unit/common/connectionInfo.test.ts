@@ -215,7 +215,6 @@ describe("connectionInfo", () => {
 
     describe("getConnectionStringInfo", () => {
         const atlasClusterInfo: AtlasClusterConnectionInfo = {
-            username: "testuser",
             projectId: "project123",
             clusterName: "TestCluster",
             clusterId: "cluster123",
