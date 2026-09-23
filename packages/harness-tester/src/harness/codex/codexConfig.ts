@@ -4,8 +4,12 @@ import path from "node:path";
 import { canonicalPath, oauthCredentialStoreKey } from "../shared.js";
 import type { AgentHarnessConfig, AgentHarnessOptions } from "../types.js";
 
-/** Fallback model when neither the real config nor an override is available. */
-export const DEFAULT_CODEX_MODEL = "gpt-5.6-luna";
+/**
+ * Fallback model when neither the real config nor an override is available.
+ * Keep this on the latest model codex ships, so codex does not show its
+ * "Try new model" onboarding dialog (which blocks the composer) on first run.
+ */
+export const DEFAULT_CODEX_MODEL = "gpt-6-luna";
 
 /** Reasoning effort applied to the harness session's model. */
 export const DEFAULT_CODEX_REASONING_EFFORT = "low";
