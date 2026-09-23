@@ -115,7 +115,10 @@ export function seedClaudeOAuthCredentials({
         ...(oauth.clientId !== undefined ? { clientId: oauth.clientId } : {}),
         ...(oauth.clientSecret !== undefined ? { clientSecret: oauth.clientSecret } : {}),
         ...(oauth.issuer !== undefined ? { issuer: oauth.issuer } : {}),
-        discoveryState: { authorizationServerUrl: oauth.issuer ?? options.serverUrl },
+        // Only set the discovery URL from the actual issuer: the MCP resource URL is a
+        // different host (e.g. mcp.mongodb.com vs cloud.mongodb.com), so falling back to
+        // it would make Claude refresh against the wrong authorization server.
+        ...(oauth.issuer !== undefined ? { discoveryState: { authorizationServerUrl: oauth.issuer } } : {}),
     };
     fs.writeFileSync(credentialsPath, JSON.stringify({ ...existing, mcpOAuth }, null, 2), { mode: 0o600 });
 }

@@ -81,6 +81,23 @@ describe("seedClaudeOAuthCredentials", () => {
         });
     });
 
+    it("does not fabricate a discovery URL when issuer is absent", () => {
+        const homeDir = makeTmpDir();
+        seedClaudeOAuthCredentials({ homeDir, options: buildOptions({ oauth: { accessToken: "access" } }) });
+
+        const credentials = JSON.parse(fs.readFileSync(path.join(homeDir, ".credentials.json"), "utf8")) as {
+            mcpOAuth: Record<string, Record<string, unknown>>;
+        };
+        const key = oauthCredentialStoreKey({ serverName: "mongo", serverUrl: "https://example.test/mcp" });
+        const entry = credentials.mcpOAuth[key];
+        expect(entry).toEqual({
+            serverName: "mongo",
+            serverUrl: "https://example.test/mcp",
+            accessToken: "access",
+        });
+        expect(entry!.discoveryState).toBeUndefined();
+    });
+
     it("preserves sibling keys and is a no-op without oauth", () => {
         const homeDir = makeTmpDir();
         fs.writeFileSync(

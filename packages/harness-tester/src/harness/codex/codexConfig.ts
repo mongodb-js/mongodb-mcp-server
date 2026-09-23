@@ -232,6 +232,7 @@ export function seedCodexOAuthCredentials({
         server_url: options.serverUrl,
         ...(oauth.issuer !== undefined ? { issuer: oauth.issuer } : {}),
         client_id: oauth.clientId ?? "",
+        ...(oauth.clientSecret !== undefined ? { client_secret: oauth.clientSecret } : {}),
         access_token: oauth.accessToken,
         ...(oauth.expiresAt !== undefined ? { expires_at: oauth.expiresAt } : {}),
         ...(oauth.refreshToken !== undefined ? { refresh_token: oauth.refreshToken } : {}),
