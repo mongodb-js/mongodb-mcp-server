@@ -15,6 +15,7 @@ jobs:
       NPM_VERSION: ${{ steps.get-version.outputs.NPM_VERSION }}
       GIT_TAG_VERSION: ${{ steps.get-version.outputs.GIT_TAG_VERSION }}
       RELEASE_CHANNEL: ${{ steps.npm-tag.outputs.RELEASE_CHANNEL }}
+      IS_PRERELEASE: ${{ steps.npm-tag.outputs.IS_PRERELEASE }}
       ATLAS_MCP_REMOTE_VERSION_EXISTS: ${{ steps.check-remote-version.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS }}
       ATLAS_MCP_REMOTE_NPM_VERSION: ${{ steps.get-remote-version.outputs.ATLAS_MCP_REMOTE_NPM_VERSION }}
       ATLAS_MCP_REMOTE_GIT_TAG_VERSION: ${{ steps.get-remote-version.outputs.ATLAS_MCP_REMOTE_GIT_TAG_VERSION }}
@@ -61,15 +62,26 @@ jobs:
               # v1.2.3-alpha.1 For such cases we only want the channel relevant
               # part which is alpha.
               RELEASE_CHANNEL="${CAPTURED_CHANNEL%%.*}"
+              # A bumped pre-release version (e.g. -alpha, -rc) is a prerelease.
+              IS_PRERELEASE="true"
             else
               RELEASE_CHANNEL="latest"
+              IS_PRERELEASE="false"
             fi
           else
             echo "::error title=Invalid Version::Encountered unexpected version ${{ steps.get-version.outputs.GIT_TAG_VERSION }}, cannot proceed!"
             exit 1
           fi
 
+          # Releases cut from the v2-maintenance line go to a dedicated channel so
+          # they don't override the `latest` dist-tag / Docker `latest` tag, which is
+          # reserved for mainline releases.
+          if [[ "$GITHUB_REF_NAME" == "v2-maintenance" ]]; then
+            RELEASE_CHANNEL="v2"
+          fi
+
           echo "RELEASE_CHANNEL=${RELEASE_CHANNEL}" >> "$GITHUB_OUTPUT"
+          echo "IS_PRERELEASE=${IS_PRERELEASE}" >> "$GITHUB_OUTPUT"
       - name: Output deployment info
         run: echo "::notice title=Deployment Info::Deploying version ${{ steps.get-version.outputs.GIT_TAG_VERSION }} to channel ${{ steps.npm-tag.outputs.RELEASE_CHANNEL }}"
       - name: Get atlas-mcp-remote version
@@ -163,7 +175,7 @@ jobs:
             --title "${{ needs.check.outputs.GIT_TAG_VERSION }}" \
             --notes-file "${{ steps.ai-summary.outputs.notes_file }}" \
             --target ${{ github.sha }} \
-            ${{ (needs.check.outputs.RELEASE_CHANNEL != 'latest' && '--prerelease') || ''}}
+            ${{ (needs.check.outputs.IS_PRERELEASE == 'true' && '--prerelease') || ''}}
 
       - name: Wait for package to be available on npm
         uses: ./.github/actions/wait-for-npm
