@@ -1,5 +1,11 @@
 import { calculateObjectSize } from "bson";
-import type { AggregationCursor, FindCursor } from "mongodb";
+
+export type Cursor<T> = {
+    toArray(): Promise<T[]>;
+    tryNext(): Promise<T | null>;
+    close(): Promise<void>;
+    stream(): NodeJS.ReadableStream;
+};
 
 export function getResponseBytesLimit(
     toolResponseBytesLimit: number | undefined | null,
@@ -52,7 +58,7 @@ export async function collectCursorUntilMaxBytesLimit<T = unknown>({
     configuredMaxBytesPerQuery,
     abortSignal,
 }: {
-    cursor: FindCursor<T> | AggregationCursor<T>;
+    cursor: Cursor<T>;
     toolResponseBytesLimit: number | undefined | null;
     configuredMaxBytesPerQuery: unknown;
     abortSignal?: AbortSignal;

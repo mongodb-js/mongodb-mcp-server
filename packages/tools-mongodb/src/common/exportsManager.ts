@@ -3,13 +3,13 @@ import path from "path";
 import fs from "fs/promises";
 import EventEmitter from "events";
 import { createWriteStream } from "fs";
-import type { AggregationCursor, FindCursor } from "mongodb";
 import type { EJSONOptions } from "bson";
 import { EJSON, ObjectId } from "bson";
 import { Transform } from "stream";
 import { pipeline } from "stream/promises";
 import { LogId, type LoggerBase } from "@mongodb-js/mcp-core";
 import type { MongoLogId } from "@mongodb-js/mcp-types";
+import type { Cursor } from "../helpers/collectCursorUntilMaxBytes.js";
 
 /** Options for `ExportsManager`, including the resolved per-session export directory. */
 export type ExportsManagerOptions = {
@@ -23,7 +23,7 @@ export const jsonExportFormat = z.enum(["relaxed", "canonical"]);
 export type JSONExportFormat = z.infer<typeof jsonExportFormat>;
 
 export type CreateJSONExportParams = {
-    input: FindCursor | AggregationCursor;
+    input: Cursor<unknown>;
     exportName: string;
     exportTitle: string;
     jsonExportFormat: JSONExportFormat;
@@ -206,7 +206,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
         jsonExportFormat,
         inProgressExport,
     }: {
-        input: FindCursor | AggregationCursor;
+        input: Cursor<unknown>;
         jsonExportFormat: JSONExportFormat;
         inProgressExport: InProgressExport;
     }): Promise<void> {

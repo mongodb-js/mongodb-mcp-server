@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ObjectId } from "bson";
-import type { AggregationCursor, FindCursor } from "mongodb";
+import type { Cursor } from "../../helpers/collectCursorUntilMaxBytes.js";
 import type { CallToolResult } from "@mongodb-js/mcp-types";
 import { type ToolArgs, ToolArgumentValidationError } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
@@ -84,7 +84,7 @@ export class ExportTool extends MongoDBToolBase {
             );
         }
 
-        let cursor: FindCursor | AggregationCursor;
+        let cursor: Cursor<unknown>;
         if (exportTarget.name === "find") {
             const { filter, projection, sort, limit } = exportTarget.arguments;
             this.assertMqlIsAllowed(this.server.config, filter, projection);

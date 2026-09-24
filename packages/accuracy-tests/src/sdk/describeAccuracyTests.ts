@@ -138,7 +138,7 @@ export function describeAccuracyTests(
                 toolCallingAccuracy = await testConfig.customScorer(
                     toolCallingAccuracy,
                     llmToolCalls,
-                    mdbIntegration.mongoClient()
+                    mdbIntegration.mongoClient() as unknown as MongoClient
                 );
             }
 

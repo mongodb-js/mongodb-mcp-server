@@ -29,16 +29,16 @@
   },
   "dependencies": {
     "@mcp-ui/server": "^6.1.0",
-    "@modelcontextprotocol/server": "^2.0.0",
-    "bson": "^7.2.0",
-    "mongodb-redact": "^1.1.6",
-    "zod": "^4.4.2"
+    "@modelcontextprotocol/server": "^2.1.0",
+    "bson": "^7.3.3",
+    "mongodb-redact": "^1.4.16",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@microsoft/api-extractor": "^7.59.0",
+    "@microsoft/api-extractor": "^7.59.2",
     "@mongodb-js/mcp-types": "workspace:*",
-    "@types/node": "^25.6.0",
-    "typescript": "^5.9.2",
+    "@types/node": "^26.6.2",
+    "typescript": "^5.9.3",
     "vitest": "^4.1.11"
   },
   "publishConfig": {

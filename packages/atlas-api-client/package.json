@@ -26,12 +26,12 @@
   "dependencies": {
     "@mongodb-js/mcp-core": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
-    "oauth4webapi": "^3.8.5",
+    "oauth4webapi": "^3.8.8",
     "openapi-fetch": "^0.17.0"
   },
   "devDependencies": {
-    "@types/node": "^25.6.0",
-    "typescript": "^5.9.2",
+    "@types/node": "^26.6.2",
+    "typescript": "^5.9.3",
     "vitest": "^4.1.11"
   },
   "publishConfig": {

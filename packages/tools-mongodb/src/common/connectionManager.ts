@@ -458,7 +458,7 @@ export class MCPConnectionManager extends ConnectionManager {
             serviceProvider = settings.mongoClient
                 ? Promise.resolve(
                       new NodeDriverServiceProvider(
-                          settings.mongoClient,
+                          settings.mongoClient as unknown as ConstructorParameters<typeof NodeDriverServiceProvider>[0],
                           this.bus,
                           clientOptions,
                           new ConnectionString(mongoshConnectionInfo.connectionString)

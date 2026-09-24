@@ -17,15 +17,15 @@
     "@mongodb-js/mcp-core": "workspace:*",
     "@mongodb-js/mcp-metrics": "workspace:*",
     "mongodb": "^7.1.1",
-    "mongodb-runner": "^6.7.6",
+    "mongodb-runner": "^6.11.1",
     "testcontainers": "^12.1.0",
-    "mongodb-connection-string-url": "^7.0.1",
+    "mongodb-connection-string-url": "^7.0.2",
     "vitest": "^4.1.11"
   },
   "devDependencies": {
     "@mongodb-js/mcp-types": "workspace:*",
-    "@types/node": "^25.6.0",
+    "@types/node": "^26.6.2",
     "@testing-library/jest-dom": "^7.0.1",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.3"
   }
 }
