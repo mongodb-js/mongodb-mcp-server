@@ -2,12 +2,13 @@ packages:
   - "packages/*"
   - "tests/browser"
 overrides:
-  "mongodb": "^7.1.1"
+  "mongodb": "7.1.1"
   "kerberos": "^7.0.0"
-  "bson": "^7.2.0"
-  "zod": "^4.4.2"
+  "bson": "^7.3.3"
+  "zod": "^4.6.5"
 allowBuilds:
   "@modelcontextprotocol/ext-apps": false
+  "@modelcontextprotocol/inspector": true
   braintrust: true
   core-js: false
   cpu-features: true
@@ -27,3 +28,15 @@ minimumReleaseAgeExclude:
   - "@rushstack/node-core-library@5.23.2"
   - "@rushstack/terminal@0.24.1"
   - "@rushstack/ts-command-line@5.3.11"
+  - '@ai-sdk/anthropic@4.0.62'
+  - '@ai-sdk/azure@4.0.78'
+  - '@ai-sdk/deepseek@3.0.52'
+  - '@ai-sdk/gateway@4.0.91'
+  - '@ai-sdk/google@4.0.79'
+  - '@ai-sdk/mcp@2.0.57'
+  - '@ai-sdk/openai@4.0.74'
+  - '@ai-sdk/provider-utils@5.0.47'
+  - '@modelcontextprotocol/inspector@2.8.0'
+  - ai@7.0.113
+  - braintrust@3.35.0
+  - vite@8.3.1

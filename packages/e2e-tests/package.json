@@ -8,14 +8,14 @@
     "check": "tsc --noEmit --project tsconfig.json"
   },
   "devDependencies": {
-    "@modelcontextprotocol/client": "^2.0.0",
+    "@modelcontextprotocol/client": "^2.1.0",
     "@mongodb-js/mcp-cli": "workspace:*",
     "@mongodb-js/harness-tester": "workspace:*",
     "@mongodb-js/mcp-test-utils": "workspace:*",
-    "@types/node": "^25.6.0",
+    "@types/node": "^26.6.2",
     "mongodb": "^7.1.1",
     "mongodb-mcp-server": "workspace:*",
-    "typescript": "^5.9.2",
-    "vitest": "^4.1.5"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
   }
 }

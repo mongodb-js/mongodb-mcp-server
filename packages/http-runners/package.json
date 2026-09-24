@@ -26,19 +26,19 @@
     "check": "tsc --noEmit --project tsconfig.json"
   },
   "dependencies": {
-    "@modelcontextprotocol/node": "^2.0.0",
-    "@modelcontextprotocol/server": "^2.0.0",
+    "@modelcontextprotocol/node": "^2.1.0",
+    "@modelcontextprotocol/server": "^2.1.0",
     "@mongodb-js/mcp-core": "workspace:*",
     "express": "^5.2.1"
   },
   "devDependencies": {
     "@mongodb-js/mcp-metrics": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
-    "@types/express": "^5.0.3",
-    "@types/node": "^25.6.0",
-    "typescript": "^5.9.2",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.2",
+    "typescript": "^5.9.3",
     "vitest": "^4.1.11",
-    "zod": "^4.4.3"
+    "zod": "^4.6.5"
   },
   "publishConfig": {
     "access": "public"

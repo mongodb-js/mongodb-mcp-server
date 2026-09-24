@@ -29,15 +29,15 @@
     "build:update-package-version": "node scripts/updatePackageVersion.ts"
   },
   "dependencies": {
-    "@modelcontextprotocol/client": "^2.0.0",
-    "@modelcontextprotocol/server": "^2.0.0",
-    "@mongodb-js/devtools-proxy-support": "^0.7.19",
-    "mongodb-log-writer": "^2.5.13",
-    "mongodb-redact": "^1.4.6"
+    "@modelcontextprotocol/client": "^2.1.0",
+    "@modelcontextprotocol/server": "^2.1.0",
+    "@mongodb-js/devtools-proxy-support": "^0.7.23",
+    "mongodb-log-writer": "^3.0.1",
+    "mongodb-redact": "^1.4.16"
   },
   "devDependencies": {
-    "@types/node": "^25.6.0",
-    "typescript": "^5.9.2",
+    "@types/node": "^26.6.2",
+    "typescript": "^5.9.3",
     "vitest": "^4.1.11"
   }
 }

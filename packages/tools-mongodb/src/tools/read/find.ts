@@ -8,7 +8,7 @@ import {
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
-import type { FindCursor } from "mongodb";
+import type { Cursor } from "../../helpers/collectCursorUntilMaxBytes.js";
 import { checkIndexUsage } from "../../helpers/indexCheck.js";
 import { collectCursorUntilMaxBytesLimit } from "../../helpers/collectCursorUntilMaxBytes.js";
 import { operationWithFallback } from "../../helpers/operationWithFallback.js";
@@ -79,7 +79,7 @@ export class FindTool extends MongoDBToolBase {
         }: ToolArgs<ReturnType<typeof this.argsShape>>,
         { request }: ToolExecutionContext<IMongoDBConfig>
     ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
-        let findCursor: FindCursor<unknown> | undefined = undefined;
+        let findCursor: Cursor<unknown> | undefined = undefined;
         try {
             const provider = await this.resolveConnection(connectionId);
 
@@ -166,7 +166,7 @@ export class FindTool extends MongoDBToolBase {
         }
     }
 
-    private async safeCloseCursor(cursor: FindCursor<unknown>): Promise<void> {
+    private async safeCloseCursor(cursor: Cursor<unknown>): Promise<void> {
         try {
             await cursor.close();
         } catch (error) {

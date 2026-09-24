@@ -13,10 +13,10 @@
     "@mongodb-js/mcp-atlas-api-client": "workspace:*",
     "@mongodb-js/mcp-core": "workspace:*",
     "@mongodb-js/mcp-tools-mongodb": "workspace:*",
-    "@modelcontextprotocol/client": "^2.0.0",
+    "@modelcontextprotocol/client": "^2.1.0",
     "@mongodb-js/mcp-atlas-telemetry": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
-    "@types/node": "^25.6.0",
+    "@types/node": "^26.6.2",
     "@vitest/browser": "^4.1.11",
     "@vitest/browser-playwright": "^4.1.11",
     "buffer": "^6.0.3",
@@ -24,11 +24,11 @@
     "evp_bytestokey": "^1.0.3",
     "path-browserify": "^1.0.1",
     "os-browserify": "^0.3.0",
-    "playwright": "^1.60.0",
+    "playwright": "^1.63.0",
     "readable-stream": "^4.7.0",
-    "typescript": "^5.9.2",
+    "typescript": "^5.9.3",
     "util": "^0.12.5",
-    "vite": "^8.0.16",
+    "vite": "^8.3.1",
     "vitest": "^4.1.11"
   }
 }

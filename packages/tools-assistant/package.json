@@ -26,13 +26,13 @@
   "dependencies": {
     "@mongodb-js/mcp-core": "workspace:*",
     "@mongodb-js/mcp-fetch": "workspace:*",
-    "yaml": "^2.8.1",
-    "zod": "^4.4.2"
+    "yaml": "^2.9.1",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@mongodb-js/mcp-types": "workspace:*",
-    "@types/node": "^25.6.0",
-    "typescript": "^5.9.2",
+    "@types/node": "^26.6.2",
+    "typescript": "^5.9.3",
     "vitest": "^4.1.11"
   },
   "publishConfig": {

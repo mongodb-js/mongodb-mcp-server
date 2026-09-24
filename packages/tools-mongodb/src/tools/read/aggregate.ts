@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { AggregationCursor } from "mongodb";
+import type { Cursor } from "../../helpers/collectCursorUntilMaxBytes.js";
 import type { InputRequiredResult } from "@mongodb-js/mcp-core";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import {
@@ -173,7 +173,7 @@ export class AggregateTool extends MongoDBToolBase {
         context: ToolExecutionContext<IMongoDBConfig>
     ): Promise<ToolResult<ReturnType<typeof this.outputSchema>> | InputRequiredResult> {
         const { request } = context;
-        let aggregationCursor: AggregationCursor | undefined = undefined;
+        let aggregationCursor!: Cursor<unknown>;
         try {
             const provider = await this.resolveConnection(connectionId);
             const isSearchSupported = await this.isSearchSupported(connectionId);
@@ -327,7 +327,7 @@ export class AggregateTool extends MongoDBToolBase {
         }
     }
 
-    private async safeCloseCursor(cursor: AggregationCursor<unknown>): Promise<void> {
+    private async safeCloseCursor(cursor: Cursor<unknown>): Promise<void> {
         try {
             await cursor.close();
         } catch (error) {
