@@ -34,24 +34,24 @@ export async function runTask(params: {
     Always pass this database name to any tool that accepts a database argument, and never use any other database.`;
     const userMessage = { role: "user" as const, content: prompt };
 
-    const response = await generateText({
+    const llmResult = await generateText({
         model,
         system,
         messages: [userMessage],
         tools,
         stopWhen: untracedAi.stepCountIs(stepLimit),
     });
-    const messages = [userMessage, ...(response.response.messages as ModelMessage[])];
+    const messages = [userMessage, ...(llmResult.responseMessages satisfies ModelMessage[])];
 
-    if (response.finishReason !== "stop") {
+    if (llmResult.finishReason !== "stop") {
         return {
-            response: `The LLM model was stopped unexpectedly because of [${response.finishReason}] ${response.rawFinishReason}.\n${response.text}`,
+            response: `The LLM model was stopped unexpectedly because of [${llmResult.finishReason}] ${llmResult.rawFinishReason}.\n${llmResult.text}`,
             messages,
         };
     }
 
     return {
-        response: response.text,
+        response: llmResult.text,
         messages,
     };
 }
