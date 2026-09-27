@@ -569,7 +569,7 @@ describeAccuracyTests(
             // last stage is $iceberg with the documented shape, not fall back to $merge/$emit.
             prompt:
                 `Deploy a processor named 'iceberg-sink' in workspace '${workspaceName}' that reads from 'events' ` +
-                `and writes to an Apache Iceberg table on the S3 connection 'archive': bucket 'acme-lakehouse', database 'warehouse', table 'sales'`,
+                `and writes to an Apache Iceberg table on the S3 connection 'archive': bucket 'acme-lakehouse', database 'warehouse', table 'sales', path 'sales-cdc'`,
             systemPrompt: projectContext,
             expectedToolCalls: [
                 ...optionalWorkspaceDiscovery,
@@ -587,7 +587,9 @@ describeAccuracyTests(
             ],
             mockedTools,
             customScorer: (baselineScore: number, actualToolCalls: LLMToolCall[]): number => {
-                const build = actualToolCalls.find((call) => call.toolName === "atlas-streams-build");
+                const build = actualToolCalls.find(
+                    (call) => call.toolName === "atlas-streams-build" && call.parameters.resource === "processor"
+                );
                 const pipeline = build?.parameters.pipeline;
                 if (!Array.isArray(pipeline) || pipeline.length === 0) {
                     return 0;
@@ -597,11 +599,12 @@ describeAccuracyTests(
                 if (!icebergStage) {
                     return 0;
                 }
-                const { connectionName, bucket, databaseName, tableName } = icebergStage;
+                const { connectionName, bucket, databaseName, tableName, path } = icebergStage;
                 return connectionName === "archive" &&
                     bucket === "acme-lakehouse" &&
                     databaseName === "warehouse" &&
-                    tableName === "sales"
+                    tableName === "sales" &&
+                    path === "sales-cdc"
                     ? baselineScore
                     : 0;
             },

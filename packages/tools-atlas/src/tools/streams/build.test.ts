@@ -817,26 +817,33 @@ describe("StreamsBuildTool", () => {
                 results: [{ name: "src" }, { name: "s3" }],
             });
 
+            const pipeline = [
+                { $source: { connectionName: "src" } },
+                {
+                    $iceberg: {
+                        connectionName: "s3",
+                        bucket: "myBucket",
+                        databaseName: "myDb",
+                        tableName: "myTable",
+                        path: "iceberg-warehouse",
+                    },
+                },
+            ];
+
             const result = await exec({
                 ...baseArgs,
                 resource: "processor",
                 processorName: "proc1",
-                pipeline: [
-                    { $source: { connectionName: "src" } },
-                    {
-                        $iceberg: {
-                            connectionName: "s3",
-                            bucket: "myBucket",
-                            databaseName: "myDb",
-                            tableName: "myTable",
-                            path: "iceberg-warehouse/",
-                        },
-                    },
-                ],
+                pipeline,
             });
 
             expect(result.isError).toBeUndefined();
-            expect(mockApiClient.createStreamProcessor).toHaveBeenCalledOnce();
+            expect(mockApiClient.createStreamProcessor).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: { name: "proc1", pipeline },
+                }),
+                expect.anything()
+            );
         });
 
         it("should return error when pipeline contains $$NOW", async () => {

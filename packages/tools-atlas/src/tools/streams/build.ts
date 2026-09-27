@@ -177,15 +177,16 @@ const StreamsBuildArgsShape = {
                 "Must start with a $source stage and end with a sink stage ($merge, $emit, $iceberg, $https, or $externalFunction). " +
                 "Use $merge to write to Atlas cluster collections: {$merge: {into: {connectionName, db, coll}}}. " +
                 "Use $iceberg to write to Apache Iceberg tables on an S3 connection (must be the last stage): {$iceberg: {connectionName, bucket, databaseName, tableName, path}}. " +
+                "Requires tier SP10 or higher. On non-AWS workspaces also specify region. path must not end with '/'. " +
                 "Use $emit to write to Kafka or Kinesis sinks: {$emit: {connectionName, topic}}. $emit only works with Kafka/Kinesis connections — do NOT use $emit with Https connections. " +
                 "Use $https to POST data to an Https connection: {$https: {connectionName}}. " +
-                "Use $externalFunction for Lambda: {$externalFunction: {connectionName, functionName, execution: 'async', as: 'result'}}. Lambda does NOT use $emit — use $externalFunction with execution='async' as a terminal stage or execution='sync' for mid-pipeline enrichment. " +
+                "Use $externalFunction for Lambda: {$externalFunction: {connectionName, functionName, execution: 'async', as: 'result'}}. Lambda does NOT use $emit — use $externalFunction with execution='async' as a sink stage or execution='sync' for mid-pipeline enrichment. " +
                 "By default $https.onError is 'dlq', which requires a DLQ (see dlq parameter). Set {$https: {connectionName, onError: 'ignore'}} to skip DLQ. " +
                 "For Kafka $emit with Schema Registry: {$emit: {connectionName, topic, schemaRegistry: {connectionName: '<sr-connection>', valueSchema: {type: 'avro', schema: {<avro-schema>}, options: {subjectNameStrategy: 'TopicNameStrategy', autoRegisterSchemas: true}}}}}. " +
                 "Note: valueSchema.type must be lowercase 'avro'. valueSchema.schema (Avro schema definition) is always required even with autoRegisterSchemas. " +
                 "Kafka/Kinesis $source must include a 'topic'/'stream' field. " +
                 "$$NOW, $$ROOT, and $$CURRENT are not available in streaming request. " +
-                "Connections referenced in $source/$merge/$emit/$https must already exist in the workspace."
+                "Connections referenced in $source/$merge/$emit/$iceberg/$https/$externalFunction must already exist in the workspace."
         ),
     dlq: z
         .object({
