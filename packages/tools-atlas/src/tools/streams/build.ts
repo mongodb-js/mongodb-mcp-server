@@ -200,7 +200,8 @@ const StreamsBuildArgsShape = {
                 "The DLQ connection must already exist in the workspace."
         ),
     processorTier: StreamsTier.optional().describe(
-        "Baseline processing tier. Only for resource='processor'. Defaults to the workspace tier when omitted."
+        "Baseline processing tier. Only for resource='processor'. Defaults to the workspace tier when omitted. " +
+            "If deployment fails with a tier error, the error names the minimum required tier — redeploy with processorTier set to that tier or higher."
     ),
     autoscaling: StreamsAutoscaling.optional().describe(
         "Autoscaling configuration. Only for resource='processor'. " +
