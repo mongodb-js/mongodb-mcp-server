@@ -1,6 +1,7 @@
 import * as untracedAi from "ai";
 import type { LanguageModel, ModelMessage, ToolSet } from "ai";
 import { wrapAISDK } from "braintrust";
+import type { OpenAILanguageModelChatOptions } from "@ai-sdk/openai";
 
 const { generateText } = wrapAISDK(untracedAi);
 
@@ -11,6 +12,7 @@ const DEFAULT_STEP_LIMIT = 10;
  *
  * @param params - The parameters for the task run.
  * @param params.model - The model powering the task under test.
+ * @param params.reasoningEffort - The OpenAI reasoning effort for the task model.
  * @param params.systemContext - The base system prompt for the task under test.
  * @param params.tools - The MCP tools exposed to the task.
  * @param params.prompt - The user prompt (the task) for this case.
@@ -20,13 +22,14 @@ const DEFAULT_STEP_LIMIT = 10;
  */
 export async function runTask(params: {
     model: LanguageModel;
+    reasoningEffort: OpenAILanguageModelChatOptions["reasoningEffort"];
     systemContext: string;
     tools: ToolSet;
     prompt: string;
     tempDbName: string;
     stepLimit?: number;
 }): Promise<{ response: string; messages: ModelMessage[] }> {
-    const { model, systemContext, tools, prompt, tempDbName, stepLimit = DEFAULT_STEP_LIMIT } = params;
+    const { model, reasoningEffort, systemContext, tools, prompt, tempDbName, stepLimit = DEFAULT_STEP_LIMIT } = params;
 
     const system = `${systemContext}
     
@@ -40,6 +43,7 @@ export async function runTask(params: {
         messages: [userMessage],
         tools,
         stopWhen: untracedAi.stepCountIs(stepLimit),
+        providerOptions: { openai: { reasoningEffort } satisfies OpenAILanguageModelChatOptions },
     });
     const messages = [userMessage, ...(llmResult.responseMessages satisfies ModelMessage[])];
 
