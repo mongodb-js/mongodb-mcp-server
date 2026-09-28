@@ -51,7 +51,7 @@ export type MCPHttpServerOptions<TMetrics extends DefaultMetricDefinitions = Def
  * arrives without the per-request `_meta` envelope claim, because no 2025-era
  * client has a code path that emits it.
  */
-export const MODERN_ONLY_METHODS = new Set<string>(["server/discover", "subscriptions/listen"]);
+export const MODERN_ONLY_METHODS: ReadonlySet<string> = new Set<string>(["server/discover", "subscriptions/listen"]);
 
 /**
  * Whether a parsed POST body is a single JSON-RPC message naming a
