@@ -1,11 +1,15 @@
 import fs, { existsSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { canonicalPath } from "../shared.js";
+import { canonicalPath, oauthCredentialStoreKey } from "../shared.js";
 import type { AgentHarnessConfig, AgentHarnessOptions } from "../types.js";
 
-/** Fallback model when neither the real config nor an override is available. */
-export const DEFAULT_CODEX_MODEL = "gpt-5.6-luna";
+/**
+ * Fallback model when neither the real config nor an override is available.
+ * Keep this on the latest model codex ships, so codex does not show its
+ * "Try new model" onboarding dialog (which blocks the composer) on first run.
+ */
+export const DEFAULT_CODEX_MODEL = "gpt-6-luna";
 
 /** Reasoning effort applied to the harness session's model. */
 export const DEFAULT_CODEX_REASONING_EFFORT = "low";
@@ -103,22 +107,16 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
     }
 
     /**
-     * Whitelist the session to MCP tools only: disable shell + web-search and
-     * pin the sandbox to read-only (the MCP HTTP call runs in the orchestrator,
-     * outside the sandbox).
+     * Top-level scalars; must precede every table header (otherwise TOML absorbs them into the
+     * following `[mcp_servers.X.env]`/`.http_headers` table and codex rejects a non-string env value).
      */
+    private buildSandboxTopLevelToml(): string {
+        return ['sandbox_mode = "read-only"', "allow_login_shell = false"].join("\n");
+    }
+
+    /** Whitelist the session to MCP tools only: disable shell + web-search. */
     private buildSandboxToml(): string {
-        return [
-            'sandbox_mode = "read-only"',
-            // Top-level scalars must precede the table headers below.
-            "allow_login_shell = false",
-            "",
-            "[features]",
-            "shell_tool = false",
-            "",
-            "[tools]",
-            "web_search = false",
-        ].join("\n");
+        return ["[features]", "shell_tool = false", "", "[tools]", "web_search = false"].join("\n");
     }
 
     private buildMcpServerToml(options: AgentHarnessOptions, mcpServerName: string): string {
@@ -135,7 +133,18 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
                 ...(envLines.length ? [``, `[mcp_servers.${mcpServerName}.env]`, ...envLines] : []),
             ].join("\n");
         }
-        return `[mcp_servers.${mcpServerName}]\nurl = ${tomlString(options.serverUrl ?? "")}\n${startupTimeout}`;
+        const lines = [
+            `[mcp_servers.${mcpServerName}]`,
+            `url = ${tomlString(options.serverUrl ?? "")}`,
+            startupTimeout,
+        ];
+        const headerLines = Object.entries(options.headers ?? {}).map(
+            ([k, v]) => `${tomlString(k)} = ${tomlString(v)}`
+        );
+        if (headerLines.length > 0) {
+            lines.push("", `[mcp_servers.${mcpServerName}.http_headers]`, ...headerLines);
+        }
+        return lines.join("\n");
     }
 
     buildConfig(options: AgentHarnessOptions, sessionHomeDir: string): string {
@@ -162,7 +171,12 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
             `model = ${tomlString(resolvedModel)}`,
             `model_provider = "grove"`,
             `model_reasoning_effort = ${tomlString(DEFAULT_CODEX_REASONING_EFFORT)}`,
+            // Keep pre-seeded OAuth tokens in the hermetic home instead of the OS keyring.
+            ...(options.oauth ? [`mcp_oauth_credentials_store = "file"`] : []),
             ...catalogLines,
+            "",
+            // Top-level scalars must precede the table headers below.
+            this.buildSandboxTopLevelToml(),
             "",
             this.buildProviderToml(),
             "",
@@ -181,4 +195,52 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
         ];
         return lines.join("\n");
     }
+}
+
+/** Read and parse a JSON file, or an empty map when missing/unreadable. */
+function readJsonFile(filePath: string): Record<string, unknown> {
+    try {
+        return JSON.parse(fs.readFileSync(filePath, "utf8")) as Record<string, unknown>;
+    } catch {
+        return {};
+    }
+}
+
+/**
+ * Pre-seed OAuth tokens in the session's `.credentials.json` so codex connects
+ * to a remote server without an interactive login. Requires
+ * `mcp_oauth_credentials_store = "file"` (set by `buildConfig` when `oauth` is
+ * present); codex matches entries by `server_name` + `server_url`, so the map
+ * key is informational. No-op unless `options.oauth` is set.
+ */
+export function seedCodexOAuthCredentials({
+    homeDir,
+    options,
+}: {
+    homeDir: string;
+    options: AgentHarnessOptions;
+}): void {
+    if (!options.oauth || !options.serverUrl) {
+        return;
+    }
+    const { oauth } = options;
+    const serverName = options.mcpServerName ?? "mongo";
+    const key = oauthCredentialStoreKey({
+        serverName,
+        serverUrl: options.serverUrl,
+        headers: options.headers,
+    });
+    const store = readJsonFile(path.join(homeDir, ".credentials.json"));
+    store[key] = {
+        server_name: serverName,
+        server_url: options.serverUrl,
+        ...(oauth.issuer !== undefined ? { issuer: oauth.issuer } : {}),
+        client_id: oauth.clientId ?? "",
+        ...(oauth.clientSecret !== undefined ? { client_secret: oauth.clientSecret } : {}),
+        access_token: oauth.accessToken,
+        ...(oauth.expiresAt !== undefined ? { expires_at: oauth.expiresAt } : {}),
+        ...(oauth.refreshToken !== undefined ? { refresh_token: oauth.refreshToken } : {}),
+        scopes: oauth.scopes ?? [],
+    };
+    fs.writeFileSync(path.join(homeDir, ".credentials.json"), JSON.stringify(store, null, 2), { mode: 0o600 });
 }

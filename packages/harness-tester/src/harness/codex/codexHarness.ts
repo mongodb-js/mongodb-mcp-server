@@ -2,8 +2,8 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { TuiTest, type Backend } from "@microsoft/tui-test";
-import { CodexHarnessConfig } from "./codexConfig.js";
-import { resolveBackend } from "../shared.js";
+import { CodexHarnessConfig, seedCodexOAuthCredentials } from "./codexConfig.js";
+import { assertRemoteServerOptions, resolveBackend } from "../shared.js";
 import { HarnessLogger } from "../logger.js";
 import { CodexTuiSession, type CodexState } from "./codexSession.js";
 import type { AgentHarness, AgentHarnessOptions, AgentSession } from "../types.js";
@@ -63,12 +63,14 @@ export class CodexTuiHarness implements AgentHarness {
     }
 
     async start(options: AgentHarnessOptions): Promise<AgentSession> {
+        assertRemoteServerOptions(options);
         // Per-session CODEX_HOME: developer config untouched, no state reused across sessions.
         const config = new CodexHarnessConfig();
         const codexHome = path.join(options.workDir, `codex-home-${Math.random().toString(36).slice(2, 8)}`);
         await fs.mkdir(codexHome, { recursive: true });
         const configToml = config.buildConfig(options, codexHome);
         await fs.writeFile(path.join(codexHome, config.configFileName), configToml);
+        seedCodexOAuthCredentials({ homeDir: codexHome, options });
 
         const terminal = new TuiTest(`codex-${process.pid}-${Math.random().toString(36).slice(2, 8)}`, {
             backend: this.backend,

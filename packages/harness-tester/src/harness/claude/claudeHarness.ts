@@ -8,8 +8,9 @@ import {
     DEFAULT_CLAUDE_EFFORT_LEVEL,
     resolveClaudeModel,
     seedClaudeHome,
+    seedClaudeOAuthCredentials,
 } from "./claudeConfig.js";
-import { resolveBackend } from "../shared.js";
+import { assertRemoteServerOptions, resolveBackend } from "../shared.js";
 import { HarnessLogger } from "../logger.js";
 import { ClaudeTuiSession, type ClaudeState } from "./claudeSession.js";
 import type { AgentHarness, AgentHarnessOptions, AgentSession } from "../types.js";
@@ -69,6 +70,7 @@ export class ClaudeTuiHarness implements AgentHarness {
     }
 
     async start(options: AgentHarnessOptions): Promise<AgentSession> {
+        assertRemoteServerOptions(options);
         // Per-session CLAUDE_CONFIG_DIR: developer config untouched, no state or JSONL reused.
         const config = new ClaudeHarnessConfig();
         const claudeHome = path.join(options.workDir, `claude-home-${Math.random().toString(36).slice(2, 8)}`);
@@ -77,6 +79,7 @@ export class ClaudeTuiHarness implements AgentHarness {
         // Pre-seed onboarding/trust state + MCP config (whitelists MCP tools, so no permission flags needed).
         const mcpServerName = options.mcpServerName ?? "mongo";
         seedClaudeHome({ homeDir: claudeHome, workDir: options.workDir, mcpServerName });
+        seedClaudeOAuthCredentials({ homeDir: claudeHome, options });
         const mcpConfig = config.buildConfig(options);
         const mcpConfigPath = path.join(claudeHome, config.configFileName);
         await fs.writeFile(mcpConfigPath, mcpConfig);
