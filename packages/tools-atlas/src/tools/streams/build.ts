@@ -385,7 +385,7 @@ export class StreamsBuildTool extends StreamsToolBase {
                     text:
                         `Connection '${args.connectionName}' (${args.connectionType}) added to workspace '${workspaceName}'.${privateLinkWarning}\n\n` +
                         `Next: Add more connections or deploy a processor with \`atlas-streams-build\` resource='processor'. ` +
-                        `Reference this connection as '${args.connectionName}' in your processor pipeline's $source, $merge, or $emit stages.`,
+                        `Reference this connection as '${args.connectionName}' in your processor pipeline's $source, $merge, $emit, or $iceberg stages.`,
                 },
             ],
             structuredContent: { resource: "connection" },

@@ -881,7 +881,7 @@ describe("StreamsBuildTool", () => {
             expect((result.content[0] as { text: string }).text).toContain("$$ROOT");
         });
 
-        it("should accept $emit as a valid terminal stage", async () => {
+        it("should accept $emit as a valid sink stage", async () => {
             mockApiClient.listStreamConnections!.mockResolvedValue({
                 results: [{ name: "src" }, { name: "sink" }],
             });
@@ -897,7 +897,7 @@ describe("StreamsBuildTool", () => {
             expect(mockApiClient.createStreamProcessor).toHaveBeenCalledOnce();
         });
 
-        it("should accept $https as a valid terminal stage", async () => {
+        it("should accept $https as a valid sink stage", async () => {
             mockApiClient.listStreamConnections!.mockResolvedValue({
                 results: [{ name: "src" }, { name: "webhook" }],
             });
@@ -913,7 +913,7 @@ describe("StreamsBuildTool", () => {
             expect(mockApiClient.createStreamProcessor).toHaveBeenCalledOnce();
         });
 
-        it("should accept $externalFunction as a valid terminal stage", async () => {
+        it("should accept $externalFunction as a valid sink stage", async () => {
             mockApiClient.listStreamConnections!.mockResolvedValue({
                 results: [{ name: "src" }, { name: "lambda" }],
             });
