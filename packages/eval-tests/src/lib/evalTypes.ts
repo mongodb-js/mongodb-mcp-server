@@ -14,14 +14,14 @@ export const EvalParametersSchema = z3
             .string()
             .describe(`MongoDB connection string`)
             .default("mongodb://localhost:27017/?directConnection=true"),
-        model: z3.string().describe(`Model used by the agent under test`).default("gpt-5.1"),
+        model: z3.string().describe(`Model used by the agent under test`).default("gpt-5"),
         judgeModel: z3.string().describe(`Model used by the judge`).default("gpt-6-astra"),
-        modelReasoningEffort: ReasoningEffortSchema.describe(
-            `Reasoning effort for the agent under test. Set explicitly because some models defaults to "none" when unset.`
-        ).default("medium"),
-        judgeModelReasoningEffort: ReasoningEffortSchema.optional().describe(
-            `Reasoning effort for the judge. Uses the model's own default when unset.`
-        ).default("max"),
+        modelReasoningEffort: ReasoningEffortSchema.describe(`Reasoning effort for the agent under test.`).default(
+            "medium"
+        ),
+        judgeModelReasoningEffort: ReasoningEffortSchema.optional()
+            .describe(`Reasoning effort for the judge.`)
+            .default("max"),
         systemContext: z3
             .string()
             .describe("System prompt prepended for the agent under test.")
