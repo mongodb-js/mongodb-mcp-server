@@ -796,7 +796,11 @@ describe("StreamsBuildTool", () => {
             expect(mockApiClient.createStreamProcessor).not.toHaveBeenCalled();
         });
 
-        it("should return error when last stage is not a terminal stage", async () => {
+        it("should not reject pipelines whose last stage is not a known sink (API decides)", async () => {
+            mockApiClient.listStreamConnections!.mockResolvedValue({
+                results: [{ name: "src" }],
+            });
+
             const result = await exec({
                 ...baseArgs,
                 resource: "processor",
@@ -804,11 +808,42 @@ describe("StreamsBuildTool", () => {
                 pipeline: [{ $source: { connectionName: "src" } }, { $match: { status: "active" } }],
             });
 
-            expect(result.isError).toBe(true);
-            const text = (result.content[0] as { text: string }).text;
-            expect(text).toContain("last stage must be a terminal stage");
-            expect(text).toContain("$match");
-            expect(mockApiClient.createStreamProcessor).not.toHaveBeenCalled();
+            expect(result.isError).toBeUndefined();
+            expect(mockApiClient.createStreamProcessor).toHaveBeenCalledOnce();
+        });
+
+        it("should accept $iceberg as the last stage", async () => {
+            mockApiClient.listStreamConnections!.mockResolvedValue({
+                results: [{ name: "src" }, { name: "s3" }],
+            });
+
+            const pipeline = [
+                { $source: { connectionName: "src" } },
+                {
+                    $iceberg: {
+                        connectionName: "s3",
+                        bucket: "myBucket",
+                        databaseName: "myDb",
+                        tableName: "myTable",
+                        path: "iceberg-warehouse",
+                    },
+                },
+            ];
+
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "proc1",
+                pipeline,
+            });
+
+            expect(result.isError).toBeUndefined();
+            expect(mockApiClient.createStreamProcessor).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: { name: "proc1", pipeline },
+                }),
+                expect.anything()
+            );
         });
 
         it("should return error when pipeline contains $$NOW", async () => {
@@ -846,7 +881,7 @@ describe("StreamsBuildTool", () => {
             expect((result.content[0] as { text: string }).text).toContain("$$ROOT");
         });
 
-        it("should accept $emit as a valid terminal stage", async () => {
+        it("should accept $emit as a valid sink stage", async () => {
             mockApiClient.listStreamConnections!.mockResolvedValue({
                 results: [{ name: "src" }, { name: "sink" }],
             });
@@ -862,7 +897,7 @@ describe("StreamsBuildTool", () => {
             expect(mockApiClient.createStreamProcessor).toHaveBeenCalledOnce();
         });
 
-        it("should accept $https as a valid terminal stage", async () => {
+        it("should accept $https as a valid sink stage", async () => {
             mockApiClient.listStreamConnections!.mockResolvedValue({
                 results: [{ name: "src" }, { name: "webhook" }],
             });
@@ -878,7 +913,7 @@ describe("StreamsBuildTool", () => {
             expect(mockApiClient.createStreamProcessor).toHaveBeenCalledOnce();
         });
 
-        it("should accept $externalFunction as a valid terminal stage", async () => {
+        it("should accept $externalFunction as a valid sink stage", async () => {
             mockApiClient.listStreamConnections!.mockResolvedValue({
                 results: [{ name: "src" }, { name: "lambda" }],
             });
