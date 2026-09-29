@@ -73,8 +73,9 @@ export class ExplainTool extends MongoDBToolBase {
 
     protected async execute(
         { connectionId, database, collection, method: methods, verbosity }: ToolArgs<ReturnType<typeof this.argsShape>>,
-        { request }: ToolExecutionContext<IMongoDBConfig>
+        context: ToolExecutionContext<IMongoDBConfig>
     ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
+        const { request } = context;
         const provider = await this.resolveConnection(connectionId);
         const method = methods[0];
 
@@ -88,7 +89,7 @@ export class ExplainTool extends MongoDBToolBase {
         switch (method.name) {
             case "aggregate": {
                 const { pipeline } = method.arguments;
-                this.assertMqlIsAllowed(this.server.config, pipeline);
+                this.assertMqlIsAllowed(this.resolveConfig(context), pipeline);
                 result = await provider
                     .aggregate(
                         database,
@@ -106,7 +107,7 @@ export class ExplainTool extends MongoDBToolBase {
             }
             case "find": {
                 const { filter, ...rest } = method.arguments;
-                this.assertMqlIsAllowed(this.server.config, filter, rest.projection);
+                this.assertMqlIsAllowed(this.resolveConfig(context), filter, rest.projection);
                 result = await provider
                     .find(database, collection, filter, {
                         ...rest,
@@ -117,7 +118,7 @@ export class ExplainTool extends MongoDBToolBase {
             }
             case "count": {
                 const { query } = method.arguments;
-                this.assertMqlIsAllowed(this.server.config, query);
+                this.assertMqlIsAllowed(this.resolveConfig(context), query);
                 result = await provider.runCommandWithCheck(
                     database,
                     {

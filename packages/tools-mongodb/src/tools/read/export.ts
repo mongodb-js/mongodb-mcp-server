@@ -74,8 +74,9 @@ export class ExportTool extends MongoDBToolBase {
             exportTitle,
             exportTarget: target,
         }: ToolArgs<ReturnType<typeof this.argsShape>>,
-        { request }: ToolExecutionContext<IMongoDBConfig>
+        context: ToolExecutionContext<IMongoDBConfig>
     ): Promise<CallToolResult> {
+        const { request } = context;
         const provider = await this.resolveConnection(connectionId);
         const exportTarget = target[0];
         if (!exportTarget) {
@@ -87,7 +88,7 @@ export class ExportTool extends MongoDBToolBase {
         let cursor: FindCursor | AggregationCursor;
         if (exportTarget.name === "find") {
             const { filter, projection, sort, limit } = exportTarget.arguments;
-            this.assertMqlIsAllowed(this.server.config, filter, projection);
+            this.assertMqlIsAllowed(this.resolveConfig(context), filter, projection);
             cursor = provider.find(database, collection, filter ?? {}, {
                 projection,
                 sort,
@@ -102,7 +103,7 @@ export class ExportTool extends MongoDBToolBase {
                 pipeline,
                 "The export tool can not run pipelines with $out or $merge stages. Use the aggregate tool to run a pipeline that writes to a collection."
             );
-            this.assertMqlIsAllowed(this.server.config, pipeline);
+            this.assertMqlIsAllowed(this.resolveConfig(context), pipeline);
             cursor = provider.aggregate(database, collection, pipeline, {
                 promoteValues: false,
                 bsonRegExp: true,

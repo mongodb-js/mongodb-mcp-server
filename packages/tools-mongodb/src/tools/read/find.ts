@@ -77,13 +77,14 @@ export class FindTool extends MongoDBToolBase {
             sort,
             responseBytesLimit,
         }: ToolArgs<ReturnType<typeof this.argsShape>>,
-        { request }: ToolExecutionContext<IMongoDBConfig>
+        context: ToolExecutionContext<IMongoDBConfig>
     ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
+        const { request } = context;
         let findCursor: FindCursor<unknown> | undefined = undefined;
         try {
             const provider = await this.resolveConnection(connectionId);
 
-            this.assertMqlIsAllowed(this.server.config, filter, projection);
+            this.assertMqlIsAllowed(this.resolveConfig(context), filter, projection);
 
             // Check if find operation uses an index if enabled
             if (this.server.config.indexCheck) {

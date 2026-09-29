@@ -177,7 +177,7 @@ export class AggregateTool extends MongoDBToolBase {
         try {
             const provider = await this.resolveConnection(connectionId);
             const isSearchSupported = await this.isSearchSupported(connectionId);
-            this.assertOnlyUsesPermittedStages({ config: this.server.config, isSearchSupported, pipeline });
+            this.assertOnlyUsesPermittedStages({ config: this.resolveConfig(context), isSearchSupported, pipeline });
             if (isSearchSupported) {
                 let searchIndexes: SearchIndex[] | undefined;
                 try {

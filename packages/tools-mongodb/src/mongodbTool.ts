@@ -142,6 +142,15 @@ export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
     }
 
     /**
+     * Resolves the effective config for a call: the deprecated per-call
+     * {@link ToolExecutionContext.config} override layered over the server's
+     * config. Unset fields fall back to `this.server.config`.
+     */
+    protected resolveConfig(context: ToolExecutionContext<IMongoDBConfig>): IMongoDBConfig {
+        return context.config ? { ...this.server.config, ...context.config } : this.server.config;
+    }
+
+    /**
      * Rejects the operation when the provided MQL input is not permitted by the
      * current configuration:
      *  - server-side JavaScript operators (such as $where, $function, or

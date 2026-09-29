@@ -51,12 +51,11 @@ export class UpdateManyTool extends MongoDBToolBase {
 
     protected async execute(
         { connectionId, database, collection, filter, update, upsert }: ToolArgs<ReturnType<typeof this.argsShape>>,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        _context: ToolExecutionContext<IMongoDBConfig>
+        context: ToolExecutionContext<IMongoDBConfig>
     ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const provider = await this.resolveConnection(connectionId);
 
-        this.assertMqlIsAllowed(this.server.config, filter);
+        this.assertMqlIsAllowed(this.resolveConfig(context), filter);
 
         // Check if update operation uses an index if enabled
         if (this.server.config.indexCheck) {
