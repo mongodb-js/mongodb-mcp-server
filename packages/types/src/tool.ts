@@ -177,7 +177,9 @@ export type ToolExecutionContext<TConfig extends IToolConfig = IToolConfig> = {
      *
      * @deprecated Prefer a request-scoped server whose config already carries
      * any override. This escape hatch exists only for callers that must vary
-     * config per call against a shared server and should not be built upon.
+     * config per call against a shared server — it will be removed together
+     * with the legacy (2025-era sessionful) handler that makes such a shared
+     * server necessary.
      */
     config?: Partial<TConfig>;
 };
