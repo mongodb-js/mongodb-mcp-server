@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Generates release notes combining an AI summary with structured GitHub release notes.
 //
-// Usage: node scripts/generate-release-notes.ts [--newVersion <version>] [--commitSha <sha>]
+// Usage: node packages/scripts/src/generate-release-notes.ts [--newVersion <version>] [--commitSha <sha>]
 
 import { execFileSync } from "child_process";
 import { appendFileSync, writeFileSync } from "fs";
