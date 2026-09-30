@@ -699,3 +699,80 @@ describe("MCPHttpServer dangerous-host binding guard", () => {
         await expect(server.start()).resolves.toBeUndefined();
     });
 });
+
+describe("MCPHttpServer client protocol reporting", () => {
+    let server: MCPHttpServer<BaseServer> | undefined;
+    let seen: TransportRequestContext[] = [];
+
+    class ProtocolCapturingServer extends MCPHttpServer<BaseServer> {
+        constructor() {
+            super({
+                options: { http: httpOptions },
+                logger: new InMemoryLogger(),
+                metrics: new MockMetrics(),
+            });
+        }
+
+        protected override createServerForRequest(request: TransportRequestContext): Promise<BaseServer> {
+            seen.push(request);
+            return Promise.resolve(makeFakeServer());
+        }
+    }
+
+    afterEach(async () => {
+        await server?.stop();
+        server = undefined;
+        seen = [];
+    });
+
+    function postMcp(headers: Record<string, string>, body: string): Promise<Response> {
+        return fetch(`${server?.serverAddress}/mcp`, {
+            method: "POST",
+            headers: { "content-type": "application/json", accept: "application/json, text/event-stream", ...headers },
+            body,
+        });
+    }
+
+    it("reports the pinned 2026-07-28 revision for modern requests", async () => {
+        server = new ProtocolCapturingServer();
+        await server.start();
+
+        const res = await postMcp({ "mcp-method": "tools/list" }, MODERN_BODY);
+        expect(res.status).toBe(200);
+        expect(seen.map((request) => request.mcp_client_protocol)).toContain("2026-07-28");
+    });
+
+    it("reports the exact MCP-Protocol-Version header on legacy requests", async () => {
+        server = new ProtocolCapturingServer();
+        await server.start();
+
+        const res = await postMcp(
+            { "mcp-protocol-version": "2025-06-18" },
+            JSON.stringify({
+                jsonrpc: "2.0",
+                method: "initialize",
+                id: 1,
+                params: { protocolVersion: "2025-11-25", capabilities: {}, clientInfo: { name: "x", version: "1" } },
+            })
+        );
+        expect(res.status).toBe(200);
+        expect(seen.map((request) => request.mcp_client_protocol)).toContain("2025-06-18");
+    });
+
+    it("falls back to the initialize body revision when the header is absent", async () => {
+        server = new ProtocolCapturingServer();
+        await server.start();
+
+        const res = await postMcp(
+            {},
+            JSON.stringify({
+                jsonrpc: "2.0",
+                method: "initialize",
+                id: 1,
+                params: { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "x", version: "1" } },
+            })
+        );
+        expect(res.status).toBe(200);
+        expect(seen.map((request) => request.mcp_client_protocol)).toContain("2024-11-05");
+    });
+});

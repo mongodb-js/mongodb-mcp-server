@@ -30,7 +30,7 @@ import { createUIResource, type UIResource } from "@mcp-ui/server";
 import { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
 import { getRandomUUID } from "@mongodb-js/mcp-core";
 import { requestIdAttr } from "./helpers/requestIdAttr.js";
-import { clientTelemetryProperties } from "./helpers/clientTelemetry.js";
+import { clientTelemetryProperties, protocolTelemetryProperties } from "./helpers/clientTelemetry.js";
 
 import { LogId } from "./logId.js";
 
@@ -976,6 +976,7 @@ export abstract class ToolBase<
                     duration_ms: duration,
                     result: result.isError ? "failure" : "success",
                     ...clientTelemetryProperties(clientInfo),
+                    ...protocolTelemetryProperties(this.server.mcpServer, this.transportRequest),
                     ...metadata,
                 },
             };

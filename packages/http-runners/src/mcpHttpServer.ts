@@ -187,7 +187,8 @@ export abstract class MCPHttpServer<
                     // middleware (see registerMiddlewares), uniformly for the modern
                     // and legacy paths.
                     authInfo: ctx.authInfo,
-                    protocol: "2026-07-28",
+                    // Modern serving is pinned to the 2026-07-28 revision.
+                    mcp_client_protocol: "2026-07-28",
                 };
                 const server = await this.createServerForRequest(request);
                 await server.register();

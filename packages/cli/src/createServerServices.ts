@@ -252,7 +252,7 @@ export function connectionScopeFromConfig(config: UserConfig): ConnectionScopePo
         // has no session machinery, so share the global scope so anonymous
         // clients can still persist connections. The legacy sessionful path
         // always has a server-issued session; leave it ephemeral (undefined).
-        return id ?? (request.protocol === "2026-07-28" ? GLOBAL_CONNECTION_SCOPE : undefined);
+        return id ?? (request.mcp_client_protocol === "2026-07-28" ? GLOBAL_CONNECTION_SCOPE : undefined);
     };
 }
 

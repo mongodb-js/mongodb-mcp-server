@@ -688,7 +688,7 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
         const server = createServerFromConfig({
             config,
             sharedServices,
-            request: { headers: {}, query: {}, protocol: "legacy" },
+            request: { headers: {}, query: {}, mcp_client_protocol: "legacy" },
             connectionScope: connectionScopeFromConfig(config),
         });
 
@@ -717,7 +717,7 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
         const request: TransportRequestContext = {
             headers: { [SESSION_ID_HEADER]: "sess-1" },
             query: {},
-            protocol: "2026-07-28",
+            mcp_client_protocol: "2026-07-28",
         };
         const server = createServerFromConfig({
             config,
@@ -784,20 +784,24 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
 
             const policy = connectionScopeFromConfig(config);
             // A request carrying an mcp-session-id resolves to that id.
-            expect(policy({ headers: { [SESSION_ID_HEADER]: "sess-1" }, query: {}, protocol: "2026-07-28" })).toBe(
-                "sess-1"
-            );
+            expect(
+                policy({ headers: { [SESSION_ID_HEADER]: "sess-1" }, query: {}, mcp_client_protocol: "2026-07-28" })
+            ).toBe("sess-1");
             // Sessionless request without an id → shared (global) scope.
-            expect(policy({ headers: {}, query: {}, protocol: "2026-07-28" })).toBe(GLOBAL_CONNECTION_SCOPE);
+            expect(policy({ headers: {}, query: {}, mcp_client_protocol: "2026-07-28" })).toBe(GLOBAL_CONNECTION_SCOPE);
             // Legacy sessionful request without an id → ephemeral (undefined).
-            expect(policy({ headers: {}, query: {}, protocol: "legacy" })).toBeUndefined();
+            expect(policy({ headers: {}, query: {}, mcp_client_protocol: "legacy" })).toBeUndefined();
             // Oversized / non-string ids fail closed (no session id, so global on sessionless).
             expect(
-                policy({ headers: { [SESSION_ID_HEADER]: "x".repeat(600) }, query: {}, protocol: "2026-07-28" })
+                policy({
+                    headers: { [SESSION_ID_HEADER]: "x".repeat(600) },
+                    query: {},
+                    mcp_client_protocol: "2026-07-28",
+                })
             ).toBe(GLOBAL_CONNECTION_SCOPE);
-            expect(policy({ headers: { [SESSION_ID_HEADER]: ["a", "b"] }, query: {}, protocol: "2026-07-28" })).toBe(
-                GLOBAL_CONNECTION_SCOPE
-            );
+            expect(
+                policy({ headers: { [SESSION_ID_HEADER]: ["a", "b"] }, query: {}, mcp_client_protocol: "2026-07-28" })
+            ).toBe(GLOBAL_CONNECTION_SCOPE);
         });
 
         it("stateless requests sharing an mcp-session-id see each other's connections", async () => {
@@ -812,7 +816,7 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
             const req = (id?: string): TransportRequestContext => ({
                 headers: id ? { [SESSION_ID_HEADER]: id } : {},
                 query: {},
-                protocol: "2026-07-28",
+                mcp_client_protocol: "2026-07-28",
             });
 
             const a1 = createServerFromConfig({

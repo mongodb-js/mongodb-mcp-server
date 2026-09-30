@@ -1,7 +1,7 @@
 import { CallToolRequestSchema } from "@modelcontextprotocol/core";
 import type { McpServer, Transport, Implementation } from "@modelcontextprotocol/server";
 import type { LogLevel } from "@mongodb-js/mcp-types";
-import { MCP_LOG_LEVELS, LogId, clientTelemetryProperties } from "@mongodb-js/mcp-core";
+import { MCP_LOG_LEVELS, LogId, clientTelemetryProperties, protocolTelemetryProperties } from "@mongodb-js/mcp-core";
 import type { CallToolResult, IUIRegistry } from "@mongodb-js/mcp-types";
 import type { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import type { ConnectionRegistry, ExportsManager } from "@mongodb-js/mcp-tools-mongodb";
@@ -360,6 +360,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
                 category: "other",
                 command: command,
                 ...clientTelemetryProperties(this.clientInfo),
+                ...protocolTelemetryProperties(this.mcpServer, this.transportRequest),
             },
         };
 

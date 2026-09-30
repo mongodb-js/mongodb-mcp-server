@@ -35,7 +35,8 @@ export type TelemetryCommonProperties = {
     config_connection_string?: TelemetryBoolSet;
     hosting_mode?: string;
     has_docker?: TelemetryBoolSet;
-    protocol?: McpProtocol;
+    /** The exact MCP protocol revision the client used, or `"legacy"` when unset. */
+    mcp_client_protocol?: McpProtocol;
 } & TelemetryCommonStaticProperties;
 
 export type TelemetryEvent<T> = {
@@ -116,6 +117,8 @@ export type ToolEventProperties = {
     /** The MCP client that issued the request, per-request (see {@link TelemetryCommonProperties}). */
     mcp_client_name?: string;
     mcp_client_version?: string;
+    /** The exact MCP protocol revision the client used, per-request (see {@link TelemetryCommonProperties}). */
+    mcp_client_protocol?: string;
 } & TelemetryToolMetadata;
 
 export type ToolEvent = TelemetryEvent<ToolEventProperties>;
