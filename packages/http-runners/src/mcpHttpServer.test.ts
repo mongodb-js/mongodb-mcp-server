@@ -705,11 +705,12 @@ describe("MCPHttpServer client protocol reporting", () => {
     let seen: TransportRequestContext[] = [];
 
     class ProtocolCapturingServer extends MCPHttpServer<BaseServer> {
-        constructor() {
+        constructor(sessionOptions?: LegacySessionOptions) {
             super({
                 options: { http: httpOptions },
                 logger: new InMemoryLogger(),
                 metrics: new MockMetrics(),
+                sessionOptions,
             });
         }
 
@@ -774,5 +775,22 @@ describe("MCPHttpServer client protocol reporting", () => {
         );
         expect(res.status).toBe(200);
         expect(seen.map((request) => request.mcp_client_protocol)).toContain("2024-11-05");
+    });
+
+    it("ignores a body protocolVersion on a non-initialize request during implicit session re-initialization", async () => {
+        server = new ProtocolCapturingServer({ externallyManagedSessions: true });
+        await server.start();
+
+        // No MCP-Protocol-Version header, and the body is a tools/list (not an
+        // initialize) that happens to carry a params.protocolVersion field. No
+        // handshake named a revision, so the transport must not report one.
+        await postMcp(
+            { "mcp-session-id": "external-id" },
+            JSON.stringify({ jsonrpc: "2.0", method: "tools/list", id: 1, params: { protocolVersion: "2025-06-18" } })
+        );
+
+        const reported = seen.map((request) => request.mcp_client_protocol);
+        expect(reported).toContain("legacy");
+        expect(reported).not.toContain("2025-06-18");
     });
 });

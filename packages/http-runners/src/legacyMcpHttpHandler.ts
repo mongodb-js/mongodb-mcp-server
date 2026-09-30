@@ -145,10 +145,14 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
             return header;
         }
 
-        const body = req.body as { params?: { protocolVersion?: unknown } } | undefined;
-        const bodyVersion = body?.params?.protocolVersion;
-        if (typeof bodyVersion === "string" && bodyVersion.length > 0) {
-            return bodyVersion;
+        // Only the opening `initialize` handshake names a revision in its body.
+        // A session request that happens to carry a `params.protocolVersion`
+        // field (e.g. a tool call) never negotiated one, so ignore it.
+        if (isInitializeRequest(req.body)) {
+            const bodyVersion = req.body.params.protocolVersion;
+            if (typeof bodyVersion === "string" && bodyVersion.length > 0) {
+                return bodyVersion;
+            }
         }
 
         return "legacy";
