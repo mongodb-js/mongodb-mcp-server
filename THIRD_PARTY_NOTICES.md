@@ -1,5 +1,5 @@
 The following third-party software is used by and included in **MongoDB MCP Server**.
-This document was automatically generated on Sun Sep 27 2026.
+This document was automatically generated on Wed Sep 30 2026.
 
 ## List of dependencies
 
@@ -55,7 +55,7 @@ Package|Version|License
 **[@bramus/specificity](#2684a31ce76380dafc3cd88787d6d70c84ae2302ea6d50c7d8a7a7c27d8cec25)**|2.4.2|MIT
 **[@cfworker/json-schema](#a3ff56de9158fb479a4eb73317fba1e4f9d7390f67a36393cdceb9d107db81fd)**|4.1.1|MIT
 **[@colors/colors](#fb1a7d95a4047d824ec8eec6a2c0da6c6d292dfe64036c5b1cba35f77f97e43d)**|1.5.0|MIT
-**[@exodus/bytes](#1c33a4f08f5f611bc0b2cd10fe90bad60b09944af0e1275ee91b337804eb2259)**|1.15.1|MIT
+**[@exodus/bytes](#59cb10a35354abefa6433d1ffd4091966b77a426e8ece32a4b983fa016b6feae)**|1.15.2|MIT
 **[@grpc/grpc-js](#448faf6a7518cfd1722031c22877ed8ac93da66aa978188b9b17d45822f6f364)**|1.14.4|Apache-2.0
 **[@grpc/proto-loader](#b0050dfd7e2b33e7ce8c60c187526aab92262b66bf92a039d191cde2dbe4ca44)**|0.7.15|Apache-2.0
 **[@grpc/proto-loader](#f3a2f9482941d4fafecdad6bb92324de16c6fe5098f7658444c30e65fc94a6e7)**|0.8.1|Apache-2.0
@@ -475,6 +475,7 @@ Package|Version|License
 **[loose-envify](#ad111a7991710520d4756d1da3b0e32e519d3053b71b5b7b7f4676aaf027590a)**|1.4.0|MIT
 **[lru-cache](#3a13bfe2b7911beeb55053c270fe074ee8a432183299ad08d7bf05856f064df0)**|10.4.3|ISC
 **[lru-cache](#e163550123a385379047d114f4cc02c101ece95d675bc412c5ff84662a3d791e)**|11.5.2|BlueOak-1.0.0
+**[lru-cache](#aca9cdd4321dd851dbbfaf788934444ffe451fa027ea25ecda331e53138e9cd6)**|11.5.3|BlueOak-1.0.0
 **[magic-string](#a2e515768834b0a42b52b722957680865e904bc4e6d5f57760d3b02d31f15658)**|0.30.21|MIT
 **[magicast](#571115b54ca1f7e5b09cf7d18e144fca2f594beaeebb8cf3961093bc87c0c5d3)**|0.5.4|MIT
 **[make-dir](#3bb9f9a4e7739c0b7d72f6fff3559b323a5cd9d8f567b9436a7ebcde0da95db4)**|1.3.0|MIT
@@ -557,8 +558,8 @@ Package|Version|License
 **[pinkie-promise](#93c64c2afc117932e69534a865511191963c97dcc96651a1d0d7ba0ea5754f9a)**|2.0.1|MIT
 **[pinkie](#3e3b2cb7bdcf377a5dafe4632977fb89b70ac4e3d25a71fd063450294356a976)**|2.0.4|MIT
 **[pkce-challenge](#560377ce6df233b2e39ef3d3950e5a008292b4a21ba7893dfe4692de95ac8e3a)**|5.0.1|MIT
-**[playwright-core](#1152b278c7fe15a16871b06812a0f2afee3e4f2543af5deabe45a15e39bfafb6)**|1.60.0|Apache-2.0
-**[playwright](#e9699bde89789a7ef2363f3a44942533d2bf5ce0cd96ff6c187c5ed876d44b01)**|1.60.0|Apache-2.0
+**[playwright-core](#e708629117d99a29f8cebcd87c100046e84a309eba696ef2e3d3fcf3d250665c)**|1.63.0|Apache-2.0
+**[playwright](#104e1ee57575afcb9e6ce40cfe927a78ca4ebf21d4d4b4c00ccc6df019889877)**|1.63.0|Apache-2.0
 **[pluralize](#d46d2e3a4df005999e086cbd568aa14936838885fd30008b0e772fa73ee66d76)**|8.0.0|MIT
 **[pngjs](#c4a10d4036f34449b916c51211cd34fc2ff8c092de35713e55936299938c02af)**|7.0.0|MIT
 **[possible-typed-array-names](#9d88337b5021573c773eed80b0c9204d4cadb96cebe01f76d9c674d01c8858e0)**|1.1.0|MIT
@@ -678,8 +679,8 @@ Package|Version|License
 **[tinyexec](#356bc9523dbe876b0a061ed85d592c9e4274d394b9abd0c0e6aa502c6270de85)**|1.3.0|MIT
 **[tinyglobby](#b066f6a628712391f95f1d1ed52a2609ac83b683b12c4cf8e4ff399658f4854a)**|0.2.17|MIT
 **[tinyrainbow](#6d7c548315438974db6f6984cfc8dbd64b66b09f26a63ea28835da30eb63cf5a)**|3.1.1|MIT
-**[tldts-core](#025279981c28aace367a41e8df505f88ddd605e417216a9466cd87d41faa852e)**|7.4.13|MIT
-**[tldts](#74da299d2c8e2f5c3bad3560915f456bed6fe6c2575a259a08d62c446ace08bb)**|7.4.13|MIT
+**[tldts-core](#30ce518f612659defc38dd4775e3d3a1e93e1906b9b4e682fd834872f477c34a)**|7.4.14|MIT
+**[tldts](#01671f88c1f607b9ad48c8f70b4cc0d449ce36c1050873abaa2353c3e9924083)**|7.4.14|MIT
 **[tmp](#633692989ef11eac6ff1f1756dbcbc05fad830376a6066c7ab6a90b9786adf48)**|0.2.7|MIT
 **[to-buffer](#aab39571abfe03a19c99b49788f7f62925cd5528a69849c2734ff85994221209)**|1.2.2|MIT
 **[toidentifier](#2067d1f99d35f28c8384d3e9762282f3c2ded0041392af855caf28ba2209bd2a)**|1.0.1|MIT
@@ -1004,8 +1005,8 @@ License tags: MIT
 License tags: MIT
 
 
-<a id="1c33a4f08f5f611bc0b2cd10fe90bad60b09944af0e1275ee91b337804eb2259"></a>
-### [@exodus/bytes](https://www.npmjs.com/package/@exodus/bytes) (version 1.15.1)
+<a id="59cb10a35354abefa6433d1ffd4091966b77a426e8ece32a4b983fa016b6feae"></a>
+### [@exodus/bytes](https://www.npmjs.com/package/@exodus/bytes) (version 1.15.2)
 License tags: MIT
 
 
@@ -3173,6 +3174,11 @@ License tags: ISC
 License tags: BlueOak-1.0.0
 
 
+<a id="aca9cdd4321dd851dbbfaf788934444ffe451fa027ea25ecda331e53138e9cd6"></a>
+### [lru-cache](https://www.npmjs.com/package/lru-cache) (version 11.5.3)
+License tags: BlueOak-1.0.0
+
+
 <a id="a2e515768834b0a42b52b722957680865e904bc4e6d5f57760d3b02d31f15658"></a>
 ### [magic-string](https://www.npmjs.com/package/magic-string) (version 0.30.21)
 License tags: MIT
@@ -3583,13 +3589,13 @@ License tags: MIT
 License tags: MIT
 
 
-<a id="1152b278c7fe15a16871b06812a0f2afee3e4f2543af5deabe45a15e39bfafb6"></a>
-### [playwright-core](https://www.npmjs.com/package/playwright-core) (version 1.60.0)
+<a id="e708629117d99a29f8cebcd87c100046e84a309eba696ef2e3d3fcf3d250665c"></a>
+### [playwright-core](https://www.npmjs.com/package/playwright-core) (version 1.63.0)
 License tags: Apache-2.0
 
 
-<a id="e9699bde89789a7ef2363f3a44942533d2bf5ce0cd96ff6c187c5ed876d44b01"></a>
-### [playwright](https://www.npmjs.com/package/playwright) (version 1.60.0)
+<a id="104e1ee57575afcb9e6ce40cfe927a78ca4ebf21d4d4b4c00ccc6df019889877"></a>
+### [playwright](https://www.npmjs.com/package/playwright) (version 1.63.0)
 License tags: Apache-2.0
 
 
@@ -4228,13 +4234,13 @@ License tags: MIT
 License tags: MIT
 
 
-<a id="025279981c28aace367a41e8df505f88ddd605e417216a9466cd87d41faa852e"></a>
-### [tldts-core](https://www.npmjs.com/package/tldts-core) (version 7.4.13)
+<a id="30ce518f612659defc38dd4775e3d3a1e93e1906b9b4e682fd834872f477c34a"></a>
+### [tldts-core](https://www.npmjs.com/package/tldts-core) (version 7.4.14)
 License tags: MIT
 
 
-<a id="74da299d2c8e2f5c3bad3560915f456bed6fe6c2575a259a08d62c446ace08bb"></a>
-### [tldts](https://www.npmjs.com/package/tldts) (version 7.4.13)
+<a id="01671f88c1f607b9ad48c8f70b4cc0d449ce36c1050873abaa2353c3e9924083"></a>
+### [tldts](https://www.npmjs.com/package/tldts) (version 7.4.14)
 License tags: MIT
 
 
