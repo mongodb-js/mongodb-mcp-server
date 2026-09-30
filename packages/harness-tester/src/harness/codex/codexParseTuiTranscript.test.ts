@@ -43,6 +43,31 @@ describe("parseTuiTranscript", () => {
         );
     });
 
+    it("extracts tool calls from the collapsed activity preview (no args)", () => {
+        // codex >= 0.159 collapses MCP calls into an activity preview that renders
+        // `• Called <server>.<tool>` without the invocation args.
+        const transcript = [
+            "› List the databases.",
+            "",
+            "• Called mongo.list-databases",
+            "  └ </untrusted-user-data-…>",
+            "    + Show details",
+            "",
+            "• The databases are: admin, test, mydb.",
+            "",
+            "› Ask Codex to do anything",
+        ].join("\n");
+
+        const result = parseTuiTranscript(transcript);
+        expect(result.toolCalls).toContainEqual(
+            expect.objectContaining({
+                name: "list-databases",
+                rawName: "mongo.list-databases",
+                args: undefined,
+            })
+        );
+    });
+
     it("deduplicates identical tool calls", () => {
         const transcript = [
             "› Do the work.",
