@@ -18,6 +18,9 @@ coverage
 # Generated assets by accuracy runs
 .accuracy
 
+# Generated release notes
+release-notes.md
+
 **/temp
 .DS_Store
 
