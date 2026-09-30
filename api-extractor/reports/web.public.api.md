@@ -803,6 +803,7 @@ export type ToolClass<TServer extends ToolServer = ToolServer, TMetricsDefinitio
 // @public
 export type ToolExecutionContext<TConfig extends IToolConfig = IToolConfig> = {
     request: ToolRequest<TConfig>;
+    config?: Partial<TConfig>;
 };
 
 // @public

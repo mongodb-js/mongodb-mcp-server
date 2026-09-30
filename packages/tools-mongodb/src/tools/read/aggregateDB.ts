@@ -66,7 +66,7 @@ export class AggregateDBTool extends MongoDBToolBase {
         let aggregationCursor: AggregationCursor | undefined = undefined;
         try {
             const provider = await this.resolveConnection(connectionId);
-            this.assertOnlyUsesPermittedStages(this.server.config, pipeline);
+            this.assertOnlyUsesPermittedStages(this.resolveConfig(context), pipeline);
 
             let successMessage: string;
             let documents: unknown[];
