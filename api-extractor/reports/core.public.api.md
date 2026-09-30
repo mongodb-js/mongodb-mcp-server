@@ -340,6 +340,11 @@ export class NoopTelemetry implements ITelemetry {
 }
 
 // @public
+export function protocolTelemetryProperties(mcpServer: McpServer | undefined, transportRequest?: TransportRequestContext): {
+    mcp_client_protocol: string;
+};
+
+// @public
 export abstract class ReactiveResource<
 /** Value stored in the resource */
 Value, TServer extends IResourceServer = IResourceServer> {

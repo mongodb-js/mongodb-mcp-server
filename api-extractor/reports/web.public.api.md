@@ -693,7 +693,7 @@ export type TelemetryCommonProperties = {
     config_connection_string?: TelemetryBoolSet;
     hosting_mode?: string;
     has_docker?: TelemetryBoolSet;
-    protocol?: McpProtocol;
+    mcp_client_protocol?: McpProtocol;
 } & TelemetryCommonStaticProperties;
 
 // @public (undocumented)
@@ -834,7 +834,7 @@ export type TransportRequestContext = {
     headers?: Record<string, string | string[] | undefined>;
     query?: Record<string, string | string[] | undefined>;
     authInfo?: RequestAuthInfo;
-    protocol?: McpProtocol;
+    mcp_client_protocol?: McpProtocol;
 };
 
 // @public

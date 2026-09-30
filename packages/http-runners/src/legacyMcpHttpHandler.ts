@@ -3,6 +3,7 @@ import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
 import type express from "express";
 import type {
     ILogger,
+    McpProtocol,
     TransportRequestContext,
     RequestAuthInfo,
     HttpServerOptions,
@@ -132,6 +133,31 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
         await this.sessions.closeAllSessions();
     }
 
+    /**
+     * The exact MCP revision this 2025-era request named: the
+     * `MCP-Protocol-Version` header, or an `initialize` body's `protocolVersion`
+     * when the handshake is opening the session. `"legacy"` when the client
+     * names neither (e.g. a request that predates the header).
+     */
+    private resolveClientProtocol(req: express.Request): McpProtocol {
+        const header = req.headers["mcp-protocol-version"];
+        if (typeof header === "string" && header.length > 0) {
+            return header;
+        }
+
+        // Only the opening `initialize` handshake names a revision in its body.
+        // A session request that happens to carry a `params.protocolVersion`
+        // field (e.g. a tool call) never negotiated one, so ignore it.
+        if (isInitializeRequest(req.body)) {
+            const bodyVersion = req.body.params.protocolVersion;
+            if (typeof bodyVersion === "string" && bodyVersion.length > 0) {
+                return bodyVersion;
+            }
+        }
+
+        return "legacy";
+    }
+
     private buildTransportContext(req: express.Request): TransportRequestContext {
         return {
             headers: req.headers,
@@ -139,7 +165,7 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
             // The verified identity of this request, if the host injected it
             // via `req.auth`. Absent when the host supplied none.
             authInfo: (req as express.Request & { auth?: RequestAuthInfo }).auth,
-            protocol: "legacy",
+            mcp_client_protocol: this.resolveClientProtocol(req),
         };
     }
 
