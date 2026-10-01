@@ -65,7 +65,11 @@ export class ListDeploymentsTool extends AtlasLocalToolBase {
         });
 
         return {
-            content: formatUntrustedData(`Found ${deployments.length} deployments`, JSON.stringify(deploymentsJson)),
+            content: formatUntrustedData(
+                this.server.config,
+                `Found ${deployments.length} deployments`,
+                JSON.stringify(deploymentsJson)
+            ),
             structuredContent: {
                 count: deployments.length,
                 deployments: deploymentsJson,

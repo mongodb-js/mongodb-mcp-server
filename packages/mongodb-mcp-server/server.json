@@ -101,6 +101,13 @@
           "isSecret": false
         },
         {
+          "name": "MDB_MCP_DISABLE_UNTRUSTED_DATA_WARNING",
+          "description": "When set to true, tool responses include potentially untrusted data (such as documents or query results) as-is, without wrapping it in delimiters and a prompt-injection warning.",
+          "isRequired": false,
+          "format": "boolean",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_DISABLED_TOOLS",
           "description": "Comma separated values of tool names, operation types, and/or categories of tools that will be disabled.",
           "isRequired": false,
@@ -422,6 +429,13 @@
           "type": "named",
           "name": "--disableServerSideJs",
           "description": "When set to true, disallows the use of server-side JavaScript operators (such as $where, $function, and $accumulator) in query filters and aggregation pipelines.",
+          "isRequired": false,
+          "format": "boolean"
+        },
+        {
+          "type": "named",
+          "name": "--disableUntrustedDataWarning",
+          "description": "When set to true, tool responses include potentially untrusted data (such as documents or query results) as-is, without wrapping it in delimiters and a prompt-injection warning.",
           "isRequired": false,
           "format": "boolean"
         },
@@ -749,6 +763,13 @@
           "isSecret": false
         },
         {
+          "name": "MDB_MCP_DISABLE_UNTRUSTED_DATA_WARNING",
+          "description": "When set to true, tool responses include potentially untrusted data (such as documents or query results) as-is, without wrapping it in delimiters and a prompt-injection warning.",
+          "isRequired": false,
+          "format": "boolean",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_DISABLED_TOOLS",
           "description": "Comma separated values of tool names, operation types, and/or categories of tools that will be disabled.",
           "isRequired": false,
@@ -1070,6 +1091,13 @@
           "type": "named",
           "name": "--disableServerSideJs",
           "description": "When set to true, disallows the use of server-side JavaScript operators (such as $where, $function, and $accumulator) in query filters and aggregation pipelines.",
+          "isRequired": false,
+          "format": "boolean"
+        },
+        {
+          "type": "named",
+          "name": "--disableUntrustedDataWarning",
+          "description": "When set to true, tool responses include potentially untrusted data (such as documents or query results) as-is, without wrapping it in delimiters and a prompt-injection warning.",
           "isRequired": false,
           "format": "boolean"
         },

@@ -48,7 +48,7 @@ export class DebugResource extends ReactiveResource<undefined, CliServer> {
 
             if (summary.lastError) {
                 lines.push(
-                    formatUntrustedData(
+                    formatUntrustedData(this.server.config, 
                         `  The last connection attempt for "${summary.connectionId}" failed. The details below are unverified output from the connection attempt:`,
                         summary.lastError
                     )

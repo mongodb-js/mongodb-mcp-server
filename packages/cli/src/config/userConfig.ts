@@ -125,6 +125,13 @@ const ServerConfigSchema = z.object({
         .register(configRegistry, {
             overrideBehavior: oneWayOverride(true),
         }),
+    disableUntrustedDataWarning: z
+        .preprocess(parseBoolean, z.boolean())
+        .default(false)
+        .describe(
+            "When set to true, tool responses include potentially untrusted data (such as documents or query results) as-is, without wrapping it in delimiters and a prompt-injection warning."
+        )
+        .register(configRegistry, { overrideBehavior: "override" }),
     disableServerSideJs: z
         .preprocess(parseBoolean, z.boolean())
         .default(true)

@@ -141,6 +141,7 @@ export class ListClustersTool extends AtlasToolBase {
 
         return {
             content: formatUntrustedData(
+                this.server.config,
                 `Found ${formattedClusters.length} clusters across all projects`,
                 JSON.stringify(formattedClusters)
             ),
@@ -178,6 +179,7 @@ export class ListClustersTool extends AtlasToolBase {
 
         return {
             content: formatUntrustedData(
+                this.server.config,
                 `Found ${allClusters.length} clusters in project ${project.id}:`,
                 JSON.stringify({ projectName: project.name, clusters: allClusters })
             ),

@@ -1081,6 +1081,7 @@ export const UserConfigSchema: z.ZodObject<{
     elicitationTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     readOnly: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
     indexCheck: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
+    disableUntrustedDataWarning: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
     disableServerSideJs: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
     telemetry: z.ZodDefault<z.ZodEnum<{
         enabled: "enabled";
@@ -1098,8 +1099,8 @@ export const UserConfigSchema: z.ZodObject<{
     maxActiveConnections: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     connectionIdleTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     connectionScope: z.ZodDefault<z.ZodEnum<{
-        session: "session";
         global: "global";
+        session: "session";
     }>>;
     maxSessions: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     idleTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;

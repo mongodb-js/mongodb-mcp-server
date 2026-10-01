@@ -57,6 +57,7 @@ export class DropIndexTool extends MongoDBToolBase {
 
         return {
             content: formatUntrustedData(
+                this.server.config,
                 `${result.ok ? "Successfully dropped" : "Failed to drop"} the index from the provided namespace.`,
                 JSON.stringify({
                     indexName,
@@ -82,6 +83,7 @@ export class DropIndexTool extends MongoDBToolBase {
         if (indexes.length === 0) {
             return {
                 content: formatUntrustedData(
+                    this.server.config,
                     "Index does not exist in the provided namespace.",
                     JSON.stringify({ indexName, namespace: `${database}.${collection}` })
                 ),
@@ -98,6 +100,7 @@ export class DropIndexTool extends MongoDBToolBase {
         await provider.dropSearchIndex(database, collection, indexName);
         return {
             content: formatUntrustedData(
+                this.server.config,
                 "Successfully dropped the index from the provided namespace.",
                 JSON.stringify({
                     indexName,

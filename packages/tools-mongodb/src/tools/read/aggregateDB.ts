@@ -135,6 +135,7 @@ export class AggregateDBTool extends MongoDBToolBase {
 
             return {
                 content: formatUntrustedData(
+                    this.server.config,
                     successMessage,
                     ...(documents.length > 0 ? [JSON.stringify(documents)] : [])
                 ),

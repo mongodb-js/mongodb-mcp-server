@@ -8,6 +8,7 @@ const mockedTools: MockedTools = {
     "collection-indexes": ({ collection }: Record<string, unknown>): CallToolResult => {
         return {
             content: formatUntrustedData(
+                {},
                 `Found 1 indexes in the collection "${collection as string}".`,
                 JSON.stringify({
                     name: "_id_",

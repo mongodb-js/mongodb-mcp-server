@@ -106,7 +106,7 @@ export class ExportedData {
 
             const { content, docsTransformed } = await this.server.exportsManager.readExport(exportName);
 
-            const text = formatUntrustedData(`The exported data contains ${docsTransformed} documents.`, content)
+            const text = formatUntrustedData(this.server.config, `The exported data contains ${docsTransformed} documents.`, content)
                 .map((t) => t.text)
                 .join("\n");
 

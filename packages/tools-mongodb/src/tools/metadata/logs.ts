@@ -68,7 +68,7 @@ export class LogsTool extends MongoDBToolBase {
             message += ` (showing only the first ${limit})`;
         }
         return {
-            content: formatUntrustedData(message, logs.join("\n")),
+            content: formatUntrustedData(this.server.config, message, logs.join("\n")),
             structuredContent: {
                 logs,
                 totalLinesWritten: result.totalLinesWritten as number,

@@ -142,7 +142,7 @@ export { ElicitedInputResult }
 export { ElicitRequestSchema }
 
 // @public
-export function formatUntrustedData(description: string, ...data: string[]): {
+export function formatUntrustedData(config: Pick<IToolConfig, "disableUntrustedDataWarning">, description: string, ...data: string[]): {
     text: string;
     type: "text";
 }[];

@@ -146,6 +146,7 @@ export class FindTool extends MongoDBToolBase {
 
             return {
                 content: formatUntrustedData(
+                    this.server.config,
                     this.generateMessage({
                         collection,
                         queryResultsCount,
