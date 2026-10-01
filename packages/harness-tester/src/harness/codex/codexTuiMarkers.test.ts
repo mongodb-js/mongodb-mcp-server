@@ -16,12 +16,38 @@ describe("isCodexWorking", () => {
         expect(isCodexWorking("• Checking the config (v2) (1s • esc to interrupt)")).toBe(true);
     });
 
+    it("matches an animated spinner frame", () => {
+        // With animations enabled codex blinks between `•` and `◦`.
+        expect(isCodexWorking("◦ Working (3s • esc to interrupt)")).toBe(true);
+    });
+
+    it("matches when an inline status message follows the hint", () => {
+        expect(isCodexWorking("• Working (3s • esc to interrupt) · Running command")).toBe(true);
+    });
+
+    it("does not match commentary that merely ends with the phrase", () => {
+        expect(isCodexWorking("• I told it to interrupt)")).toBe(false);
+    });
+
     it("does not match an idle composer", () => {
         expect(isCodexWorking("› Ask Codex to do anything")).toBe(false);
     });
 
     it("does not match the startup banner", () => {
         expect(isCodexWorking("Waiting for startup  · esc cancel")).toBe(false);
+    });
+
+    it("ignores the hint quoted inside an echoed prompt", () => {
+        // A complete status line is required; this prompt merely mentions one.
+        expect(isCodexWorking("› the status shows • Working (5s • esc to interrupt)")).toBe(false);
+    });
+
+    it("still detects the status line when a prompt quotes the hint", () => {
+        const viewport = [
+            "› the status shows • Working (5s • esc to interrupt)",
+            "• Working (2s • esc to interrupt)",
+        ].join("\n");
+        expect(isCodexWorking(viewport)).toBe(true);
     });
 });
 
@@ -46,5 +72,9 @@ describe("isCodexTransitional", () => {
 
     it("does not match a real elicitation", () => {
         expect(isCodexTransitional("Yes, I confirm\nNo, I do not confirm")).toBe(false);
+    });
+
+    it("ignores banner text mentioned in a transcript line", () => {
+        expect(isCodexTransitional("The log said Waiting for startup and then continued")).toBe(false);
     });
 });
