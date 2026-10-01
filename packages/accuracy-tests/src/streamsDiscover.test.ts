@@ -9,6 +9,7 @@ const mockedTools = {
     "atlas-list-projects": (): CallToolResult => {
         return {
             content: formatUntrustedData(
+                {},
                 "Found 1 projects",
                 JSON.stringify([
                     {
@@ -24,6 +25,7 @@ const mockedTools = {
     "atlas-streams-discover": (): CallToolResult => {
         return {
             content: formatUntrustedData(
+                {},
                 "Found 1 workspace(s)",
                 JSON.stringify([
                     {

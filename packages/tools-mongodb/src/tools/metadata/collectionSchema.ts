@@ -92,7 +92,7 @@ export class CollectionSchemaTool extends MongoDBToolBase {
         const header = `Found ${fieldsCount} fields in the sampled schema. Note that this schema is inferred from a sample and may not represent the full schema of the collection.`;
 
         return {
-            content: formatUntrustedData(header, JSON.stringify({ database, collection, schema })),
+            content: formatUntrustedData(this.server.config, header, JSON.stringify({ database, collection, schema })),
             structuredContent: {
                 schema,
                 fieldsCount,

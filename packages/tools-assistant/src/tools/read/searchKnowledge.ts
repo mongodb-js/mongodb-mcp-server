@@ -87,6 +87,7 @@ export class SearchKnowledgeTool extends AssistantToolBase {
 
         return {
             content: formatUntrustedData(
+                this.server.config,
                 `Found ${results.length} results in the MongoDB Assistant knowledge base.`,
                 text
             ),

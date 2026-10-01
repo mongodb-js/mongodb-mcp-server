@@ -69,6 +69,7 @@ export class ListKnowledgeSourcesTool extends AssistantToolBase {
 
         return {
             content: formatUntrustedData(
+                this.server.config,
                 `Found ${dataSources.length} data sources in the MongoDB Assistant knowledge base.`,
                 text
             ),

@@ -1081,6 +1081,7 @@ export const UserConfigSchema: z.ZodObject<{
     elicitationTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     readOnly: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
     indexCheck: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
+    disableUntrustedDataWarning: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
     disableServerSideJs: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
     telemetry: z.ZodDefault<z.ZodEnum<{
         enabled: "enabled";

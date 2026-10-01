@@ -153,6 +153,20 @@ describe("configOverrides", () => {
                 const result = applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request });
                 expect(result.readOnly).toBe(true);
             });
+
+            it.each([
+                { base: false, header: "true", expected: true },
+                { base: true, header: "false", expected: false },
+            ])("should override disableUntrustedDataWarning from $base to $expected", ({ base, header, expected }) => {
+                const request: TransportRequestContext = {
+                    headers: { "x-mongodb-mcp-disable-untrusted-data-warning": header },
+                };
+                const result = applyConfigOverrides({
+                    baseConfig: { ...baseConfig, disableUntrustedDataWarning: base } as UserConfig,
+                    request,
+                });
+                expect(result.disableUntrustedDataWarning).toBe(expected);
+            });
         });
 
         describe("merge behavior", () => {

@@ -43,7 +43,11 @@ export class DbStatsTool extends MongoDBToolBase {
         const stats = bsonToJson(result);
 
         return {
-            content: formatUntrustedData("Statistics for database:", JSON.stringify({ database, stats })),
+            content: formatUntrustedData(
+                this.server.config,
+                "Statistics for database:",
+                JSON.stringify({ database, stats })
+            ),
             structuredContent: {
                 stats,
             },

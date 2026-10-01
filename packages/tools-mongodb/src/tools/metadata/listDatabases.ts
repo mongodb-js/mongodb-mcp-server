@@ -41,7 +41,11 @@ export class ListDatabasesTool extends MongoDBToolBase {
         }));
 
         return {
-            content: formatUntrustedData(`Found ${databases.length} databases:`, JSON.stringify(databases)),
+            content: formatUntrustedData(
+                this.server.config,
+                `Found ${databases.length} databases:`,
+                JSON.stringify(databases)
+            ),
             structuredContent: {
                 databases,
                 totalCount: databases.length,

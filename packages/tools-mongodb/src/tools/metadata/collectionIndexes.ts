@@ -64,11 +64,13 @@ export class CollectionIndexesTool extends MongoDBToolBase {
         return {
             content: [
                 ...formatUntrustedData(
+                    this.server.config,
                     `Found ${classicIndexes.length} classic indexes in the requested collection:`,
                     JSON.stringify(classicIndexes)
                 ),
                 ...(searchIndexes.length > 0
                     ? formatUntrustedData(
+                          this.server.config,
                           `Found ${searchIndexes.length} search and vector search indexes in the requested collection:`,
                           JSON.stringify(searchIndexes)
                       )

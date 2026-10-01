@@ -84,6 +84,7 @@ export class ListDBUsersTool extends AtlasToolBase {
 
         return {
             content: formatUntrustedData(
+                this.server.config,
                 `Found ${data.results.length} database users in project ${projectId}`,
                 JSON.stringify(users)
             ),
