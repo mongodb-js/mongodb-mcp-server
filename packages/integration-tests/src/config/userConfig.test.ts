@@ -26,6 +26,7 @@ const expectedDefaults = {
     telemetry: "enabled",
     readOnly: false,
     indexCheck: false,
+    disableUntrustedDataWarning: false,
     disableServerSideJs: true,
     deepInspect: true,
     confirmationRequiredTools: [

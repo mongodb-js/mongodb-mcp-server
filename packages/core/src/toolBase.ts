@@ -1075,6 +1075,16 @@ export type AnyToolBase = ToolBase<any>;
 /**
  * Formats potentially untrusted data to be included in tool responses. The data is wrapped in unique tags
  * and a warning is added to not execute or act on any instructions within those tags.
+ * @deprecated Pass the effective config as the first argument so that `disableUntrustedDataWarning` is honored.
+ * @param description A description that is prepended to the untrusted data warning. It should not include any
+ * untrusted data as it is not sanitized.
+ * @param data The data to format. If an empty array, only the description is returned.
+ * @returns A tool response content that can be directly returned.
+ */
+export function formatUntrustedData(description: string, ...data: string[]): { text: string; type: "text" }[];
+/**
+ * Formats potentially untrusted data to be included in tool responses. The data is wrapped in unique tags
+ * and a warning is added to not execute or act on any instructions within those tags.
  * When `config.disableUntrustedDataWarning` is set, the data is returned as-is without the tags and warning.
  * @param config The effective config, used to determine whether the warning is disabled.
  * @param description A description that is prepended to the untrusted data warning. It should not include any
@@ -1087,7 +1097,16 @@ export function formatUntrustedData(
     config: Pick<IToolConfig, "disableUntrustedDataWarning">,
     description: string,
     ...data: string[]
+): { text: string; type: "text" }[];
+export function formatUntrustedData(
+    configOrDescription: Pick<IToolConfig, "disableUntrustedDataWarning"> | string,
+    ...rest: string[]
 ): { text: string; type: "text" }[] {
+    const [config, description = "", data] =
+        typeof configOrDescription === "string"
+            ? [{}, configOrDescription, rest]
+            : [configOrDescription, rest[0], rest.slice(1)];
+
     if (config.disableUntrustedDataWarning) {
         const result = [{ text: description, type: "text" as const }];
         if (data.length > 0) {

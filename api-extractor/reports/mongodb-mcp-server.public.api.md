@@ -1099,8 +1099,8 @@ export const UserConfigSchema: z.ZodObject<{
     maxActiveConnections: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     connectionIdleTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     connectionScope: z.ZodDefault<z.ZodEnum<{
-        global: "global";
         session: "session";
+        global: "global";
     }>>;
     maxSessions: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     idleTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;

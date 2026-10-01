@@ -28,4 +28,12 @@ describe("formatUntrustedData", () => {
             { type: "text", text: "No documents." },
         ]);
     });
+
+    it("supports the legacy signature without config and always wraps the data", () => {
+        const result = formatUntrustedData("Found 1 document.", "doc1");
+
+        expect(result).toHaveLength(2);
+        expect(result[0]).toEqual({ type: "text", text: "Found 1 document." });
+        expect(result[1]?.text).toMatch(/<untrusted-user-data-[0-9a-f-]+>\ndoc1\n<\/untrusted-user-data-[0-9a-f-]+>/);
+    });
 });
