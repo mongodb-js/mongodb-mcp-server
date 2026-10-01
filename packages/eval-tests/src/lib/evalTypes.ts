@@ -6,6 +6,8 @@ import type { EvalParameters as BraintrustEvalParameters } from "braintrust";
 // │   ↘️ "Parameters" raw zod schema in Eval                                          │
 // ╰───────────────────────────────────────────────────────────────────────────────────╯
 
+const ReasoningEffortSchema = z3.enum(["none", "minimal", "low", "medium", "high", "xhigh", "max"]);
+
 export const EvalParametersSchema = z3
     .object({
         connectionString: z3
@@ -13,7 +15,13 @@ export const EvalParametersSchema = z3
             .describe(`MongoDB connection string`)
             .default("mongodb://localhost:27017/?directConnection=true"),
         model: z3.string().describe(`Model used by the agent under test`).default("gpt-5"),
-        judgeModel: z3.string().describe(`Model used by the judge`).default("us.anthropic.claude-sonnet-4-6"),
+        judgeModel: z3.string().describe(`Model used by the judge`).default("gpt-6-astra"),
+        modelReasoningEffort: ReasoningEffortSchema.describe(`Reasoning effort for the agent under test.`).default(
+            "medium"
+        ),
+        judgeModelReasoningEffort: ReasoningEffortSchema.optional()
+            .describe(`Reasoning effort for the judge.`)
+            .default("max"),
         systemContext: z3
             .string()
             .describe("System prompt prepended for the agent under test.")
@@ -57,6 +65,9 @@ export const EvalParametersBtSchema = {
         default: defaults.model,
         description: EvalParametersSchema.shape.model.description ?? "",
     },
+    modelReasoningEffort: ReasoningEffortSchema.default(defaults.modelReasoningEffort).describe(
+        EvalParametersSchema.shape.modelReasoningEffort.description ?? ""
+    ),
     systemContext: z3
         .string()
         .default(defaults.systemContext)
@@ -66,6 +77,10 @@ export const EvalParametersBtSchema = {
         default: defaults.judgeModel,
         description: EvalParametersSchema.shape.judgeModel.description ?? "",
     },
+    judgeModelReasoningEffort: (defaults.judgeModelReasoningEffort
+        ? ReasoningEffortSchema.default(defaults.judgeModelReasoningEffort)
+        : ReasoningEffortSchema.optional()
+    ).describe(EvalParametersSchema.shape.judgeModelReasoningEffort.description ?? ""),
     validateReferenceAnswer: z3
         .boolean()
         .default(defaults.validateReferenceAnswer)
