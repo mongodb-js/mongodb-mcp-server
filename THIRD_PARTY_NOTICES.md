@@ -1,5 +1,5 @@
 The following third-party software is used by and included in **MongoDB MCP Server**.
-This document was automatically generated on Wed Sep 30 2026.
+This document was automatically generated on Thu Oct 01 2026.
 
 ## List of dependencies
 
@@ -55,7 +55,7 @@ Package|Version|License
 **[@bramus/specificity](#2684a31ce76380dafc3cd88787d6d70c84ae2302ea6d50c7d8a7a7c27d8cec25)**|2.4.2|MIT
 **[@cfworker/json-schema](#a3ff56de9158fb479a4eb73317fba1e4f9d7390f67a36393cdceb9d107db81fd)**|4.1.1|MIT
 **[@colors/colors](#fb1a7d95a4047d824ec8eec6a2c0da6c6d292dfe64036c5b1cba35f77f97e43d)**|1.5.0|MIT
-**[@exodus/bytes](#59cb10a35354abefa6433d1ffd4091966b77a426e8ece32a4b983fa016b6feae)**|1.15.2|MIT
+**[@exodus/bytes](#f481555e8eea2a3650bc228610436ab1de7d011e79118bf8c99077a82179f3c1)**|1.16.0|MIT
 **[@grpc/grpc-js](#448faf6a7518cfd1722031c22877ed8ac93da66aa978188b9b17d45822f6f364)**|1.14.4|Apache-2.0
 **[@grpc/proto-loader](#b0050dfd7e2b33e7ce8c60c187526aab92262b66bf92a039d191cde2dbe4ca44)**|0.7.15|Apache-2.0
 **[@grpc/proto-loader](#f3a2f9482941d4fafecdad6bb92324de16c6fe5098f7658444c30e65fc94a6e7)**|0.8.1|Apache-2.0
@@ -679,8 +679,8 @@ Package|Version|License
 **[tinyexec](#356bc9523dbe876b0a061ed85d592c9e4274d394b9abd0c0e6aa502c6270de85)**|1.3.0|MIT
 **[tinyglobby](#b066f6a628712391f95f1d1ed52a2609ac83b683b12c4cf8e4ff399658f4854a)**|0.2.17|MIT
 **[tinyrainbow](#6d7c548315438974db6f6984cfc8dbd64b66b09f26a63ea28835da30eb63cf5a)**|3.1.1|MIT
-**[tldts-core](#30ce518f612659defc38dd4775e3d3a1e93e1906b9b4e682fd834872f477c34a)**|7.4.14|MIT
-**[tldts](#01671f88c1f607b9ad48c8f70b4cc0d449ce36c1050873abaa2353c3e9924083)**|7.4.14|MIT
+**[tldts-core](#9488ca4f3708f3c387b3296d58832d93926379f1ce474eac6fdef3b31ddcea7a)**|7.4.16|MIT
+**[tldts](#b0c476a4fdfdc9383d62730d4aabe902ce22df17c0c6900d59ca6ff99c2d12c9)**|7.4.16|MIT
 **[tmp](#633692989ef11eac6ff1f1756dbcbc05fad830376a6066c7ab6a90b9786adf48)**|0.2.7|MIT
 **[to-buffer](#aab39571abfe03a19c99b49788f7f62925cd5528a69849c2734ff85994221209)**|1.2.2|MIT
 **[toidentifier](#2067d1f99d35f28c8384d3e9762282f3c2ded0041392af855caf28ba2209bd2a)**|1.0.1|MIT
@@ -705,7 +705,7 @@ Package|Version|License
 **[unbzip2-stream](#8624e2dceaa1f8ccf8652c8c7f13ca7a609584520166d44758fdf0d1d96d17db)**|1.4.3|MIT
 **[undici-types](#bd50bc60a9b5c2ca9c8085450b1ba8acf312e451bccdca5d2399e268338d9a63)**|5.26.5|MIT
 **[undici-types](#b0d2c11cf977876b41bc2854498debbc94808c37e6b3c3eb5d00c3b84f2e17ed)**|7.19.2|MIT
-**[undici](#962be31618d54a6976f0fb7d8e970d5c8dfd4ebfe8af852e8856fdcd128698fa)**|7.29.1|MIT
+**[undici](#ca15f790cc031f5d8adc10d49681b1ac3e69a3ec25890f5642853cb4bb169965)**|7.30.0|MIT
 **[undici](#7d5944af5afd449853589be095945f6d6f870a8f9e29062128984fb698d6e226)**|8.10.0|MIT
 **[unpipe](#3a555405bd00c7e7e52b07a5600248bdaa683db613d7c286e425511cee8ed14a)**|1.0.0|MIT
 **[unplugin](#c3ae9c0ff2de2ae7f7f568e3f8266119a5088cd96b8cff02db75345c3a10ab66)**|2.3.11|MIT
@@ -1005,8 +1005,8 @@ License tags: MIT
 License tags: MIT
 
 
-<a id="59cb10a35354abefa6433d1ffd4091966b77a426e8ece32a4b983fa016b6feae"></a>
-### [@exodus/bytes](https://www.npmjs.com/package/@exodus/bytes) (version 1.15.2)
+<a id="f481555e8eea2a3650bc228610436ab1de7d011e79118bf8c99077a82179f3c1"></a>
+### [@exodus/bytes](https://www.npmjs.com/package/@exodus/bytes) (version 1.16.0)
 License tags: MIT
 
 
@@ -4234,13 +4234,13 @@ License tags: MIT
 License tags: MIT
 
 
-<a id="30ce518f612659defc38dd4775e3d3a1e93e1906b9b4e682fd834872f477c34a"></a>
-### [tldts-core](https://www.npmjs.com/package/tldts-core) (version 7.4.14)
+<a id="9488ca4f3708f3c387b3296d58832d93926379f1ce474eac6fdef3b31ddcea7a"></a>
+### [tldts-core](https://www.npmjs.com/package/tldts-core) (version 7.4.16)
 License tags: MIT
 
 
-<a id="01671f88c1f607b9ad48c8f70b4cc0d449ce36c1050873abaa2353c3e9924083"></a>
-### [tldts](https://www.npmjs.com/package/tldts) (version 7.4.14)
+<a id="b0c476a4fdfdc9383d62730d4aabe902ce22df17c0c6900d59ca6ff99c2d12c9"></a>
+### [tldts](https://www.npmjs.com/package/tldts) (version 7.4.16)
 License tags: MIT
 
 
@@ -4389,8 +4389,8 @@ License tags: MIT
 License tags: MIT
 
 
-<a id="962be31618d54a6976f0fb7d8e970d5c8dfd4ebfe8af852e8856fdcd128698fa"></a>
-### [undici](https://www.npmjs.com/package/undici) (version 7.29.1)
+<a id="ca15f790cc031f5d8adc10d49681b1ac3e69a3ec25890f5642853cb4bb169965"></a>
+### [undici](https://www.npmjs.com/package/undici) (version 7.30.0)
 License tags: MIT
 
 
