@@ -4,7 +4,7 @@ export const packageInfo: {
     mcpServerName: string;
     engines: { node: string };
 } = {
-    version: "3.0.4",
+    version: "3.0.5",
     mcpServerName: "MongoDB MCP Server",
     engines: {
         node: "^20.19.0 || ^22.13.0 || >= 24.0.0",
