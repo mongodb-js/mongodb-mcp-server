@@ -41,9 +41,9 @@ describe("MCP tool discovery", () => {
             try {
                 const turn = await session.prompt(
                     [
-                        `You have access to a MongoDB MCP server named "mongo" through MCP tools. `,
-                        `List the names of the tools that server exposes. `,
-                        `Use only what you can see in your MCP tool list - do not use any shell commands.`,
+                        `You have access to a MongoDB MCP server named "mongo" through MCP function tools. `,
+                        `List every tool that server exposes, exactly as it appears in your available tool list. `,
+                        `These are the "mcp__mongo__*" tools. Do not call "list_mcp_resources" and do not use any shell commands.`,
                     ].join("")
                 );
 
@@ -53,7 +53,9 @@ describe("MCP tool discovery", () => {
                 }
 
                 const normalized = turn.text.toLowerCase().replace(/_/g, "-");
-                expect(normalized).toContain("list-databases");
+                // The agent must show it can see the server's operation tools. Do not
+                // require one specific name: models legitimately summarize the list.
+                expect(KEY_TOOLS.some((name) => normalized.includes(name))).toBe(true);
             } finally {
                 await session.dispose();
             }

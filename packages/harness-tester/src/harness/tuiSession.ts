@@ -96,6 +96,13 @@ export abstract class TuiSessionBase implements AgentSession {
         return /Allow the .* MCP server to run tool/.test(text);
     }
 
+    /**
+     * Whether the viewport shows a transient banner (startup, reconnect, ...)
+     * that renders as "neither working nor idle" but is not real input. Such
+     * states must not be mistaken for an elicitation. Harnesses opt in.
+     */
+    protected isTransitional?(text: string): boolean;
+
     protected async approveTool(): Promise<void> {
         await this.terminal.keyboard.press("Enter");
     }
@@ -154,17 +161,28 @@ export abstract class TuiSessionBase implements AgentSession {
             // Agent is awaiting input when not working and not idle; require that
             // state to persist a couple of polls so we do not fire mid-transition.
             if (sawTurnActivity && !state.working && !state.composerIdle) {
-                confirmationPendingSinceMs ??= state.elapsedMs;
-                if (state.elapsedMs - confirmationPendingSinceMs >= CONFIRMATION_PENDING_GRACE_MS) {
-                    if (this.isToolApproval(viewport)) {
-                        await this.approveTool();
-                        confirmationPendingSinceMs = undefined;
-                        continue;
-                    }
-                    if (stopOnElicitation) {
-                        this.currentState = "elicitation";
-                        this.lastShownDeltaLength = delta.length;
-                        return { text: delta, toolCalls: [], state: "elicitation", confirmation: viewport };
+                if (this.isTransitional?.(viewport)) {
+                    confirmationPendingSinceMs = undefined;
+                } else {
+                    confirmationPendingSinceMs ??= state.elapsedMs;
+                    if (state.elapsedMs - confirmationPendingSinceMs >= CONFIRMATION_PENDING_GRACE_MS) {
+                        if (this.isToolApproval(viewport)) {
+                            await this.approveTool();
+                            confirmationPendingSinceMs = undefined;
+                            continue;
+                        }
+                        if (stopOnElicitation) {
+                            this.currentState = "elicitation";
+                            this.lastShownDeltaLength = delta.length;
+                            // A real turn can call tools before eliciting, so keep what the
+                            // delta already shows instead of discarding observed calls.
+                            return {
+                                text: delta,
+                                toolCalls: this.extractToolCalls(delta),
+                                state: "elicitation",
+                                confirmation: viewport,
+                            };
+                        }
                     }
                 }
             } else {
@@ -214,7 +232,7 @@ export abstract class TuiSessionBase implements AgentSession {
         // Fail loudly with the raw transcript attached for diagnosis.
         return {
             text: `ERROR: ${message}${text ? "\n\n--- terminal content ---\n" + text : ""}`,
-            toolCalls: [],
+            toolCalls: this.extractToolCalls(delta),
             state: "completed",
         };
     }
