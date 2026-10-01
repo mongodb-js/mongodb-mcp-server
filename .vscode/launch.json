@@ -51,8 +51,8 @@
       "name": "Debug generate-release-notes",
       "skipFiles": ["<node_internals>/**"],
       "runtimeExecutable": "node",
-      "runtimeArgs": ["--experimental-strip-types", "--inspect-brk"],
-      "program": "${workspaceFolder}/scripts/generate-release-notes.ts",
+      "runtimeArgs": ["--inspect-brk"],
+      "program": "${workspaceFolder}/packages/scripts/src/generate-release-notes.ts",
       "args": [
         "--newVersion",
         "${input:releaseVersion}",
