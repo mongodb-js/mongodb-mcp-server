@@ -1,0 +1,4 @@
+{
+  "connectionString": "mongodb://non-string-array-json-localhost:1000",
+  "disabledTools": [1, 2]
+}

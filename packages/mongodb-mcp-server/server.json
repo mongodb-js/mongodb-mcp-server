@@ -60,7 +60,7 @@
         },
         {
           "name": "MDB_MCP_CONFIRMATION_REQUIRED_TOOLS",
-          "description": "Comma separated values of tool names that require user confirmation before execution. Requires the client to support elicitation.",
+          "description": "Comma separated (environment variable or config file) or space separated (command line) values of tool names that require user confirmation before execution. Requires the client to support elicitation.",
           "isRequired": false,
           "format": "string",
           "isSecret": false
@@ -102,7 +102,7 @@
         },
         {
           "name": "MDB_MCP_DISABLED_TOOLS",
-          "description": "Comma separated values of tool names, operation types, and/or categories of tools that will be disabled.",
+          "description": "Comma separated (environment variable or config file) or space separated (command line) values of tool names, operation types, and/or categories of tools that will be disabled.",
           "isRequired": false,
           "format": "string",
           "isSecret": false
@@ -228,7 +228,7 @@
         },
         {
           "name": "MDB_MCP_LOGGERS",
-          "description": "Comma separated values of logger types.",
+          "description": "Comma separated (environment variable or config file) or space separated (command line) values of logger types.",
           "isRequired": false,
           "format": "string",
           "isSecret": false
@@ -305,7 +305,7 @@
         },
         {
           "name": "MDB_MCP_PREVIEW_FEATURES",
-          "description": "Comma separated values of preview features that are enabled.",
+          "description": "Comma separated (environment variable or config file) or space separated (command line) values of preview features that are enabled.",
           "isRequired": false,
           "format": "string",
           "isSecret": false
@@ -389,7 +389,7 @@
         {
           "type": "named",
           "name": "--confirmationRequiredTools",
-          "description": "Comma separated values of tool names that require user confirmation before execution. Requires the client to support elicitation.",
+          "description": "Comma separated (environment variable or config file) or space separated (command line) values of tool names that require user confirmation before execution. Requires the client to support elicitation.",
           "isRequired": false
         },
         {
@@ -428,7 +428,7 @@
         {
           "type": "named",
           "name": "--disabledTools",
-          "description": "Comma separated values of tool names, operation types, and/or categories of tools that will be disabled.",
+          "description": "Comma separated (environment variable or config file) or space separated (command line) values of tool names, operation types, and/or categories of tools that will be disabled.",
           "isRequired": false
         },
         {
@@ -547,7 +547,7 @@
         {
           "type": "named",
           "name": "--loggers",
-          "description": "Comma separated values of logger types.",
+          "description": "Comma separated (environment variable or config file) or space separated (command line) values of logger types.",
           "isRequired": false
         },
         {
@@ -620,7 +620,7 @@
         {
           "type": "named",
           "name": "--previewFeatures",
-          "description": "Comma separated values of preview features that are enabled.",
+          "description": "Comma separated (environment variable or config file) or space separated (command line) values of preview features that are enabled.",
           "isRequired": false
         },
         {
@@ -708,7 +708,7 @@
         },
         {
           "name": "MDB_MCP_CONFIRMATION_REQUIRED_TOOLS",
-          "description": "Comma separated values of tool names that require user confirmation before execution. Requires the client to support elicitation.",
+          "description": "Comma separated (environment variable or config file) or space separated (command line) values of tool names that require user confirmation before execution. Requires the client to support elicitation.",
           "isRequired": false,
           "format": "string",
           "isSecret": false
@@ -750,7 +750,7 @@
         },
         {
           "name": "MDB_MCP_DISABLED_TOOLS",
-          "description": "Comma separated values of tool names, operation types, and/or categories of tools that will be disabled.",
+          "description": "Comma separated (environment variable or config file) or space separated (command line) values of tool names, operation types, and/or categories of tools that will be disabled.",
           "isRequired": false,
           "format": "string",
           "isSecret": false
@@ -876,7 +876,7 @@
         },
         {
           "name": "MDB_MCP_LOGGERS",
-          "description": "Comma separated values of logger types.",
+          "description": "Comma separated (environment variable or config file) or space separated (command line) values of logger types.",
           "isRequired": false,
           "format": "string",
           "isSecret": false
@@ -953,7 +953,7 @@
         },
         {
           "name": "MDB_MCP_PREVIEW_FEATURES",
-          "description": "Comma separated values of preview features that are enabled.",
+          "description": "Comma separated (environment variable or config file) or space separated (command line) values of preview features that are enabled.",
           "isRequired": false,
           "format": "string",
           "isSecret": false
@@ -1037,7 +1037,7 @@
         {
           "type": "named",
           "name": "--confirmationRequiredTools",
-          "description": "Comma separated values of tool names that require user confirmation before execution. Requires the client to support elicitation.",
+          "description": "Comma separated (environment variable or config file) or space separated (command line) values of tool names that require user confirmation before execution. Requires the client to support elicitation.",
           "isRequired": false
         },
         {
@@ -1076,7 +1076,7 @@
         {
           "type": "named",
           "name": "--disabledTools",
-          "description": "Comma separated values of tool names, operation types, and/or categories of tools that will be disabled.",
+          "description": "Comma separated (environment variable or config file) or space separated (command line) values of tool names, operation types, and/or categories of tools that will be disabled.",
           "isRequired": false
         },
         {
@@ -1195,7 +1195,7 @@
         {
           "type": "named",
           "name": "--loggers",
-          "description": "Comma separated values of logger types.",
+          "description": "Comma separated (environment variable or config file) or space separated (command line) values of logger types.",
           "isRequired": false
         },
         {
@@ -1268,7 +1268,7 @@
         {
           "type": "named",
           "name": "--previewFeatures",
-          "description": "Comma separated values of preview features that are enabled.",
+          "description": "Comma separated (environment variable or config file) or space separated (command line) values of preview features that are enabled.",
           "isRequired": false
         },
         {

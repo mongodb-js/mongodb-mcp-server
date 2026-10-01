@@ -54,26 +54,23 @@ export function getExportsPath(): string {
     return path.join(getLocalDataPath(), "mongodb-mcp", "exports");
 }
 
-export function commaSeparatedToArray<T extends string[]>(str: string | string[] | undefined): T | undefined {
+export function commaSeparatedToArray<T extends string[]>(str: unknown): T | undefined {
     if (str === undefined) {
         return undefined;
     }
 
-    if (typeof str === "string") {
-        return str
-            .split(",")
-            .map((e) => e.trim())
-            .filter((e) => e.length > 0) as T;
-    }
+    const values = Array.isArray(str) ? (str as unknown[]) : [str];
 
-    if (str.length === 1) {
-        return str[0]
-            ?.split(",")
-            .map((e) => e.trim())
-            .filter((e) => e.length > 0) as T;
-    }
-
-    return str as T;
+    // Non-string entries are passed through untouched so that the schema
+    // validating the result can report them.
+    return values.flatMap((value) =>
+        typeof value === "string"
+            ? value
+                  .split(",")
+                  .map((e) => e.trim())
+                  .filter((e) => e.length > 0)
+            : value
+    ) as T;
 }
 
 /**

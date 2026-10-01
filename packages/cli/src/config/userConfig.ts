@@ -54,10 +54,7 @@ const ServerConfigSchema = z.object({
         )
         .register(configRegistry, { isSecret: true, overrideBehavior: "not-allowed" }),
     loggers: z
-        .preprocess(
-            (val: string | string[] | undefined) => commaSeparatedToArray(val),
-            z.array(z.enum(["stderr", "disk", "mcp"]))
-        )
+        .preprocess((val: unknown) => commaSeparatedToArray(val), z.array(z.enum(["stderr", "disk", "mcp"])))
         .check(
             z.refine((val) => new Set(val).size === val.length, {
                 message: "Duplicate loggers found in config",
@@ -80,12 +77,12 @@ const ServerConfigSchema = z.object({
         .describe("Minimum severity level for log messages forwarded to the MCP client.")
         .register(configRegistry, { overrideBehavior: onlyStricterLogLevelOverride(MCP_LOG_LEVELS) }),
     disabledTools: z
-        .preprocess((val: string | string[] | undefined) => commaSeparatedToArray(val), z.array(z.string()))
+        .preprocess((val: unknown) => commaSeparatedToArray(val), z.array(z.string()))
         .default([])
         .describe("An array of tool names, operation types, and/or categories of tools that will be disabled.")
         .register(configRegistry, { overrideBehavior: "merge" }),
     confirmationRequiredTools: z
-        .preprocess((val: string | string[] | undefined) => commaSeparatedToArray(val), z.array(z.string()))
+        .preprocess((val: unknown) => commaSeparatedToArray(val), z.array(z.string()))
         .default([
             "atlas-create-access-list",
             "atlas-create-db-user",
@@ -321,10 +318,7 @@ const ServerConfigSchema = z.object({
         )
         .register(configRegistry, { isSecret: true, overrideBehavior: "not-allowed" }),
     previewFeatures: z
-        .preprocess(
-            (val: string | string[] | undefined) => commaSeparatedToArray(val),
-            z.array(z.enum(previewFeatureValues))
-        )
+        .preprocess((val: unknown) => commaSeparatedToArray(val), z.array(z.enum(previewFeatureValues)))
         .default([])
         .describe("An array of preview features that are enabled.")
         .register(configRegistry, { overrideBehavior: onlySubsetOfBaseValueOverride() }),
@@ -388,10 +382,7 @@ const ServerConfigSchema = z.object({
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
     monitoringServerFeatures: z
-        .preprocess(
-            (val: string | string[] | undefined) => commaSeparatedToArray(val),
-            z.array(z.enum(monitoringServerFeatureValues))
-        )
+        .preprocess((val: unknown) => commaSeparatedToArray(val), z.array(z.enum(monitoringServerFeatureValues)))
         .default(["health-check"])
         .describe(
             "Features to expose on the monitoring server (only used when transport is 'http' and monitoringServerHost/monitoringServerPort are set)."
