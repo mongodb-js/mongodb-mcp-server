@@ -18,7 +18,7 @@ jobs:
     # against any other branch, even for manual workflow_dispatch runs.
     if: github.ref == 'refs/heads/main'
     steps:
-      - uses: mongodb-js/devtools-shared/actions/setup-bot-token@01eb304d4456abc05df1bfeb71429073f2aa2fba # main
+      - uses: mongodb-js/devtools-shared/actions/setup-bot-token@d9b3431b50a916345471259794a44bd4533fcc58 # main
         id: app-token
         with:
           app-id: ${{ vars.DEVTOOLS_BOT_APP_ID }}

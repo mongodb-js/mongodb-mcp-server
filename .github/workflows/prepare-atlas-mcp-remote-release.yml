@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1
-      - uses: mongodb-js/devtools-shared/actions/setup-bot-token@01eb304d4456abc05df1bfeb71429073f2aa2fba # main
+      - uses: mongodb-js/devtools-shared/actions/setup-bot-token@d9b3431b50a916345471259794a44bd4533fcc58 # main
         id: app-token
         with:
           app-id: ${{ vars.DEVTOOLS_BOT_APP_ID }}
