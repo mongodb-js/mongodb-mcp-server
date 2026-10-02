@@ -26,6 +26,6 @@
     "@mongodb-js/mcp-types": "workspace:*",
     "@types/node": "^25.6.0",
     "@testing-library/jest-dom": "^7.0.1",
-    "typescript": "^5.9.2"
+    "typescript": "^6.0.3"
   }
 }
