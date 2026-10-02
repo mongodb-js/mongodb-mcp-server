@@ -29,7 +29,7 @@
     "@mongodb-js/mcp-metrics": "workspace:*",
     "@mongodb-js/mcp-tools-mongodb": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
-    "mongodb-connection-string-url": "^7.0.1",
+    "mongodb-connection-string-url": "^7.0.2",
     "zod": "^4.4.2"
   },
   "devDependencies": {
