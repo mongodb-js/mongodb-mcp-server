@@ -926,8 +926,8 @@ importers:
         specifier: ^7.1.1
         version: 7.2.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9)
       mongodb-connection-string-url:
-        specifier: ^7.0.1
-        version: 7.0.1
+        specifier: ^7.0.2
+        version: 7.0.2
       mongodb-runner:
         specifier: ^6.7.6
         version: 6.10.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9)
@@ -997,8 +997,8 @@ importers:
         specifier: workspace:*
         version: link:../types
       mongodb-connection-string-url:
-        specifier: ^7.0.1
-        version: 7.0.1
+        specifier: ^7.0.2
+        version: 7.0.2
       zod:
         specifier: ^4.4.2
         version: 4.4.3
@@ -1089,8 +1089,8 @@ importers:
         specifier: ^1.9.7
         version: 1.9.11
       mongodb-connection-string-url:
-        specifier: ^7.0.1
-        version: 7.0.1
+        specifier: ^7.0.2
+        version: 7.0.2
       mongodb-schema:
         specifier: ^12.7.0
         version: 12.7.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9)
@@ -6406,6 +6406,10 @@ packages:
     resolution: {integrity: sha512-h0AZ9A7IDVwwHyMxmdMXKy+9oNlF0zFoahHiX3vQ8e3KFcSP3VmsmfvtRSuLPxmyv2vjIDxqty8smTgie/SNRQ==}
     engines: {node: '>=20.19.0'}
 
+  mongodb-connection-string-url@7.0.2:
+    resolution: {integrity: sha512-ZoS07RoFqpKYQwAk59qmrx8+jJHNHU30UjlU96QktiGn1ltvDr+vCznLX5DiUBLEpMAHatHNWV1nM/74ul66kA==}
+    engines: {node: '>=20.19.0'}
+
   mongodb-download-url@1.8.15:
     resolution: {integrity: sha512-nxUbO7IzblTeKJEP2KHyxTUStSrBtZhPWkNHOlmNgSjYbkZf6Ss/DtKQQtS3aAQVVZG+UE1v7GAwILnpZNd09Q==}
     hasBin: true
@@ -7521,11 +7525,11 @@ packages:
     resolution: {integrity: sha512-yau8yJdTt989Mm0Bd/236QnzEiPf2xLLTqUZRUJOo/3CB078LSwzei343DgtJVmfJKJE3TMINY1u42SQsP6mXw==}
     engines: {node: '>=14.0.0'}
 
-  tldts-core@7.4.16:
-    resolution: {integrity: sha512-MDolfaSJtlSK5Y0A1xl3277ekubZwobpBjugknDizI9O5Rm60a1m8k4ICK+MRsCDzPygT81mp3BBf5RKDlFRfA==}
+  tldts-core@7.4.15:
+    resolution: {integrity: sha512-ERuv0p98XgSzmlSLJr8vDNxX+uATGInlN97V3R+JpYWaSqn5IG3ewWgCwczk4bkOpgth/o8Nt5FOi4B4w0n/1A==}
 
-  tldts@7.4.16:
-    resolution: {integrity: sha512-QwBER5KMR86IIjpIiO7H/Z3IMJPsZ1A6RKPAqzTTgOyUQUSt9FdnKcqhTaJmkY6HVrgouZHZR0ncK5QxvmnQeg==}
+  tldts@7.4.15:
+    resolution: {integrity: sha512-SJVBeHOxDbNoq14CvpAoA2mLEWdbldGK8nR+yumpjY5nrlZxOflcA7p1Qj1gbTGmbu9DY9qLj/bENSWhBzjxRQ==}
     hasBin: true
 
   tmp@0.0.33:
@@ -9882,7 +9886,7 @@ snapshots:
       '@mongodb-js/oidc-plugin': 2.0.8
       lodash.merge: 4.6.2
       mongodb: 7.2.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9)
-      mongodb-connection-string-url: 7.0.1
+      mongodb-connection-string-url: 7.0.2
       mongodb-log-writer: 2.5.13(bson@7.3.1)
       socks: 2.8.9
     optionalDependencies:
@@ -9989,7 +9993,7 @@ snapshots:
       bson: 7.3.1
       mongodb: 7.2.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9)
       mongodb-build-info: 1.9.11
-      mongodb-connection-string-url: 7.0.1
+      mongodb-connection-string-url: 7.0.2
     transitivePeerDependencies:
       - '@aws-sdk/credential-providers'
       - '@mongodb-js/zstd'
@@ -14160,7 +14164,7 @@ snapshots:
   mongodb-build-info@1.9.11:
     dependencies:
       debug: 4.4.3(supports-color@10.2.2)
-      mongodb-connection-string-url: 7.0.1
+      mongodb-connection-string-url: 7.0.2
     transitivePeerDependencies:
       - supports-color
 
@@ -14171,6 +14175,11 @@ snapshots:
     optional: true
 
   mongodb-connection-string-url@7.0.1:
+    dependencies:
+      '@types/whatwg-url': 13.0.0
+      whatwg-url: 14.2.0
+
+  mongodb-connection-string-url@7.0.2:
     dependencies:
       '@types/whatwg-url': 13.0.0
       whatwg-url: 14.2.0
@@ -14206,7 +14215,7 @@ snapshots:
       '@peculiar/x509': 2.0.0
       debug: 4.4.3(supports-color@10.2.2)
       mongodb: 7.2.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9)
-      mongodb-connection-string-url: 7.0.1
+      mongodb-connection-string-url: 7.0.2
       reflect-metadata: 0.2.2
       yargs: 18.0.0
     transitivePeerDependencies:
@@ -15594,12 +15603,12 @@ snapshots:
 
   tinyrainbow@3.1.1: {}
 
-  tldts-core@7.4.16:
+  tldts-core@7.4.15:
     optional: true
 
-  tldts@7.4.16:
+  tldts@7.4.15:
     dependencies:
-      tldts-core: 7.4.16
+      tldts-core: 7.4.15
     optional: true
 
   tmp@0.0.33:
@@ -15624,7 +15633,7 @@ snapshots:
 
   tough-cookie@6.0.2:
     dependencies:
-      tldts: 7.4.16
+      tldts: 7.4.15
     optional: true
 
   tr46@0.0.3: {}
