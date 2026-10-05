@@ -181,8 +181,8 @@ importers:
         specifier: workspace:*
         version: link:../types
       lru-cache:
-        specifier: ^11.2.6
-        version: 11.5.2
+        specifier: ^11.5.3
+        version: 11.5.3
     devDependencies:
       '@types/node':
         specifier: ^25.6.0
@@ -6230,10 +6230,6 @@ packages:
   lru-cache@10.4.3:
     resolution: {integrity: sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ==}
 
-  lru-cache@11.5.2:
-    resolution: {integrity: sha512-4pfM1Ff0x50o0tQwb5ucw/RzNyD0/YJME6IVcStalZuMWxdt3sR3huStTtxz4PUmvZfRguvDejasvQ2kifR11g==}
-    engines: {node: 20 || >=22}
-
   lru-cache@11.5.3:
     resolution: {integrity: sha512-U4N8FgzmWxc8k1VH8Kr6lQg18U7Fjvby6wXHVRX/ZZ7IwWbRMgrRbP0Wrb5q5NVinryp4SQampHKdvtecItxUg==}
     engines: {node: 20 || >=22}
@@ -9904,7 +9900,7 @@ snapshots:
       debug: 4.4.3(supports-color@10.2.2)
       http-proxy-agent: 7.0.2
       https-proxy-agent: 7.0.6(supports-color@10.2.2)
-      lru-cache: 11.5.2
+      lru-cache: 11.5.3
       node-fetch: 3.3.2
       pac-proxy-agent: 7.2.0
       socks-proxy-agent: 8.0.5
@@ -14021,10 +14017,7 @@ snapshots:
 
   lru-cache@10.4.3: {}
 
-  lru-cache@11.5.2: {}
-
-  lru-cache@11.5.3:
-    optional: true
+  lru-cache@11.5.3: {}
 
   lru-cache@5.1.1:
     dependencies:
