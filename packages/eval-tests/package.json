@@ -17,20 +17,21 @@
     "eval:push": "pnpm run eval:bundle && braintrust push dist/mongodb.eval.cjs --if-exists replace"
   },
   "dependencies": {
-    "braintrust": "^3.20.0",
-    "@ai-sdk/openai": "^3.0.61",
-    "@ai-sdk/mcp": "^1.0.40",
-    "ai": "^6.0.175",
-    "mongodb": "^7.1.1",
-    "bson": "^7.2.0",
-    "zod": "^4.4.2",
+    "@ai-sdk/mcp": "^2.0.54",
+    "@ai-sdk/openai": "^4.0.71",
+    "@modelcontextprotocol/server": "^2.0.0",
     "@mongodb-js/mcp-cli": "workspace:*",
     "@mongodb-js/mcp-core": "workspace:*",
+    "ai": "^7.0.107",
+    "braintrust": "^3.35.0",
+    "bson": "^7.3.3",
+    "mongodb": "^7.6.0",
     "mongodb-mcp-server": "workspace:*",
-    "@modelcontextprotocol/server": "^2.0.0"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@braintrust/api": "^0.5.0",
+    "@braintrust/bt": "^0.22.1",
     "@types/node": "^25.6.0",
     "esbuild": "^0.28.2",
     "tsx": "^4.23.12",
