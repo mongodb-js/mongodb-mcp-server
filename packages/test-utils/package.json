@@ -19,7 +19,7 @@
     "mongodb": "^7.1.1",
     "mongodb-runner": "^6.7.6",
     "testcontainers": "^12.1.0",
-    "mongodb-connection-string-url": "^7.0.1",
+    "mongodb-connection-string-url": "^7.0.2",
     "vitest": "^4.1.11"
   },
   "devDependencies": {
