@@ -14,9 +14,10 @@ const DisconnectArgsShape = {
 
 export class DisconnectTool extends MongoDBToolBase {
     static toolName = "disconnect";
-    public override description = this.server.config.connectionString
-        ? 'Close a MongoDB connection and revoke its connectionId. Disconnecting the "preconfigured" connection only closes it — it reconnects automatically on next use because the server configuration still declares it.'
-        : "Close a MongoDB connection and revoke its connectionId.";
+    public override description =
+        this.server.config.connectionString || Object.keys(this.server.config.connectionStrings ?? {}).length > 0
+            ? 'Close a MongoDB connection and revoke its connectionId. Disconnecting a connection the server configuration declares ("preconfigured" or a named connection) only closes it — it reconnects automatically on next use.'
+            : "Close a MongoDB connection and revoke its connectionId.";
 
     public override argsShape(): typeof DisconnectArgsShape {
         return DisconnectArgsShape;

@@ -28,6 +28,11 @@ import { buildEntryName, ConnectionEntry, PRECONFIGURED_CONNECTION_ID } from "./
  */
 export type ConnectionStoreConfig = ConnectionDriverConfig & {
     connectionString?: string;
+    /**
+     * Named connection strings. Each one seeds a pinned entry whose connectionId
+     * is the name, dialed on first use just like the `connectionString` one.
+     */
+    connectionStrings?: Record<string, string>;
     maxActiveConnections: number;
     /**
      * Milliseconds a connection may stay unused before the idle reaper closes
@@ -92,7 +97,8 @@ export class MCPConnectionStore {
     private readonly serverMetadata: ServerMetadata;
     private readonly connectionIdleTimeoutMs: number;
     private readonly keychain: Keychain;
-    private preconfiguredDial?: Promise<unknown>;
+    /** In-flight dial per pinned entry, keyed by connectionId, so concurrent resolves share one dial. */
+    private readonly preconfiguredDials = new Map<string, Promise<void>>();
     private sweepTimer?: ReturnType<typeof setInterval>;
 
     constructor(options: ConnectionStoreOptions) {
@@ -107,16 +113,29 @@ export class MCPConnectionStore {
         this.startSweeper();
 
         if (this.options.connectionString) {
-            this.entries.set(PRECONFIGURED_CONNECTION_ID, {
-                entry: new ConnectionEntry({
-                    connectionId: PRECONFIGURED_CONNECTION_ID,
-                    name: PRECONFIGURED_CONNECTION_ID,
-                    source: "preconfigured",
-                    manager: this.createConnectionManager(),
-                    keychain,
-                }),
-            });
+            this.seedPreconfigured(PRECONFIGURED_CONNECTION_ID);
         }
+        for (const name of Object.keys(this.options.connectionStrings ?? {})) {
+            this.seedPreconfigured(name);
+        }
+    }
+
+    /**
+     * Registers a pinned entry for a configured connection string. Nothing is
+     * dialed here: the entry connects on its first resolve and redials after a
+     * disconnect or failure, so configuring many deployments costs no
+     * connections until they are used.
+     */
+    private seedPreconfigured(connectionId: string): void {
+        this.entries.set(connectionId, {
+            entry: new ConnectionEntry({
+                connectionId,
+                name: connectionId,
+                source: "preconfigured",
+                manager: this.createConnectionManager(),
+                keychain: this.keychain,
+            }),
+        });
     }
 
     /**
@@ -362,27 +381,35 @@ export class MCPConnectionStore {
     }
 
     private async dialPreconfigured(entry: ConnectionEntry): Promise<void> {
-        this.preconfiguredDial ??= (async (): Promise<void> => {
-            const connectionInfo = generateConnectionInfoFromCliArgs({
-                // Same rationale as in the constructor: mongosh only consumes
-                // known CLI-option keys, so spreading the whole store config is
-                // fine and keeps the preconfigured dial on equal footing with
-                // tool-initiated connects.
-                ...this.options,
-                connectionSpecifier: this.options.connectionString,
+        const { connectionId } = entry;
+        let dial = this.preconfiguredDials.get(connectionId);
+        if (!dial) {
+            dial = (async (): Promise<void> => {
+                const connectionInfo = generateConnectionInfoFromCliArgs({
+                    // Same rationale as in the constructor: mongosh only consumes
+                    // known CLI-option keys, so spreading the whole store config is
+                    // fine and keeps the preconfigured dial on equal footing with
+                    // tool-initiated connects.
+                    ...this.options,
+                    connectionSpecifier:
+                        connectionId === PRECONFIGURED_CONNECTION_ID
+                            ? this.options.connectionString
+                            : this.options.connectionStrings?.[connectionId],
+                });
+                await entry.connect(connectionInfo);
+            })().finally(() => {
+                this.preconfiguredDials.delete(connectionId);
             });
-            await entry.connect(connectionInfo);
-        })().finally(() => {
-            this.preconfiguredDial = undefined;
-        });
+            this.preconfiguredDials.set(connectionId, dial);
+        }
 
         try {
-            await this.preconfiguredDial;
+            await dial;
         } catch (error: unknown) {
             this.logger.error({
                 id: LogId.connectionRegistryDialFailure,
                 context: "connectionRegistry",
-                message: `Failed to connect using the configured connection string: ${error as string}`,
+                message: `Failed to connect using the configured connection string for "${connectionId}": ${error as string}`,
             });
             const fallbackMessage = error instanceof Error ? error.message : String(error);
             throw new MongoDBError(ErrorCodes.MisconfiguredConnectionString, entry.lastError ?? fallbackMessage);

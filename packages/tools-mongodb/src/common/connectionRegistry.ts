@@ -13,6 +13,13 @@ import { ErrorCodes, MongoDBError } from "./errors.js";
  */
 export const PRECONFIGURED_CONNECTION_ID = "preconfigured";
 
+/**
+ * Allowed shape of a name in the `connectionStrings` config option. The name is
+ * used verbatim as the connectionId of the connection seeded from it, so it is
+ * kept short and free of characters that need quoting.
+ */
+export const CONNECTION_NAME_PATTERN = /^[A-Za-z0-9._-]{1,64}$/;
+
 const NAME_SUFFIX_BYTES = 2;
 const MAX_SLUG_LENGTH = 40;
 

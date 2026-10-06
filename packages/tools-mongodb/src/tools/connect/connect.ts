@@ -27,6 +27,10 @@ export class ConnectTool extends MongoDBToolBase {
         this.server.config.connectionString
             ? ' A connection with the id "preconfigured" already exists for the connection string the server was configured with — there is no need to call this tool to use it.'
             : ""
+    }${
+        Object.keys(this.server.config.connectionStrings ?? {}).length > 0
+            ? " Connections for the named connection strings the server was configured with also already exist, with the name as their connectionId — use them directly instead of calling this tool."
+            : ""
     }`;
 
     public override argsShape(): typeof ConnectArgsShape {

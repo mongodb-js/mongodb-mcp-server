@@ -15,6 +15,7 @@ import { CliServer } from "./cliServer.js";
 import {
     connectionErrorHandler,
     DeviceId,
+    isObjectEmpty,
     MCPConnectionStore,
     validateConnectionString,
     type ConnectionRegistry,
@@ -97,6 +98,18 @@ export async function validateAppConfig({
         }
     }
 
+    for (const [name, connectionString] of Object.entries(config.connectionStrings ?? {})) {
+        try {
+            validateConnectionString(connectionString, false);
+        } catch (error) {
+            throw new Error(
+                `Connection string validation failed for connection "${name}" with error: ` +
+                    (error instanceof Error ? error.message : String(error)),
+                { cause: error }
+            );
+        }
+    }
+
     // Validate API client credentials
     if (config.apiClientId && config.apiClientSecret) {
         try {
@@ -119,7 +132,7 @@ export async function validateAppConfig({
 
             await apiClient.validateAuthConfig();
         } catch (error) {
-            if (config.connectionString === undefined) {
+            if (config.connectionString === undefined && isObjectEmpty(config.connectionStrings)) {
                 throw new Error(
                     `Failed to connect to MongoDB Atlas instance using the credentials from the config: ${error instanceof Error ? error.message : String(error)}`,
                     { cause: error }

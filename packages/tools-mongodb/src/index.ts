@@ -67,6 +67,7 @@ export { isObjectEmpty } from "./helpers/isObjectEmpty.js";
 export { isNodeRuntime } from "./helpers/isNodeRuntime.js";
 export {
     PRECONFIGURED_CONNECTION_ID,
+    CONNECTION_NAME_PATTERN,
     ConnectionEntry,
     atlasClusterSlug,
     buildEntryName,

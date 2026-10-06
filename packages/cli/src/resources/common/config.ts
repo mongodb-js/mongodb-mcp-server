@@ -44,6 +44,14 @@ export class ConfigResource extends ReactiveResource<UserConfig, CliServer> {
             connectionString: connectionInfo.connectionString
                 ? 'set; a connection with the connectionId "preconfigured" is available — pass it as the connectionId argument to the MongoDB tools'
                 : `not set; before using any MongoDB tool, ${this.connectToolsGuidance()}, alternatively you can setup MongoDB Atlas access, more info at 'https://github.com/mongodb-js/mongodb-mcp-server'.`,
+            ...(this.current.connectionStrings &&
+                Object.keys(this.current.connectionStrings).length > 0 && {
+                    connectionStrings: `set; connections with the connectionIds ${Object.keys(
+                        this.current.connectionStrings
+                    )
+                        .map((name) => `"${name}"`)
+                        .join(", ")} are available — pass one as the connectionId argument to the MongoDB tools`,
+                }),
             connectOptions: redactDriverOptions(connectionInfo.driverOptions),
             atlas:
                 this.current.apiClientId && this.current.apiClientSecret

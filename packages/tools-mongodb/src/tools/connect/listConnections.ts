@@ -13,9 +13,10 @@ const ListConnectionsArgsShape = {};
 
 export class ListConnectionsTool extends MongoDBToolBase {
     static toolName = "list-connections";
-    public override description = this.server.config.connectionString
-        ? 'List the active MongoDB connections and their connectionIds. Use this to discover the "preconfigured" connection or to find a connectionId established earlier.'
-        : "List the active MongoDB connections and their connectionIds. Use this to find a connectionId established earlier.";
+    public override description =
+        this.server.config.connectionString || Object.keys(this.server.config.connectionStrings ?? {}).length > 0
+            ? 'List the active MongoDB connections and their connectionIds. Use this to discover the connections the server was configured with ("preconfigured" or named ones) or to find a connectionId established earlier.'
+            : "List the active MongoDB connections and their connectionIds. Use this to find a connectionId established earlier.";
 
     public override argsShape(): typeof ListConnectionsArgsShape {
         return ListConnectionsArgsShape;

@@ -87,6 +87,13 @@
           "isSecret": true
         },
         {
+          "name": "MDB_MCP_CONNECTION_STRINGS",
+          "description": "Named MongoDB connection strings, as a JSON object (e.g. {\"analytics\": \"mongodb://...\"}). Each name becomes a connectionId that the MongoDB tools can use directly, so one server can reach several deployments. Connections are opened on first use.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        },
+        {
           "name": "MDB_MCP_DANGEROUS_HOST_BINDING",
           "description": "When set to true, allows binding the HTTP server (and monitoring server) to a non-loopback host such as 0.0.0.0, a LAN IP, or an empty host (all interfaces). Binding to a non-loopback host exposes the server to the entire network and can allow unauthorized access. Off by default: the server refuses to start on a non-loopback host unless this is true.",
           "isRequired": false,
@@ -416,6 +423,12 @@
           "type": "named",
           "name": "--connectionString",
           "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--connectionStrings",
+          "description": "Named MongoDB connection strings, as a JSON object (e.g. {\"analytics\": \"mongodb://...\"}). Each name becomes a connectionId that the MongoDB tools can use directly, so one server can reach several deployments. Connections are opened on first use.",
           "isRequired": false
         },
         {
@@ -749,6 +762,13 @@
           "isSecret": true
         },
         {
+          "name": "MDB_MCP_CONNECTION_STRINGS",
+          "description": "Named MongoDB connection strings, as a JSON object (e.g. {\"analytics\": \"mongodb://...\"}). Each name becomes a connectionId that the MongoDB tools can use directly, so one server can reach several deployments. Connections are opened on first use.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        },
+        {
           "name": "MDB_MCP_DANGEROUS_HOST_BINDING",
           "description": "When set to true, allows binding the HTTP server (and monitoring server) to a non-loopback host such as 0.0.0.0, a LAN IP, or an empty host (all interfaces). Binding to a non-loopback host exposes the server to the entire network and can allow unauthorized access. Off by default: the server refuses to start on a non-loopback host unless this is true.",
           "isRequired": false,
@@ -1078,6 +1098,12 @@
           "type": "named",
           "name": "--connectionString",
           "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
+          "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--connectionStrings",
+          "description": "Named MongoDB connection strings, as a JSON object (e.g. {\"analytics\": \"mongodb://...\"}). Each name becomes a connectionId that the MongoDB tools can use directly, so one server can reach several deployments. Connections are opened on first use.",
           "isRequired": false
         },
         {

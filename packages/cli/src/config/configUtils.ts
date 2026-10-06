@@ -77,6 +77,29 @@ export function commaSeparatedToArray<T extends string[]>(str: string | string[]
 }
 
 /**
+ * Preprocessor for the named connection strings map. Environment variables and
+ * CLI arguments can only carry strings, so a string value is parsed as a JSON
+ * object (`{"name": "mongodb://..."}`); a config file can supply the object directly.
+ * Invalid JSON is reported as a validation issue rather than thrown, so the
+ * error names the option without echoing the value, which carries credentials.
+ */
+export function parseJsonObject(val: unknown, ctx: { issues: unknown[] }): unknown {
+    if (typeof val !== "string") {
+        return val;
+    }
+    try {
+        return JSON.parse(val) as unknown;
+    } catch {
+        ctx.issues.push({
+            code: "custom",
+            message: "Expected a JSON object mapping connection names to connection strings",
+            input: "<redacted>",
+        });
+        return val;
+    }
+}
+
+/**
  * Preprocessor for boolean values that handles string "false"/"0" correctly.
  * Zod's coerce.boolean() treats any non-empty string as true, which is not what we want.
  */

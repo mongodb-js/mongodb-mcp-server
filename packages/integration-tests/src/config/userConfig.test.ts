@@ -124,6 +124,55 @@ describe("config", () => {
             });
         });
 
+        describe("named connection strings", () => {
+            it("parses MDB_MCP_CONNECTION_STRINGS as a JSON object", () => {
+                setVariable(
+                    "MDB_MCP_CONNECTION_STRINGS",
+                    JSON.stringify({
+                        analytics: "mongodb://user:password@host1,host2/",
+                        "orders.replica_1": "mongodb+srv://cluster.example.com/",
+                    })
+                );
+                const { parsed: actual, error } = parseUserConfig({ args: [] });
+                expect(error).toBeUndefined();
+                expect(actual?.connectionStrings).toEqual({
+                    analytics: "mongodb://user:password@host1,host2/",
+                    "orders.replica_1": "mongodb+srv://cluster.example.com/",
+                });
+            });
+
+            it("is undefined when not set", () => {
+                const { parsed: actual } = parseUserConfig({ args: [] });
+                expect(actual?.connectionStrings).toBeUndefined();
+            });
+
+            it("rejects a value that is not JSON without echoing it", () => {
+                setVariable("MDB_MCP_CONNECTION_STRINGS", "mongodb://user:s3cr3t@host/");
+                const { parsed: actual, error } = parseUserConfig({ args: [] });
+                expect(actual).toBeUndefined();
+                expect(error).toContain("connectionStrings");
+                expect(error).not.toContain("s3cr3t");
+            });
+
+            it.each([
+                { name: "has space", reason: "characters outside the allowed set" },
+                { name: "a".repeat(65), reason: "more than 64 characters" },
+                { name: "preconfigured", reason: "the reserved preconfigured id" },
+            ])("rejects a name with $reason", ({ name }) => {
+                setVariable("MDB_MCP_CONNECTION_STRINGS", JSON.stringify({ [name]: "mongodb://localhost" }));
+                const { parsed: actual, error } = parseUserConfig({ args: [] });
+                expect(actual).toBeUndefined();
+                expect(error).toContain("connectionStrings");
+            });
+
+            it("rejects an empty connection string", () => {
+                setVariable("MDB_MCP_CONNECTION_STRINGS", JSON.stringify({ analytics: "" }));
+                const { parsed: actual, error } = parseUserConfig({ args: [] });
+                expect(actual).toBeUndefined();
+                expect(error).toContain("connectionStrings");
+            });
+        });
+
         describe("string cases", () => {
             const testCases = [
                 { envVar: "MDB_MCP_API_BASE_URL", property: "apiBaseUrl", value: "http://test.com" },
@@ -932,9 +981,22 @@ describe("keychain management", () => {
         });
     }
 
+    // connectionStrings takes a JSON object rather than a plain string; it is covered separately below.
     const secretsFromSchema = Object.keys(UserConfigSchema.shape).filter((key) => {
         const meta = getConfigMeta(key as keyof UserConfig);
-        return meta?.isSecret === true;
+        return meta?.isSecret === true && key !== "connectionStrings";
+    });
+
+    it("should register every connectionStrings value as a secret in the root keychain", () => {
+        const { parsed } = parseUserConfig({
+            args: ["--connectionStrings", JSON.stringify({ first: "secret-uri-1", second: "secret-uri-2" })],
+        });
+        expect(parsed?.connectionStrings).toEqual({ first: "secret-uri-1", second: "secret-uri-2" });
+        const keychain = createKeychainFromConfig({ config: parsed ?? {} });
+
+        expect(keychain.redact("secret-uri-1 secret-uri-2")).toBe("<mongodb uri> <mongodb uri>");
+        // The names are labels, not secrets.
+        expect(keychain.redact("first")).toBe("first");
     });
 
     for (const secretKey of secretsFromSchema) {

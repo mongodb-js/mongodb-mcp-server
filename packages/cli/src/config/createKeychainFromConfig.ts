@@ -43,6 +43,9 @@ export function createKeychainFromConfig({
     if (userConfig.username) secrets[userConfig.username] = "user";
     if (userConfig.voyageApiKey) secrets[userConfig.voyageApiKey] = "password";
     if (userConfig.connectionString) secrets[userConfig.connectionString] = "mongodb uri";
+    for (const connectionString of Object.values(userConfig.connectionStrings ?? {})) {
+        secrets[connectionString] = "mongodb uri";
+    }
 
     return new Keychain(secrets);
 }

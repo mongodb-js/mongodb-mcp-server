@@ -207,6 +207,112 @@ describe("ConnectionRegistry", () => {
         });
     });
 
+    describe("named connection strings", () => {
+        const config = {
+            ...defaultTestConfig,
+            connectionString: "mongodb://default.example.com:27017",
+            connectionStrings: {
+                analytics: "mongodb://analytics.example.com:27017",
+                "orders-replica": "mongodb://orders.example.com:27017",
+            },
+        };
+
+        /** The seeded managers in seeding order: preconfigured, analytics, orders-replica. */
+        function seededManagers(): FakeConnectionManager[] {
+            return [...new Set(managers)];
+        }
+
+        it("seeds one undialed pinned entry per name, with the name as its connectionId", async () => {
+            const registry = makeStore({ options: config }).view();
+            const summaries = (await registry.find(() => true)).map((entry) => summarizeConnection(entry));
+            expect(summaries.map((summary) => summary.connectionId)).toEqual([
+                PRECONFIGURED_CONNECTION_ID,
+                "analytics",
+                "orders-replica",
+            ]);
+            for (const summary of summaries) {
+                expect(summary.source).toBe("preconfigured");
+                expect(summary.state).toBe("disconnected");
+            }
+            expect(managers.every((manager) => manager.connectCalls.length === 0)).toBe(true);
+        });
+
+        it("is seeded without a default connection string", async () => {
+            const registry = makeStore({ options: { ...config, connectionString: undefined } }).view();
+            await expect(registry.peek(PRECONFIGURED_CONNECTION_ID)).resolves.toBeUndefined();
+            await expect(registry.peek("analytics")).resolves.toBeDefined();
+        });
+
+        it("dials only the used entry, with its own connection string", async () => {
+            const registry = makeStore({ options: config }).view();
+            await expect(registry.resolve("orders-replica")).resolves.toEqual({ fake: true });
+
+            const [preconfigured, analytics, orders] = seededManagers();
+            expect(preconfigured?.connectCalls).toHaveLength(0);
+            expect(analytics?.connectCalls).toHaveLength(0);
+            expect(orders?.connectCalls).toHaveLength(1);
+            expect(orders?.connectCalls[0]?.connectionString).toContain("orders.example.com");
+        });
+
+        it("dials different entries concurrently, each to its own deployment", async () => {
+            const registry = makeStore({ options: config }).view();
+            await Promise.all([
+                registry.resolve(PRECONFIGURED_CONNECTION_ID),
+                registry.resolve("analytics"),
+                registry.resolve("orders-replica"),
+            ]);
+
+            const [preconfigured, analytics, orders] = seededManagers();
+            expect(preconfigured?.connectCalls[0]?.connectionString).toContain("default.example.com");
+            expect(analytics?.connectCalls[0]?.connectionString).toContain("analytics.example.com");
+            expect(orders?.connectCalls[0]?.connectionString).toContain("orders.example.com");
+        });
+
+        it("shares one dial between concurrent resolves of the same entry", async () => {
+            const registry = makeStore({ options: config }).view();
+            await Promise.all([registry.resolve("analytics"), registry.resolve("analytics")]);
+            expect(seededManagers()[1]?.connectCalls).toHaveLength(1);
+        });
+
+        it("survives disconnect and re-dials on next use", async () => {
+            const registry = makeStore({ options: config }).view();
+            await registry.resolve("analytics");
+            await registry.disconnect("analytics");
+            expect((await registry.peek("analytics"))?.state.tag).toBe("disconnected");
+            await registry.resolve("analytics");
+            expect(seededManagers()[1]?.connectCalls).toHaveLength(2);
+        });
+
+        it("names the failing connection when its dial fails", async () => {
+            const logger = new CompositeLogger();
+            const errorSpy = vi.spyOn(logger, "error");
+            const registry = makeStore({ options: config, logger }).view();
+            (seededManagers()[1] as FakeConnectionManager).failNextConnect = new Error("bad string");
+
+            const error = await registry.resolve("analytics").catch((e: unknown) => e);
+
+            expect((error as MongoDBError).code).toBe(ErrorCodes.MisconfiguredConnectionString);
+            expect(errorSpy).toHaveBeenCalledWith(
+                expect.objectContaining({ message: expect.stringContaining('"analytics"') as string })
+            );
+        });
+
+        it("are neither reaped nor counted against maxActiveConnections", async () => {
+            const store = makeStore({
+                options: { ...config, maxActiveConnections: 1, connectionIdleTimeoutMs: 1000 },
+            });
+            const registry = store.view();
+            await registry.resolve("analytics");
+            await registry.connect({ settings: { connectionString: "mongodb://explicit:27017" } });
+
+            await vi.advanceTimersByTimeAsync(120_000);
+
+            await expect(registry.peek("analytics")).resolves.toBeDefined();
+            await expect(registry.peek("orders-replica")).resolves.toBeDefined();
+            expect(seededManagers()[1]?.closed).toBe(false);
+        });
+    });
+
     describe("disconnect", () => {
         it("revokes explicit entries and runs the onRevoke callback", async () => {
             const registry = makeStore().view();
