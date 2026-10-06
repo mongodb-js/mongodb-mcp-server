@@ -14,7 +14,7 @@ export const EvalParametersSchema = z3
             .string()
             .describe(`MongoDB connection string`)
             .default("mongodb://localhost:27017/?directConnection=true"),
-        model: z3.string().describe(`Model used by the agent under test`).default("gpt-5"),
+        model: z3.string().describe(`Model used by the agent under test`).default("claude-sonnet-5"),
         judgeModel: z3.string().describe(`Model used by the judge`).default("gpt-6-astra"),
         modelReasoningEffort: ReasoningEffortSchema.describe(`Reasoning effort for the agent under test.`).default(
             "medium"
