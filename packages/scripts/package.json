@@ -39,6 +39,6 @@
     "ai": "^6.0.175",
     "semver": "^7.7.4",
     "@types/semver": "^7.7.0",
-    "simple-git": "^3.36.0"
+    "simple-git": "^4.0.1"
   }
 }
