@@ -23,7 +23,7 @@
     "@mongodb-js/mcp-cli": "workspace:*",
     "@mongodb-js/mcp-core": "workspace:*",
     "ai": "^7.0.107",
-    "braintrust": "^3.35.0",
+    "braintrust": "^3.36.0",
     "bson": "^7.3.3",
     "mongodb": "^7.6.0",
     "mongodb-mcp-server": "workspace:*",

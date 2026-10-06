@@ -415,8 +415,8 @@ importers:
         specifier: ^7.0.107
         version: 7.0.111(zod@4.4.3)
       braintrust:
-        specifier: ^3.35.0
-        version: 3.35.0(@aws-sdk/credential-provider-web-identity@3.972.16)(zod@4.4.3)
+        specifier: ^3.36.0
+        version: 3.37.0(@aws-sdk/credential-provider-web-identity@3.972.16)(zod@4.4.3)
       bson:
         specifier: ^7.2.0
         version: 7.3.1
@@ -4753,8 +4753,8 @@ packages:
     resolution: {integrity: sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==}
     engines: {node: '>=8'}
 
-  braintrust@3.35.0:
-    resolution: {integrity: sha512-WozT9N/M/HhMgyUS/fM99WW9NWqXS0I4lfQgil/uVeYOLTHxgngrxESAxWC53OkaxgxjFLFHFYHDWpLxc5R6Sw==}
+  braintrust@3.37.0:
+    resolution: {integrity: sha512-c3U1p0vNQUYijmOqEw2s+TrVYhai/P9QQ8awvyRnfip/IHhHHhUe7aAixqTFZDtjDYHBuvsCtDp3GVbL9LVQ7A==}
     hasBin: true
     peerDependencies:
       zod: ^4.4.2
@@ -12303,7 +12303,7 @@ snapshots:
     dependencies:
       fill-range: 7.1.1
 
-  braintrust@3.35.0(@aws-sdk/credential-provider-web-identity@3.972.16)(zod@4.4.3):
+  braintrust@3.37.0(@aws-sdk/credential-provider-web-identity@3.972.16)(zod@4.4.3):
     dependencies:
       '@next/env': 14.2.35
       '@types/react': 18.3.31
