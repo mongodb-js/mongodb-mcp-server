@@ -97,4 +97,18 @@ describe("config resource", () => {
         const output = resource.toOutput();
         expect(output).not.toContain(config.logPath);
     });
+
+    it("lists named connections without their connection strings", () => {
+        const config = {
+            ...defaultTestConfig,
+            connectionStrings: { analytics: "mongodb://user:s3cr3t@analytics.example.com/" },
+        } as unknown as UserConfig;
+
+        const output = createResource(config).toOutput();
+        const parsed = JSON.parse(output) as { connectionString: string; connectionStrings: string };
+
+        expect(parsed.connectionStrings).toContain('"analytics"');
+        expect(output).not.toContain("s3cr3t");
+        expect(output).not.toContain("analytics.example.com");
+    });
 });

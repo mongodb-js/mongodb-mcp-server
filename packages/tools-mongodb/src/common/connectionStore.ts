@@ -14,7 +14,12 @@ import type {
     CreateConnectionEntryOptions,
     CreateConnectionOptions,
 } from "./connectionRegistry.js";
-import { buildEntryName, ConnectionEntry, PRECONFIGURED_CONNECTION_ID } from "./connectionRegistry.js";
+import {
+    buildEntryName,
+    CONNECTION_NAME_PATTERN,
+    ConnectionEntry,
+    PRECONFIGURED_CONNECTION_ID,
+} from "./connectionRegistry.js";
 
 /**
  * Structural subset of the embedder's configuration that the store reads: the
@@ -116,6 +121,17 @@ export class MCPConnectionStore {
             this.seedPreconfigured(PRECONFIGURED_CONNECTION_ID);
         }
         for (const name of Object.keys(this.options.connectionStrings ?? {})) {
+            // Validated here as well as in the CLI config schema: embedders construct the
+            // store directly, and a reserved or malformed name would otherwise shadow the
+            // "preconfigured" entry or produce an id that is awkward to pass to the tools.
+            if (name === PRECONFIGURED_CONNECTION_ID) {
+                throw new Error(`Invalid connection name "${name}": it is reserved for the connectionString option.`);
+            }
+            if (!CONNECTION_NAME_PATTERN.test(name)) {
+                throw new Error(
+                    `Invalid connection name "${name}": names may only contain letters, digits, '.', '_' and '-' (max 64 characters).`
+                );
+            }
             this.seedPreconfigured(name);
         }
     }

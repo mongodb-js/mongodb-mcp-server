@@ -271,6 +271,23 @@ describe("config", () => {
             }
         });
 
+        it.each([["--connectionString", "mongodb://localhost"], ["--connectionString=mongodb://localhost"]])(
+            "warns when the deprecated %s flag is used",
+            (...args) => {
+                const { warnings } = parseUserConfig({ args });
+                expect(warnings).toHaveLength(1);
+                expect(warnings[0]).toContain("--connectionString argument is deprecated");
+            }
+        );
+
+        it("does not warn about --connectionString when --connectionStrings is used", () => {
+            const { warnings, parsed } = parseUserConfig({
+                args: ["--connectionStrings", JSON.stringify({ analytics: "mongodb://localhost" })],
+            });
+            expect(parsed?.connectionStrings).toEqual({ analytics: "mongodb://localhost" });
+            expect(warnings).toHaveLength(0);
+        });
+
         it("does not warn for connectionScope when it is not set", () => {
             const { warnings } = parseUserConfig({ args: [] });
             expect(warnings).toHaveLength(0);

@@ -297,6 +297,16 @@ describe("ConnectionRegistry", () => {
             );
         });
 
+        it.each([
+            { name: PRECONFIGURED_CONNECTION_ID, error: /reserved/ },
+            { name: "has space", error: /may only contain/ },
+            { name: "a".repeat(65), error: /may only contain/ },
+        ])("rejects the invalid name $name when the store is constructed directly", ({ name, error }) => {
+            expect(() =>
+                makeStore({ options: { ...defaultTestConfig, connectionStrings: { [name]: "mongodb://localhost" } } })
+            ).toThrow(error);
+        });
+
         it("are neither reaped nor counted against maxActiveConnections", async () => {
             const store = makeStore({
                 options: { ...config, maxActiveConnections: 1, connectionIdleTimeoutMs: 1000 },

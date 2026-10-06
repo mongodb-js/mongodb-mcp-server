@@ -170,7 +170,8 @@ function matchingConfigKey(key: string): string | undefined {
 function getWarnings(config: Partial<UserConfig>, cliArguments: string[]): string[] {
     const warnings = [];
 
-    if (cliArguments.find((argument: string) => argument.startsWith("--connectionString"))) {
+    // Match the singular flag only, so the plural --connectionStrings option does not warn.
+    if (cliArguments.find((argument: string) => /^--connectionString(?:=|$)/.test(argument))) {
         warnings.push(
             "Warning: The --connectionString argument is deprecated. Prefer using the MDB_MCP_CONNECTION_STRING environment variable or the first positional argument for the connection string."
         );
