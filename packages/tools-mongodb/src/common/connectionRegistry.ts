@@ -13,6 +13,30 @@ import { ErrorCodes, MongoDBError } from "./errors.js";
  */
 export const PRECONFIGURED_CONNECTION_ID = "preconfigured";
 
+/**
+ * Allowed shape of a name in the `connectionStrings` config option. The name is
+ * used verbatim as the connectionId of the connection seeded from it, so it is
+ * kept short and free of characters that need quoting.
+ */
+export const CONNECTION_NAME_PATTERN = /^[A-Za-z0-9._-]{1,64}$/;
+
+/**
+ * Every connection string the server configuration declares, keyed by the
+ * connectionId it is exposed under: `connectionString` becomes the
+ * {@link PRECONFIGURED_CONNECTION_ID} entry and each `connectionStrings` entry
+ * keeps its name. The single source for everything that treats configured
+ * connections uniformly (seeding, dialing, validation, redaction, tool guidance).
+ */
+export function getConfiguredConnectionStrings(config: {
+    connectionString?: string;
+    connectionStrings?: Record<string, string>;
+}): Record<string, string> {
+    return {
+        ...(config.connectionString && { [PRECONFIGURED_CONNECTION_ID]: config.connectionString }),
+        ...config.connectionStrings,
+    };
+}
+
 const NAME_SUFFIX_BYTES = 2;
 const MAX_SLUG_LENGTH = 40;
 

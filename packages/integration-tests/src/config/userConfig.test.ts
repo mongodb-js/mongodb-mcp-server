@@ -72,6 +72,7 @@ const expectedDefaults = {
 const CONFIG_FIXTURES = {
     VALID: path.resolve(import.meta.dirname, "fixtures", "valid-config.json"),
     WITH_INVALID_VALUE: path.resolve(import.meta.dirname, "fixtures", "config-with-invalid-value.json"),
+    NAMED_CONNECTIONS: path.resolve(import.meta.dirname, "fixtures", "named-connections-config.json"),
 };
 
 describe("config", () => {
@@ -121,6 +122,55 @@ describe("config", () => {
                 setVariable("MDB_MCP_CONNECTION_STRING", "mongodb://user:password@host1,host2,host3/");
                 const { parsed: actual } = parseUserConfig({ args: [] });
                 expect(actual?.connectionString).toEqual("mongodb://user:password@host1,host2,host3/");
+            });
+        });
+
+        describe("named connection strings", () => {
+            it("parses MDB_MCP_CONNECTION_STRINGS as a JSON object", () => {
+                setVariable(
+                    "MDB_MCP_CONNECTION_STRINGS",
+                    JSON.stringify({
+                        analytics: "mongodb://user:password@host1,host2/",
+                        "orders.replica_1": "mongodb+srv://cluster.example.com/",
+                    })
+                );
+                const { parsed: actual, error } = parseUserConfig({ args: [] });
+                expect(error).toBeUndefined();
+                expect(actual?.connectionStrings).toEqual({
+                    analytics: "mongodb://user:password@host1,host2/",
+                    "orders.replica_1": "mongodb+srv://cluster.example.com/",
+                });
+            });
+
+            it("is undefined when not set", () => {
+                const { parsed: actual } = parseUserConfig({ args: [] });
+                expect(actual?.connectionStrings).toBeUndefined();
+            });
+
+            it("rejects a value that is not JSON without echoing it", () => {
+                setVariable("MDB_MCP_CONNECTION_STRINGS", "mongodb://user:s3cr3t@host/");
+                const { parsed: actual, error } = parseUserConfig({ args: [] });
+                expect(actual).toBeUndefined();
+                expect(error).toContain("connectionStrings");
+                expect(error).not.toContain("s3cr3t");
+            });
+
+            it.each([
+                { name: "has space", reason: "characters outside the allowed set" },
+                { name: "a".repeat(65), reason: "more than 64 characters" },
+                { name: "preconfigured", reason: "the reserved preconfigured id" },
+            ])("rejects a name with $reason", ({ name }) => {
+                setVariable("MDB_MCP_CONNECTION_STRINGS", JSON.stringify({ [name]: "mongodb://localhost" }));
+                const { parsed: actual, error } = parseUserConfig({ args: [] });
+                expect(actual).toBeUndefined();
+                expect(error).toContain("connectionStrings");
+            });
+
+            it("rejects an empty connection string", () => {
+                setVariable("MDB_MCP_CONNECTION_STRINGS", JSON.stringify({ analytics: "" }));
+                const { parsed: actual, error } = parseUserConfig({ args: [] });
+                expect(actual).toBeUndefined();
+                expect(error).toContain("connectionStrings");
             });
         });
 
@@ -220,6 +270,26 @@ describe("config", () => {
             } finally {
                 clearVariables();
             }
+        });
+
+        it.each([["--connectionString", "mongodb://localhost"], ["--connectionString=mongodb://localhost"]])(
+            "warns when the deprecated %s flag is used",
+            (...args) => {
+                const { warnings } = parseUserConfig({ args });
+                expect(warnings).toHaveLength(1);
+                expect(warnings[0]).toContain("--connectionString argument is deprecated");
+            }
+        );
+
+        it.each([
+            ["--connectionStrings", JSON.stringify({ analytics: "mongodb://localhost" })],
+            [`--connectionStrings=${JSON.stringify({ analytics: "mongodb://localhost" })}`],
+        ])("rejects connectionStrings as a command line argument (%s)", (...args) => {
+            const { parsed, error } = parseUserConfig({ args });
+            expect(parsed).toBeUndefined();
+            expect(error).toContain("--connectionStrings option is not supported as a command line argument");
+            expect(error).toContain("MDB_MCP_CONNECTION_STRINGS");
+            expect(error).not.toContain("analytics");
         });
 
         it("does not warn for connectionScope when it is not set", () => {
@@ -630,6 +700,16 @@ describe("config", () => {
                 expect(parsed?.loggers).toStrictEqual(["stderr"]);
             });
 
+            it("should load named connection strings from a config file as an object", () => {
+                setVariable("MDB_MCP_CONFIG", CONFIG_FIXTURES.NAMED_CONNECTIONS);
+                const { error, parsed } = parseUserConfig({ args: [] });
+                expect(error).toBeUndefined();
+                expect(parsed?.connectionStrings).toEqual({
+                    analytics: "mongodb://analytics-localhost:1000",
+                    orders: "mongodb://orders-localhost:1000",
+                });
+            });
+
             it("should attempt loading config file with wrong value and exit", () => {
                 setVariable("MDB_MCP_CONFIG", CONFIG_FIXTURES.WITH_INVALID_VALUE);
                 const { warnings, error, parsed } = parseUserConfig({ args: [] });
@@ -932,9 +1012,23 @@ describe("keychain management", () => {
         });
     }
 
+    // connectionStrings takes a JSON object rather than a plain string; it is covered separately below.
     const secretsFromSchema = Object.keys(UserConfigSchema.shape).filter((key) => {
         const meta = getConfigMeta(key as keyof UserConfig);
-        return meta?.isSecret === true;
+        return meta?.isSecret === true && key !== "connectionStrings";
+    });
+
+    it("should register every connectionStrings value as a secret in the root keychain", () => {
+        const { setVariable, clearVariables } = createEnvironment();
+        setVariable("MDB_MCP_CONNECTION_STRINGS", JSON.stringify({ first: "secret-uri-1", second: "secret-uri-2" }));
+        const { parsed } = parseUserConfig({ args: [] });
+        clearVariables();
+        expect(parsed?.connectionStrings).toEqual({ first: "secret-uri-1", second: "secret-uri-2" });
+        const keychain = createKeychainFromConfig({ config: parsed ?? {} });
+
+        expect(keychain.redact("secret-uri-1 secret-uri-2")).toBe("<mongodb uri> <mongodb uri>");
+        // The names are labels, not secrets.
+        expect(keychain.redact("first")).toBe("first");
     });
 
     for (const secretKey of secretsFromSchema) {

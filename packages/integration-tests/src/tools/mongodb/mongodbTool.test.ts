@@ -424,6 +424,29 @@ describe("MongoDBTool implementations", () => {
             await cleanupAndStartServer();
             expect(await connectionIdDescription()).not.toContain("preconfigured");
         });
+
+        it("lists the configured connection names, never their connection strings", async () => {
+            await cleanupAndStartServer({
+                connectionStrings: {
+                    analytics: mdbIntegration.connectionString(),
+                    "orders-replica": mdbIntegration.connectionString(),
+                },
+            });
+            const description = await connectionIdDescription();
+            expect(description).toContain('"analytics", "orders-replica"');
+            expect(description).not.toContain("preconfigured");
+            expect(description).not.toContain(mdbIntegration.connectionString());
+        });
+
+        it("lists the configured connection names alongside preconfigured", async () => {
+            await cleanupAndStartServer({
+                connectionString: mdbIntegration.connectionString(),
+                connectionStrings: { analytics: mdbIntegration.connectionString() },
+            });
+            const description = await connectionIdDescription();
+            expect(description).toContain('"analytics"');
+            expect(description).toContain('"preconfigured"');
+        });
     });
 
     describe("when the list-connections tool is not registered", () => {

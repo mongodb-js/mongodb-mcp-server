@@ -75,6 +75,56 @@ describeWithMongoDB({
     },
 });
 describeWithMongoDB({
+    name: "Connect tool with named connection strings",
+    fn: (integration) => {
+        it("lists the configured connectionIds in the connect tool description", async () => {
+            const { tools } = await integration.mcpClient().listTools();
+            const description = tools.find((tool) => tool.name === "connect")?.description;
+            expect(description).toContain('"analytics", "orders-replica"');
+            expect(description).not.toContain(integration.connectionString());
+        });
+
+        it("seeds one undialed connection per name, with the name as its connectionId", async () => {
+            const response = await integration.mcpClient().callTool({ name: "list-connections", arguments: {} });
+            const structuredContent = response.structuredContent as {
+                connections: { connectionId: string; source: string; state?: string }[];
+            };
+            expect(structuredContent.connections.map((connection) => connection.connectionId)).toEqual([
+                "analytics",
+                "orders-replica",
+            ]);
+            for (const connection of structuredContent.connections) {
+                expect(connection.source).toBe("preconfigured");
+                expect(connection.state).toBe("disconnected");
+            }
+        });
+
+        it("runs tools against a named connection, dialing only that one", async () => {
+            const response = await integration.mcpClient().callTool({
+                name: "list-databases",
+                arguments: { connectionId: "orders-replica" },
+            });
+            expect(response.isError).toBeFalsy();
+
+            const listResponse = await integration.mcpClient().callTool({ name: "list-connections", arguments: {} });
+            const { connections } = listResponse.structuredContent as {
+                connections: { connectionId: string; state?: string }[];
+            };
+            expect(connections.find((c) => c.connectionId === "orders-replica")?.state).toBe("connected");
+            expect(connections.find((c) => c.connectionId === "analytics")?.state).toBe("disconnected");
+        });
+    },
+    config: {
+        getUserConfig: (mdbIntegration) => ({
+            ...defaultTestConfig,
+            connectionStrings: {
+                analytics: mdbIntegration.connectionString(),
+                "orders-replica": mdbIntegration.connectionString(),
+            },
+        }),
+    },
+});
+describeWithMongoDB({
     name: "Connect tool when server is configured to connect with complex connection",
     fn: (integration) => {
         let connectFnSpy: MockInstance<typeof NodeDriverServiceProvider.connect>;

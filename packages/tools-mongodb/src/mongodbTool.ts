@@ -16,6 +16,7 @@ import type { ConnectionMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "./common/errors.js";
 import type { ConnectionEntry, ConnectionRegistry } from "./common/connectionRegistry.js";
+import { getConfiguredConnectionStrings, PRECONFIGURED_CONNECTION_ID } from "./common/connectionRegistry.js";
 import { assertNoServerSideJS, assertNoWriteStages, type WriteStageTarget } from "./helpers/mqlGuards.js";
 import { buildWriteStageConfirmationMessage } from "./helpers/writeStageConfirmation.js";
 import { EXPORT_TOOL_NAME } from "./helpers/constants.js";
@@ -33,6 +34,7 @@ export const CollOperationArgs = {
 /** MongoDB tool subset of server config. */
 export type IMongoDBConfig = IToolConfig & {
     connectionString: string | undefined;
+    connectionStrings?: Record<string, string>;
     indexCheck: boolean;
     disableServerSideJs: boolean;
     maxTimeMS: number | undefined;
@@ -88,6 +90,17 @@ export function connectionScopedArgsShape<T extends ZodRawShape>(
         preconfigured: { ...ConnectionIdArgs, ...rest },
         plain: { ...ConnectionIdArgsWithoutPreconfigured, ...rest },
     };
+}
+
+/**
+ * `connectionId` description for a server whose configuration declares named
+ * connections. The ids are listed so a client can address a deployment without
+ * first calling "list-connections"; they are configuration labels, never the
+ * connection strings.
+ */
+function configuredConnectionIdDescription(connectionIds: readonly string[]): string {
+    const ids = connectionIds.map((id) => `"${id}"`).join(", ");
+    return `The connection to run the operation against. Use one of the connections configured on the server (${ids}), or the id returned by one of the connect tools.`;
 }
 
 export type MongoDBToolServer = ToolServer<MongoDBToolServices>;
@@ -244,10 +257,23 @@ export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
     /**
      * Selects the connectionId-scoped argsShape variant matching whether a
      * connection string is preconfigured for this request, so the "preconfigured"
-     * handle is only mentioned when it actually exists.
+     * handle is only mentioned when it actually exists. When named connection
+     * strings are configured, their names are listed in the description instead.
      */
     protected selectConnectionScopedArgsShape<T extends ZodRawShape>(variants: { preconfigured: T; plain: T }): T {
-        return this.server.config.connectionString ? variants.preconfigured : variants.plain;
+        const connectionIds = Object.keys(getConfiguredConnectionStrings(this.server.config));
+        if (connectionIds.length === 0) {
+            return variants.plain;
+        }
+        if (connectionIds.length === 1 && connectionIds[0] === PRECONFIGURED_CONNECTION_ID) {
+            return variants.preconfigured;
+        }
+        // Named connections are per-server configuration, so this variant
+        // cannot be precomputed at module scope like the other two.
+        return {
+            ...variants.plain,
+            connectionId: z.string().describe(configuredConnectionIdDescription(connectionIds)),
+        };
     }
 
     protected async handleError(

@@ -9,9 +9,12 @@ import {
     onlyStricterLogLevelOverride,
     onlySubsetOfBaseValueOverride,
     parseBoolean,
+    tryParseJsonInZodPreprocess,
 } from "./configUtils.js";
 import { MCP_LOG_LEVELS } from "@mongodb-js/mcp-core";
 import {
+    CONNECTION_NAME_PATTERN,
+    PRECONFIGURED_CONNECTION_ID,
     monitoringServerFeatureValues,
     previewFeatureValues,
     QUERY_COUNT_MAX_TIME_MS_CAP,
@@ -53,6 +56,39 @@ const ServerConfigSchema = z.object({
             "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data."
         )
         .register(configRegistry, { isSecret: true, overrideBehavior: "not-allowed" }),
+    connectionStrings: z
+        .preprocess(
+            tryParseJsonInZodPreprocess,
+            z.union([
+                z.record(
+                    z
+                        .string()
+                        .regex(
+                            CONNECTION_NAME_PATTERN,
+                            "Connection names may only contain letters, digits, '.', '_' and '-' (max 64 characters)"
+                        )
+                        .refine((name) => name !== PRECONFIGURED_CONNECTION_ID, {
+                            message: `"${PRECONFIGURED_CONNECTION_ID}" is reserved for the connectionString option`,
+                        }),
+                    z.string().min(1)
+                ),
+                // Never matches: by now the preprocessor has turned any valid input into an
+                // object. The string arm only makes the argument parser (which also reads the
+                // environment variables) take this option as a raw string, since it has no
+                // notion of records, so that the JSON is parsed and validated here, with a
+                // field-level error instead of a parser failure.
+                z.string().refine(() => false, { message: "Expected a JSON object" }),
+            ])
+        )
+        .optional()
+        .describe(
+            'Named MongoDB connection strings, as a JSON object (e.g. {"analytics": "mongodb://..."}). Each name becomes a connectionId that the MongoDB tools can use directly, so one server can reach several deployments. Connections are opened on first use. Environment variable or config file only.'
+        )
+        .register(configRegistry, {
+            isSecret: true,
+            overrideBehavior: "not-allowed",
+            cliArgument: false,
+        }) as unknown as z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>, // the string arm above never parses successfully
     loggers: z
         .preprocess(
             (val: string | string[] | undefined) => commaSeparatedToArray(val),

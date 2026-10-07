@@ -15,7 +15,10 @@ import { CliServer } from "./cliServer.js";
 import {
     connectionErrorHandler,
     DeviceId,
+    getConfiguredConnectionStrings,
+    isObjectEmpty,
     MCPConnectionStore,
+    PRECONFIGURED_CONNECTION_ID,
     validateConnectionString,
     type ConnectionRegistry,
 } from "@mongodb-js/mcp-tools-mongodb";
@@ -84,13 +87,14 @@ export async function validateAppConfig({
     logger: CompositeLogger;
     apiClient: ApiClient;
 }): Promise<void> {
-    // Validate connection string
-    if (config.connectionString) {
+    // Validate connection strings
+    for (const [connectionId, connectionString] of Object.entries(getConfiguredConnectionStrings(config))) {
         try {
-            validateConnectionString(config.connectionString, false);
+            validateConnectionString(connectionString, false);
         } catch (error) {
+            const subject = connectionId === PRECONFIGURED_CONNECTION_ID ? "" : ` for connection "${connectionId}"`;
             throw new Error(
-                "Connection string validation failed with error: " +
+                `Connection string validation failed${subject} with error: ` +
                     (error instanceof Error ? error.message : String(error)),
                 { cause: error }
             );
@@ -119,7 +123,7 @@ export async function validateAppConfig({
 
             await apiClient.validateAuthConfig();
         } catch (error) {
-            if (config.connectionString === undefined) {
+            if (isObjectEmpty(getConfiguredConnectionStrings(config))) {
                 throw new Error(
                     `Failed to connect to MongoDB Atlas instance using the credentials from the config: ${error instanceof Error ? error.message : String(error)}`,
                     { cause: error }
