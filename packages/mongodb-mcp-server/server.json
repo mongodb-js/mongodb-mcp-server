@@ -88,7 +88,7 @@
         },
         {
           "name": "MDB_MCP_CONNECTION_STRINGS",
-          "description": "Named MongoDB connection strings, as a JSON object (e.g. {\"analytics\": \"mongodb://...\"}). Each name becomes a connectionId that the MongoDB tools can use directly, so one server can reach several deployments. Connections are opened on first use.",
+          "description": "Named MongoDB connection strings, as a JSON object (e.g. {\"analytics\": \"mongodb://...\"}). Each name becomes a connectionId that the MongoDB tools can use directly, so one server can reach several deployments. Connections are opened on first use. Environment variable or config file only.",
           "isRequired": false,
           "format": "string",
           "isSecret": true
@@ -423,12 +423,6 @@
           "type": "named",
           "name": "--connectionString",
           "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
-          "isRequired": false
-        },
-        {
-          "type": "named",
-          "name": "--connectionStrings",
-          "description": "Named MongoDB connection strings, as a JSON object (e.g. {\"analytics\": \"mongodb://...\"}). Each name becomes a connectionId that the MongoDB tools can use directly, so one server can reach several deployments. Connections are opened on first use.",
           "isRequired": false
         },
         {
@@ -763,7 +757,7 @@
         },
         {
           "name": "MDB_MCP_CONNECTION_STRINGS",
-          "description": "Named MongoDB connection strings, as a JSON object (e.g. {\"analytics\": \"mongodb://...\"}). Each name becomes a connectionId that the MongoDB tools can use directly, so one server can reach several deployments. Connections are opened on first use.",
+          "description": "Named MongoDB connection strings, as a JSON object (e.g. {\"analytics\": \"mongodb://...\"}). Each name becomes a connectionId that the MongoDB tools can use directly, so one server can reach several deployments. Connections are opened on first use. Environment variable or config file only.",
           "isRequired": false,
           "format": "string",
           "isSecret": true
@@ -1098,12 +1092,6 @@
           "type": "named",
           "name": "--connectionString",
           "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
-          "isRequired": false
-        },
-        {
-          "type": "named",
-          "name": "--connectionStrings",
-          "description": "Named MongoDB connection strings, as a JSON object (e.g. {\"analytics\": \"mongodb://...\"}). Each name becomes a connectionId that the MongoDB tools can use directly, so one server can reach several deployments. Connections are opened on first use.",
           "isRequired": false
         },
         {

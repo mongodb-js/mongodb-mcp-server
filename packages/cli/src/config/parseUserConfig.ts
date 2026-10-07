@@ -1,5 +1,5 @@
 import { type CliOptions, generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
-import { UserConfigSchema, ALL_CONFIG_KEYS, type UserConfig } from "./userConfig.js";
+import { UserConfigSchema, ALL_CONFIG_KEYS, configRegistry, type UserConfig } from "./userConfig.js";
 import {
     defaultParserOptions as defaultArgParserOptions,
     createParseArgsWithCliOptions,
@@ -46,6 +46,11 @@ export function parseUserConfig({
               ...overrides,
           })
         : UserConfigSchema;
+
+    const cliArgumentError = findDisallowedCliArgument({ args, schema, parserOptions });
+    if (cliArgumentError) {
+        return { error: cliArgumentError, warnings: [], parsed: undefined };
+    }
 
     const { error: parseError, warnings, parsed } = parseUserConfigSources({ args, schema, parserOptions });
 
@@ -149,6 +154,33 @@ function parseUserConfigSources<T extends typeof UserConfigSchema>({
         warnings: deprecationWarnings,
         parsed,
     };
+}
+
+/**
+ * Rejects options registered with `cliArgument: false` when they are passed as
+ * command line arguments; those are only read from environment variables and
+ * config files.
+ */
+function findDisallowedCliArgument({
+    args,
+    schema,
+    parserOptions,
+}: {
+    args: string[];
+    schema: z.ZodObject;
+    parserOptions: ParserOptions;
+}): string | undefined {
+    for (const [key, field] of Object.entries(schema.shape)) {
+        if (configRegistry.get(field as z.ZodType)?.cliArgument !== false) {
+            continue;
+        }
+        const flag = new RegExp(`^--${key}(?:=|$)`);
+        if (args.some((argument) => flag.test(argument))) {
+            const envVar = `${parserOptions.envPrefix}${key.replace(/[A-Z]/g, (c) => `_${c}`).toUpperCase()}`;
+            return `Error: The --${key} option is not supported as a command line argument. Use the ${envVar} environment variable or a config file instead.`;
+        }
+    }
+    return undefined;
 }
 
 function matchingConfigKey(key: string): string | undefined {

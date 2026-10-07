@@ -2,7 +2,7 @@ import { z } from "zod";
 import { MongoDBToolBase } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType } from "@mongodb-js/mcp-types";
-import { PRECONFIGURED_CONNECTION_ID } from "../../common/connectionRegistry.js";
+import { getConfiguredConnectionStrings, PRECONFIGURED_CONNECTION_ID } from "../../common/connectionRegistry.js";
 
 const DisconnectOutputSchema = {
     outcome: z.enum(["removed", "disconnected"]),
@@ -15,7 +15,7 @@ const DisconnectArgsShape = {
 export class DisconnectTool extends MongoDBToolBase {
     static toolName = "disconnect";
     public override description =
-        this.server.config.connectionString || Object.keys(this.server.config.connectionStrings ?? {}).length > 0
+        Object.keys(getConfiguredConnectionStrings(this.server.config)).length > 0
             ? 'Close a MongoDB connection and revoke its connectionId. Disconnecting a connection the server configuration declares ("preconfigured" or a named connection) only closes it — it reconnects automatically on next use.'
             : "Close a MongoDB connection and revoke its connectionId.";
 

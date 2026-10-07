@@ -1,5 +1,6 @@
 import { Keychain, type SecretKind } from "@mongodb-js/mcp-core";
 import type { UserConfig } from "./userConfig.js";
+import { getConfiguredConnectionStrings } from "@mongodb-js/mcp-tools-mongodb";
 
 export type CreateKeychainFromConfigOptions = {
     /** The parsed user config whose secret-bearing fields are registered. */
@@ -42,8 +43,7 @@ export function createKeychainFromConfig({
     if (userConfig.tlsCertificateKeyFilePassword) secrets[userConfig.tlsCertificateKeyFilePassword] = "password";
     if (userConfig.username) secrets[userConfig.username] = "user";
     if (userConfig.voyageApiKey) secrets[userConfig.voyageApiKey] = "password";
-    if (userConfig.connectionString) secrets[userConfig.connectionString] = "mongodb uri";
-    for (const connectionString of Object.values(userConfig.connectionStrings ?? {})) {
+    for (const connectionString of Object.values(getConfiguredConnectionStrings(userConfig))) {
         secrets[connectionString] = "mongodb uri";
     }
 

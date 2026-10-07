@@ -16,6 +16,7 @@ import type { ConnectionMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "./common/errors.js";
 import type { ConnectionEntry, ConnectionRegistry } from "./common/connectionRegistry.js";
+import { getConfiguredConnectionStrings, PRECONFIGURED_CONNECTION_ID } from "./common/connectionRegistry.js";
 import { assertNoServerSideJS, assertNoWriteStages, type WriteStageTarget } from "./helpers/mqlGuards.js";
 import { buildWriteStageConfirmationMessage } from "./helpers/writeStageConfirmation.js";
 import { EXPORT_TOOL_NAME } from "./helpers/constants.js";
@@ -92,22 +93,14 @@ export function connectionScopedArgsShape<T extends ZodRawShape>(
 }
 
 /**
- * `connectionId` description for a server with named connection strings configured.
- * The names are listed so a client can address a deployment without first calling
- * "list-connections"; they are configuration labels, never the connection strings.
+ * `connectionId` description for a server whose configuration declares named
+ * connections. The ids are listed so a client can address a deployment without
+ * first calling "list-connections"; they are configuration labels, never the
+ * connection strings.
  */
-function namedConnectionIdDescription({
-    hasPreconfiguredConnection,
-    names,
-}: {
-    hasPreconfiguredConnection: boolean;
-    names: readonly string[];
-}): string {
-    const preconfigured = hasPreconfiguredConnection
-        ? ', "preconfigured" to use the connection string the server was configured with'
-        : "";
-    const configured = names.map((name) => `"${name}"`).join(", ");
-    return `The connection to run the operation against. Use one of the connections configured on the server (${configured})${preconfigured}, or the id returned by one of the connect tools.`;
+function configuredConnectionIdDescription(connectionIds: readonly string[]): string {
+    const ids = connectionIds.map((id) => `"${id}"`).join(", ");
+    return `The connection to run the operation against. Use one of the connections configured on the server (${ids}), or the id returned by one of the connect tools.`;
 }
 
 export type MongoDBToolServer = ToolServer<MongoDBToolServices>;
@@ -268,19 +261,19 @@ export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
      * strings are configured, their names are listed in the description instead.
      */
     protected selectConnectionScopedArgsShape<T extends ZodRawShape>(variants: { preconfigured: T; plain: T }): T {
-        const { connectionString, connectionStrings } = this.server.config;
-        const names = Object.keys(connectionStrings ?? {});
-        if (names.length > 0) {
-            // Named connections are per-server configuration, so this variant
-            // cannot be precomputed at module scope like the other two.
-            return {
-                ...variants.plain,
-                connectionId: z
-                    .string()
-                    .describe(namedConnectionIdDescription({ hasPreconfiguredConnection: !!connectionString, names })),
-            };
+        const connectionIds = Object.keys(getConfiguredConnectionStrings(this.server.config));
+        if (connectionIds.length === 0) {
+            return variants.plain;
         }
-        return connectionString ? variants.preconfigured : variants.plain;
+        if (connectionIds.length === 1 && connectionIds[0] === PRECONFIGURED_CONNECTION_ID) {
+            return variants.preconfigured;
+        }
+        // Named connections are per-server configuration, so this variant
+        // cannot be precomputed at module scope like the other two.
+        return {
+            ...variants.plain,
+            connectionId: z.string().describe(configuredConnectionIdDescription(connectionIds)),
+        };
     }
 
     protected async handleError(

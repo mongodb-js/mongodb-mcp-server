@@ -20,6 +20,23 @@ export const PRECONFIGURED_CONNECTION_ID = "preconfigured";
  */
 export const CONNECTION_NAME_PATTERN = /^[A-Za-z0-9._-]{1,64}$/;
 
+/**
+ * Every connection string the server configuration declares, keyed by the
+ * connectionId it is exposed under: `connectionString` becomes the
+ * {@link PRECONFIGURED_CONNECTION_ID} entry and each `connectionStrings` entry
+ * keeps its name. The single source for everything that treats configured
+ * connections uniformly (seeding, dialing, validation, redaction, tool guidance).
+ */
+export function getConfiguredConnectionStrings(config: {
+    connectionString?: string;
+    connectionStrings?: Record<string, string>;
+}): Record<string, string> {
+    return {
+        ...(config.connectionString && { [PRECONFIGURED_CONNECTION_ID]: config.connectionString }),
+        ...config.connectionStrings,
+    };
+}
+
 const NAME_SUFFIX_BYTES = 2;
 const MAX_SLUG_LENGTH = 40;
 

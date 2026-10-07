@@ -77,6 +77,13 @@ describeWithMongoDB({
 describeWithMongoDB({
     name: "Connect tool with named connection strings",
     fn: (integration) => {
+        it("lists the configured connectionIds in the connect tool description", async () => {
+            const { tools } = await integration.mcpClient().listTools();
+            const description = tools.find((tool) => tool.name === "connect")?.description;
+            expect(description).toContain('"analytics", "orders-replica"');
+            expect(description).not.toContain(integration.connectionString());
+        });
+
         it("seeds one undialed connection per name, with the name as its connectionId", async () => {
             const response = await integration.mcpClient().callTool({ name: "list-connections", arguments: {} });
             const structuredContent = response.structuredContent as {

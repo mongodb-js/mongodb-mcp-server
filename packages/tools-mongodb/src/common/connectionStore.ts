@@ -18,6 +18,7 @@ import {
     buildEntryName,
     CONNECTION_NAME_PATTERN,
     ConnectionEntry,
+    getConfiguredConnectionStrings,
     PRECONFIGURED_CONNECTION_ID,
 } from "./connectionRegistry.js";
 
@@ -117,22 +118,21 @@ export class MCPConnectionStore {
 
         this.startSweeper();
 
-        if (this.options.connectionString) {
-            this.seedPreconfigured(PRECONFIGURED_CONNECTION_ID);
+        const { connectionStrings } = this.options;
+        if (connectionStrings && PRECONFIGURED_CONNECTION_ID in connectionStrings) {
+            // Validated here as well as in the CLI config schema, since embedders construct
+            // the store directly: the reserved id belongs to the connectionString option.
+            throw new Error(
+                `Invalid connection name "${PRECONFIGURED_CONNECTION_ID}": it is reserved for the connectionString option.`
+            );
         }
-        for (const name of Object.keys(this.options.connectionStrings ?? {})) {
-            // Validated here as well as in the CLI config schema: embedders construct the
-            // store directly, and a reserved or malformed name would otherwise shadow the
-            // "preconfigured" entry or produce an id that is awkward to pass to the tools.
-            if (name === PRECONFIGURED_CONNECTION_ID) {
-                throw new Error(`Invalid connection name "${name}": it is reserved for the connectionString option.`);
-            }
-            if (!CONNECTION_NAME_PATTERN.test(name)) {
+        for (const connectionId of Object.keys(getConfiguredConnectionStrings(this.options))) {
+            if (connectionId !== PRECONFIGURED_CONNECTION_ID && !CONNECTION_NAME_PATTERN.test(connectionId)) {
                 throw new Error(
-                    `Invalid connection name "${name}": names may only contain letters, digits, '.', '_' and '-' (max 64 characters).`
+                    `Invalid connection name "${connectionId}": names may only contain letters, digits, '.', '_' and '-' (max 64 characters).`
                 );
             }
-            this.seedPreconfigured(name);
+            this.seedPreconfigured(connectionId);
         }
     }
 
@@ -407,10 +407,9 @@ export class MCPConnectionStore {
                     // fine and keeps the preconfigured dial on equal footing with
                     // tool-initiated connects.
                     ...this.options,
-                    connectionSpecifier:
-                        connectionId === PRECONFIGURED_CONNECTION_ID
-                            ? this.options.connectionString
-                            : this.options.connectionStrings?.[connectionId],
+                    // Read at dial time rather than captured at seeding, like the
+                    // single connection string always was.
+                    connectionSpecifier: getConfiguredConnectionStrings(this.options)[connectionId],
                 });
                 await entry.connect(connectionInfo);
             })().finally(() => {

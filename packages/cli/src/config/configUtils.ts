@@ -36,6 +36,11 @@ export type ConfigFieldMeta = {
      * Defaults to "not-allowed" for security.
      */
     overrideBehavior?: OverrideBehavior;
+    /**
+     * Set to `false` for options that are only accepted from environment variables
+     * and config files, not as command line arguments. Defaults to `true`.
+     */
+    cliArgument?: boolean;
     [key: string]: unknown;
 };
 
@@ -77,13 +82,13 @@ export function commaSeparatedToArray<T extends string[]>(str: string | string[]
 }
 
 /**
- * Preprocessor for the named connection strings map. Environment variables and
- * CLI arguments can only carry strings, so a string value is parsed as a JSON
- * object (`{"name": "mongodb://..."}`); a config file can supply the object directly.
- * Invalid JSON is reported as a validation issue rather than thrown, so the
- * error names the option without echoing the value, which carries credentials.
+ * A `z.preprocess` callback that attempts to parse a string value as JSON, for
+ * object-valued options set through environment variables (which can only carry
+ * strings); non-string values, e.g. from a config file, pass through unchanged.
+ * Invalid JSON is reported as a validation issue on `ctx` rather than thrown, so
+ * the error names the option without echoing the value, which may carry credentials.
  */
-export function parseJsonObject(val: unknown, ctx: { issues: unknown[] }): unknown {
+export function tryParseJsonInZodPreprocess(val: unknown, ctx: { issues: unknown[] }): unknown {
     if (typeof val !== "string") {
         return val;
     }
