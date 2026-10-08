@@ -24,10 +24,10 @@
     "@mongodb-js/mcp-core": "workspace:*",
     "ai": "^7.0.107",
     "braintrust": "^3.36.0",
-    "bson": "^7.3.3",
-    "mongodb": "^7.6.0",
+    "bson": "^7.2.0",
+    "mongodb": "^7.1.1",
     "mongodb-mcp-server": "workspace:*",
-    "zod": "^4.6.5"
+    "zod": "^4.4.2"
   },
   "devDependencies": {
     "@braintrust/api": "^0.5.0",

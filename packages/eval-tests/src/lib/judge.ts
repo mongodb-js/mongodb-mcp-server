@@ -73,7 +73,7 @@ export async function judgeUsingLLM(params: {
                     system,
                     messages: [
                         ...messages,
-                        ...result.response.messages,
+                        ...result.responseMessages,
                         {
                             role: "user",
                             content: `You did not call ${SubmitScoreTool.toolName}. Call it now exactly once with your final score.`,
