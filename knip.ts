@@ -27,6 +27,11 @@ const config: KnipConfig = {
                 "src/scripts/bundleEval/osDnsNativeStub.cjs",
                 "src/scripts/bundleEval/stub.mjs",
             ],
+            ignoreDependencies: [
+                // Invoked via direct path (node_modules/@braintrust/bt/bin/bt) in eval scripts to
+                // avoid resolving the conflicting bt binary shipped with the braintrust SDK
+                "@braintrust/bt",
+            ],
         },
         "packages/mongodb-mcp-server": {
             entry: [

@@ -132,10 +132,10 @@ The Braintrust eval suite (found in `packages/eval-tests/`) evaluates how well a
 The `Braintrust Evals` GitHub Actions workflow (`.github/workflows/braintrust-evals.yml`) runs the suite against a local MongoDB and reports results. It is triggered by:
 
 - manual runs (`workflow_dispatch`)
-- pushes to the `main` branch
-- pull requests with the `braintrust-evals` label
+- weekly runs on Sundays at 09:00 UTC against the `main` branch
+- pull requests with the `braintrust-evals` label, including subsequent commits to those PRs
 
-To kick off an eval on a PR, add the `braintrust-evals` label. The workflow runs `pnpm run eval:ci:run`, generates a report in `.eval/ci-report.md`, and posts it as a sticky PR comment. This report includes the current `llm_judge` accuracy as well as a chart showing accuracy over time compared to the latest `main-<number>` baseline.
+To kick off an eval on a PR, add the `braintrust-evals` label. The workflow runs `pnpm run eval:ci:run`, generates a report in `.eval/ci-report.md`, and posts it as a sticky PR comment. This report includes the current `llm_judge` accuracy as well as a chart showing accuracy over time compared to the latest `main-<number>` baseline, refreshed by the weekly run or a manual run on `main`.
 
 ## Troubleshooting
 

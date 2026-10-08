@@ -5,6 +5,7 @@ node_modules
 .idea
 .vscode/mcp.json
 .github/prompts/*
+.history
 
 # Environment variables
 .env
