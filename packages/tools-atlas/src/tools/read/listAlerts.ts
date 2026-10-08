@@ -40,16 +40,18 @@ export class ListAlertsTool extends AtlasToolBase {
     public description =
         "List triggered alerts for a MongoDB Atlas project. These are alerts Atlas has raised, not the alert configurations that define them. Defaults to OPEN alerts; set status to TRACKING or CLOSED to see others.";
     static operationType: OperationType = "read";
-    public argsShape = {
-        ...ListAlertsArgs,
-    };
-    public override outputSchema = ListAlertsOutputSchema;
+    public argsShape(): typeof ListAlertsArgs {
+        return ListAlertsArgs;
+    }
+    public override outputSchema(): typeof ListAlertsOutputSchema {
+        return ListAlertsOutputSchema;
+    }
 
     protected async execute(
-        { projectId, status, limit, pageNum, includeCount }: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
-        const data = await this.apiClient.listAlerts(
+        { projectId, status, limit, pageNum, includeCount }: ToolArgs<ReturnType<typeof this.argsShape>>,
+        { request }: ToolExecutionContext
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
+        const data = await this.server.apiClient.listAlerts(
             {
                 params: {
                     path: {
@@ -63,7 +65,7 @@ export class ListAlertsTool extends AtlasToolBase {
                     },
                 },
             },
-            context
+            request
         );
 
         // The API omits totalCount when includeCount=false, but some environments return an
@@ -104,6 +106,7 @@ export class ListAlertsTool extends AtlasToolBase {
 
         return {
             content: formatUntrustedData(
+                this.server.config,
                 `Found ${alerts.length} alerts with status "${status}" in project ${projectId}${totalText}${paginationText}`,
                 JSON.stringify(alerts)
             ),

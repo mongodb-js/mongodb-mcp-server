@@ -54,16 +54,22 @@ export class CreateDBUserTool extends AtlasToolBase {
     static toolName = "atlas-create-db-user";
     public description = "Create an MongoDB Atlas database user";
     static operationType: OperationType = "create";
-    public argsShape = {
-        ...CreateDBUserArgs,
-    };
-    public override outputSchema = CreateDBUserOutputSchema;
+    public argsShape(): typeof CreateDBUserArgs {
+        return CreateDBUserArgs;
+    }
+    public override outputSchema(): typeof CreateDBUserOutputSchema {
+        return CreateDBUserOutputSchema;
+    }
 
     protected async execute(
-        { projectId, username, password, roles, clusters }: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
-        const ipAccessListResult = await ensureCurrentIpInAccessList(this.apiClient, projectId, context);
+        { projectId, username, password, roles, clusters }: ToolArgs<ReturnType<typeof this.argsShape>>,
+        { request }: ToolExecutionContext
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
+        const ipAccessListResult = await ensureCurrentIpInAccessList({
+            apiClient: this.server.apiClient,
+            projectId,
+            context: request,
+        });
         const shouldGeneratePassword = !password;
         if (shouldGeneratePassword) {
             password = await generateSecurePassword();
@@ -87,7 +93,7 @@ export class CreateDBUserTool extends AtlasToolBase {
                 : undefined,
         } as CloudDatabaseUser;
 
-        await this.apiClient.createDatabaseUser(
+        await this.server.apiClient.createDatabaseUser(
             {
                 params: {
                     path: {
@@ -96,13 +102,8 @@ export class CreateDBUserTool extends AtlasToolBase {
                 },
                 body: input,
             },
-            context
+            request
         );
-
-        this.session.keychain.register(username, "user");
-        if (password) {
-            this.session.keychain.register(password, "password");
-        }
 
         const ipAccessListNote = getAccessListNote(ipAccessListResult);
 
@@ -127,7 +128,7 @@ export class CreateDBUserTool extends AtlasToolBase {
         password,
         roles,
         clusters,
-    }: ToolArgs<typeof this.argsShape>): string {
+    }: ToolArgs<ReturnType<typeof this.argsShape>>): string {
         return (
             `You are about to create a database user in Atlas project \`${projectId}\`:\n\n` +
             `**Username**: \`${username}\`\n\n` +

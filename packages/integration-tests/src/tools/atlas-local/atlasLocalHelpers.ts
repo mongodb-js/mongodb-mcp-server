@@ -46,11 +46,15 @@ export interface AtlasLocalIntegrationOptions {
  * Automatically skips tests on macOS in GitHub Actions where Docker is not available.
  * Pass options.config to inject a config into the server, otherwise defaultTestConfig is used.
  */
-export function describeWithAtlasLocal(
-    name: string,
-    fn: IntegrationTestFunction,
-    options?: AtlasLocalIntegrationOptions
-): void {
+export function describeWithAtlasLocal({
+    name,
+    fn,
+    options,
+}: {
+    name: string;
+    fn: IntegrationTestFunction;
+    options?: AtlasLocalIntegrationOptions;
+}): void {
     describe.skipIf(isMacOSInGitHubActions)(name, () => {
         const config = options?.config ?? defaultTestConfig;
         const integration = setupIntegrationTest(() => config, {
@@ -64,11 +68,15 @@ export function describeWithAtlasLocal(
  * Helper function to describe tests that should only run on macOS in GitHub Actions.
  * Used for testing that Atlas Local tools are properly disabled on unsupported platforms.
  */
-export function describeWithAtlasLocalDisabled(
-    name: string,
-    fn: IntegrationTestFunction,
-    options?: AtlasLocalIntegrationOptions
-): void {
+export function describeWithAtlasLocalDisabled({
+    name,
+    fn,
+    options,
+}: {
+    name: string;
+    fn: IntegrationTestFunction;
+    options?: AtlasLocalIntegrationOptions;
+}): void {
     describe.skipIf(!isMacOSInGitHubActions)(name, () => {
         const config = options?.config ?? defaultTestConfig;
         const integration = setupIntegrationTest(() => config, { tools: AtlasLocalTools });

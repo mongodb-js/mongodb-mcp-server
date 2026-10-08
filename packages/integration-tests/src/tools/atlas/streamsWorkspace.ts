@@ -89,7 +89,7 @@ export async function provisionStreamsWorkspace(apiClient: ApiClient): Promise<S
         ]);
 
         // Wait for workspace readiness (up to 120s)
-        await waitForStreamWorkspaceReadiness(apiClient, projectId, workspaceName);
+        await waitForStreamWorkspaceReadiness({ apiClient, projectId, workspaceName });
 
         // Create a Sample connection for tests
         await apiClient.createStreamConnection({
@@ -103,16 +103,16 @@ export async function provisionStreamsWorkspace(apiClient: ApiClient): Promise<S
         // Wait for the cluster to become IDLE before creating the Cluster connection.
         // M0 provisioning on cloud-dev is slow and non-deterministic (observed to
         // exceed 10 minutes), so allow up to 20 minutes (10s x 120).
-        await waitForClusterState(
+        await waitForClusterState({
             apiClient,
             projectId,
             clusterName,
-            (cluster) => {
+            check: (cluster) => {
                 return cluster.stateName === "IDLE";
             },
-            10_000,
-            120
-        );
+            pollingInterval: 10_000,
+            maxPollingIterations: 120,
+        });
 
         // Create a Cluster connection in the workspace for processor tests
         await apiClient.createStreamConnection({
@@ -170,7 +170,7 @@ export async function teardownStreamsWorkspace(
 
     // Phase 2: clusters
     try {
-        await deleteClusterAndWait(apiClient, projectId, clusterName);
+        await deleteClusterAndWait({ apiClient, projectId, clusterName });
     } catch (error) {
         console.log("Failed to clean up clusters:", error);
     }

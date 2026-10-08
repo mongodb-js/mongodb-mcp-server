@@ -6,8 +6,6 @@ When a tool returns both `content` (text array) and `structuredContent` (typed o
 
 Tests should validate both the `content` and `structuredContent` responses and ensure they represent equivalent information.
 
-## Shared Tool Schemas
+## Static Tool Schemas
 
-Tool input/output schemas are built once per tool class and variant, then shared across every session. If a tool's `argsShape` (or `outputSchema`) depends on runtime values — session state, config, or anything resolved per instance — it must override `schemaVariantKey()` to return a distinct key for each shape it can produce. Otherwise the first-built schema is cached and served to later sessions, freezing the wrong variant.
-
-This applies to accessor-based (`get argsShape()`) and `register()`-time mutated shapes alike (see `CreateAccessListTool` and `MongoDBToolBase`). Flag any runtime-dependent `argsShape`/`outputSchema` that does not have a matching `schemaVariantKey()` override.
+`argsShape()` and `outputSchema()` are methods, not fields, and each must return a stable, module-level object (defined outside the class) rather than building a fresh object per call — instantiating a tool must not recreate its schema's object graph. If a tool's shape depends on runtime values (session state, config, or anything resolved per instance — e.g. `CreateAccessListTool`'s IP-lookup support, or `MongoDBToolBase`'s connectionId description), define every possible variant as its own static, module-level object (reusing shared sub-fields across variants wherever possible) and have `argsShape()`/`outputSchema()` select the right one at call time based on `this.server`/instance state. Flag any `argsShape()`/`outputSchema()` implementation that constructs or spreads into a new object inside the method body instead of returning a reference to a pre-built module-level constant.

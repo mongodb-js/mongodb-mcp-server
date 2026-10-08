@@ -1,48 +1,52 @@
 import { z } from "zod";
 import { MongoDBToolBase } from "../../mongodbTool.js";
 import type { ToolArgs, ToolOutput, ToolResult } from "@mongodb-js/mcp-core";
-import type { OperationType } from "@mongodb-js/mcp-types";
-import type { CallToolResult } from "@mongodb-js/mcp-types";
-import type { ConnectionMetadata } from "@mongodb-js/mcp-types";
+import type { OperationType, CallToolResult, ConnectionMetadata, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { PRECONFIGURED_CONNECTION_ID } from "../../common/connectionRegistry.js";
 
 const ConnectOutputSchema = {
     connectionId: z.string(),
 };
 
+const ConnectArgsShape = {
+    connectionString: z.string().describe("MongoDB connection string (in the mongodb:// or mongodb+srv:// format)"),
+    connectionName: z
+        .string()
+        .refine((value) => value !== PRECONFIGURED_CONNECTION_ID, {
+            message: `"${PRECONFIGURED_CONNECTION_ID}" is a reserved connection name`,
+        })
+        .optional()
+        .describe(
+            'Optional short label for the connection (stored slugified with a short suffix, e.g. "staging" becomes staging-<suffix>). Shown in connection listings; helpful for telling multiple connections apart.'
+        ),
+};
+
 export class ConnectTool extends MongoDBToolBase {
     static toolName = "connect";
     public override description = `Connect to a MongoDB instance and get back a connectionId to pass to the other MongoDB tools. Each call establishes a new, independent connection — multiple connections can be active at the same time.${
-        this.config.connectionString
+        this.server.config.connectionString
             ? ' A connection with the id "preconfigured" already exists for the connection string the server was configured with — there is no need to call this tool to use it.'
             : ""
     }`;
 
-    public override argsShape = {
-        connectionString: z.string().describe("MongoDB connection string (in the mongodb:// or mongodb+srv:// format)"),
-        connectionName: z
-            .string()
-            .refine((value) => value !== PRECONFIGURED_CONNECTION_ID, {
-                message: `"${PRECONFIGURED_CONNECTION_ID}" is a reserved connection name`,
-            })
-            .optional()
-            .describe(
-                'Optional short label for the connection (stored slugified with a short suffix, e.g. "staging" becomes staging-<suffix>). Shown in connection listings; helpful for telling multiple connections apart.'
-            ),
-    };
+    public override argsShape(): typeof ConnectArgsShape {
+        return ConnectArgsShape;
+    }
 
     static operationType: OperationType = "connect";
 
-    public override outputSchema = ConnectOutputSchema;
+    public override outputSchema(): typeof ConnectOutputSchema {
+        return ConnectOutputSchema;
+    }
 
-    protected override async execute({
-        connectionString,
-        connectionName,
-    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
-        const entry = await this.session.connectionRegistry.connect({
+    protected override async execute(
+        { connectionString, connectionName }: ToolArgs<ReturnType<typeof this.argsShape>>,
+        { request }: ToolExecutionContext
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
+        const entry = await this.server.connectionRegistry.connect({
             settings: { connectionString },
             name: connectionName,
-            clientName: this.session.mcpClient?.name,
+            clientName: request.clientInfo?.name,
         });
 
         return {
@@ -57,13 +61,14 @@ export class ConnectTool extends MongoDBToolBase {
     }
 
     protected override async resolveTelemetryMetadata(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         { result }: { result: CallToolResult }
     ): Promise<ConnectionMetadata> {
-        const connectionId = (result.structuredContent as ToolOutput<typeof ConnectOutputSchema>).connectionId;
+        const connectionId = (result.structuredContent as ToolOutput<ReturnType<typeof this.outputSchema>>)
+            .connectionId;
         return {
             ...(connectionId && { connection_id: connectionId }),
-            ...this.getConnectionInfoMetadata((await this.peekConnection(connectionId))?.state),
+            ...this.getConnectionInfoMetadata(await this.peekConnection(connectionId)),
         };
     }
 }

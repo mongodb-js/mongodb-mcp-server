@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { MongoBulkWriteError, type WriteError } from "mongodb";
-import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import { CollOperationArgs, connectionScopedArgsShape, MongoDBToolBase } from "../../mongodbTool.js";
 import { type ToolArgs, formatUntrustedData, type ToolResult } from "@mongodb-js/mcp-core";
 import type { CallToolResult, OperationType } from "@mongodb-js/mcp-types";
 import { zEJSON } from "../../args.js";
@@ -17,20 +17,25 @@ const InsertManyOutputSchema = {
 
 export type InsertManyOutput = z.infer<z.ZodObject<typeof InsertManyOutputSchema>>;
 
+const InsertManyArgsShapeVariants = connectionScopedArgsShape({
+    ...CollOperationArgs,
+    documents: z
+        .array(zEJSON().describe("An individual MongoDB document"))
+        .describe(
+            "The array of documents to insert, matching the syntax of the document argument of db.collection.insertMany()."
+        ),
+});
+
 export class InsertManyTool extends MongoDBToolBase {
     static toolName = "insert-many";
     public description =
         "Insert an array of documents into a MongoDB collection. If the list of documents is above com.mongodb/maxRequestPayloadBytes, consider inserting them in batches.";
-    public argsShape = {
-        ...ConnectionIdArgs,
-        ...CollOperationArgs,
-        documents: z
-            .array(zEJSON().describe("An individual MongoDB document"))
-            .describe(
-                "The array of documents to insert, matching the syntax of the document argument of db.collection.insertMany()."
-            ),
-    };
-    public override outputSchema = InsertManyOutputSchema;
+    public argsShape(): typeof InsertManyArgsShapeVariants.preconfigured {
+        return this.selectConnectionScopedArgsShape(InsertManyArgsShapeVariants);
+    }
+    public override outputSchema(): typeof InsertManyOutputSchema {
+        return InsertManyOutputSchema;
+    }
     static operationType: OperationType = "create";
 
     protected async execute({
@@ -38,12 +43,13 @@ export class InsertManyTool extends MongoDBToolBase {
         database,
         collection,
         documents,
-    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+    }: ToolArgs<ReturnType<typeof this.argsShape>>): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const provider = await this.resolveConnection(connectionId);
 
         const result = await provider.insertMany(database, collection, documents);
         const insertedIds = Object.values(result.insertedIds);
         const content = formatUntrustedData(
+            this.server.config,
             "Documents were inserted successfully.",
             `Inserted \`${result.insertedCount}\` document(s) into ${database}.${collection}.`,
             `Inserted IDs: ${insertedIds.join(", ")}`
@@ -61,7 +67,7 @@ export class InsertManyTool extends MongoDBToolBase {
 
     protected override async handleError(
         error: unknown,
-        args: ToolArgs<typeof this.argsShape>
+        args: ToolArgs<ReturnType<typeof this.argsShape>>
     ): Promise<CallToolResult> {
         // A bulk write failure is usually partial: with the driver's default
         // ordered inserts, every document before the first failing index was
@@ -76,7 +82,7 @@ export class InsertManyTool extends MongoDBToolBase {
                 .slice(0, MAX_REPORTED_WRITE_ERRORS)
                 .map(
                     (writeError) =>
-                        `- index ${writeError.index} (code ${writeError.code}): ${this.session.keychain.redact(
+                        `- index ${writeError.index} (code ${writeError.code}): ${this.server.keychain.redact(
                             writeError.errmsg ?? "unknown write error"
                         )}`
                 );
@@ -92,7 +98,7 @@ export class InsertManyTool extends MongoDBToolBase {
             ].join(" ");
 
             return {
-                content: formatUntrustedData(description, ...failedLines),
+                content: formatUntrustedData(this.server.config, description, ...failedLines),
                 isError: true,
             };
         }

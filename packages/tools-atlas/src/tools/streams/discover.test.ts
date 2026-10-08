@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
-import type { IAtlasConfig, IAtlasSession } from "@mongodb-js/mcp-tools-atlas";
+import type { IAtlasConfig } from "@mongodb-js/mcp-tools-atlas";
 import { StreamsDiscoverTool } from "@mongodb-js/mcp-tools-atlas";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Elicitation } from "@mongodb-js/mcp-core";
@@ -8,7 +7,7 @@ import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
-import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
+import type { AtlasToolServer } from "../../atlasTool.js";
 
 describe("StreamsDiscoverTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
@@ -44,7 +43,7 @@ describe("StreamsDiscoverTool", () => {
                 apiClientSecret: "test-secret",
                 atlasTemporaryDatabaseUserLifetimeMs: 3600000,
             } as unknown as IAtlasConfig,
-        } as unknown as IAtlasSession;
+        } as unknown as AtlasToolServer;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
@@ -53,24 +52,25 @@ describe("StreamsDiscoverTool", () => {
 
         const mockElicitation = createMockElicitation() as unknown as Elicitation;
 
-        const params: ToolConstructorParams<IAtlasSession, DefaultPrometheusMetricDefinitions> = {
-            name: StreamsDiscoverTool.toolName,
-            category: "atlas",
-            operationType: StreamsDiscoverTool.operationType,
-            session: mockSession,
+        const server: AtlasToolServer = {
+            ...mockSession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
         };
 
-        tool = new StreamsDiscoverTool(params);
+        tool = new StreamsDiscoverTool({ server });
     });
 
     const baseArgs = { projectId: "proj1" };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["execute"](args as never, { signal: new AbortController().signal });
+        tool["execute"](args as never, {
+            request: {
+                signal: new AbortController().signal,
+            },
+        });
 
     describe("list-workspaces", () => {
         it("should return workspace list when workspaces exist", async () => {
@@ -210,6 +210,27 @@ describe("StreamsDiscoverTool", () => {
                     connectionCount: 2,
                 },
             });
+        });
+
+        it("should redact secret-valued fields from the detailed workspace output", async () => {
+            mockApiClient.getStreamWorkspace!.mockResolvedValue({
+                name: "ws1",
+                dataProcessRegion: { cloudProvider: "AWS", region: "VIRGINIA_USA" },
+                streamConfig: { tier: "SP10" },
+                connections: [
+                    { name: "c1", type: "Kafka", authentication: { mechanism: "SCRAM", password: "LeakyWsP4ss" } },
+                ],
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "inspect-workspace",
+                workspaceName: "ws1",
+            });
+
+            const untrusted = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(untrusted).not.toContain("LeakyWsP4ss");
+            expect(untrusted).toContain("<redacted>");
         });
     });
 
@@ -475,6 +496,36 @@ describe("StreamsDiscoverTool", () => {
             });
         });
 
+        it("masks secret-valued authentication fields from the returned content", async () => {
+            mockApiClient.getStreamConnection!.mockResolvedValue({
+                name: "kafka-in",
+                type: "Kafka",
+                bootstrapServers: "broker:9092",
+                authentication: {
+                    mechanism: "SCRAM",
+                    username: "svc-user",
+                    password: "LeakyP4ssw0rd",
+                },
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "inspect-connection",
+                workspaceName: "ws1",
+                resourceName: "kafka-in",
+            });
+
+            const untrusted = result.content.map((c) => (c as { text: string }).text).join("\n");
+            // The secret value never surfaces; the useful auth metadata does.
+            expect(untrusted).not.toContain("LeakyP4ssw0rd");
+            expect(untrusted).toContain("<redacted>");
+            expect(untrusted).toContain("svc-user");
+            expect(untrusted).toContain("SCRAM");
+            expect(result.structuredContent).toEqual({
+                connection: { type: "Kafka", bootstrapServers: "broker:9092" },
+            });
+        });
+
         it("should throw when resourceName is missing", async () => {
             await expect(exec({ ...baseArgs, action: "inspect-connection", workspaceName: "ws1" })).rejects.toThrow(
                 "resourceName is required"
@@ -486,8 +537,23 @@ describe("StreamsDiscoverTool", () => {
         it("should return processor list when processors exist", async () => {
             mockApiClient.getStreamProcessors!.mockResolvedValue({
                 results: [
-                    { name: "proc1", state: "STARTED", tier: "SP10" },
-                    { name: "proc2", state: "STOPPED", tier: "SP30" },
+                    {
+                        name: "proc1",
+                        state: "STARTED",
+                        tier: "SP10",
+                        effectiveTier: "SP30",
+                        // Atlas responses echo a read-only HAL `links` inside StreamsAutoscaling;
+                        // assert toStreamsAutoscaling strips it before structured output.
+                        options: {
+                            autoscaling: {
+                                enabled: true,
+                                minTier: "SP5",
+                                maxTier: "SP30",
+                                links: [{ href: "https://example.com", rel: "self" }],
+                            },
+                        },
+                    },
+                    { name: "proc2", state: "STOPPED", tier: "SP30", effectiveTier: "SP30" },
                 ],
             });
 
@@ -501,8 +567,14 @@ describe("StreamsDiscoverTool", () => {
             expect(text).toContain("2 processor(s)");
             expect(result.structuredContent).toEqual({
                 processors: [
-                    { name: "proc1", state: "STARTED", tier: "SP10" },
-                    { name: "proc2", state: "STOPPED", tier: "SP30" },
+                    {
+                        name: "proc1",
+                        state: "STARTED",
+                        tier: "SP10",
+                        effectiveTier: "SP30",
+                        autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" },
+                    },
+                    { name: "proc2", state: "STOPPED", tier: "SP30", effectiveTier: "SP30" },
                 ],
             });
         });
@@ -531,6 +603,17 @@ describe("StreamsDiscoverTool", () => {
                 name: "proc1",
                 state: "STARTED",
                 tier: "SP10",
+                effectiveTier: "SP30",
+                // Atlas responses echo a read-only HAL `links` inside StreamsAutoscaling;
+                // assert toStreamsAutoscaling strips it before structured output.
+                options: {
+                    autoscaling: {
+                        enabled: true,
+                        minTier: "SP5",
+                        maxTier: "SP30",
+                        links: [{ href: "https://example.com", rel: "self" }],
+                    },
+                },
                 pipeline: [{ $source: { connectionName: "kafka-in" } }],
             });
 
@@ -547,6 +630,8 @@ describe("StreamsDiscoverTool", () => {
             expect(result.structuredContent).toEqual({
                 processorState: "STARTED",
                 tier: "SP10",
+                effectiveTier: "SP30",
+                autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" },
                 pipeline: [{ $source: { connectionName: "kafka-in" } }],
             });
         });

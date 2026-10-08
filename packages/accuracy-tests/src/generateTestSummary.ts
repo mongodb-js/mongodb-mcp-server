@@ -138,11 +138,15 @@ function getTestSummary(comparableResult: ComparableAccuracyResult): TestSummary
     };
 }
 
-async function generateHtmlReport(
-    comparableResult: ComparableAccuracyResult,
-    testSummary: TestSummary,
-    baselineInfo: BaselineRunInfo | null
-): Promise<string> {
+async function generateHtmlReport({
+    comparableResult,
+    testSummary,
+    baselineInfo,
+}: {
+    comparableResult: ComparableAccuracyResult;
+    testSummary: TestSummary;
+    baselineInfo: BaselineRunInfo | null;
+}): Promise<string> {
     const responses = comparableResult.promptAndModelResponses;
     const tableRows = responses
         .map(
@@ -201,11 +205,15 @@ async function generateHtmlReport(
     });
 }
 
-function generateMarkdownBrief(
-    comparableResult: ComparableAccuracyResult,
-    testSummary: TestSummary,
-    baselineInfo: BaselineRunInfo | null
-): string {
+function generateMarkdownBrief({
+    comparableResult,
+    testSummary,
+    baselineInfo,
+}: {
+    comparableResult: ComparableAccuracyResult;
+    testSummary: TestSummary;
+    baselineInfo: BaselineRunInfo | null;
+}): string {
     const markdownTexts = [
         "# 📊 Accuracy Test Results",
         "## 📈 Summary",
@@ -317,11 +325,19 @@ async function generateTestSummary(): Promise<void> {
         console.log(`\n📊 Generating test summary for accuracy run: ${accuracyRunId}\n`);
         const testSummary = getTestSummary(comparableAccuracyResult);
 
-        const htmlReport = await generateHtmlReport(comparableAccuracyResult, testSummary, baselineInfo);
+        const htmlReport = await generateHtmlReport({
+            comparableResult: comparableAccuracyResult,
+            testSummary,
+            baselineInfo,
+        });
         await writeFile(HTML_TEST_SUMMARY_FILE, htmlReport, "utf8");
         console.log(`✅ HTML report generated: ${HTML_TEST_SUMMARY_FILE}`);
 
-        const markdownBrief = generateMarkdownBrief(comparableAccuracyResult, testSummary, baselineInfo);
+        const markdownBrief = generateMarkdownBrief({
+            comparableResult: comparableAccuracyResult,
+            testSummary,
+            baselineInfo,
+        });
         await writeFile(MARKDOWN_TEST_BRIEF_FILE, markdownBrief, "utf8");
         console.log(`✅ Markdown brief generated: ${MARKDOWN_TEST_BRIEF_FILE}`);
 

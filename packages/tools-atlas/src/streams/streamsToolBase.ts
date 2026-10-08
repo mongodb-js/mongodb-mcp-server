@@ -8,7 +8,7 @@ import type { StreamsToolMetadata } from "@mongodb-js/mcp-types";
 export abstract class StreamsToolBase extends AtlasToolBase {
     protected override handleError(
         error: unknown,
-        args: ToolArgs<typeof this.argsShape>
+        args: ToolArgs<ReturnType<typeof this.argsShape>>
     ): Promise<CallToolResult> | CallToolResult {
         if (error instanceof ApiClientError) {
             const statusCode = error.response.status;
@@ -160,13 +160,13 @@ export abstract class StreamsToolBase extends AtlasToolBase {
     }
 
     protected override async resolveTelemetryMetadata(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         { result }: { result: CallToolResult }
     ): Promise<StreamsToolMetadata> {
         const baseMetadata = await super.resolveTelemetryMetadata(args, { result });
         const metadata: StreamsToolMetadata = { ...baseMetadata };
 
-        const argsShape = z.object(this.argsShape);
+        const argsShape = z.object(this.argsShape());
         const parsedResult = argsShape.safeParse(args);
         if (!parsedResult.success) {
             return metadata;

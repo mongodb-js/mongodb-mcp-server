@@ -1,5 +1,6 @@
 dist
 node_modules
+.pi/
 *.lock
 resources/
 packages/ui/src/lib/tools/*

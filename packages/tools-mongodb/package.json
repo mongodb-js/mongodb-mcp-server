@@ -1,6 +1,6 @@
 {
   "name": "@mongodb-js/mcp-tools-mongodb",
-  "version": "3.0.0-prerelease.2",
+  "version": "3.1.0-pre.1",
   "type": "module",
   "description": "MongoDB tools for MongoDB MCP server",
   "repository": {
@@ -24,7 +24,7 @@
     "check": "tsc --noEmit --project tsconfig.json"
   },
   "dependencies": {
-    "@mongodb-js/device-id": "^0.4.6",
+    "@mongodb-js/device-id": "^0.4.18",
     "@mongodb-js/mcp-atlas-telemetry": "workspace:*",
     "@mongodb-js/mcp-core": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
@@ -34,7 +34,7 @@
     "hadron-document": "^8.11.5",
     "mongodb": "^7.1.1",
     "mongodb-build-info": "^1.9.7",
-    "mongodb-connection-string-url": "^7.0.1",
+    "mongodb-connection-string-url": "^7.0.2",
     "mongodb-schema": "^12.7.0",
     "node-machine-id": "1.1.12",
     "zod": "^4.4.2"

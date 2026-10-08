@@ -1,4 +1,9 @@
-import { ApiClient, ApiClientError, userAgentFromServerMetadata } from "@mongodb-js/mcp-atlas-api-client";
+import {
+    ApiClient,
+    ApiClientError,
+    AuthProviderFactory,
+    userAgentFromServerMetadata,
+} from "@mongodb-js/mcp-atlas-api-client";
 import {
     AtlasTelemetry,
     nextBackoffMs,
@@ -63,7 +68,6 @@ describe("AtlasTelemetry", () => {
     let keychain: Keychain;
     let telemetry: AtlasTelemetry;
     let mockDeviceId: IDeviceId;
-    const sessionId = "test-session-id";
     const mcpClient = { name: "test-agent", version: "1.0.0" };
 
     type TestAtlasTelemetryOptions = {
@@ -84,7 +88,6 @@ describe("AtlasTelemetry", () => {
                 transport: "stdio",
                 mcp_client_version: mcpClient.version,
                 mcp_client_name: mcpClient.name,
-                session_id: sessionId,
                 config_atlas_auth: mockApiClient.isAuthConfigured() ? "true" : "false",
                 config_connection_string: "false",
                 ...this.commonPropertiesOverride?.(),
@@ -167,10 +170,10 @@ describe("AtlasTelemetry", () => {
     }
 
     function createRateLimitedError(): ApiClientError {
-        return ApiClientError.fromError(
-            { status: 429, statusText: "Too Many Requests" } as Response,
-            "Too Many Requests"
-        );
+        return ApiClientError.fromError({
+            response: { status: 429, statusText: "Too Many Requests" } as Response,
+            error: "Too Many Requests",
+        });
     }
 
     beforeEach(() => {
@@ -252,16 +255,16 @@ describe("AtlasTelemetry", () => {
         });
 
         it("should add common properties when events are emitted, not when they are sent", async () => {
-            let sessionIdOverride = "session-at-emit";
+            let hostingModeOverride = "hosting-at-emit";
             vi.clearAllTimers();
             telemetry = createAtlasTelemetry({
-                commonPropertiesOverride: () => ({ session_id: sessionIdOverride }),
+                commonPropertiesOverride: () => ({ hosting_mode: hostingModeOverride }),
             });
             await telemetry.setupPromise;
 
             telemetry.emitEvents([createTestEvent()]);
             await vi.advanceTimersByTimeAsync(0);
-            sessionIdOverride = "session-at-send";
+            hostingModeOverride = "hosting-at-send";
 
             await emitEventsForTest([]);
 
@@ -269,7 +272,7 @@ describe("AtlasTelemetry", () => {
                 properties: Record<string, unknown>;
             };
             expectDefined(sentEvent);
-            expect(sentEvent.properties.session_id).toBe("session-at-emit");
+            expect(sentEvent.properties.hosting_mode).toBe("hosting-at-emit");
         });
 
         it("should not reject or throw when getCommonProperties throws", async () => {
@@ -431,7 +434,6 @@ describe("AtlasTelemetry", () => {
             expect(commonProps).toMatchObject({
                 mcp_client_version: "1.0.0",
                 mcp_client_name: "test-agent",
-                session_id: "test-session-id",
                 config_atlas_auth: "true",
                 device_id: "test-device-id",
             });
@@ -626,12 +628,14 @@ describe("AtlasTelemetry", () => {
     describe("when secrets are registered", () => {
         describe("comprehensive redaction coverage", () => {
             it("should redact sensitive data from CommonStaticProperties", async () => {
-                keychain.register("secret-server-version", "password");
-                keychain.register("secret-server-name", "password");
-                keychain.register("secret-password", "password");
-                keychain.register("secret-key", "password");
-                keychain.register("secret-token", "password");
-                keychain.register("secret-password-version", "password");
+                keychain = new Keychain({
+                    "secret-server-version": "password",
+                    "secret-server-name": "password",
+                    "secret-password": "password",
+                    "secret-key": "password",
+                    "secret-token": "password",
+                    "secret-password-version": "password",
+                });
 
                 const sensitiveStaticProps = {
                     mcp_server_version: "secret-server-version",
@@ -664,9 +668,10 @@ describe("AtlasTelemetry", () => {
             });
 
             it("should redact sensitive data from CommonProperties", async () => {
-                keychain.register("test-device-id", "password");
-                keychain.register(sessionId, "password");
+                keychain = new Keychain({ "test-device-id": "password" });
 
+                vi.clearAllTimers();
+                telemetry = createAtlasTelemetry({});
                 await telemetry.setupPromise;
                 await emitEventsForTest([createTestEvent()]);
 
@@ -677,14 +682,16 @@ describe("AtlasTelemetry", () => {
                 expectDefined(sentEvent);
 
                 expect(sentEvent.properties.device_id).toBe("<password>");
-                expect(sentEvent.properties.session_id).toBe("<password>");
             });
 
             it("should redact sensitive data that is added to events", async () => {
-                keychain.register("test-device-id", "password");
-                keychain.register(sessionId, "password");
-                keychain.register("test-component", "password");
+                keychain = new Keychain({
+                    "test-device-id": "password",
+                    "test-component": "password",
+                });
 
+                vi.clearAllTimers();
+                telemetry = createAtlasTelemetry({});
                 await telemetry.setupPromise;
                 await emitEventsForTest([createTestEvent()]);
 
@@ -695,7 +702,6 @@ describe("AtlasTelemetry", () => {
                 expectDefined(sentEvent);
 
                 expect(sentEvent.properties.device_id).toBe("<password>");
-                expect(sentEvent.properties.session_id).toBe("<password>");
                 expect(sentEvent.properties.component).toBe("<password>");
             });
         });
@@ -776,7 +782,7 @@ describe("AtlasTelemetry with multiple instances in one process", () => {
         }
 
         public override getCommonProperties(): TelemetryCommonProperties {
-            return { ...super.getCommonProperties(), session_id: this.tenantId };
+            return { ...super.getCommonProperties(), hosting_mode: this.tenantId };
         }
 
         static createForTenant(config: TelemetryConfig, tenantId: string): TenantTelemetry {
@@ -837,14 +843,14 @@ describe("AtlasTelemetry with multiple instances in one process", () => {
         await vi.advanceTimersByTimeAsync(SEND_INTERVAL_MS);
         await bothSent;
 
-        type Sent = { properties: { command: string; session_id: string; device_id: string } };
+        type Sent = { properties: { command: string; hosting_mode: string; device_id: string } };
         const sentByA = tenantA.sendEvents.mock.calls.flatMap((call) => call[0] as Sent[]);
         const sentByB = tenantB.sendEvents.mock.calls.flatMap((call) => call[0] as Sent[]);
 
         expect(sentByA.map((e) => e.properties.command)).toEqual(["from-a"]);
         expect(sentByB.map((e) => e.properties.command)).toEqual(["from-b"]);
-        expect(sentByA[0]?.properties).toMatchObject({ session_id: "tenant-a", device_id: "device-tenant-a" });
-        expect(sentByB[0]?.properties).toMatchObject({ session_id: "tenant-b", device_id: "device-tenant-b" });
+        expect(sentByA[0]?.properties).toMatchObject({ hosting_mode: "tenant-a", device_id: "device-tenant-a" });
+        expect(sentByB[0]?.properties).toMatchObject({ hosting_mode: "tenant-b", device_id: "device-tenant-b" });
     });
 });
 
@@ -895,21 +901,29 @@ describe("AtlasTelemetry credentials handling", () => {
         },
     ])("sends telemetry events $label", async ({ clientId, clientSecret, expectedPath, expectAuthHeader }) => {
         const logger = new NoopLogger();
-        const apiClient = new ApiClient(
+        const httpClient = {
+            fetch: globalThis.fetch.bind(globalThis),
+            Request: globalThis.Request,
+        };
+        const userAgent = userAgentFromServerMetadata(TEST_SERVER_METADATA);
+        const authProvider = AuthProviderFactory.create(
             {
-                baseUrl: API_BASE,
-                userAgent: userAgentFromServerMetadata(TEST_SERVER_METADATA),
-                credentials: {
-                    clientId,
-                    clientSecret,
-                },
-                httpClient: {
-                    fetch: globalThis.fetch.bind(globalThis),
-                    Request: globalThis.Request,
-                },
+                apiBaseUrl: API_BASE,
+                userAgent,
+                credentials: { clientId, clientSecret },
+                httpClient,
             },
             logger
         );
+        const apiClient = new ApiClient({
+            options: {
+                baseUrl: API_BASE,
+                userAgent,
+                httpClient,
+            },
+            logger,
+            authProvider,
+        });
 
         // When credentials are present, short-circuit the OAuth token fetch
         // so the test stays focused on the telemetry dispatch rather than the

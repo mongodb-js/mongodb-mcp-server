@@ -1,14 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { CreateClusterTool, CreateClusterArgsShape } from "./createCluster.js";
 import { z } from "zod";
-import type { IAtlasConfig, IAtlasSession } from "../../atlasTool.js";
 import type { ITelemetry, ICompositeLogger, CallToolResult } from "@mongodb-js/mcp-types";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import type { Keychain } from "@mongodb-js/mcp-core";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
+import type { AtlasToolServer } from "../../atlasTool.js";
 
 const BASE_ARGS_WITHOUT_REGIONS = {
     projectId: "507f1f77bcf86cd799439011",
@@ -25,7 +24,7 @@ const CREATE_RESULT = { id: "new-cluster-id" };
 
 describe("CreateClusterTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
-    let mockSession: Partial<IAtlasSession>;
+    let mockSession: Partial<AtlasToolServer>;
     let tool: CreateClusterTool;
 
     function buildTool(): CreateClusterTool {
@@ -54,7 +53,7 @@ describe("CreateClusterTool", () => {
                 confirmationRequiredTools: [],
                 previewFeatures: [],
                 disabledTools: [],
-            } as unknown as IAtlasConfig,
+            } as unknown as AtlasToolServer["config"],
         };
 
         const mockTelemetry = {
@@ -64,27 +63,25 @@ describe("CreateClusterTool", () => {
 
         const mockElicitation = createMockElicitation();
 
-        const params: ToolConstructorParams<IAtlasSession> = {
-            name: CreateClusterTool.toolName,
-            category: "atlas",
-            operationType: CreateClusterTool.operationType,
-            session: mockSession as IAtlasSession,
+        const server: AtlasToolServer = {
+            ...mockSession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
-        };
+        } as unknown as AtlasToolServer;
 
-        return new CreateClusterTool(params);
+        return new CreateClusterTool({ server });
     }
 
     // The invoke() result is narrowed to CallToolResult in these tests: the
     // tools under test never return input_required.
     const exec = async (args: Record<string, unknown>): Promise<CallToolResult> =>
-        (await tool["invoke"](
-            z.object(CreateClusterArgsShape).strict().parse(tool.normalizeRawArgs(args)),
-            {} as never
-        )) as CallToolResult;
+        (await tool["invoke"](z.object(CreateClusterArgsShape).strict().parse(tool.normalizeRawArgs(args)), {
+            request: {
+                signal: new AbortController().signal,
+            },
+        })) as CallToolResult;
 
     beforeEach(() => {
         tool = buildTool();
@@ -410,10 +407,10 @@ describe("CreateClusterTool", () => {
 
         it("defaults to NONE when getEncryptionAtRest call returns 403", async () => {
             mockApiClient.getEncryptionAtRest!.mockRejectedValue(
-                ApiClientError.fromError(
-                    { status: 403, statusText: "Forbidden" } as Response,
-                    { message: "Forbidden" } as never
-                )
+                ApiClientError.fromError({
+                    response: { status: 403, statusText: "Forbidden" } as Response,
+                    error: { message: "Forbidden" } as never,
+                })
             );
 
             const result = await exec(BASE_ARGS);
@@ -467,10 +464,10 @@ describe("CreateClusterTool", () => {
 
         it("does not mention the access list when the current IP is already present", async () => {
             mockApiClient.createAccessListEntry?.mockRejectedValue(
-                ApiClientError.fromError(
-                    { status: 409, statusText: "Conflict" } as Response,
-                    { message: "Conflict" } as never
-                )
+                ApiClientError.fromError({
+                    response: { status: 409, statusText: "Conflict" } as Response,
+                    error: { message: "Conflict" } as never,
+                })
             );
 
             const result = await exec(BASE_ARGS);
@@ -581,10 +578,10 @@ describe("CreateClusterTool", () => {
 
         it("returns error when getEncryptionAtRest call fails with a non-403 error", async () => {
             mockApiClient.getEncryptionAtRest!.mockRejectedValue(
-                ApiClientError.fromError(
-                    { status: 500, statusText: "Internal Server Error" } as Response,
-                    { message: "Internal Server Error" } as never
-                )
+                ApiClientError.fromError({
+                    response: { status: 500, statusText: "Internal Server Error" } as Response,
+                    error: { message: "Internal Server Error" } as never,
+                })
             );
 
             const result = await exec(BASE_ARGS);

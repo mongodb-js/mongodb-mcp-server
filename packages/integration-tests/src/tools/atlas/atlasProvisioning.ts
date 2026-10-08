@@ -70,14 +70,21 @@ export async function createGroup(apiClient: ApiClient): Promise<Group & Require
  * Transient errors (e.g. a 404 right after creation) are treated as
  * "condition not met" and polling continues.
  */
-export async function waitForClusterState(
-    apiClient: ApiClient,
-    projectId: string,
-    clusterName: string,
-    check: (cluster: ClusterDescription20240805) => boolean | Promise<boolean>,
-    pollingInterval: number = 1000,
-    maxPollingIterations: number = 300
-): Promise<void> {
+export async function waitForClusterState({
+    apiClient,
+    projectId,
+    clusterName,
+    check,
+    pollingInterval = 1000,
+    maxPollingIterations = 300,
+}: {
+    apiClient: ApiClient;
+    projectId: string;
+    clusterName: string;
+    check: (cluster: ClusterDescription20240805) => boolean | Promise<boolean>;
+    pollingInterval?: number;
+    maxPollingIterations?: number;
+}): Promise<void> {
     let consecutiveErrors = 0;
     for (let i = 0; i < maxPollingIterations; i++) {
         let cluster: ClusterDescription20240805 | undefined;
@@ -116,12 +123,17 @@ export async function waitForClusterState(
  * A teardown timeout is tolerated (logged, not thrown) — the project deletion
  * step below is the second safety net.
  */
-export async function waitForClusterDeletion(
-    apiClient: ApiClient,
-    projectId: string,
-    clusterName: string,
-    maxIterations: number = 600
-): Promise<void> {
+export async function waitForClusterDeletion({
+    apiClient,
+    projectId,
+    clusterName,
+    maxIterations = 600,
+}: {
+    apiClient: ApiClient;
+    projectId: string;
+    clusterName: string;
+    maxIterations?: number;
+}): Promise<void> {
     for (let i = 0; i < maxIterations; i++) {
         try {
             await apiClient.getCluster({
@@ -146,12 +158,17 @@ export async function waitForClusterDeletion(
  * Polls until the named streams workspace is readable (up to `maxIterations`
  * seconds); throws on timeout.
  */
-export async function waitForStreamWorkspaceReadiness(
-    apiClient: ApiClient,
-    projectId: string,
-    workspaceName: string,
-    maxIterations: number = 120
-): Promise<void> {
+export async function waitForStreamWorkspaceReadiness({
+    apiClient,
+    projectId,
+    workspaceName,
+    maxIterations = 120,
+}: {
+    apiClient: ApiClient;
+    projectId: string;
+    workspaceName: string;
+    maxIterations?: number;
+}): Promise<void> {
     for (let i = 0; i < maxIterations; i++) {
         try {
             const ws = await apiClient.getStreamWorkspace({
@@ -272,11 +289,15 @@ export async function deleteAllClustersAndWait(apiClient: ApiClient, projectId: 
  * Deletes the named cluster (locating it in the project listing first) and
  * waits for termination. Delete errors are logged, not thrown.
  */
-export async function deleteClusterAndWait(
-    apiClient: ApiClient,
-    projectId: string,
-    clusterName: string
-): Promise<void> {
+export async function deleteClusterAndWait({
+    apiClient,
+    projectId,
+    clusterName,
+}: {
+    apiClient: ApiClient;
+    projectId: string;
+    clusterName: string;
+}): Promise<void> {
     const clusters = await apiClient.listClusters({
         params: {
             path: {
@@ -299,7 +320,7 @@ export async function deleteClusterAndWait(
             console.log(`Failed to delete cluster '${cluster.name}':`, error);
         }
     }
-    await waitForClusterDeletion(apiClient, projectId, clusterName);
+    await waitForClusterDeletion({ apiClient, projectId, clusterName });
 }
 
 /**

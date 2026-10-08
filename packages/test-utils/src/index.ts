@@ -6,6 +6,7 @@ export {
     type MockElicitResult,
 } from "./elicitationMocks.js";
 export { MockMetrics } from "./mockMetrics.js";
+export { createMockLogger, asCompositeLogger, type MockLogger } from "./mockLogger.js";
 
 export { createEnvironment, useClearEnvironment } from "./testUtils.js";
 

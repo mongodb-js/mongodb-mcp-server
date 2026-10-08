@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { assertNoServerSideJS, getWriteStageTargets, isWriteStage } from "./mqlGuards.js";
+import { assertNoServerSideJS, assertNoWriteStages, getWriteStageTargets, isWriteStage } from "./mqlGuards.js";
 import { ErrorCodes, MongoDBError } from "../common/errors.js";
 
 function expectForbiddenOperator(value: unknown, operator: string): void {
@@ -79,6 +79,34 @@ describe("mqlGuards", () => {
             expect(isWriteStage({ $match: { age: 5 } })).toBe(false);
             expect(isWriteStage({ $group: { _id: null } })).toBe(false);
             expect(isWriteStage({})).toBe(false);
+        });
+    });
+
+    describe("assertNoWriteStages", () => {
+        it("does not throw for pipelines without write stages", () => {
+            expect(() =>
+                assertNoWriteStages([{ $match: { age: 5 } }, { $sort: { name: 1 } }], "not allowed")
+            ).not.toThrow();
+            expect(() => assertNoWriteStages([], "not allowed")).not.toThrow();
+        });
+
+        it("throws a MongoDBError with the ForbiddenWriteOperation code and the given message", () => {
+            for (const stage of [{ $out: "results" }, { $merge: { into: "results" } }]) {
+                try {
+                    assertNoWriteStages([{ $match: { age: 5 } }, stage], "not allowed");
+                    expect.unreachable(`Expected assertNoWriteStages to throw for ${Object.keys(stage)[0]}`);
+                } catch (error) {
+                    expect(error).toBeInstanceOf(MongoDBError);
+                    expect((error as MongoDBError).code).toBe(ErrorCodes.ForbiddenWriteOperation);
+                    expect((error as MongoDBError).message).toBe("not allowed");
+                }
+            }
+        });
+
+        it("only inspects top-level stages", () => {
+            expect(() =>
+                assertNoWriteStages([{ $unionWith: { pipeline: [{ $out: "results" }] } }], "not allowed")
+            ).not.toThrow();
         });
     });
 

@@ -3,8 +3,7 @@ import type { IntegrationTest } from "../../integrationHelpers.js";
 import { setupIntegrationTest, defaultTestConfig } from "../../integrationHelpers.js";
 import type { SuiteCollector } from "vitest";
 import { afterAll, beforeAll, describe, inject } from "vitest";
-import type { McpSession } from "@mongodb-js/mcp-cli";
-import { AllTools } from "mongodb-mcp-server";
+import { AllTools, type CliServer } from "mongodb-mcp-server";
 import type { StreamsWorkspaceFixture } from "./streamsWorkspace.js";
 import {
     createGroup,
@@ -20,6 +19,9 @@ import {
 export { randomId } from "./atlasProvisioning.js";
 
 export type IntegrationTestFunction = (integration: IntegrationTest) => void;
+
+/** A CliServer narrowed to have a usable Atlas `ApiClient`. */
+export type AtlasTestServer = CliServer & { apiClient: ApiClient };
 
 export function describeWithAtlas(name: string, fn: IntegrationTestFunction): void {
     const describeFn =
@@ -99,7 +101,7 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
         let ipAddress: string = "";
 
         beforeAll(async () => {
-            const session = integration.mcpServer().session;
+            const session = integration.mcpServer();
             assertApiClientIsAvailable(session);
             const apiClient = session.apiClient;
 
@@ -125,7 +127,7 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
             if (!projectId) {
                 return;
             }
-            const session = integration.mcpServer().session;
+            const session = integration.mcpServer();
             assertApiClientIsAvailable(session);
             const apiClient = session.apiClient;
 
@@ -151,11 +153,15 @@ export function withProject(integration: IntegrationTest, fn: ProjectTestFunctio
     });
 }
 
-export async function assertClusterIsAvailable(
-    session: McpSession,
-    projectId: string,
-    clusterName: string
-): Promise<boolean> {
+export async function assertClusterIsAvailable({
+    session,
+    projectId,
+    clusterName,
+}: {
+    session: CliServer;
+    projectId: string;
+    clusterName: string;
+}): Promise<boolean> {
     assertApiClientIsAvailable(session);
     try {
         await session.apiClient.getCluster({
@@ -173,19 +179,24 @@ export async function assertClusterIsAvailable(
 }
 
 export function assertApiClientIsAvailable(
-    session: McpSession
-): asserts session is McpSession & { apiClient: ApiClient } {
+    session: CliServer
+): asserts session is CliServer & { apiClient: ApiClient } {
     if (!session.apiClient) {
         throw new Error("apiClient not available");
     }
 }
 
-export async function deleteCluster(
-    session: McpSession,
-    projectId: string,
-    clusterName: string,
-    shouldWaitTillClusterIsDeleted: boolean = true
-): Promise<void> {
+export async function deleteCluster({
+    session,
+    projectId,
+    clusterName,
+    shouldWaitTillClusterIsDeleted = true,
+}: {
+    session: CliServer;
+    projectId: string;
+    clusterName: string;
+    shouldWaitTillClusterIsDeleted?: boolean;
+}): Promise<void> {
     assertApiClientIsAvailable(session);
     await session.apiClient.deleteCluster({
         params: {
@@ -200,19 +211,33 @@ export async function deleteCluster(
         return;
     }
 
-    await waitForClusterDeletion(session.apiClient, projectId, clusterName);
+    await waitForClusterDeletion({ apiClient: session.apiClient, projectId, clusterName });
 }
 
-export async function waitCluster(
-    session: McpSession,
-    projectId: string,
-    clusterName: string,
-    check: (cluster: ClusterDescription20240805) => boolean | Promise<boolean>,
-    pollingInterval: number = 1000,
-    maxPollingIterations: number = 300
-): Promise<void> {
+export async function waitCluster({
+    session,
+    projectId,
+    clusterName,
+    check,
+    pollingInterval = 1000,
+    maxPollingIterations = 300,
+}: {
+    session: CliServer;
+    projectId: string;
+    clusterName: string;
+    check: (cluster: ClusterDescription20240805) => boolean | Promise<boolean>;
+    pollingInterval?: number;
+    maxPollingIterations?: number;
+}): Promise<void> {
     assertApiClientIsAvailable(session);
-    await waitForClusterState(session.apiClient, projectId, clusterName, check, pollingInterval, maxPollingIterations);
+    await waitForClusterState({
+        apiClient: session.apiClient,
+        projectId,
+        clusterName,
+        check,
+        pollingInterval,
+        maxPollingIterations,
+    });
 }
 
 export function withCluster(integration: IntegrationTest, fn: ClusterTestFunction): SuiteCollector<object> {
@@ -244,7 +269,7 @@ export function withCluster(integration: IntegrationTest, fn: ClusterTestFunctio
                     ],
                     terminationProtectionEnabled: false,
                 } as unknown as ClusterDescription20240805;
-                const session = integration.mcpServer().session;
+                const session = integration.mcpServer();
                 assertApiClientIsAvailable(session);
                 await session.apiClient.createCluster({
                     params: {
@@ -258,25 +283,25 @@ export function withCluster(integration: IntegrationTest, fn: ClusterTestFunctio
                 // M0 provisioning on cloud-dev is slow and non-deterministic (observed
                 // to exceed 10 minutes), so allow up to 20 minutes (10s x 120); a hook
                 // timeout here would silently skip every test in the suite.
-                await waitCluster(
-                    integration.mcpServer().session,
+                await waitCluster({
+                    session: integration.mcpServer(),
                     projectId,
                     clusterName,
-                    (cluster) => {
+                    check: (cluster) => {
                         return cluster.stateName === "IDLE";
                     },
-                    10_000,
-                    120
-                );
+                    pollingInterval: 10_000,
+                    maxPollingIterations: 120,
+                });
             }, 1_500_000);
 
             afterAll(async () => {
-                const session = integration.mcpServer().session;
+                const session = integration.mcpServer();
                 assertApiClientIsAvailable(session);
 
                 try {
                     // delete the cluster and wait for termination, but ignore errors
-                    await deleteCluster(session, getProjectId(), clusterName);
+                    await deleteCluster({ session, projectId: getProjectId(), clusterName });
                 } catch (error) {
                     console.log("Failed to delete cluster:", error);
                 }

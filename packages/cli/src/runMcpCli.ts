@@ -1,5 +1,5 @@
-import { Keychain } from "@mongodb-js/mcp-core";
 import { parseUserConfig } from "./config/parseUserConfig.js";
+import { createKeychainFromConfig } from "./config/createKeychainFromConfig.js";
 import { createLoggerFromConfig } from "./createLoggerFromConfig.js";
 import { createRunnerFromConfig } from "./createRunnerFromConfig.js";
 import { startRunner } from "./startRunner.js";
@@ -68,6 +68,11 @@ export async function runMcpCli({
 - Refer to https://www.mongodb.com/docs/mcp-server/get-started/ for setting up the MCP Server.`);
     }
 
+    // Create the immutable redaction keychain once (from config secrets), then
+    // thread the same instance to every handler and to the logger/transport
+    // runner. No code registers secrets on the keychain after this point.
+    const keychain = createKeychainFromConfig({ config });
+
     if (handlers) {
         for (const handler of handlers) {
             const handled = await handler.handle({
@@ -76,6 +81,7 @@ export async function runMcpCli({
                 consoleLogger,
                 onExit,
                 serverMetadata,
+                keychain,
             });
             if (handled) {
                 return;
@@ -83,8 +89,7 @@ export async function runMcpCli({
         }
     }
 
-    // Create logger, then the transport runner (stdio or HTTP based on config)
-    const logger = await createLoggerFromConfig({ config, keychain: Keychain.root });
+    const logger = await createLoggerFromConfig({ config, keychain });
 
     try {
         const transportRunner = await createRunnerFromConfig({
@@ -93,6 +98,7 @@ export async function runMcpCli({
             tools,
             resources,
             logger,
+            keychain,
         });
 
         // Start the transport runner

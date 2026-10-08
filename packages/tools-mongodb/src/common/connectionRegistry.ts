@@ -1,6 +1,7 @@
 import { randomBytes } from "crypto";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
-import type { LoggerBase } from "@mongodb-js/mcp-core";
+import type { Keychain, LoggerBase } from "@mongodb-js/mcp-core";
+import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
 import type { AnyConnectionState, ConnectionManager, ConnectionSettings } from "./connectionManager.js";
 import { ErrorCodes, MongoDBError } from "./errors.js";
 
@@ -37,6 +38,12 @@ export type CreateConnectionEntryOptions = {
      * are logged, never thrown.
      */
     onRevoke?: () => Promise<void>;
+    /**
+     * The Atlas cluster the connection addresses, when known. Marks the
+     * connection as an Atlas one for telemetry attribution, the `atlas` host
+     * type, and cluster lookups such as `pause-resume-cluster`.
+     */
+    atlasCluster?: AtlasClusterConnectionInfo;
 };
 
 export type CreateConnectionOptions = {
@@ -55,6 +62,12 @@ export type CreateConnectionOptions = {
      * the driver `appName` so connections are attributable in server logs.
      */
     clientName?: string;
+    /**
+     * The Atlas cluster the connection addresses, when known. Marks the
+     * connection as an Atlas one for telemetry attribution, the `atlas` host
+     * type, and cluster lookups such as `pause-resume-cluster`.
+     */
+    atlasCluster?: AtlasClusterConnectionInfo;
 };
 
 /**
@@ -108,6 +121,9 @@ type ConnectionEntryOptions = {
     source: ConnectionSource;
     manager: ConnectionManager;
     onRevoke?: () => Promise<void>;
+    atlasCluster?: AtlasClusterConnectionInfo;
+    /** The immutable redaction keychain used to scrub connection strings from captured errors. Required. */
+    keychain: Keychain;
 };
 
 /**
@@ -128,6 +144,12 @@ export class ConnectionEntry {
      */
     readonly name: string;
     readonly source: ConnectionSource;
+    /**
+     * The Atlas cluster this entry addresses, if any. Fixed at creation: the
+     * cluster identifies the handle, independently of whether a live
+     * connection to it exists right now.
+     */
+    readonly atlasCluster?: AtlasClusterConnectionInfo;
     readonly createdAt: Date = new Date();
     lastUsedAt: Date = new Date();
     lastError?: string;
@@ -136,13 +158,16 @@ export class ConnectionEntry {
     private onRevoke?: () => Promise<void>;
 
     private readonly manager: ConnectionManager;
+    private readonly keychain: Keychain;
 
-    constructor({ connectionId, name, source, manager, onRevoke }: ConnectionEntryOptions) {
+    constructor({ connectionId, name, source, manager, onRevoke, atlasCluster, keychain }: ConnectionEntryOptions) {
         this.connectionId = connectionId;
         this.name = name;
         this.source = source;
         this.manager = manager;
         this.onRevoke = onRevoke;
+        this.atlasCluster = atlasCluster;
+        this.keychain = keychain;
     }
 
     get state(): AnyConnectionState {
@@ -162,11 +187,20 @@ export class ConnectionEntry {
 
     async connect(settings: ConnectionSettings): Promise<AnyConnectionState> {
         try {
-            const state = await this.manager.connect({ ...settings });
+            // An Atlas cluster reached through a private or mesh address is
+            // not recognizable from its connection string alone.
+            const state = await this.manager.connect(
+                this.atlasCluster !== undefined ? { ...settings, hostType: "atlas" } : { ...settings }
+            );
             this.lastError = undefined;
             return state;
         } catch (error: unknown) {
-            this.lastError = error instanceof Error ? error.message : String(error);
+            const message = error instanceof Error ? error.message : String(error);
+            // The driver/arg-parser error can embed the connection string verbatim (e.g. a
+            // malformed URI), which may contain credentials. lastError is read back later by
+            // list-connections, so it has to be redacted here at the point of capture, not
+            // only where the response for this call happens to be built.
+            this.lastError = this.keychain.redact(message);
             throw error;
         }
     }
@@ -182,10 +216,10 @@ export class ConnectionEntry {
             return state.serviceProvider;
         }
 
-        if (state.connectedAtlasCluster && (state.tag === "connecting" || state.tag === "disconnected")) {
+        if (this.atlasCluster && (state.tag === "connecting" || state.tag === "disconnected")) {
             throw new MongoDBError(
                 ErrorCodes.NotConnectedToMongoDB,
-                `Connection "${this.connectionId}" is still being established to Atlas cluster "${state.connectedAtlasCluster.clusterName}", try again in a few seconds.`
+                `Connection "${this.connectionId}" is still being established to Atlas cluster "${this.atlasCluster.clusterName}", try again in a few seconds.`
             );
         }
 

@@ -21,6 +21,9 @@ jobs:
     if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'e2e-tests')
     env:
       GROVE_API_KEY: ${{ secrets.AGENT_E2E_GROVE_API_KEY }}
+      AGENT_E2E_MCP_CLIENT_ID: ${{ secrets.AGENT_E2E_MCP_CLIENT_ID }}
+      AGENT_E2E_MCP_CLIENT_SECRET: ${{ secrets.AGENT_E2E_MCP_CLIENT_SECRET }}
+      AGENT_E2E_MCP_BASE_URL: ${{ vars.AGENT_E2E_MCP_BASE_URL }}
       AGENT_E2E_CODEX_MODEL: ${{ vars.AGENT_E2E_CODEX_MODEL }}
       AGENT_E2E_CLAUDE_MODEL: ${{ vars.AGENT_E2E_CLAUDE_MODEL }}
       AGENT_E2E_TUI_BACKEND: ${{ vars.AGENT_E2E_TUI_BACKEND }}

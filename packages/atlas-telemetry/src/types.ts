@@ -119,6 +119,9 @@ export type TelemetryServerEventProperties = {
     disabled_tools?: string[];
     confirmation_required_tools?: string[];
     previewFeatures?: string[];
+    /** The MCP client that issued the request, per-request (see {@link TelemetryCommonProperties}). */
+    mcp_client_name?: string;
+    mcp_client_version?: string;
 };
 
 export type TelemetryServerEvent = TelemetryEvent<TelemetryServerEventProperties>;

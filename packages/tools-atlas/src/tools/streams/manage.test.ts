@@ -1,8 +1,6 @@
-import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
-import type { IAtlasConfig, IAtlasSession } from "@mongodb-js/mcp-tools-atlas";
+import type { IAtlasConfig } from "@mongodb-js/mcp-tools-atlas";
 import { StreamsManageTool } from "@mongodb-js/mcp-tools-atlas";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Elicitation } from "@mongodb-js/mcp-core";
@@ -10,6 +8,7 @@ import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
+import type { AtlasToolServer } from "../../atlasTool.js";
 
 describe("StreamsManageTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
@@ -53,7 +52,7 @@ describe("StreamsManageTool", () => {
                 apiClientSecret: "test-secret",
                 atlasTemporaryDatabaseUserLifetimeMs: 3600000,
             } as unknown as IAtlasConfig,
-        } as unknown as IAtlasSession;
+        } as unknown as AtlasToolServer;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
@@ -62,24 +61,25 @@ describe("StreamsManageTool", () => {
 
         const mockElicitation = createMockElicitation() as unknown as Elicitation;
 
-        const params: ToolConstructorParams<IAtlasSession, DefaultPrometheusMetricDefinitions> = {
-            name: StreamsManageTool.toolName,
-            category: "atlas",
-            operationType: StreamsManageTool.operationType,
-            session: mockSession,
+        const server: AtlasToolServer = {
+            ...mockSession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
         };
 
-        tool = new StreamsManageTool(params);
+        tool = new StreamsManageTool({ server });
     });
 
     const baseArgs = { projectId: "proj1", workspaceName: "ws1" };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["execute"](args as never, { signal: new AbortController().signal });
+        tool["execute"](args as never, {
+            request: {
+                signal: new AbortController().signal,
+            },
+        });
 
     describe("start-processor", () => {
         it("should start a STOPPED processor", async () => {
@@ -127,6 +127,25 @@ describe("StreamsManageTool", () => {
             expect(mockApiClient.startStreamProcessorWith).toHaveBeenCalledWith(
                 expect.objectContaining({
                     body: expect.objectContaining({ tier: "SP30" }),
+                }),
+                expect.anything()
+            );
+            expect(mockApiClient.startStreamProcessor).not.toHaveBeenCalled();
+        });
+
+        it("should start a processor with autoscaling at the top level", async () => {
+            mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "STOPPED", name: "proc1" });
+
+            await exec({
+                ...baseArgs,
+                action: "start-processor",
+                resourceName: "proc1",
+                autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" },
+            });
+
+            expect(mockApiClient.startStreamProcessorWith).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: { autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" } },
                 }),
                 expect.anything()
             );
@@ -326,8 +345,10 @@ describe("StreamsManageTool", () => {
             mockApiClient.getStreamProcessor!.mockRejectedValue(new Error("lookup failed"));
 
             await tool["execute"]({ ...baseArgs, action: "stop-processor", resourceName: "proc1" } as never, {
-                signal: new AbortController().signal,
-                requestInfo: { headers: { "x-request-id": "req-stop-1" } },
+                request: {
+                    signal: new AbortController().signal,
+                    headers: { "x-request-id": "req-stop-1" },
+                },
             });
 
             expect(mockLogger.debug).toHaveBeenCalledWith(
@@ -375,6 +396,107 @@ describe("StreamsManageTool", () => {
             );
             expect((result.content[0] as { text: string }).text).toContain("modified");
             expect(result.structuredContent).toEqual({ processorState: "STOPPED" });
+        });
+
+        it("should update processor tier and autoscaling together", async () => {
+            mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "STOPPED", name: "proc1" });
+            mockApiClient.updateStreamProcessor!.mockResolvedValue({
+                state: "STOPPED",
+                tier: "SP10",
+                effectiveTier: "SP10",
+                // Atlas responses echo a read-only HAL `links` inside StreamsAutoscaling;
+                // assert toStreamsAutoscaling strips it before structured output.
+                options: {
+                    autoscaling: {
+                        enabled: true,
+                        minTier: "SP5",
+                        maxTier: "SP30",
+                        links: [{ href: "https://example.com", rel: "self" }],
+                    },
+                },
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "modify-processor",
+                resourceName: "proc1",
+                tier: "SP10",
+                autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" },
+            });
+
+            expect(mockApiClient.updateStreamProcessor).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: {
+                        tier: "SP10",
+                        options: { autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" } },
+                    },
+                }),
+                expect.anything()
+            );
+            expect(result.structuredContent).toEqual({
+                processorState: "STOPPED",
+                tier: "SP10",
+                effectiveTier: "SP10",
+                autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" },
+            });
+        });
+
+        it("should return effective tier when only autoscaling changes", async () => {
+            mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "STOPPED", name: "proc1" });
+            mockApiClient.updateStreamProcessor!.mockResolvedValue({
+                state: "STOPPED",
+                tier: "SP10",
+                effectiveTier: "SP30",
+                // Atlas responses echo a read-only HAL `links` inside StreamsAutoscaling;
+                // assert toStreamsAutoscaling strips it before structured output.
+                options: {
+                    autoscaling: {
+                        enabled: true,
+                        minTier: "SP5",
+                        maxTier: "SP30",
+                        links: [{ href: "https://example.com", rel: "self" }],
+                    },
+                },
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "modify-processor",
+                resourceName: "proc1",
+                autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" },
+            });
+
+            expect(result.structuredContent).toEqual({
+                processorState: "STOPPED",
+                effectiveTier: "SP30",
+                autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" },
+            });
+        });
+
+        it("should disable autoscaling with enabled false", async () => {
+            mockApiClient.getStreamProcessor!.mockResolvedValue({ state: "STOPPED", name: "proc1" });
+            mockApiClient.updateStreamProcessor!.mockResolvedValue({
+                state: "STOPPED",
+                tier: "SP10",
+                effectiveTier: "SP10",
+                options: {},
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "modify-processor",
+                resourceName: "proc1",
+                autoscaling: { enabled: false },
+            });
+
+            expect(mockApiClient.updateStreamProcessor).toHaveBeenCalledWith(
+                expect.objectContaining({ body: { options: { autoscaling: { enabled: false } } } }),
+                expect.anything()
+            );
+            expect(result.structuredContent).toEqual({
+                processorState: "STOPPED",
+                effectiveTier: "SP10",
+            });
         });
 
         it("should return error when no modifications specified", async () => {

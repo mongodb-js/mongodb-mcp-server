@@ -17,16 +17,19 @@ import type { MockClientCapabilities, createMockElicitInput } from "@mongodb-js/
 import { createAtlasLocalClient } from "mongodb-mcp-server";
 import type { AnyToolClass, LoggerBase } from "@mongodb-js/mcp-core";
 import type { AnyResourceClass, OperationType, ServerMetadata } from "@mongodb-js/mcp-types";
-import { ApiClient, type HttpClient, userAgentFromServerMetadata } from "@mongodb-js/mcp-atlas-api-client";
+import {
+    ApiClient,
+    AuthProviderFactory,
+    type HttpClient,
+    userAgentFromServerMetadata,
+} from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics, sleep } from "@mongodb-js/mcp-test-utils";
-import { Session, type McpSession } from "@mongodb-js/mcp-cli";
 export { sleep };
 import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 export const defaultTestConfig: UserConfig = {
     ...UserConfigSchema.parse({}),
     telemetry: "disabled",
     loggers: ["stderr"],
-    maxSessions: 1000,
 };
 
 export type CreateTestApiClientOptions = {
@@ -45,18 +48,26 @@ export function createTestApiClient(options: CreateTestApiClientOptions): ApiCli
         Request: globalThis.Request,
     };
 
-    return new ApiClient(
+    const userAgent = userAgentFromServerMetadata(serverMetadata);
+    const authProvider = AuthProviderFactory.create(
         {
-            baseUrl,
-            userAgent: userAgentFromServerMetadata(serverMetadata),
-            credentials: {
-                clientId,
-                clientSecret,
-            },
+            apiBaseUrl: baseUrl,
+            userAgent,
+            credentials: { clientId, clientSecret },
             httpClient,
         },
         logger
     );
+
+    return new ApiClient({
+        options: {
+            baseUrl,
+            userAgent,
+            httpClient,
+        },
+        logger,
+        authProvider,
+    });
 }
 
 /** Driver product labels for tests; mirrors root `serverMetadata`. */
@@ -83,9 +94,7 @@ type ToolInfo = Awaited<ReturnType<Client["listTools"]>>["tools"][number];
 export interface IntegrationTest {
     mcpClient: () => Client;
     mcpServer: () => CliServer & {
-        session: McpSession;
         userConfig: UserConfig;
-        getApiClient: () => ApiClient;
     };
     /** The app-level store backing the session's connection registry view. */
     connectionStore: () => MCPConnectionStore;
@@ -95,16 +104,6 @@ export const DEFAULT_LONG_RUNNING_TEST_WAIT_TIMEOUT_MS = 1_200_000;
 
 /** Max time to wait for a resource-updated notification in tests. */
 const RESOURCE_CHANGED_NOTIFICATION_TIMEOUT_MS = 30_000;
-
-/** MongoDB tools hold a shallow config snapshot from registration; merge live session config into each tool. */
-export function syncMongoToolsConfigFromUserConfig(mcpServer: CliServer): void {
-    const { session } = mcpServer;
-    for (const tool of mcpServer.tools) {
-        if (tool.category === "mongodb") {
-            Object.assign((tool as unknown as { session: McpSession }).session.config, session.config);
-        }
-    }
-}
 
 export function setupIntegrationTest(
     getUserConfig: () => UserConfig,
@@ -167,35 +166,27 @@ export function setupIntegrationTest(
         const exportsManager = ExportsManager.init({ options: userConfig, logger: logger });
 
         deviceId = DeviceId.create(logger);
-        connectionStore = new MCPConnectionStore({ options: userConfig, logger, deviceId });
+        const keychain = new Keychain();
+        connectionStore = new MCPConnectionStore({ options: userConfig, logger, deviceId, keychain });
         const connectionRegistry = connectionStore.view();
 
-        const session = new Session({
+        const apiClient = createTestApiClient({
+            baseUrl: userConfig.apiBaseUrl,
+            serverMetadata: { mcpServerName: "mongodb-mcp-test", version: "1" },
             logger,
-            exportsManager,
-            connectionRegistry,
-            keychain: new Keychain(),
-            connectionErrorHandler,
-            atlasLocalClient: await createAtlasLocalClient({ logger }),
-            apiClient: createTestApiClient({
-                baseUrl: userConfig.apiBaseUrl,
-                serverMetadata: { mcpServerName: "mongodb-mcp-test", version: "1" },
-                logger,
-                clientId: userConfig.apiClientId,
-                clientSecret: userConfig.apiClientSecret,
-            }),
-            config: userConfig,
+            clientId: userConfig.apiClientId,
+            clientSecret: userConfig.apiClientSecret,
         });
 
         // Mock hasValidAccessToken for tests
         if (!userConfig.apiClientId && !userConfig.apiClientSecret) {
             const mockFn = vi.fn().mockResolvedValue(undefined);
             const mockCloseFn = vi.fn().mockResolvedValue(undefined);
-            Object.defineProperty(session, "apiClient", {
-                value: {
-                    validateAuthConfig: mockFn,
-                    close: mockCloseFn,
-                },
+            Object.defineProperty(apiClient, "validateAuthConfig", {
+                value: mockFn,
+            });
+            Object.defineProperty(apiClient, "close", {
+                value: mockCloseFn,
             });
         }
 
@@ -204,8 +195,8 @@ export function setupIntegrationTest(
         const telemetry = AtlasTelemetry.create({
             logger,
             deviceId,
-            apiClient: session.apiClient,
-            keychain: session.keychain,
+            apiClient,
+            keychain,
             enabled: false,
             serverMetadata: packageInfo,
         });
@@ -232,11 +223,17 @@ export function setupIntegrationTest(
         } = serverOptions ?? {};
 
         mcpServer = new CliServer({
-            session,
+            config: userConfig,
+            logger,
+            keychain,
+            connectionRegistry,
+            exportsManager,
+            apiClient,
+            connectionErrorHandler,
+            atlasLocalClient: await createAtlasLocalClient({ logger }),
             telemetry,
             mcpServer: mcpServerInstance,
             elicitation,
-            connectionErrorHandler,
             uiRegistry,
             metrics: new MockMetrics(),
             serverMetadata: {
@@ -260,8 +257,8 @@ export function setupIntegrationTest(
             // Disconnect every connection between tests. Explicit entries are
             // revoked; the preconfigured entry (if any) survives disconnected
             // and re-dials on next use.
-            for (const entry of await mcpServer.session.connectionRegistry.find(() => true)) {
-                await mcpServer.session.connectionRegistry.disconnect(entry.connectionId);
+            for (const entry of await mcpServer.connectionRegistry.find(() => true)) {
+                await mcpServer.connectionRegistry.disconnect(entry.connectionId);
             }
         }
 
@@ -289,26 +286,15 @@ export function setupIntegrationTest(
     };
 
     const getMcpServer = (): CliServer & {
-        session: McpSession;
         userConfig: UserConfig;
-        getApiClient: () => ApiClient;
     } => {
         if (!mcpServer) {
             throw new Error("beforeEach() hook not ran yet");
         }
 
-        return Object.assign(
-            mcpServer as CliServer & { session: McpSession; userConfig: UserConfig; getApiClient: () => ApiClient },
-            {
-                userConfig: mcpServer.session.config,
-                getApiClient: (): ApiClient => {
-                    if (!mcpServer?.session.apiClient) {
-                        throw new Error("apiClient not available");
-                    }
-                    return mcpServer.session.apiClient as unknown as ApiClient;
-                },
-            }
-        );
+        return Object.assign(mcpServer, {
+            userConfig: mcpServer.config,
+        });
     };
 
     const getConnectionStore = (): MCPConnectionStore => {
@@ -442,31 +428,41 @@ export const databaseCollectionInvalidArgs = [
 
 export const databaseInvalidArgs = [{}, { database: 123 }, { database: [] }];
 
-export function validateToolMetadata(
-    integration: IntegrationTest,
-    name: string,
-    description: string,
-    operationType: OperationType,
-    parameters: ParameterInfo[]
-): void {
+export function validateToolMetadata({
+    integration,
+    name,
+    description,
+    operationType,
+    parameters,
+}: {
+    integration: IntegrationTest;
+    name: string;
+    description: string;
+    operationType: OperationType;
+    parameters: ParameterInfo[];
+}): void {
     it("should have correct metadata", async () => {
         const { tools } = await integration.mcpClient().listTools();
         const tool = tools.find((tool) => tool.name === name);
         expectDefined(tool);
         expect(tool.description).toBe(description);
 
-        validateToolAnnotations(tool, name, operationType);
+        validateToolAnnotations({ tool, name, operationType });
         const toolParameters = getParameters(tool);
         expect(toolParameters).toHaveLength(parameters.length);
         expect(toolParameters).toIncludeSameMembers(parameters);
     });
 }
 
-export function validateThrowsForInvalidArguments(
-    integration: IntegrationTest,
-    name: string,
-    args: { [x: string]: unknown }[]
-): void {
+export function validateThrowsForInvalidArguments({
+    integration,
+    name,
+    args,
+}: {
+    integration: IntegrationTest;
+    name: string;
+    args: { [x: string]: unknown }[];
+}): void {
     describe("with invalid arguments", () => {
         for (const arg of args) {
             it(`throws a schema error for: ${JSON.stringify(arg)}`, async () => {
@@ -486,7 +482,15 @@ export function expectDefined<T>(arg: T): asserts arg is Exclude<T, undefined | 
     expect(arg).not.toBeNull();
 }
 
-function validateToolAnnotations(tool: ToolInfo, name: string, operationType: OperationType): void {
+function validateToolAnnotations({
+    tool,
+    name,
+    operationType,
+}: {
+    tool: ToolInfo;
+    name: string;
+    operationType: OperationType;
+}): void {
     expectDefined(tool.annotations);
     expect(tool.annotations.title).toBe(name);
     expect(tool.annotations.openWorldHint).toBe(true);
@@ -536,12 +540,17 @@ export function responseAsText(response: Awaited<ReturnType<Client["callTool"]>>
     return JSON.stringify(response.content, undefined, 2);
 }
 
-export function waitUntil<T extends ConnectionState>(
-    tag: T["tag"],
-    source: ConnectionManager | ConnectionEntry,
-    signal: AbortSignal,
-    additionalCondition?: (state: T) => boolean
-): Promise<T> {
+export function waitUntil<T extends ConnectionState>({
+    tag,
+    source,
+    signal,
+    additionalCondition,
+}: {
+    tag: T["tag"];
+    source: ConnectionManager | ConnectionEntry;
+    signal: AbortSignal;
+    additionalCondition?: (state: T) => boolean;
+}): Promise<T> {
     let ts: NodeJS.Timeout | undefined;
 
     return new Promise<T>((resolve, reject) => {

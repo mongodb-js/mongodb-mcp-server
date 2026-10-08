@@ -3,7 +3,8 @@ import { ToolBase } from "@mongodb-js/mcp-core";
 import type { ToolArgs } from "@mongodb-js/mcp-core";
 import type {
     IToolConfig,
-    ISession,
+    ToolServices,
+    ToolServer,
     OperationType,
     ToolCategory,
     CallToolResult,
@@ -12,16 +13,26 @@ import type {
 import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 
+/** The server shape the test tools read their services from. */
+export type TestServer = ToolServer<ToolServices<IToolConfig>>;
+
+/** Shared empty args shape reused by test tools that take no arguments. */
+const EmptyArgsShape = {};
+
+const TestToolArgsShape = {
+    param1: z.string().describe("Test parameter 1"),
+    param2: z.number().optional().describe("Test parameter 2"),
+};
+
 /** General-purpose tool used by most ToolBase unit tests. */
-export class TestTool extends ToolBase<ISession<IToolConfig>, DefaultPrometheusMetricDefinitions> {
+export class TestTool extends ToolBase<TestServer, DefaultPrometheusMetricDefinitions> {
     static toolName = "test-tool";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "delete";
     public description = "A test tool for verification tests";
-    public argsShape = {
-        param1: z.string().describe("Test parameter 1"),
-        param2: z.number().optional().describe("Test parameter 2"),
-    };
+    public argsShape(): typeof TestToolArgsShape {
+        return TestToolArgsShape;
+    }
 
     protected execute(): Promise<CallToolResult> {
         return Promise.resolve({
@@ -30,7 +41,7 @@ export class TestTool extends ToolBase<ISession<IToolConfig>, DefaultPrometheusM
     }
 
     protected resolveTelemetryMetadata(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         { result }: { result: CallToolResult }
     ): TelemetryToolMetadata {
@@ -41,21 +52,28 @@ export class TestTool extends ToolBase<ISession<IToolConfig>, DefaultPrometheusM
     }
 }
 
+const TestToolWithOutputSchemaArgsShape = {
+    input: z.string().describe("Test input"),
+};
+const TestToolWithOutputSchemaOutputSchema = {
+    value: z.string(),
+    count: z.number(),
+};
+
 /** Tool that returns structured content, used by appendUIResource tests. */
-export class TestToolWithOutputSchema extends ToolBase<ISession<IToolConfig>, DefaultPrometheusMetricDefinitions> {
+export class TestToolWithOutputSchema extends ToolBase<TestServer, DefaultPrometheusMetricDefinitions> {
     static toolName = "test-tool-with-output-schema";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "metadata";
     public description = "A test tool with output schema";
-    public argsShape = {
-        input: z.string().describe("Test input"),
-    };
-    public outputSchema = {
-        value: z.string(),
-        count: z.number(),
-    };
+    public argsShape(): typeof TestToolWithOutputSchemaArgsShape {
+        return TestToolWithOutputSchemaArgsShape;
+    }
+    public outputSchema(): typeof TestToolWithOutputSchemaOutputSchema {
+        return TestToolWithOutputSchemaOutputSchema;
+    }
 
-    protected execute(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected execute(args: ToolArgs<ReturnType<typeof this.argsShape>>): Promise<CallToolResult> {
         return Promise.resolve({
             content: [{ type: "text", text: "Tool with output schema executed" }],
             structuredContent: { value: args.input, count: 42 },
@@ -67,21 +85,25 @@ export class TestToolWithOutputSchema extends ToolBase<ISession<IToolConfig>, De
     }
 }
 
+const TestToolWithoutStructuredContentArgsShape = {
+    input: z.string().describe("Test input"),
+};
+const TestToolWithoutStructuredContentOutputSchema = {
+    value: z.string(),
+};
+
 /** Tool that declares an outputSchema but never returns structuredContent. */
-export class TestToolWithoutStructuredContent extends ToolBase<
-    ISession<IToolConfig>,
-    DefaultPrometheusMetricDefinitions
-> {
+export class TestToolWithoutStructuredContent extends ToolBase<TestServer, DefaultPrometheusMetricDefinitions> {
     static toolName = "test-tool-without-structured";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "metadata";
     public description = "A test tool without structured content";
-    public argsShape = {
-        input: z.string().describe("Test input"),
-    };
-    public outputSchema = {
-        value: z.string(),
-    };
+    public argsShape(): typeof TestToolWithoutStructuredContentArgsShape {
+        return TestToolWithoutStructuredContentArgsShape;
+    }
+    public outputSchema(): typeof TestToolWithoutStructuredContentOutputSchema {
+        return TestToolWithoutStructuredContentOutputSchema;
+    }
 
     protected execute(): Promise<CallToolResult> {
         return Promise.resolve({
@@ -95,12 +117,14 @@ export class TestToolWithoutStructuredContent extends ToolBase<
 }
 
 /** Tool whose execute() always throws – used by error-path tests. */
-export class ErrorTool extends ToolBase<ISession<IToolConfig>, DefaultPrometheusMetricDefinitions> {
+export class ErrorTool extends ToolBase<TestServer, DefaultPrometheusMetricDefinitions> {
     static toolName = "error-tool";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "read";
     public description = "A tool that always throws";
-    public argsShape = {};
+    public argsShape(): typeof EmptyArgsShape {
+        return EmptyArgsShape;
+    }
 
     protected execute(): Promise<CallToolResult> {
         return Promise.reject(new TypeError("intentional error"));
@@ -112,12 +136,14 @@ export class ErrorTool extends ToolBase<ISession<IToolConfig>, DefaultPrometheus
 }
 
 /** Minimal tool that returns a static "ok" response. */
-export class EchoTool extends ToolBase<ISession<IToolConfig>, DefaultPrometheusMetricDefinitions> {
+export class EchoTool extends ToolBase<TestServer, DefaultPrometheusMetricDefinitions> {
     static toolName = "echo-tool";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "read";
     public description = "Returns a static response";
-    public argsShape = {};
+    public argsShape(): typeof EmptyArgsShape {
+        return EmptyArgsShape;
+    }
 
     protected execute(): Promise<CallToolResult> {
         return Promise.resolve({ content: [{ type: "text", text: "ok" }] });
@@ -137,9 +163,14 @@ export class ConfirmingTool extends ToolBase {
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "read";
     public description = "Requests confirmation while executing";
-    public argsShape = {};
+    public argsShape(): typeof EmptyArgsShape {
+        return EmptyArgsShape;
+    }
 
-    protected execute(_args: ToolArgs<typeof this.argsShape>, context: ToolExecutionContext): Promise<CallToolResult> {
+    protected execute(
+        _args: ToolArgs<ReturnType<typeof this.argsShape>>,
+        context: ToolExecutionContext
+    ): Promise<CallToolResult> {
         if (!this.requestConfirmation("Proceed?", context)) {
             return Promise.resolve({
                 content: [{ type: "text" as const, text: "The operation was not performed." }],
@@ -156,12 +187,14 @@ export class ConfirmingTool extends ToolBase {
 }
 
 /** No-op tool used for session / lifecycle tests that don't need tool logic. */
-export class NoopTool extends ToolBase<ISession<IToolConfig>, DefaultPrometheusMetricDefinitions> {
+export class NoopTool extends ToolBase<TestServer, DefaultPrometheusMetricDefinitions> {
     static toolName = "noop-tool";
     static category: ToolCategory = "mongodb";
     static operationType: OperationType = "read";
     public description = "No-op tool";
-    public argsShape = {};
+    public argsShape(): typeof EmptyArgsShape {
+        return EmptyArgsShape;
+    }
 
     protected execute(): Promise<CallToolResult> {
         return Promise.resolve({ content: [{ type: "text", text: "ok" }] });

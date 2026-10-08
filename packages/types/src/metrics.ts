@@ -32,15 +32,6 @@ export interface IGauge {
 /**
  * Default metric definitions for MCP servers.
  * These are the standard metrics used across the MCP packages.
- *
- * @example
- * ```typescript
- * // Usage with session store
- * const store = new SessionStore({
- *   metrics: myMetrics,
- *   ...
- * });
- * ```
  */
 export type DefaultMetricDefinitions = {
     /** Counter for tracking created sessions */

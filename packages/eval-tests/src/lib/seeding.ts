@@ -21,14 +21,21 @@ const DEFAULT_INDEX_READY_INTERVAL_MS = 1_000;
  * @param timeoutMs - The timeout in milliseconds to wait for the indexes to be queryable.
  * @param intervalMs - The interval in milliseconds to check the indexes.
  */
-async function waitForIndexesQueryable(
-    client: MongoClient,
-    db: string,
-    collection: string,
-    indexNames: string[],
+async function waitForIndexesQueryable({
+    client,
+    db,
+    collection,
+    indexNames,
     timeoutMs = DEFAULT_INDEX_READY_TIMEOUT_MS,
-    intervalMs = DEFAULT_INDEX_READY_INTERVAL_MS
-): Promise<void> {
+    intervalMs = DEFAULT_INDEX_READY_INTERVAL_MS,
+}: {
+    client: MongoClient;
+    db: string;
+    collection: string;
+    indexNames: string[];
+    timeoutMs?: number;
+    intervalMs?: number;
+}): Promise<void> {
     if (indexNames.length === 0) return;
 
     const coll = client.db(db).collection(collection);
@@ -63,11 +70,19 @@ async function waitForIndexesQueryable(
 /**
  * Seed the temporary database with the given database seed.
  *
- * @param client - The MongoDB client.
+ * @param dbClient - The MongoDB client.
  * @param db - The database name.
  * @param dbSeed - The database seed.
  */
-export async function seedTempDb(dbClient: MongoClient, db: string, dbSeed: DbSeedEntry[] = []): Promise<void> {
+export async function seedTempDb({
+    dbClient,
+    db,
+    dbSeed = [],
+}: {
+    dbClient: MongoClient;
+    db: string;
+    dbSeed?: DbSeedEntry[];
+}): Promise<void> {
     for (const entry of dbSeed) {
         const { collection, indexes } = parseSeedEntry(entry);
         const coll = dbClient.db(db).collection(collection);
@@ -93,7 +108,7 @@ export async function seedTempDb(dbClient: MongoClient, db: string, dbSeed: DbSe
             }
         }
 
-        await waitForIndexesQueryable(dbClient, db, collection, searchIndexNames);
+        await waitForIndexesQueryable({ client: dbClient, db, collection, indexNames: searchIndexNames });
     }
 }
 

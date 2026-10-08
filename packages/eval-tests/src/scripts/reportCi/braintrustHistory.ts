@@ -22,7 +22,15 @@ export type FetchBranchHistoryOpts = {
 };
 
 /** Run up to `limit` async mappers over `items` concurrently and return results in order. */
-async function parallelMap<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+async function parallelMap<T, R>({
+    items,
+    limit,
+    fn,
+}: {
+    items: T[];
+    limit: number;
+    fn: (item: T) => Promise<R>;
+}): Promise<R[]> {
     const results: R[] = Array.from({ length: items.length }, () => undefined as R);
     const lock = { next: 0 };
     /** Pull the next item index and map it until the list is exhausted. */
@@ -41,11 +49,15 @@ async function parallelMap<T, R>(items: T[], limit: number, fn: (item: T) => Pro
 }
 
 /** Fetch summarized scores for one experiment via `experiments.summarize`. */
-async function fetchScorePercent(
-    client: Braintrust,
-    experimentId: string,
-    scoreName: string
-): Promise<{ pct?: number; experimentUrl?: string }> {
+async function fetchScorePercent({
+    client,
+    experimentId,
+    scoreName,
+}: {
+    client: Braintrust;
+    experimentId: string;
+    scoreName: string;
+}): Promise<{ pct?: number; experimentUrl?: string }> {
     const summary = await client.experiments.summarize(experimentId, { summarize_scores: true });
     const raw = summary.scores?.[scoreName]?.score;
     if (typeof raw !== "number" || Number.isNaN(raw)) {
@@ -58,13 +70,19 @@ async function fetchScorePercent(
 }
 
 /** Page through experiments in the eval project */
-async function listExperiments(
-    client: Braintrust,
-    orgName: string,
-    projectName: string,
-    gitBranchName: string,
-    limit: number
-): Promise<Experiment[]> {
+async function listExperiments({
+    client,
+    orgName,
+    projectName,
+    gitBranchName,
+    limit,
+}: {
+    client: Braintrust;
+    orgName: string;
+    projectName: string;
+    gitBranchName: string;
+    limit: number;
+}): Promise<Experiment[]> {
     const listParams = {
         project_name: projectName,
         org_name: orgName,
@@ -89,20 +107,26 @@ function printDate(date: Date): string {
 }
 
 /** List branch-filtered experiments, attach score percentages, sort, and cap for the chart. */
-async function fetchExperimentHistory(
-    client: Braintrust,
-    orgName: string,
-    projectName: string,
-    scoreName: string,
-    gitBranchName: string
-): Promise<TimelinePoint[]> {
-    const rows: Experiment[] = await listExperiments(
+async function fetchExperimentHistory({
+    client,
+    orgName,
+    projectName,
+    scoreName,
+    gitBranchName,
+}: {
+    client: Braintrust;
+    orgName: string;
+    projectName: string;
+    scoreName: string;
+    gitBranchName: string;
+}): Promise<TimelinePoint[]> {
+    const rows: Experiment[] = await listExperiments({
         client,
         orgName,
         projectName,
         gitBranchName,
-        BRANCH_HISTORY_CHART_CAP
-    );
+        limit: BRANCH_HISTORY_CHART_CAP,
+    });
     logHistoryProgress(`found ${rows.length} experiments on branch '${gitBranchName}'`);
 
     if (rows.length === 0) {
@@ -111,11 +135,15 @@ async function fetchExperimentHistory(
 
     logHistoryProgress(`fetching '${scoreName}' scores for ${rows.length} experiment(s)...`);
     let scored = 0;
-    const withScores = await parallelMap(rows, FETCH_CONCURRENCY, async (row) => {
-        const { pct, experimentUrl } = await fetchScorePercent(client, row.id, scoreName);
-        scored++;
-        logHistoryProgress(`fetched score for ${scored}/${rows.length}: ${row.name ?? row.id}`);
-        return { row, pct, experimentUrl };
+    const withScores = await parallelMap({
+        items: rows,
+        limit: FETCH_CONCURRENCY,
+        fn: async (row) => {
+            const { pct, experimentUrl } = await fetchScorePercent({ client, experimentId: row.id, scoreName });
+            scored++;
+            logHistoryProgress(`fetched score for ${scored}/${rows.length}: ${row.name ?? row.id}`);
+            return { row, pct, experimentUrl };
+        },
     });
 
     const points: TimelinePoint[] = [];
@@ -148,5 +176,11 @@ async function fetchExperimentHistory(
 export async function fetchBranchHistory(opts: FetchBranchHistoryOpts): Promise<TimelinePoint[]> {
     logHistoryProgress(`fetching branch history (org \`${opts.orgName}\`, project \`${opts.projectName}\`)...`);
     const client = new Braintrust({ apiKey: opts.apiKey });
-    return fetchExperimentHistory(client, opts.orgName, opts.projectName, opts.scoreName, opts.gitBranchName);
+    return fetchExperimentHistory({
+        client,
+        orgName: opts.orgName,
+        projectName: opts.projectName,
+        scoreName: opts.scoreName,
+        gitBranchName: opts.gitBranchName,
+    });
 }

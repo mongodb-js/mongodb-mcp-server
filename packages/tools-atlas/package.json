@@ -1,6 +1,6 @@
 {
   "name": "@mongodb-js/mcp-tools-atlas",
-  "version": "3.0.0-prerelease.2",
+  "version": "3.1.0-pre.1",
   "type": "module",
   "description": "Atlas tools for MongoDB MCP server",
   "repository": {
@@ -26,19 +26,19 @@
   "dependencies": {
     "@mongodb-js/mcp-atlas-api-client": "workspace:*",
     "@mongodb-js/mcp-core": "workspace:*",
+    "@mongodb-js/mcp-metrics": "workspace:*",
     "@mongodb-js/mcp-tools-mongodb": "workspace:*",
-    "mongodb-connection-string-url": "^7.0.1",
+    "@mongodb-js/mcp-types": "workspace:*",
+    "mongodb-connection-string-url": "^7.0.2",
     "zod": "^4.4.2"
   },
   "devDependencies": {
-    "@mongodb-js/mcp-types": "workspace:*",
     "@mongodb-js/mcp-atlas-telemetry": "workspace:*",
     "@types/node": "^25.6.0",
     "typescript": "^5.9.2",
     "vitest": "^4.1.11",
     "@mongodb-js/mcp-test-utils": "workspace:*",
     "@mongodb-js/mcp-ui": "workspace:*",
-    "@mongodb-js/mcp-metrics": "workspace:*",
     "@mongodb-js/mcp-cli": "workspace:*",
     "@modelcontextprotocol/server": "^2.0.0"
   },

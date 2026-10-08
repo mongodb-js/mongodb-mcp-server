@@ -6,7 +6,12 @@ import { CliStdioRunner } from "./cliStdioRunner.js";
 
 export type CreateRunnerFromConfigOptions = CreateServerServicesOptions;
 
-export { createServerFromConfig, createSharedServicesFromConfig } from "./createServerServices.js";
+export {
+    createServerFromConfig,
+    createSharedServicesFromConfig,
+    closeSharedServices,
+    connectionScopeFromConfig,
+} from "./createServerServices.js";
 export type { SharedServerServices, CreateServerServicesOptions } from "./createServerServices.js";
 export { CliMcpHttpServer, createHttpTransportRunnerFromConfig } from "./cliMcpHttpServer.js";
 export { CliStdioRunner } from "./cliStdioRunner.js";

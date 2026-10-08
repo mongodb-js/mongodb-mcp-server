@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
-import type { ToolConstructorParams, ToolArgs } from "@mongodb-js/mcp-core";
+import type { ToolArgs } from "@mongodb-js/mcp-core";
 import type { OperationType, CallToolResult } from "@mongodb-js/mcp-types";
 import { StreamsToolBase } from "@mongodb-js/mcp-tools-atlas";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
@@ -10,20 +10,24 @@ import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import { Keychain } from "@mongodb-js/mcp-core";
-import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
-import type { IAtlasConfig, IAtlasSession } from "@mongodb-js/mcp-tools-atlas";
+import type { IAtlasConfig } from "@mongodb-js/mcp-tools-atlas";
+import type { AtlasToolServer } from "../atlasTool.js";
+
+const TestStreamsToolArgsShape = {
+    projectId: z.string().describe("project id"),
+    workspaceName: z.string().optional().describe("workspace name"),
+    resourceName: z.string().optional().describe("resource name"),
+    action: z.string().optional().describe("action"),
+};
 
 class TestStreamsTool extends StreamsToolBase {
     static toolName = "test-streams-tool";
     static operationType: OperationType = "read";
 
     public description = "A test streams tool";
-    public argsShape = {
-        projectId: z.string().describe("project id"),
-        workspaceName: z.string().optional().describe("workspace name"),
-        resourceName: z.string().optional().describe("resource name"),
-        action: z.string().optional().describe("action"),
-    };
+    public argsShape(): typeof TestStreamsToolArgsShape {
+        return TestStreamsToolArgsShape;
+    }
 
     protected execute(): Promise<CallToolResult> {
         return Promise.resolve({ content: [{ type: "text", text: "ok" }] });
@@ -37,7 +41,7 @@ class TestStreamsTool extends StreamsToolBase {
     // Expose protected methods for testing
     public testHandleError(
         error: unknown,
-        args: ToolArgs<typeof this.argsShape>
+        args: ToolArgs<ReturnType<typeof this.argsShape>>
     ): Promise<CallToolResult> | CallToolResult {
         return this.handleError(error, args);
     }
@@ -47,7 +51,7 @@ class TestStreamsTool extends StreamsToolBase {
     }
 
     public testResolveTelemetryMetadata(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         result: CallToolResult
     ): TelemetryToolMetadata | Promise<TelemetryToolMetadata> {
         return this.resolveTelemetryMetadata(args, { result });
@@ -56,11 +60,11 @@ class TestStreamsTool extends StreamsToolBase {
 
 function createApiClientError(status: number, message: string): ApiClientError {
     const response = new Response(null, { status, statusText: "Error" });
-    return ApiClientError.fromError(response, { reason: message, error: status, errorCode: `${status}` });
+    return ApiClientError.fromError({ response, error: { reason: message, error: status, errorCode: `${status}` } });
 }
 
 describe("StreamsToolBase", () => {
-    let mockSession: IAtlasSession;
+    let mockSession: AtlasToolServer;
     let mockTelemetry: AtlasTelemetry;
     let mockElicitation: Elicitation;
     let tool: TestStreamsTool;
@@ -85,7 +89,7 @@ describe("StreamsToolBase", () => {
                 apiClientSecret: "test-secret",
                 atlasTemporaryDatabaseUserLifetimeMs: 3600000,
             } as unknown as IAtlasConfig,
-        } as unknown as IAtlasSession;
+        } as unknown as AtlasToolServer;
 
         mockTelemetry = {
             isTelemetryEnabled: () => true,
@@ -94,18 +98,15 @@ describe("StreamsToolBase", () => {
 
         mockElicitation = createMockElicitation() as unknown as Elicitation;
 
-        const params: ToolConstructorParams<IAtlasSession, DefaultPrometheusMetricDefinitions> = {
-            name: TestStreamsTool.toolName,
-            category: "atlas",
-            operationType: TestStreamsTool.operationType,
-            session: mockSession,
+        const server: AtlasToolServer = {
+            ...mockSession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
         };
 
-        tool = new TestStreamsTool(params);
+        tool = new TestStreamsTool({ server });
     });
 
     // Cast partial args since ToolArgs requires all keys even for optional Zod fields

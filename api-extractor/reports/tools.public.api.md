@@ -15,6 +15,7 @@ import type { ElicitRequestFormParams } from '@modelcontextprotocol/server';
 import { EventEmitter } from 'events';
 import type { FetchOptions } from 'openapi-fetch';
 import type { FindCursor } from 'mongodb';
+import type { MongoClient } from 'mongodb';
 import { InputRequiredResult } from '@modelcontextprotocol/server';
 import type { InputResponses } from '@modelcontextprotocol/server';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/server';
@@ -22,6 +23,7 @@ import { McpServer } from '@modelcontextprotocol/server';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import type { RequestMeta } from '@modelcontextprotocol/server';
 import type { Secret } from 'mongodb-redact';
+import type { ServerContext } from '@modelcontextprotocol/server';
 import { ToolAnnotations } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import { ZodRawShape } from 'zod';
@@ -42,7 +44,7 @@ export class AggregateDBTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof AggregateDBTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof AggregateDBTool.outputSchema> | InputRequiredResult>;
+    protected execute(input: ToolArgs<typeof AggregateDBTool.argsShape>, context: ToolExecutionContext<IMongoDBConfig>): Promise<ToolResult<typeof AggregateDBTool.outputSchema> | InputRequiredResult>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -98,7 +100,7 @@ export class AggregateTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof AggregateTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof AggregateTool.outputSchema> | InputRequiredResult>;
+    protected execute(input: ToolArgs<typeof AggregateTool.argsShape>, context: ToolExecutionContext<IMongoDBConfig>): Promise<ToolResult<typeof AggregateTool.outputSchema> | InputRequiredResult>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -145,8 +147,8 @@ export function assertVectorSearchFilterFieldsAreIndexed(input: {
 }): void;
 
 // @public (undocumented)
-export abstract class AssistantToolBase extends ToolBase<IAssistantSession> {
-    constructor(params: ToolConstructorParams<IAssistantSession>);
+export abstract class AssistantToolBase extends ToolBase<AssistantToolServer> {
+    constructor(server: AssistantToolServer);
     // (undocumented)
     protected baseUrl: URL;
     // (undocumented)
@@ -164,7 +166,13 @@ export abstract class AssistantToolBase extends ToolBase<IAssistantSession> {
 }
 
 // @public (undocumented)
-export const AssistantTools: ToolClass<IAssistantSession>[];
+export const AssistantTools: ToolClass<AssistantToolServer>[];
+
+// @public (undocumented)
+export type AssistantToolServer = ToolServer<AssistantToolServices>;
+
+// @public (undocumented)
+export type AssistantToolServices = ToolServices<IAssistantConfig>;
 
 // @public (undocumented)
 export const ATLAS_CREATE_CLUSTER_README_DESCRIPTION: string;
@@ -218,7 +226,7 @@ export type AtlasLocalClientFactoryFn = (input: {
 }) => Promise<Client | undefined>;
 
 // @public (undocumented)
-export abstract class AtlasLocalToolBase extends ToolBase<IAtlasLocalSession> {
+export abstract class AtlasLocalToolBase extends ToolBase<AtlasLocalToolServer> {
     // (undocumented)
     static category: ToolCategory;
     // (undocumented)
@@ -226,6 +234,7 @@ export abstract class AtlasLocalToolBase extends ToolBase<IAtlasLocalSession> {
     // (undocumented)
     protected abstract executeWithAtlasLocalClient(args: ToolArgs<typeof AtlasLocalToolBase.argsShape>, context: {
         client: Client;
+        context: ToolExecutionContext;
     }): Promise<CallToolResult>;
     // (undocumented)
     protected handleError(error: unknown, args: ToolArgs<typeof AtlasLocalToolBase.argsShape>): Promise<CallToolResult> | CallToolResult;
@@ -238,8 +247,6 @@ export abstract class AtlasLocalToolBase extends ToolBase<IAtlasLocalSession> {
         result: CallToolResult;
     }): ConnectionMetadata | Promise<ConnectionMetadata>;
     // (undocumented)
-    protected readonly session: IAtlasLocalSession;
-    // (undocumented)
     protected verifyAllowed(): boolean;
 }
 
@@ -247,7 +254,16 @@ export abstract class AtlasLocalToolBase extends ToolBase<IAtlasLocalSession> {
 export const AtlasLocalToolMetadataDeploymentIdKey = "deploymentId";
 
 // @public (undocumented)
-export const AtlasLocalTools: ToolClass<IAtlasLocalSession>[];
+export const AtlasLocalTools: ToolClass<AtlasLocalToolServer>[];
+
+// @public (undocumented)
+export type AtlasLocalToolServer = ToolServer<AtlasLocalToolServices>;
+
+// @public
+export type AtlasLocalToolServices = ToolServices<IAtlasLocalConfig> & {
+    readonly atlasLocalClient?: Client;
+    readonly connectionRegistry: ConnectionRegistry;
+};
 
 // @public (undocumented)
 export interface AtlasRegion {
@@ -258,24 +274,29 @@ export interface AtlasRegion {
 }
 
 // @public (undocumented)
-export abstract class AtlasToolBase extends ToolBase<IAtlasSession> {
-    protected get apiClient(): ApiClient;
+export abstract class AtlasToolBase extends ToolBase<AtlasToolServer> {
     // (undocumented)
     static category: ToolCategory;
-    protected get config(): IAtlasConfig;
     // (undocumented)
     protected handleError(error: unknown, args: ToolArgs<typeof AtlasToolBase.argsShape>): Promise<CallToolResult> | CallToolResult;
     protected resolveTelemetryMetadata(args: ToolArgs<typeof AtlasToolBase.argsShape>, input: {
         result: CallToolResult;
     }): AtlasMetadata | Promise<AtlasMetadata>;
     // (undocumented)
-    protected readonly session: IAtlasSession;
-    // (undocumented)
     protected verifyAllowed(): boolean;
 }
 
 // @public (undocumented)
-export const AtlasTools: ToolClass<IAtlasSession>[];
+export const AtlasTools: ToolClass<AtlasToolServer>[];
+
+// @public (undocumented)
+export type AtlasToolServer = ToolServer<AtlasToolServices>;
+
+// @public
+export type AtlasToolServices = ToolServices<IAtlasConfig> & {
+    readonly apiClient: ApiClient;
+    readonly connectionRegistry: ConnectionRegistry;
+};
 
 // @public
 export type AvailableExport = Pick<StoredExport, "exportName" | "exportTitle" | "exportURI" | "exportPath">;
@@ -374,7 +395,7 @@ export class CollectionSchemaTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof CollectionSchemaTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof CollectionSchemaTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof CollectionSchemaTool.argsShape>, input2: ToolExecutionContext<IMongoDBConfig>): Promise<ToolResult<typeof CollectionSchemaTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -400,7 +421,7 @@ export class CollectionStorageSizeTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof CollectionStorageSizeTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof CollectionStorageSizeTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof CollectionStorageSizeTool.argsShape>, input2: ToolExecutionContext<IMongoDBConfig>): Promise<ToolResult<typeof CollectionStorageSizeTool.outputSchema>>;
     // (undocumented)
     protected handleError(error: unknown, args: ToolArgs<typeof CollectionStorageSizeTool.argsShape>): Promise<CallToolResult>;
     // (undocumented)
@@ -470,7 +491,7 @@ export class ConnectClusterTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof ConnectClusterTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof ConnectClusterTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof ConnectClusterTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof ConnectClusterTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -514,6 +535,7 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
     // (undocumented)
     protected executeWithAtlasLocalClient(input: ToolArgs<typeof ConnectDeploymentTool.argsShape>, input2: {
         client: Client;
+        context: ToolExecutionContext;
     }): Promise<ToolResult<typeof ConnectDeploymentOutputSchema> & Pick<CallToolResult, "_meta">>;
     // (undocumented)
     static operationType: OperationType;
@@ -711,6 +733,7 @@ export interface ConnectionSettings extends Omit<ConnectionInfo_2, "driverOption
     // (undocumented)
     atlas?: AtlasClusterConnectionInfo;
     driverOptions?: ConnectionInfo_2["driverOptions"];
+    mongoClient?: MongoClient;
 }
 
 // @public (undocumented)
@@ -828,7 +851,7 @@ export class ConnectTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof ConnectTool.argsShape>): Promise<ToolResult<typeof ConnectTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof ConnectTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof ConnectTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -855,7 +878,7 @@ export class CountTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof CountTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof CountTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof CountTool.argsShape>, input2: ToolExecutionContext<IMongoDBConfig>): Promise<ToolResult<typeof CountTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -882,7 +905,7 @@ export class CreateAccessListTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof CreateAccessListTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof CreateAccessListTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof CreateAccessListTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof CreateAccessListTool.outputSchema>>;
     // (undocumented)
     protected getConfirmationMessage(input: ToolArgs<typeof CreateAccessListTool.argsShape>): string;
     // (undocumented)
@@ -948,9 +971,9 @@ export class CreateClusterTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected doesValidEARConfigExist(provider: AtlasCloudProvider, projectId: string, context: ToolExecutionContext): Promise<boolean>;
+    protected doesValidEARConfigExist(provider: AtlasCloudProvider, projectId: string, request: ToolRequest<IAtlasConfig>): Promise<boolean>;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof CreateClusterTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof CreateClusterTool.outputSchema>>;
+    protected execute(args: ToolArgs<typeof CreateClusterTool.argsShape>, input: ToolExecutionContext): Promise<ToolResult<typeof CreateClusterTool.outputSchema>>;
     // (undocumented)
     protected handleError(error: unknown, args: ToolArgs<typeof CreateClusterTool.argsShape>): CallToolResult;
     normalizeRawArgs(args: Record<string, unknown>): Record<string, unknown>;
@@ -1099,7 +1122,7 @@ export class CreateDBUserTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof CreateDBUserTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof CreateDBUserTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof CreateDBUserTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof CreateDBUserTool.outputSchema>>;
     // (undocumented)
     protected getConfirmationMessage(input: ToolArgs<typeof CreateDBUserTool.argsShape>): string;
     // (undocumented)
@@ -1126,6 +1149,7 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
     // (undocumented)
     protected executeWithAtlasLocalClient(input: ToolArgs<typeof CreateDeploymentTool.argsShape>, input2: {
         client: Client;
+        context: ToolExecutionContext<IAtlasLocalConfig>;
     }): Promise<ToolResult<typeof CreateDeploymentOutputSchema> & Pick<CallToolResult, "_meta">>;
     // (undocumented)
     static operationType: OperationType;
@@ -1151,7 +1175,7 @@ export class CreateFreeClusterTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof CreateFreeClusterTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof CreateFreeClusterTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof CreateFreeClusterTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof CreateFreeClusterTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -1263,7 +1287,7 @@ export class CreateProjectTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof CreateProjectTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof CreateProjectTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof CreateProjectTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof CreateProjectTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -1303,7 +1327,7 @@ export class DbStatsTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof DbStatsTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof DbStatsTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof DbStatsTool.argsShape>, input2: ToolExecutionContext<IMongoDBConfig>): Promise<ToolResult<typeof DbStatsTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -1328,6 +1352,7 @@ export class DeleteDeploymentTool extends AtlasLocalToolBase {
     // (undocumented)
     protected executeWithAtlasLocalClient(input: ToolArgs<typeof DeleteDeploymentTool.argsShape>, input2: {
         client: Client;
+        context: ToolExecutionContext;
     }): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
@@ -1355,7 +1380,7 @@ export class DeleteManyTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof DeleteManyTool.argsShape>): Promise<ToolResult<typeof DeleteManyTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof DeleteManyTool.argsShape>, input2: ToolExecutionContext<IMongoDBConfig>): Promise<ToolResult<typeof DeleteManyTool.outputSchema>>;
     // (undocumented)
     protected getConfirmationMessage(input: ToolArgs<typeof DeleteManyTool.argsShape>): string;
     // (undocumented)
@@ -1586,7 +1611,7 @@ export class ExplainTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof ExplainTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof ExplainTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof ExplainTool.argsShape>, input2: ToolExecutionContext<IMongoDBConfig>): Promise<ToolResult<typeof ExplainTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -1704,7 +1729,7 @@ export class ExportTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof ExportTool.argsShape>, input2: ToolExecutionContext): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof ExportTool.argsShape>, input2: ToolExecutionContext<IMongoDBConfig>): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -1757,7 +1782,7 @@ export class FindTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof FindTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof FindTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof FindTool.argsShape>, input2: ToolExecutionContext<IMongoDBConfig>): Promise<ToolResult<typeof FindTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -1807,7 +1832,7 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof GetPerformanceAdvisorTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof GetPerformanceAdvisorTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof GetPerformanceAdvisorTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof GetPerformanceAdvisorTool.outputSchema>>;
     // (undocumented)
     protected handleError(error: unknown, args: ToolArgs<typeof GetPerformanceAdvisorTool.argsShape>): Promise<CallToolResult> | CallToolResult;
     // (undocumented)
@@ -1876,9 +1901,11 @@ export function getResponseBytesLimit(toolResponseBytesLimit: number | undefined
 };
 
 // @public (undocumented)
-export interface IAssistantSession extends ISession {
+export interface IAssistantConfig extends IToolConfig {
     // (undocumented)
-    config: IAssistantConfig;
+    assistantBaseUrl?: string;
+    // (undocumented)
+    serverVersion?: string;
 }
 
 // @public (undocumented)
@@ -1897,44 +1924,6 @@ export interface IAtlasLocalConfig extends IToolConfig {
     voyageApiKey?: string;
 }
 
-// @public (undocumented)
-export interface IAtlasLocalSession extends ISession {
-    // (undocumented)
-    readonly atlasLocalClient?: Client;
-    // (undocumented)
-    config: IAtlasLocalConfig;
-    // (undocumented)
-    readonly connectionRegistry: ConnectionRegistry;
-    // (undocumented)
-    connectToMongoDB(settings: {
-        connectionString: string;
-    }): Promise<void>;
-}
-
-// @public (undocumented)
-export interface IAtlasSession extends ISession {
-    // (undocumented)
-    readonly apiClient?: ApiClient;
-    // (undocumented)
-    config: IAtlasConfig;
-    // (undocumented)
-    readonly connectedAtlasCluster?: AtlasClusterConnectionInfo;
-    // (undocumented)
-    readonly connectionManager?: {
-        currentConnectionState: {
-            tag: string;
-            errorReason?: string;
-        };
-    };
-    // (undocumented)
-    readonly connectionRegistry: ConnectionRegistry;
-    // (undocumented)
-    connectToMongoDB(settings: {
-        connectionString: string;
-        atlas?: AtlasClusterConnectionInfo;
-    }): Promise<void>;
-}
-
 // @public
 export type IMongoDBConfig = IToolConfig & {
     connectionString: string | undefined;
@@ -1947,28 +1936,6 @@ export type IMongoDBConfig = IToolConfig & {
     queryCountMaxTimeMsCap: number;
     aggregationCountMaxTimeMsCap: number;
 };
-
-// @public (undocumented)
-export interface IMongoDBSession extends ISession<IMongoDBConfig> {
-    // (undocumented)
-    config: IMongoDBConfig;
-    // (undocumented)
-    connectionErrorHandler(error: MongoDBError, context: {
-        availableTools: readonly unknown[];
-        connectionState: unknown;
-    }): Promise<{
-        errorHandled: boolean;
-        result: CallToolResult;
-    }>;
-    // (undocumented)
-    connectionRegistry: ConnectionRegistry;
-    // (undocumented)
-    exportsManager: {
-        createJSONExport: (params: CreateJSONExportParams) => Promise<AvailableExport>;
-    };
-    // (undocumented)
-    logger: CompositeLogger;
-}
 
 // @public (undocumented)
 export const IndexDirectionSchema: z.ZodUnion<readonly [z.ZodLiteral<1>, z.ZodLiteral<-1>, z.ZodLiteral<"2d">, z.ZodLiteral<"2dsphere">, z.ZodLiteral<"text">, z.ZodLiteral<"geoHaystack">, z.ZodLiteral<"hashed">]>;
@@ -1996,8 +1963,6 @@ export class InsertManyTool extends MongoDBToolBase {
     // (undocumented)
     protected execute(input: ToolArgs<typeof InsertManyTool.argsShape>): Promise<ToolResult<typeof InsertManyTool.outputSchema>>;
     // (undocumented)
-    protected handleError(error: unknown, args: ToolArgs<typeof InsertManyTool.argsShape>): Promise<CallToolResult>;
-    // (undocumented)
     static operationType: OperationType;
     // (undocumented)
     outputSchema: {
@@ -2024,7 +1989,7 @@ export class InspectAccessListTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof InspectAccessListTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof InspectAccessListTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof InspectAccessListTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof InspectAccessListTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -2057,7 +2022,7 @@ export class InspectClusterTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof InspectClusterTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof InspectClusterTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof InspectClusterTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof InspectClusterTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -2134,7 +2099,7 @@ export class ListAlertsTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof ListAlertsTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof ListAlertsTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof ListAlertsTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof ListAlertsTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -2173,7 +2138,7 @@ export class ListClustersTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof ListClustersTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof ListClustersTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof ListClustersTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof ListClustersTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -2225,7 +2190,7 @@ export class ListCollectionsTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof ListCollectionsTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof ListCollectionsTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof ListCollectionsTool.argsShape>, input2: ToolExecutionContext<IMongoDBConfig>): Promise<ToolResult<typeof ListCollectionsTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -2315,7 +2280,7 @@ export class ListDBUsersTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof ListDBUsersTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof ListDBUsersTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof ListDBUsersTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof ListDBUsersTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -2352,6 +2317,7 @@ export class ListDeploymentsTool extends AtlasLocalToolBase {
     // (undocumented)
     protected executeWithAtlasLocalClient(_args: ToolArgs<typeof ListDeploymentsTool.argsShape>, input: {
         client: Client;
+        context: ToolExecutionContext;
     }): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
@@ -2398,7 +2364,7 @@ export class ListOrganizationsTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof ListOrganizationsTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof ListOrganizationsTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof ListOrganizationsTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof ListOrganizationsTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -2425,7 +2391,7 @@ export class ListProjectsTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof ListProjectsTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof ListProjectsTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof ListProjectsTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof ListProjectsTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -2457,7 +2423,7 @@ export class LoadSampleDatasetTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof LoadSampleDatasetTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof LoadSampleDatasetTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof LoadSampleDatasetTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof LoadSampleDatasetTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -2494,7 +2460,7 @@ export class LogsTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof LogsTool.argsShape>, input2: ToolExecutionContext): Promise<ToolResult<typeof LogsTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof LogsTool.argsShape>, input2: ToolExecutionContext<IMongoDBConfig>): Promise<ToolResult<typeof LogsTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -2537,15 +2503,14 @@ export class MongoDBError<ErrorCodeType extends ErrorCode = ErrorCode> extends E
 }
 
 // @public (undocumented)
-export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
-    protected assertMqlIsAllowed(...values: (Record<string, unknown> | Record<string, unknown>[] | undefined)[]): void;
+export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
+    protected assertMqlIsAllowed(config: IMongoDBConfig, ...values: (Record<string, unknown> | Record<string, unknown>[] | undefined)[]): void;
     // (undocumented)
     protected assertSearchSupported(connectionId: string): Promise<void>;
     // (undocumented)
     static category: ToolCategory;
-    protected get config(): IMongoDBConfig;
-    protected getInputRequiredResult(targets: WriteStageTarget[], context: ToolExecutionContext): InputRequiredResult | null;
-    protected getOperationOptions(signal?: AbortSignal): {
+    protected confirmWriteStages(targets: WriteStageTarget[], context: ToolExecutionContext): InputRequiredResult | null;
+    protected getOperationOptions(request: ToolRequest<IMongoDBConfig>): {
         signal?: AbortSignal;
         maxTimeMS?: number;
     };
@@ -2558,13 +2523,12 @@ export abstract class MongoDBToolBase extends ToolBase<IMongoDBSession> {
     protected peekConnection(connectionId: string | undefined): Promise<ConnectionEntry | undefined>;
     // (undocumented)
     register(server: MongoDBToolRegistrationServer): boolean;
+    protected registrationServer?: MongoDBToolRegistrationServer;
     protected resolveConnection(connectionId: string): Promise<NodeDriverServiceProvider>;
     protected resolveTelemetryMetadata(args: ToolArgs<typeof MongoDBToolBase.argsShape>, input: {
         result: CallToolResult;
     }): Promise<ConnectionMetadata_2>;
     protected schemaVariantKey(): string;
-    // (undocumented)
-    protected server?: MongoDBToolRegistrationServer;
 }
 
 // @public
@@ -2575,7 +2539,25 @@ export type MongoDBToolRegistrationServer = {
 };
 
 // @public (undocumented)
-export const MongoDBTools: ToolClass<IMongoDBSession>[];
+export const MongoDBTools: ToolClass<MongoDBToolServer>[];
+
+// @public (undocumented)
+export type MongoDBToolServer = ToolServer<MongoDBToolServices>;
+
+// @public
+export type MongoDBToolServices = ToolServices<IMongoDBConfig> & {
+    connectionRegistry: ConnectionRegistry;
+    connectionErrorHandler(error: MongoDBError, context: {
+        availableTools: readonly unknown[];
+        connectionState: unknown;
+    }): Promise<{
+        errorHandled: boolean;
+        result: CallToolResult;
+    }>;
+    exportsManager: {
+        createJSONExport: (params: CreateJSONExportParams) => Promise<AvailableExport>;
+    };
+};
 
 // @public (undocumented)
 export type MonitoringServerFeature = (typeof monitoringServerFeatureValues)[number];
@@ -2612,7 +2594,7 @@ export class PauseResumeClusterTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof PauseResumeClusterTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof PauseResumeClusterTool.outputSchema>>;
+    protected execute(args: ToolArgs<typeof PauseResumeClusterTool.argsShape>, input: ToolExecutionContext): Promise<ToolResult<typeof PauseResumeClusterTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -2696,7 +2678,7 @@ export class RenameCollectionTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof RenameCollectionTool.argsShape>): Promise<ToolResult<typeof RenameCollectionTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof RenameCollectionTool.argsShape>, input2: ToolExecutionContext<IMongoDBConfig>): Promise<ToolResult<typeof RenameCollectionTool.outputSchema>>;
     // (undocumented)
     protected handleError(error: unknown, args: ToolArgs<typeof RenameCollectionTool.argsShape>): Promise<ToolResult<typeof RenameCollectionTool.outputSchema>>;
     // (undocumented)
@@ -2869,6 +2851,30 @@ export class StreamsBuildTool extends StreamsToolBase {
             db: z.ZodString;
             coll: z.ZodString;
         }, z.core.$strip>>;
+        processorTier: z.ZodOptional<z.ZodEnum<{
+            SP50: "SP50";
+            SP30: "SP30";
+            SP10: "SP10";
+            SP5: "SP5";
+            SP2: "SP2";
+        }>>;
+        autoscaling: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+            enabled: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
+            minTier: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+                SP50: "SP50";
+                SP30: "SP30";
+                SP10: "SP10";
+                SP5: "SP5";
+                SP2: "SP2";
+            }>>>;
+            maxTier: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+                SP50: "SP50";
+                SP30: "SP30";
+                SP10: "SP10";
+                SP5: "SP5";
+                SP2: "SP2";
+            }>>>;
+        }, z.core.$strip>>>;
         autoStart: z.ZodOptional<z.ZodBoolean>;
         privateLinkConfig: z.ZodOptional<z.ZodObject<{
             provider: z.ZodEnum<{
@@ -2894,7 +2900,7 @@ export class StreamsBuildTool extends StreamsToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof StreamsBuildTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
+    protected execute(args: ToolArgs<typeof StreamsBuildTool.argsShape>, input: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -2939,7 +2945,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof StreamsDiscoverTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    protected execute(input: ToolArgs<typeof StreamsDiscoverTool.argsShape>, input2: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -2959,6 +2965,12 @@ export class StreamsDiscoverTool extends StreamsToolBase {
             name: z.ZodString;
             state: z.ZodOptional<z.ZodString>;
             tier: z.ZodOptional<z.ZodString>;
+            effectiveTier: z.ZodOptional<z.ZodString>;
+            autoscaling: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+                enabled: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
+                minTier: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+                maxTier: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+            }, z.core.$strip>>>;
         }, z.core.$strip>>>;
         workspace: z.ZodOptional<z.ZodObject<{
             name: z.ZodString;
@@ -2974,6 +2986,12 @@ export class StreamsDiscoverTool extends StreamsToolBase {
             FAILED: "FAILED";
         }>>;
         tier: z.ZodOptional<z.ZodString>;
+        effectiveTier: z.ZodOptional<z.ZodString>;
+        autoscaling: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+            enabled: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
+            minTier: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+            maxTier: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+        }, z.core.$strip>>>;
         stats: z.ZodOptional<z.ZodObject<{
             inputMessageCount: z.ZodOptional<z.ZodNumber>;
             outputMessageCount: z.ZodOptional<z.ZodNumber>;
@@ -3041,6 +3059,23 @@ export class StreamsManageTool extends StreamsToolBase {
             SP30: "SP30";
             SP50: "SP50";
         }>>;
+        autoscaling: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+            enabled: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
+            minTier: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+                SP50: "SP50";
+                SP30: "SP30";
+                SP10: "SP10";
+                SP5: "SP5";
+                SP2: "SP2";
+            }>>>;
+            maxTier: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+                SP50: "SP50";
+                SP30: "SP30";
+                SP10: "SP10";
+                SP5: "SP5";
+                SP2: "SP2";
+            }>>>;
+        }, z.core.$strip>>>;
         resumeFromCheckpoint: z.ZodOptional<z.ZodBoolean>;
         startAtOperationTime: z.ZodOptional<z.ZodString>;
         pipeline: z.ZodOptional<z.ZodArray<z.ZodRecord<z.ZodString, z.ZodUnknown>>>;
@@ -3119,7 +3154,7 @@ export class StreamsManageTool extends StreamsToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof StreamsManageTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    protected execute(args: ToolArgs<typeof StreamsManageTool.argsShape>, input: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     protected getConfirmationMessage(args: ToolArgs<typeof StreamsManageTool.argsShape>): string;
     // (undocumented)
@@ -3140,7 +3175,25 @@ export class StreamsManageTool extends StreamsToolBase {
         }>>;
         region: z.ZodOptional<z.ZodString>;
         tier: z.ZodOptional<z.ZodString>;
+        effectiveTier: z.ZodOptional<z.ZodString>;
         maxTier: z.ZodOptional<z.ZodString>;
+        autoscaling: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+            enabled: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
+            minTier: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+                SP50: "SP50";
+                SP30: "SP30";
+                SP10: "SP10";
+                SP5: "SP5";
+                SP2: "SP2";
+            }>>>;
+            maxTier: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+                SP50: "SP50";
+                SP30: "SP30";
+                SP10: "SP10";
+                SP5: "SP5";
+                SP2: "SP2";
+            }>>>;
+        }, z.core.$strip>>>;
         peeringState: z.ZodOptional<z.ZodEnum<{
             ACCEPTED: "ACCEPTED";
             REJECTED: "REJECTED";
@@ -3168,7 +3221,7 @@ export class StreamsTeardownTool extends StreamsToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof StreamsTeardownTool.argsShape>, context: ToolExecutionContext): Promise<CallToolResult>;
+    protected execute(args: ToolArgs<typeof StreamsTeardownTool.argsShape>, input: ToolExecutionContext): Promise<CallToolResult>;
     // (undocumented)
     protected getConfirmationMessage(args: ToolArgs<typeof StreamsTeardownTool.argsShape>): string;
     // (undocumented)
@@ -3210,17 +3263,15 @@ export type ToolArgs<T extends ZodRawShape> = {
 };
 
 // @public
-export abstract class ToolBase<TSession extends IToolSession = IToolSession, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
-    constructor(input: ToolConstructorParams<TSession, TMetricsDefinitions>);
+export abstract class ToolBase<TServer extends ToolServer = ToolServer, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
+    constructor(server: TServer);
     // (undocumented)
     get annotations(): ToolAnnotations;
     abstract argsShape: ZodRawShape;
     readonly category: ToolCategory;
-    protected get config(): TSession["config"];
     abstract description: string;
     // (undocumented)
     disable(): void;
-    protected readonly elicitation: IElicitation;
     // (undocumented)
     enable(): void;
     protected abstract execute(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
@@ -3233,7 +3284,6 @@ export abstract class ToolBase<TSession extends IToolSession = IToolSession, TMe
     isEnabled(): boolean;
     // (undocumented)
     protected isFeatureEnabled(feature: PreviewFeature_2): boolean;
-    protected readonly metrics: IMetrics<TMetricsDefinitions>;
     readonly name: string;
     normalizeRawArgs(args: Record<string, unknown>): Record<string, unknown>;
     readonly operationType: OperationType;
@@ -3248,8 +3298,7 @@ export abstract class ToolBase<TSession extends IToolSession = IToolSession, TMe
         result: CallToolResult;
     }): TelemetryToolMetadata | Promise<TelemetryToolMetadata>;
     protected schemaVariantKey(): string;
-    protected readonly session: TSession;
-    protected readonly telemetry: ITelemetry;
+    protected readonly server: TServer;
     protected get toolMeta(): Record<string, unknown>;
     // (undocumented)
     protected verifyAllowed(): boolean;
@@ -3259,36 +3308,34 @@ export abstract class ToolBase<TSession extends IToolSession = IToolSession, TMe
 export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant" | "custom";
 
 // @public
-export type ToolClass<TSession extends IToolSession = IToolSession, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
-    new (args: ToolConstructorParams<TSession, TMetricsDefinitions>): ToolBase<TSession, TMetricsDefinitions>;
+export type ToolClass<TServer extends ToolServer = ToolServer, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
+    new (server: TServer): ToolBase<TServer, TMetricsDefinitions>;
     toolName: string;
     category: ToolCategory;
     operationType: OperationType;
 };
 
 // @public
-export type ToolConstructorParams<TSession extends IToolSession = IToolSession, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
-    name: string;
-    category: ToolCategory;
-    operationType: OperationType;
-    session: TSession;
-    telemetry: ITelemetry;
-    elicitation: IElicitation;
-    metrics: IMetrics<TMetricsDefinitions>;
-    uiRegistry?: IUIRegistry;
+export type ToolExecutionContext<TConfig extends IToolConfig = IToolConfig> = {
+    request: ToolRequest<TConfig>;
 };
 
 // @public
-export type ToolExecutionContext = {
+export type ToolRequest<TConfig extends IToolConfig = IToolConfig> = {
+    readonly server: ToolServer<ToolServices<TConfig>>;
+    readonly raw?: ServerContext["mcpReq"];
     signal: AbortSignal;
-    requestInfo?: {
-        headers?: Record<string, unknown>;
-    };
+    headers?: Record<string, unknown>;
     _meta?: RequestMeta;
-    requestId?: string | number;
+    id?: string | number;
     sendNotification?: (notification: unknown) => Promise<void>;
     inputResponses?: ElicitationInputResponses;
     elicitationDurationMs?: number;
+    clientInfo?: {
+        name?: string;
+        version?: string;
+        title?: string;
+    };
 };
 
 // @public (undocumented)
@@ -3296,6 +3343,9 @@ export type ToolResult<OutputSchema extends ZodRawShape | undefined = undefined>
     content: CallToolResult["content"];
     isError?: boolean;
 };
+
+// @public
+export type ToolServerParam<TServer extends ToolServer = ToolServer> = TServer;
 
 // @public (undocumented)
 export type UpdateManyOutput = z.infer<z.ZodObject<typeof UpdateManyOutputSchema>>;
@@ -3314,7 +3364,7 @@ export class UpdateManyTool extends MongoDBToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(input: ToolArgs<typeof UpdateManyTool.argsShape>): Promise<ToolResult<typeof UpdateManyTool.outputSchema>>;
+    protected execute(input: ToolArgs<typeof UpdateManyTool.argsShape>, input2: ToolExecutionContext<IMongoDBConfig>): Promise<ToolResult<typeof UpdateManyTool.outputSchema>>;
     // (undocumented)
     static operationType: OperationType;
     // (undocumented)
@@ -3373,7 +3423,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
     // (undocumented)
     description: string;
     // (undocumented)
-    protected execute(args: ToolArgs<typeof UpgradeClusterTool.argsShape>, context: ToolExecutionContext): Promise<ToolResult<typeof UpgradeClusterTool.outputSchema>>;
+    protected execute(args: ToolArgs<typeof UpgradeClusterTool.argsShape>, input: ToolExecutionContext): Promise<ToolResult<typeof UpgradeClusterTool.outputSchema>>;
     // (undocumented)
     protected handleError(error: unknown, args: ToolArgs<typeof UpgradeClusterTool.argsShape>): CallToolResult;
     // (undocumented)

@@ -1,4 +1,9 @@
-import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import {
+    CollOperationArgs,
+    connectionScopedArgsShape,
+    MongoDBToolBase,
+    type IMongoDBConfig,
+} from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { formatUntrustedData } from "@mongodb-js/mcp-core";
@@ -17,43 +22,54 @@ const CollectionSchemaOutputSchema = {
 
 export type CollectionSchemaOutput = z.infer<z.ZodObject<typeof CollectionSchemaOutputSchema>>;
 
+const CollectionSchemaArgsShapeVariants = connectionScopedArgsShape({
+    ...CollOperationArgs,
+    sampleSize: z.number().optional().default(50).describe("Number of documents to sample for schema inference"),
+    responseBytesLimit: z
+        .number()
+        .optional()
+        .default(ONE_MB)
+        .describe(
+            "The maximum number of bytes to return in the response. This value is capped by the server's configured maximum and cannot be exceeded."
+        ),
+});
+
 export class CollectionSchemaTool extends MongoDBToolBase {
     static toolName = "collection-schema";
     public description = "Describe the schema for a collection";
-    public argsShape = {
-        ...ConnectionIdArgs,
-        ...CollOperationArgs,
-        sampleSize: z.number().optional().default(50).describe("Number of documents to sample for schema inference"),
-        responseBytesLimit: z
-            .number()
-            .optional()
-            .default(ONE_MB)
-            .describe(
-                "The maximum number of bytes to return in the response. This value is capped by the server's configured maximum and cannot be exceeded."
-            ),
-    };
-    public override outputSchema = CollectionSchemaOutputSchema;
+    public argsShape(): typeof CollectionSchemaArgsShapeVariants.preconfigured {
+        return this.selectConnectionScopedArgsShape(CollectionSchemaArgsShapeVariants);
+    }
+    public override outputSchema(): typeof CollectionSchemaOutputSchema {
+        return CollectionSchemaOutputSchema;
+    }
 
     static operationType: OperationType = "metadata";
 
     protected async execute(
-        { connectionId, database, collection, sampleSize, responseBytesLimit }: ToolArgs<typeof this.argsShape>,
-        { signal }: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+        {
+            connectionId,
+            database,
+            collection,
+            sampleSize,
+            responseBytesLimit,
+        }: ToolArgs<ReturnType<typeof this.argsShape>>,
+        { request }: ToolExecutionContext<IMongoDBConfig>
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const provider = await this.resolveConnection(connectionId);
         const cursor = provider.aggregate(
             database,
             collection,
             [{ $sample: { size: Math.min(sampleSize, MAXIMUM_SAMPLE_SIZE_HARD_LIMIT) } }],
             {
-                ...this.getOperationOptions(signal),
+                ...this.getOperationOptions(request),
             }
         );
         const { documents } = await collectCursorUntilMaxBytesLimit({
             cursor,
-            configuredMaxBytesPerQuery: this.config.maxBytesPerQuery,
+            configuredMaxBytesPerQuery: this.server.config.maxBytesPerQuery,
             toolResponseBytesLimit: responseBytesLimit,
-            abortSignal: signal,
+            abortSignal: request.signal,
         });
         const schema = await getSimplifiedSchema(documents);
 
@@ -76,7 +92,7 @@ export class CollectionSchemaTool extends MongoDBToolBase {
         const header = `Found ${fieldsCount} fields in the sampled schema. Note that this schema is inferred from a sample and may not represent the full schema of the collection.`;
 
         return {
-            content: formatUntrustedData(header, JSON.stringify({ database, collection, schema })),
+            content: formatUntrustedData(this.server.config, header, JSON.stringify({ database, collection, schema })),
             structuredContent: {
                 schema,
                 fieldsCount,

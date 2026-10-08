@@ -1,11 +1,10 @@
-import type { CallToolResult } from "@mongodb-js/mcp-types";
-import type { AnyToolBase } from "@mongodb-js/mcp-core";
+import type { CallToolResult, ToolServerTool } from "@mongodb-js/mcp-types";
 import { ErrorCodes, type MongoDBError } from "./common/errors.js";
 import type { AnyConnectionState } from "./common/connectionManager.js";
 import { DisconnectTool } from "./tools/connect/disconnect.js";
 import { ListConnectionsTool } from "./tools/connect/listConnections.js";
 
-export type ConnectionErrorHandlerContext = { availableTools: AnyToolBase[]; connectionState?: AnyConnectionState };
+export type ConnectionErrorHandlerContext = { availableTools: ToolServerTool[]; connectionState?: AnyConnectionState };
 export type ConnectionErrorUnhandled = { errorHandled: false };
 export type ConnectionErrorHandled = { errorHandled: true; result: CallToolResult };
 
@@ -24,7 +23,7 @@ export type ConnectionErrorHandler = (
  * disconnect tool shares the "connect" operation type but cannot establish a
  * connection, so it is excluded.
  */
-export function connectCapableTools(tools: readonly AnyToolBase[]): AnyToolBase[] {
+export function connectCapableTools(tools: readonly ToolServerTool[]): ToolServerTool[] {
     return tools
         .filter((t) => t.operationType === "connect" && t.name !== DisconnectTool.toolName && t.isEnabled())
         .sort((a, b) => a.category.localeCompare(b.category));

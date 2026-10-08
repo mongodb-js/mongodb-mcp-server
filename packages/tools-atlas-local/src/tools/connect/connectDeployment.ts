@@ -1,4 +1,4 @@
-import type { CallToolResult, ConnectionMetadata, OperationType } from "@mongodb-js/mcp-types";
+import type { CallToolResult, ConnectionMetadata, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { AtlasLocalToolBase } from "../../atlasLocalTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import { CommonArgs } from "@mongodb-js/mcp-core";
@@ -12,27 +12,33 @@ const ConnectDeploymentOutputSchema = {
     connectionId: z.string().optional(),
 };
 
+const ConnectDeploymentArgsShape = {
+    deploymentName: CommonArgs.asciiOnlyString().describe("Name of the deployment to connect to"),
+};
+
 export class ConnectDeploymentTool extends AtlasLocalToolBase {
     static toolName = "atlas-local-connect-deployment";
     public description =
         "Connect to a MongoDB Atlas Local deployment and get back a connectionId to pass to the other MongoDB tools";
     static operationType: OperationType = "connect";
-    public argsShape = {
-        deploymentName: CommonArgs.asciiOnlyString().describe("Name of the deployment to connect to"),
-    };
+    public argsShape(): typeof ConnectDeploymentArgsShape {
+        return ConnectDeploymentArgsShape;
+    }
 
-    public override outputSchema = ConnectDeploymentOutputSchema;
+    public override outputSchema(): typeof ConnectDeploymentOutputSchema {
+        return ConnectDeploymentOutputSchema;
+    }
 
     protected async executeWithAtlasLocalClient(
-        { deploymentName }: ToolArgs<typeof this.argsShape>,
-        { client }: { client: Client }
+        { deploymentName }: ToolArgs<ReturnType<typeof this.argsShape>>,
+        { client, context }: { client: Client; context: ToolExecutionContext }
     ): Promise<ToolResult<typeof ConnectDeploymentOutputSchema> & Pick<CallToolResult, "_meta">> {
         let connectionString: string;
         try {
             // Get the connection string for the deployment. atlas-local-create-deployment can return
             // before Docker publishes port bindings, so retry briefly to usually avoid surfacing that
             // race condition to the caller.
-            connectionString = await waitForConnectionString(client, deploymentName);
+            connectionString = await waitForConnectionString({ client, deploymentName });
         } catch (error: unknown) {
             if (error instanceof AtlasLocalDeploymentNotReadyError) {
                 return {
@@ -54,10 +60,10 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
 
         // Establish the connection through the connection registry so it can be
         // referenced by its connectionId from the other MongoDB tools.
-        const entry = await this.session.connectionRegistry.connect({
+        const entry = await this.server.connectionRegistry.connect({
             settings: { connectionString },
             name: deploymentName,
-            clientName: this.session.mcpClient?.name,
+            clientName: context.request.clientInfo?.name,
         });
 
         return {
@@ -79,7 +85,7 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
     }
 
     protected override async resolveTelemetryMetadata(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         { result }: { result: CallToolResult }
     ): Promise<ConnectionMetadata> {
         const connectionId = (result.structuredContent as { connectionId?: string } | undefined)?.connectionId;
@@ -87,7 +93,7 @@ export class ConnectDeploymentTool extends AtlasLocalToolBase {
             ...(await super.resolveTelemetryMetadata(args, { result })),
             ...(connectionId && { connection_id: connectionId }),
             ...this.getConnectionInfoMetadata(
-                connectionId ? (await this.session.connectionRegistry.peek(connectionId))?.state : undefined
+                connectionId ? await this.server.connectionRegistry.peek(connectionId) : undefined
             ),
         };
     }

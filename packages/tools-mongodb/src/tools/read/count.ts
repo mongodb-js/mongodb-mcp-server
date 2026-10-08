@@ -1,6 +1,7 @@
-import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import { CollOperationArgs, connectionScopedArgsShape, MongoDBToolBase } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import type { IMongoDBConfig } from "../../mongodbTool.js";
 import { checkIndexUsage } from "../../helpers/indexCheck.js";
 import { zEJSON } from "../../args.js";
 import { z } from "zod";
@@ -17,30 +18,36 @@ const CountOutputSchema = {
     count: z.number().describe("The number of documents in the collection"),
 };
 
+const CountArgsShapeVariants = connectionScopedArgsShape({
+    ...CollOperationArgs,
+    ...CountArgs,
+});
+
 export class CountTool extends MongoDBToolBase {
     static toolName = "count";
     public description =
         "Gets the number of documents in a MongoDB collection using db.collection.count() and query as an optional filter parameter";
-    public argsShape = {
-        ...ConnectionIdArgs,
-        ...CollOperationArgs,
-        ...CountArgs,
-    };
+    public argsShape(): typeof CountArgsShapeVariants.preconfigured {
+        return this.selectConnectionScopedArgsShape(CountArgsShapeVariants);
+    }
 
     static operationType: OperationType = "read";
 
-    public override outputSchema = CountOutputSchema;
+    public override outputSchema(): typeof CountOutputSchema {
+        return CountOutputSchema;
+    }
 
     protected async execute(
-        { connectionId, database, collection, query }: ToolArgs<typeof this.argsShape>,
-        { signal }: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+        { connectionId, database, collection, query }: ToolArgs<ReturnType<typeof this.argsShape>>,
+        context: ToolExecutionContext<IMongoDBConfig>
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
+        const { request } = context;
         const provider = await this.resolveConnection(connectionId);
 
-        this.assertMqlIsAllowed(query);
+        this.assertMqlIsAllowed(this.resolveConfig(context), query);
 
         // Check if count operation uses an index if enabled
-        if (this.config.indexCheck) {
+        if (this.server.config.indexCheck) {
             await checkIndexUsage({
                 database,
                 collection,
@@ -54,19 +61,21 @@ export class CountTool extends MongoDBToolBase {
                                 query,
                             },
                             verbosity: "queryPlanner",
-                            ...(this.config.maxTimeMS !== undefined && { maxTimeMS: this.config.maxTimeMS }),
+                            ...(this.server.config.maxTimeMS !== undefined && {
+                                maxTimeMS: this.server.config.maxTimeMS,
+                            }),
                         },
                         {
-                            signal,
+                            signal: request.signal,
                         }
                     );
                 },
-                logger: this.session.logger,
+                logger: this.server.logger,
             });
         }
 
         const count = await provider.countDocuments(database, collection, query, {
-            ...this.getOperationOptions(signal),
+            ...this.getOperationOptions(request),
         });
 
         return {

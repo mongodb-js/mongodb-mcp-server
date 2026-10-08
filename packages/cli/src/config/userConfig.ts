@@ -18,7 +18,11 @@ import {
     AGG_COUNT_MAX_TIME_MS_CAP,
 } from "@mongodb-js/mcp-tools-mongodb";
 import { argMetadata, CliOptionsSchema as MongoshCliOptionsSchema } from "@mongosh/arg-parser/arg-parser";
-import { TRANSPORT_PAYLOAD_LIMITS, DEFAULT_MAX_SESSIONS } from "../transports/constants.js";
+import {
+    TRANSPORT_PAYLOAD_LIMITS,
+    DEFAULT_MAX_SESSIONS,
+    DEFAULT_EVICTION_IDLE_GRACE_MS,
+} from "../transports/constants.js";
 
 export const configRegistry = z.registry<ConfigFieldMeta>();
 
@@ -121,6 +125,13 @@ const ServerConfigSchema = z.object({
         .register(configRegistry, {
             overrideBehavior: oneWayOverride(true),
         }),
+    disableUntrustedDataWarning: z
+        .preprocess(parseBoolean, z.boolean())
+        .default(false)
+        .describe(
+            "When set to true, tool responses include potentially untrusted data (such as documents or query results) as-is, without wrapping it in delimiters and a prompt-injection warning."
+        )
+        .register(configRegistry, { overrideBehavior: "override" }),
     disableServerSideJs: z
         .preprocess(parseBoolean, z.boolean())
         .default(true)
@@ -161,6 +172,13 @@ const ServerConfigSchema = z.object({
             "Header that the HTTP server will validate when making requests (only used when transport is 'http')."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    dangerousHostBinding: z
+        .preprocess(parseBoolean, z.boolean())
+        .default(false)
+        .describe(
+            "When set to true, allows binding the HTTP server (and monitoring server) to a non-loopback host such as 0.0.0.0, a LAN IP, or an empty host (all interfaces). Binding to a non-loopback host exposes the server to the entire network and can allow unauthorized access. Off by default: the server refuses to start on a non-loopback host unless this is true."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
     httpBodyLimit: z.coerce
         .number()
         .int()
@@ -173,6 +191,46 @@ const ServerConfigSchema = z.object({
             "Maximum size of the HTTP request body in bytes (only used when transport is 'http'). This value is passed as the optional limit parameter to the Express.js json() middleware."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    maxActiveConnections: z.coerce
+        .number()
+        .int()
+        .min(1, "Invalid maxActiveConnections: must be at least 1")
+        .default(10)
+        .describe(
+            "Maximum number of MongoDB connections a single scope (an MCP session by default, see connectionScope) can hold open. When exceeded, the scope's least-recently-used connection is closed and its connectionId revoked. The preconfigured connection does not count towards the limit."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    connectionIdleTimeoutMs: z.coerce
+        .number()
+        .int()
+        .min(0, "Invalid connectionIdleTimeoutMs: must be a non-negative integer")
+        .default(600_000)
+        .describe(
+            "Milliseconds a MongoDB connection may stay unused (no tool call touching it) before it is closed to release the underlying connection pool and its server-side state. Applied per connection regardless of its connection scope; the preconfigured connection is excluded, and the reaper runs on this cadence. Set to 0 to disable reaping; must not be negative."
+        )
+        .register(configRegistry, { overrideBehavior: onlyLowerThanBaseValueOverride() }),
+    /**
+     * @deprecated The MCP protocol is moving to sessionless, so this option will
+     * soon be removed and the connection scope will default to "global". For
+     * shared-server use cases, use the Atlas-Managed MCP server or build an
+     * authenticated library using the `@mongodb-js/mcp-cli` package.
+     */
+    connectionScope: z
+        .enum(["session", "global"])
+        .default("session")
+        .describe(
+            "Visibility scope for MongoDB connections created at runtime. With 'session' (the default), each MCP session only sees the connections it created (plus the shared 'preconfigured' one) and they are closed when the session ends. With 'global', connections are shared across all sessions and survive session rotation. Deprecated: the MCP protocol is moving to sessionless, so this option will soon be removed and the connection scope will default to 'global'. For shared-server use cases, use the Atlas-Managed MCP server or build an authenticated library using the @mongodb-js/mcp-cli package. Note: on the sessionless (2026-07-28) HTTP path, a request without an mcp-session-id falls back to the shared ('global') scope so it can still persist connections across requests; the legacy sessionful path always carries a server-issued session."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    maxSessions: z.coerce
+        .number()
+        .int()
+        .min(1, "Invalid maxSessions: must be at least 1")
+        .default(DEFAULT_MAX_SESSIONS)
+        .describe(
+            "Maximum number of concurrent sessions the HTTP transport will hold in memory (only used when transport is 'http'). Each session holds a full server instance, transport, and timers, so choose a value based on your deployment's available memory; the default is a conservative safety net rather than a recommended production value."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
     idleTimeoutMs: z.coerce
         .number()
         .default(600_000)
@@ -183,29 +241,20 @@ const ServerConfigSchema = z.object({
         .default(540_000)
         .describe("Notification timeout for a client to be aware of disconnect (only applies to http transport).")
         .register(configRegistry, { overrideBehavior: onlyLowerThanBaseValueOverride() }),
-    maxSessions: z.coerce
+    evictionIdleGraceMS: z.coerce
         .number()
         .int()
-        .min(1, "Invalid maxSessions: must be at least 1")
-        .default(DEFAULT_MAX_SESSIONS)
+        .min(0, "Invalid evictionIdleGraceMS: must be at least 0")
+        .default(DEFAULT_EVICTION_IDLE_GRACE_MS)
         .describe(
-            "Maximum number of concurrent sessions the HTTP transport will hold in memory (only used when transport is 'http'). Each session holds a full server instance, transport, and timers, so choose a value based on your deployment's available memory; the default is a conservative safety net rather than a recommended production value."
+            "How long a session must be idle before it becomes eligible for least-recently-used eviction when the HTTP transport is at its maxSessions cap (only used when transport is 'http'). Swept back to idleTimeoutMs when larger."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
-    maxActiveConnections: z.coerce
-        .number()
-        .int()
-        .min(1, "Invalid maxActiveConnections: must be at least 1")
-        .default(10)
+    externallyManagedSessions: z
+        .boolean()
+        .default(false)
         .describe(
-            "Maximum number of MongoDB connections a single scope (an MCP session by default, see connectionScope) can hold open. When exceeded, the scope's least-recently-used connection is closed and its connectionId revoked. The preconfigured connection does not count towards the limit."
-        )
-        .register(configRegistry, { overrideBehavior: "not-allowed" }),
-    connectionScope: z
-        .enum(["session", "global"])
-        .default("session")
-        .describe(
-            "Visibility scope for MongoDB connections created at runtime. With 'session' (the default), each MCP session only sees the connections it created (plus the shared 'preconfigured' one) and they are closed when the session ends — recommended when the HTTP transport is exposed to multiple clients without authentication. With 'global', connections are shared across all sessions and survive session rotation."
+            "When true, the 2025-era HTTP transport accepts a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional, and an implicitly re-initialized session restores the client's previously negotiated capabilities from the session store."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
     maxBytesPerQuery: z.coerce
@@ -298,13 +347,6 @@ const ServerConfigSchema = z.object({
         .default(false)
         .describe(
             "When true, runs the server in dry mode: dumps configuration and enabled tools, then exits without starting the server."
-        )
-        .register(configRegistry, { overrideBehavior: "not-allowed" }),
-    externallyManagedSessions: z
-        .boolean()
-        .default(false)
-        .describe(
-            "When true, the HTTP transport allows requests with a session ID supplied externally through the 'mcp-session-id' header. When an external ID is supplied, the initialization request is optional."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
     httpResponseType: z

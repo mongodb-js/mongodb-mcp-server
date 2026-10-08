@@ -7,15 +7,13 @@ import { AllTools } from "mongodb-mcp-server";
 import { McpServer } from "@modelcontextprotocol/server";
 import type { Transport } from "@modelcontextprotocol/server";
 import { CliServer, connectionErrorHandler, Elicitation } from "mongodb-mcp-server";
-import { Session } from "@mongodb-js/mcp-cli";
 import { createAtlasLocalClient } from "@mongodb-js/mcp-tools-atlas-local";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
-
-describeWithMongoDB(
-    "mcpUI feature with feature disabled (default)",
-    (integration) => {
+describeWithMongoDB({
+    name: "mcpUI feature with feature disabled (default)",
+    fn: (integration) => {
         describe("list-databases tool", () => {
             it("should NOT return UIResource content when mcpUI feature is disabled", async () => {
                 const connectionId = await integration.connectMcpClient();
@@ -23,30 +21,28 @@ describeWithMongoDB(
                     name: "list-databases",
                     arguments: { connectionId },
                 });
-
                 expect(response.content).toBeDefined();
                 expect(Array.isArray(response.content)).toBe(true);
-
-                const elements = response.content as Array<{ type: string }>;
+                const elements = response.content as Array<{
+                    type: string;
+                }>;
                 const resourceElements = elements.filter((e) => e.type === "resource");
                 expect(resourceElements).toHaveLength(0);
-
                 const textElements = getResponseElements(response.content);
                 expect(textElements.length).toBeGreaterThan(0);
             });
         });
     },
-    {
+    config: {
         getUserConfig: () => ({
             ...defaultTestConfig,
             previewFeatures: [], // mcpUI is NOT enabled
         }),
-    }
-);
-
-describeWithMongoDB(
-    "mcpUI feature with feature enabled",
-    (integration) => {
+    },
+});
+describeWithMongoDB({
+    name: "mcpUI feature with feature enabled",
+    fn: (integration) => {
         describe("list-databases tool with mcpUI enabled", () => {
             it("should return UIResource content when mcpUI feature is enabled", async () => {
                 const connectionId = await integration.connectMcpClient();
@@ -54,18 +50,16 @@ describeWithMongoDB(
                     name: "list-databases",
                     arguments: { connectionId },
                 });
-
                 expect(response.content).toBeDefined();
                 expect(Array.isArray(response.content)).toBe(true);
-
-                const elements = response.content as Array<{ type: string; resource?: unknown }>;
-
+                const elements = response.content as Array<{
+                    type: string;
+                    resource?: unknown;
+                }>;
                 const textElements = elements.filter((e) => e.type === "text");
                 expect(textElements.length).toBeGreaterThan(0);
-
                 const resourceElements = elements.filter((e) => e.type === "resource");
                 expect(resourceElements).toHaveLength(1);
-
                 const uiResource = resourceElements[0] as {
                     type: string;
                     resource: {
@@ -75,72 +69,69 @@ describeWithMongoDB(
                         _meta?: Record<string, unknown>;
                     };
                 };
-
                 expect(uiResource.type).toBe("resource");
                 expectDefined(uiResource.resource);
                 expect(uiResource.resource.uri).toBe("ui://list-databases");
                 expect(uiResource.resource.mimeType).toMatch(/^text\/html(?:;.*)?$/);
                 expect(typeof uiResource.resource.text).toBe("string");
                 expect(uiResource.resource.text.length).toBeGreaterThan(0);
-
                 expectDefined(uiResource.resource._meta);
                 expect(uiResource.resource._meta["mcpui.dev/ui-initial-render-data"]).toBeDefined();
-
                 const renderData = uiResource.resource._meta["mcpui.dev/ui-initial-render-data"] as {
-                    databases: Array<{ name: string; size: number }>;
+                    databases: Array<{
+                        name: string;
+                        size: number;
+                    }>;
                     totalCount: number;
                 };
                 expect(renderData.databases).toBeInstanceOf(Array);
                 expect(typeof renderData.totalCount).toBe("number");
                 expect(renderData.totalCount).toBe(renderData.databases.length);
-
                 for (const db of renderData.databases) {
                     expect(typeof db.name).toBe("string");
                     expect(typeof db.size).toBe("number");
                 }
             });
-
             it("should include system databases in the response", async () => {
                 const connectionId = await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
                     name: "list-databases",
                     arguments: { connectionId },
                 });
-
                 const elements = response.content as Array<{
                     type: string;
-                    resource?: { _meta?: Record<string, unknown> };
+                    resource?: {
+                        _meta?: Record<string, unknown>;
+                    };
                 }>;
                 const resourceElement = elements.find((e) => e.type === "resource");
                 expectDefined(resourceElement);
-
                 const renderData = resourceElement.resource?._meta?.["mcpui.dev/ui-initial-render-data"] as {
-                    databases: Array<{ name: string; size: number }>;
+                    databases: Array<{
+                        name: string;
+                        size: number;
+                    }>;
                 };
-
                 const dbNames = renderData.databases.map((db) => db.name);
-
                 expect(dbNames).toContain("admin");
                 expect(dbNames).toContain("local");
             });
         });
     },
-    {
+    config: {
         getUserConfig: () => ({
             ...defaultTestConfig,
             previewFeatures: ["mcpUI"], // mcpUI IS enabled
         }),
-    }
-);
-
-describeWithMongoDB(
-    "mcpUI feature - UIRegistry initialization",
-    (integration) => {
+    },
+});
+describeWithMongoDB({
+    name: "mcpUI feature - UIRegistry initialization",
+    fn: (integration) => {
         describe("server UIRegistry", () => {
             it("should have UIRegistry initialized with bundled UIs", async () => {
                 const server = integration.mcpServer();
                 expectDefined(server.uiRegistry);
-
                 const uiHtml = await server.uiRegistry.get("list-databases");
                 expectDefined(uiHtml);
                 expect(uiHtml).not.toBeNull();
@@ -148,18 +139,20 @@ describeWithMongoDB(
             });
         });
     },
-    {
+    config: {
         getUserConfig: () => ({
             ...defaultTestConfig,
             previewFeatures: ["mcpUI"],
         }),
-    }
-);
-
+    },
+});
 describe("mcpUI feature with custom UIs", () => {
     const initServerWithCustomUIs = async (
         customUIs: Record<string, string>
-    ): Promise<{ server: CliServer; transport: Transport }> => {
+    ): Promise<{
+        server: CliServer;
+        transport: Transport;
+    }> => {
         const customUIsFunction = (toolName: string): string | null => customUIs[toolName] ?? null;
         const userConfig = {
             ...defaultTestConfig,
@@ -167,31 +160,21 @@ describe("mcpUI feature with custom UIs", () => {
         };
         const logger = new CompositeLogger();
         const deviceId = DeviceId.create(logger);
-        const connectionRegistry = new MCPConnectionStore({ options: userConfig, logger, deviceId }).view();
+        const keychain = new Keychain();
+        const connectionRegistry = new MCPConnectionStore({ options: userConfig, logger, deviceId, keychain }).view();
         const exportsManager = ExportsManager.init({ options: userConfig, logger });
-
-        const session = new Session({
+        const apiClient = createTestApiClient({
+            baseUrl: userConfig.apiBaseUrl,
+            serverMetadata: { mcpServerName: "test", version: "1" },
             logger,
-            exportsManager,
-            connectionRegistry,
-            keychain: Keychain.root,
-            connectionErrorHandler,
-            atlasLocalClient: await createAtlasLocalClient({ logger }),
-            apiClient: createTestApiClient({
-                baseUrl: userConfig.apiBaseUrl,
-                serverMetadata: { mcpServerName: "test", version: "1" },
-                logger,
-                clientId: userConfig.apiClientId,
-                clientSecret: userConfig.apiClientSecret,
-            }),
-            config: userConfig,
+            clientId: userConfig.apiClientId,
+            clientSecret: userConfig.apiClientSecret,
         });
-
         const telemetry = AtlasTelemetry.create({
             logger,
             deviceId,
-            apiClient: session.apiClient,
-            keychain: session.keychain,
+            apiClient,
+            keychain,
             enabled: false,
             serverMetadata: {
                 mcpServerName: "test-server",
@@ -202,9 +185,14 @@ describe("mcpUI feature with custom UIs", () => {
         const elicitation = new Elicitation({
             server: mcpServerInstance.server,
         });
-
         const server = new CliServer({
-            session,
+            config: userConfig,
+            logger,
+            keychain,
+            connectionRegistry,
+            exportsManager,
+            apiClient,
+            atlasLocalClient: await createAtlasLocalClient({ logger }),
             telemetry,
             mcpServer: mcpServerInstance,
             elicitation,
@@ -220,62 +208,47 @@ describe("mcpUI feature with custom UIs", () => {
             },
             tools: AllTools,
         });
-
         const transport = new InMemoryTransport();
-
         return { transport, server };
     };
-
     let server: CliServer | undefined;
     let transport: Transport | undefined;
-
     afterAll(async () => {
         await transport?.close();
         await server?.close();
     });
-
     it("should use custom UI when provided via server options", async () => {
         const customUIs = {
             "list-databases": "<html>Custom Test UI</html>",
         };
-
         ({ server, transport } = await initServerWithCustomUIs(customUIs));
         await server.connect(transport);
-
         expectDefined(server.uiRegistry);
         const uiHtml = await server.uiRegistry.get("list-databases");
         expectDefined(uiHtml);
         expect(uiHtml).toBe("<html>Custom Test UI</html>");
     });
-
     it("should add new custom UIs for tools without bundled UIs", async () => {
         const customUIs = {
             "custom-tool": "<html>Custom Tool UI</html>",
         };
-
         ({ server, transport } = await initServerWithCustomUIs(customUIs));
         await server.connect(transport);
-
         expectDefined(server.uiRegistry);
         const uiHtml = await server.uiRegistry.get("custom-tool");
         expectDefined(uiHtml);
         expect(uiHtml).toBe("<html>Custom Tool UI</html>");
     });
-
     it("should merge custom UIs with bundled UIs", async () => {
         const customUIs = {
             "new-tool": "<html>New Tool UI</html>",
         };
-
         ({ server, transport } = await initServerWithCustomUIs(customUIs));
         await server.connect(transport);
-
         expectDefined(server.uiRegistry);
-
         const newToolUI = await server.uiRegistry.get("new-tool");
         expectDefined(newToolUI);
         expect(newToolUI).toBe("<html>New Tool UI</html>");
-
         const bundledUI = await server.uiRegistry.get("list-databases");
         expectDefined(bundledUI);
         expect(bundledUI).not.toBeNull();

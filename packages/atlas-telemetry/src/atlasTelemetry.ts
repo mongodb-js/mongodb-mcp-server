@@ -135,7 +135,7 @@ export class AtlasTelemetry implements ITelemetry {
         return detectContainerEnvImpl();
     }
 
-    protected async setup(): Promise<void> {
+    public async setup(): Promise<void> {
         if (!this.isTelemetryEnabled()) {
             this.logger.info({
                 id: LogId.telemetryEmitFailure,

@@ -1,7 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { GetPerformanceAdvisorTool } from "./getPerformanceAdvisor.js";
-import type { IAtlasSession } from "../../atlasTool.js";
 import type { ITelemetry } from "@mongodb-js/mcp-types";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
@@ -9,6 +7,7 @@ import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
+import type { AtlasToolServer } from "../../atlasTool.js";
 
 const emptyDropSuggestions = {
     hiddenIndexes: [],
@@ -37,9 +36,10 @@ describe("GetPerformanceAdvisorTool", () => {
         } as unknown as CompositeLogger;
 
         const mockSession = {
+            config: {},
             logger: mockLogger,
             apiClient: { ...mockApiClient, logger: mockLogger } as unknown as ApiClient,
-        } as unknown as IAtlasSession;
+        } as unknown as AtlasToolServer;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => false,
@@ -48,18 +48,15 @@ describe("GetPerformanceAdvisorTool", () => {
 
         const mockElicitation = createMockElicitation() as unknown as Elicitation;
 
-        const params: ToolConstructorParams<IAtlasSession> = {
-            name: GetPerformanceAdvisorTool.toolName,
-            category: "atlas",
-            operationType: GetPerformanceAdvisorTool.operationType,
-            session: mockSession,
+        const server: AtlasToolServer = {
+            ...mockSession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
         };
 
-        tool = new GetPerformanceAdvisorTool(params);
+        tool = new GetPerformanceAdvisorTool({ server });
     });
 
     const baseArgs = {
@@ -69,7 +66,11 @@ describe("GetPerformanceAdvisorTool", () => {
     };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["execute"](args as never, { signal: new AbortController().signal });
+        tool["execute"](args as never, {
+            request: {
+                signal: new AbortController().signal,
+            },
+        });
 
     const text = (result: { content: unknown[] }): string =>
         result.content.map((c) => (c as { text: string }).text).join("\n");
@@ -139,10 +140,10 @@ describe("GetPerformanceAdvisorTool", () => {
         });
 
         it("delegates ApiClientError to AtlasToolBase", () => {
-            const apiError = ApiClientError.fromError(
-                new Response(null, { status: 403, statusText: "Forbidden" }),
-                "forbidden"
-            );
+            const apiError = ApiClientError.fromError({
+                response: new Response(null, { status: 403, statusText: "Forbidden" }),
+                error: "forbidden",
+            });
             const result = tool["handleError"](apiError, baseArgs as never) as { content: { text: string }[] };
 
             expect(result.content[0]?.text).toContain("Forbidden API Error");

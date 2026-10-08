@@ -1,29 +1,19 @@
 /**
- * Atlas cluster connection info containing details about the connected Atlas cluster.
- * When provided, indicates the connection is to an Atlas cluster.
+ * The Atlas cluster a connection entry addresses. Supplying it when creating the
+ * entry marks the connection as an Atlas one: it drives cluster attribution on
+ * tool telemetry, the `atlas` host type, and lets `pause-resume-cluster` find
+ * the connections to the cluster it just paused. A host that establishes the
+ * connection with its own credentials (X.509, a pre-provisioned user, a proxy)
+ * still knows which cluster it connected to and should supply this.
  *
- * The cluster's projectId, name and id are required. A host that establishes the
- * connection without minting a temporary database user — via its own credential
- * issuance, X.509, a pre-provisioned user, a proxy — still knows which cluster it
- * connected to and needs to be able to specify it: this field is what marks a
- * connection as pointing at Atlas, and leaving it unset prevents cluster
- * attribution on tool telemetry, the `atlas` host type, and the ability of
- * `pause-resume-cluster` to find connections to the cluster it just paused.
- * Hosts that only know the cluster name should resolve the id through the Atlas
- * API before connecting.
+ * `clusterId` should be resolved through the Atlas API before connecting; it is
+ * optional only because a registry can know which cluster a handle addresses
+ * before the handle has dialed and resolved the id.
  */
 export type AtlasClusterConnectionInfo = {
-    /** Which Atlas cluster this connection points at. */
     projectId: string;
     clusterName: string;
-    clusterId: string;
-
-    /**
-     * The temporary database user backing the connection. Set only by
-     * `connect-cluster`, which also schedules its deletion; absent when the
-     * host supplied its own credentials.
-     */
-    username?: string;
+    clusterId?: string;
 
     /** The cluster's tier, set when the host resolved it. */
     instanceType?: "FREE" | "FLEX" | "DEDICATED";
@@ -45,5 +35,4 @@ export type ConnectionStringInfo = {
 export type SupportedConnectionState = {
     tag: string;
     connectionStringInfo?: ConnectionStringInfo;
-    connectedAtlasCluster?: AtlasClusterConnectionInfo;
 };

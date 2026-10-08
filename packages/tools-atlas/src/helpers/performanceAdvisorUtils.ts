@@ -9,7 +9,8 @@ import type {
     SchemaAdvisorItemRecommendation,
     PerformanceAdvisorSlowQuery,
 } from "@mongodb-js/mcp-atlas-api-client";
-import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
+import type { ToolRequest } from "@mongodb-js/mcp-types";
+import type { IAtlasConfig } from "../atlasTool.js";
 import { getProcessIdsFromCluster } from "./cluster.js";
 
 export type SuggestedIndex = PerformanceAdvisorIndex;
@@ -32,12 +33,17 @@ interface SchemaAdviceResponse {
 }
 export type SchemaRecommendation = SchemaAdvisorItemRecommendation;
 
-export async function getSuggestedIndexes(
-    apiClient: ApiClient,
-    projectId: string,
-    clusterName: string,
-    context?: ToolExecutionContext
-): Promise<{ suggestedIndexes: Array<SuggestedIndex> }> {
+export async function getSuggestedIndexes({
+    apiClient,
+    projectId,
+    clusterName,
+    request,
+}: {
+    apiClient: ApiClient;
+    projectId: string;
+    clusterName: string;
+    request?: ToolRequest<IAtlasConfig>;
+}): Promise<{ suggestedIndexes: Array<SuggestedIndex> }> {
     try {
         const response = await apiClient.listClusterSuggestedIndexes(
             {
@@ -48,7 +54,7 @@ export async function getSuggestedIndexes(
                     },
                 },
             },
-            context
+            request
         );
         return {
             suggestedIndexes: (response as SuggestedIndexesResponse).content.suggestedIndexes ?? [],
@@ -58,7 +64,7 @@ export async function getSuggestedIndexes(
             id: LogId.atlasPaSuggestedIndexesFailure,
             context: "performanceAdvisorUtils",
             message: `Failed to list suggested indexes: ${err instanceof Error ? err.message : String(err)}`,
-            attributes: { ...requestIdAttr(context?.requestInfo?.headers) },
+            attributes: { ...requestIdAttr(request?.headers) },
         });
         throw new Error(`Failed to list suggested indexes: ${err instanceof Error ? err.message : String(err)}`, {
             cause: err,
@@ -66,12 +72,17 @@ export async function getSuggestedIndexes(
     }
 }
 
-export async function getDropIndexSuggestions(
-    apiClient: ApiClient,
-    projectId: string,
-    clusterName: string,
-    context?: ToolExecutionContext
-): Promise<{
+export async function getDropIndexSuggestions({
+    apiClient,
+    projectId,
+    clusterName,
+    request,
+}: {
+    apiClient: ApiClient;
+    projectId: string;
+    clusterName: string;
+    request?: ToolRequest<IAtlasConfig>;
+}): Promise<{
     hiddenIndexes: Array<DropIndexSuggestion>;
     redundantIndexes: Array<DropIndexSuggestion>;
     unusedIndexes: Array<DropIndexSuggestion>;
@@ -86,7 +97,7 @@ export async function getDropIndexSuggestions(
                     },
                 },
             },
-            context
+            request
         );
         return {
             hiddenIndexes: (response as DropIndexesResponse).content.hiddenIndexes ?? [],
@@ -98,7 +109,7 @@ export async function getDropIndexSuggestions(
             id: LogId.atlasPaDropIndexSuggestionsFailure,
             context: "performanceAdvisorUtils",
             message: `Failed to list drop index suggestions: ${err instanceof Error ? err.message : String(err)}`,
-            attributes: { ...requestIdAttr(context?.requestInfo?.headers) },
+            attributes: { ...requestIdAttr(request?.headers) },
         });
         throw new Error(`Failed to list drop index suggestions: ${err instanceof Error ? err.message : String(err)}`, {
             cause: err,
@@ -106,12 +117,17 @@ export async function getDropIndexSuggestions(
     }
 }
 
-export async function getSchemaAdvice(
-    apiClient: ApiClient,
-    projectId: string,
-    clusterName: string,
-    context?: ToolExecutionContext
-): Promise<{ recommendations: Array<SchemaRecommendation> }> {
+export async function getSchemaAdvice({
+    apiClient,
+    projectId,
+    clusterName,
+    request,
+}: {
+    apiClient: ApiClient;
+    projectId: string;
+    clusterName: string;
+    request?: ToolRequest<IAtlasConfig>;
+}): Promise<{ recommendations: Array<SchemaRecommendation> }> {
     try {
         const response = await apiClient.listSchemaAdvice(
             {
@@ -122,7 +138,7 @@ export async function getSchemaAdvice(
                     },
                 },
             },
-            context
+            request
         );
         return { recommendations: (response as SchemaAdviceResponse).content.recommendations ?? [] };
     } catch (err) {
@@ -130,7 +146,7 @@ export async function getSchemaAdvice(
             id: LogId.atlasPaSchemaAdviceFailure,
             context: "performanceAdvisorUtils",
             message: `Failed to list schema advice: ${err instanceof Error ? err.message : String(err)}`,
-            attributes: { ...requestIdAttr(context?.requestInfo?.headers) },
+            attributes: { ...requestIdAttr(request?.headers) },
         });
         throw new Error(`Failed to list schema advice: ${err instanceof Error ? err.message : String(err)}`, {
             cause: err,
@@ -138,16 +154,23 @@ export async function getSchemaAdvice(
     }
 }
 
-export async function getSlowQueries(
-    apiClient: ApiClient,
-    projectId: string,
-    clusterName: string,
-    since?: Date,
-    namespaces?: Array<string>,
-    context?: ToolExecutionContext
-): Promise<{ slowQueryLogs: Array<SlowQueryLog> }> {
+export async function getSlowQueries({
+    apiClient,
+    projectId,
+    clusterName,
+    since,
+    namespaces,
+    request,
+}: {
+    apiClient: ApiClient;
+    projectId: string;
+    clusterName: string;
+    since?: Date;
+    namespaces?: Array<string>;
+    request?: ToolRequest<IAtlasConfig>;
+}): Promise<{ slowQueryLogs: Array<SlowQueryLog> }> {
     try {
-        const processIds = await getProcessIdsFromCluster(apiClient, projectId, clusterName, context);
+        const processIds = await getProcessIdsFromCluster({ apiClient, projectId, clusterName, request });
 
         if (processIds.length === 0) {
             return { slowQueryLogs: [] };
@@ -168,7 +191,7 @@ export async function getSlowQueries(
                         },
                     },
                 },
-                context
+                request
             )
         );
 
@@ -184,7 +207,7 @@ export async function getSlowQueries(
             id: LogId.atlasPaSlowQueryLogsFailure,
             context: "performanceAdvisorUtils",
             message: `Failed to list slow query logs: ${err instanceof Error ? err.message : String(err)}`,
-            attributes: { ...requestIdAttr(context?.requestInfo?.headers) },
+            attributes: { ...requestIdAttr(request?.headers) },
         });
         throw new Error(`Failed to list slow query logs: ${err instanceof Error ? err.message : String(err)}`, {
             cause: err,

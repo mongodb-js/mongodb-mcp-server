@@ -49,21 +49,23 @@ export class ListClustersTool extends AtlasToolBase {
     static toolName = "atlas-list-clusters";
     public description = "List MongoDB Atlas clusters";
     static operationType: OperationType = "read";
-    public argsShape = {
-        ...ListClustersArgs,
-    };
-    public override outputSchema = ListClustersOutputSchema;
+    public argsShape(): typeof ListClustersArgs {
+        return ListClustersArgs;
+    }
+    public override outputSchema(): typeof ListClustersOutputSchema {
+        return ListClustersOutputSchema;
+    }
 
     protected async execute(
-        { projectId }: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+        { projectId }: ToolArgs<ReturnType<typeof this.argsShape>>,
+        { request }: ToolExecutionContext
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         if (!projectId) {
-            const data = await this.apiClient.listClusterDetails(undefined, context);
+            const data = await this.server.apiClient.listClusterDetails(undefined, request);
 
             return this.formatAllClustersTable(data);
         } else {
-            const project = await this.apiClient.getGroup(
+            const project = await this.server.apiClient.getGroup(
                 {
                     params: {
                         path: {
@@ -71,7 +73,7 @@ export class ListClustersTool extends AtlasToolBase {
                         },
                     },
                 },
-                context
+                request
             );
 
             if (!project?.id) {
@@ -79,7 +81,7 @@ export class ListClustersTool extends AtlasToolBase {
             }
 
             const [clustersResult, flexClustersResult] = await Promise.allSettled([
-                this.apiClient.listClusters(
+                this.server.apiClient.listClusters(
                     {
                         params: {
                             path: {
@@ -87,9 +89,9 @@ export class ListClustersTool extends AtlasToolBase {
                             },
                         },
                     },
-                    context
+                    request
                 ),
-                this.apiClient.listFlexClusters(
+                this.server.apiClient.listFlexClusters(
                     {
                         params: {
                             path: {
@@ -97,14 +99,14 @@ export class ListClustersTool extends AtlasToolBase {
                             },
                         },
                     },
-                    context
+                    request
                 ),
             ]);
 
             const clusters = clustersResult.status === "fulfilled" ? clustersResult.value : undefined;
             const flexClusters = flexClustersResult.status === "fulfilled" ? flexClustersResult.value : undefined;
 
-            return this.formatClustersTable(project, clusters, flexClusters);
+            return this.formatClustersTable({ project, clusters, flexClusters });
         }
     }
 
@@ -139,6 +141,7 @@ export class ListClustersTool extends AtlasToolBase {
 
         return {
             content: formatUntrustedData(
+                this.server.config,
                 `Found ${formattedClusters.length} clusters across all projects`,
                 JSON.stringify(formattedClusters)
             ),
@@ -149,11 +152,15 @@ export class ListClustersTool extends AtlasToolBase {
         };
     }
 
-    private formatClustersTable(
-        project: Group,
-        clusters: PaginatedClusterDescription20240805 | undefined,
-        flexClusters: PaginatedFlexClusters20241113 | undefined
-    ): ToolResult<typeof ListClustersOutputSchema> {
+    private formatClustersTable({
+        project,
+        clusters,
+        flexClusters,
+    }: {
+        project: Group;
+        clusters: PaginatedClusterDescription20240805 | undefined;
+        flexClusters: PaginatedFlexClusters20241113 | undefined;
+    }): ToolResult<typeof ListClustersOutputSchema> {
         // Check if both traditional clusters and flex clusters are absent
         if (!clusters?.results?.length && !flexClusters?.results?.length) {
             return {
@@ -172,6 +179,7 @@ export class ListClustersTool extends AtlasToolBase {
 
         return {
             content: formatUntrustedData(
+                this.server.config,
                 `Found ${allClusters.length} clusters in project ${project.id}:`,
                 JSON.stringify({ projectName: project.name, clusters: allClusters })
             ),

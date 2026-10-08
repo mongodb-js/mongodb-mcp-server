@@ -6,7 +6,7 @@ import { parsePrometheusValue } from "./metricsHelpers.js";
 import type { UserConfig } from "mongodb-mcp-server";
 import type { OperationType, ToolCategory } from "@mongodb-js/mcp-types";
 import { ToolBase } from "@mongodb-js/mcp-core";
-import type { CallToolResult, ISession, IToolConfig } from "@mongodb-js/mcp-types";
+import type { CallToolResult, IToolConfig, ToolServices, ToolServer } from "@mongodb-js/mcp-types";
 import type { TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import {
     PrometheusMetrics,
@@ -14,7 +14,7 @@ import {
     type DefaultPrometheusMetricDefinitions,
     Counter,
 } from "@mongodb-js/mcp-metrics";
-import { EchoTool, ErrorTool, NoopTool } from "./mocks/tools.js";
+import { EchoTool, ErrorTool } from "./mocks/tools.js";
 import { createStreamableHttpTestRunner } from "./helpers/streamableHttpTestRunner.js";
 import type { AnyToolClass } from "@mongodb-js/mcp-core";
 import type { CliServer } from "mongodb-mcp-server";
@@ -90,20 +90,28 @@ describe("/metrics endpoint", () => {
         const body = await (await fetch(monitoringUrl("/metrics"))).text();
 
         expect(
-            parsePrometheusValue(body, "mcp_tool_execution_duration_seconds_count", {
-                tool_name: "echo-tool",
-                category: "mongodb",
-                status: "success",
-                operation_type: "read",
+            parsePrometheusValue({
+                body,
+                metricName: "mcp_tool_execution_duration_seconds_count",
+                labels: {
+                    tool_name: "echo-tool",
+                    category: "mongodb",
+                    status: "success",
+                    operation_type: "read",
+                },
             })
         ).toBe(2);
 
         expect(
-            parsePrometheusValue(body, "mcp_tool_execution_duration_seconds_sum", {
-                tool_name: "echo-tool",
-                category: "mongodb",
-                status: "success",
-                operation_type: "read",
+            parsePrometheusValue({
+                body,
+                metricName: "mcp_tool_execution_duration_seconds_sum",
+                labels: {
+                    tool_name: "echo-tool",
+                    category: "mongodb",
+                    status: "success",
+                    operation_type: "read",
+                },
             })
         ).toBeGreaterThanOrEqual(0);
     });
@@ -121,45 +129,17 @@ describe("/metrics endpoint", () => {
         const body = await (await fetch(monitoringUrl("/metrics"))).text();
 
         expect(
-            parsePrometheusValue(body, "mcp_tool_execution_duration_seconds_count", {
-                tool_name: "error-tool",
-                status: "error",
-                operation_type: "read",
-                error_type: "TypeError",
+            parsePrometheusValue({
+                body,
+                metricName: "mcp_tool_execution_duration_seconds_count",
+                labels: {
+                    tool_name: "error-tool",
+                    status: "error",
+                    operation_type: "read",
+                    error_type: "TypeError",
+                },
             })
         ).toBe(1);
-    });
-
-    it("increments mcp_session_created when clients connect", async () => {
-        const result = createMetricsTestRunner(config, { tools: [NoopTool] });
-        runner = result.runner;
-        monitoringServer = result.monitoringServer;
-        getServerAddress = result.getServerAddress;
-        await runner.start();
-
-        await connectClient();
-        await connectClient();
-
-        const body = await (await fetch(monitoringUrl("/metrics"))).text();
-        expect(parsePrometheusValue(body, "mcp_session_created", {})).toBe(2);
-    });
-
-    it("increments mcp_session_closed with reason when sessions close", async () => {
-        const result = createMetricsTestRunner(config, { tools: [NoopTool] });
-        runner = result.runner;
-        monitoringServer = result.monitoringServer;
-        getServerAddress = result.getServerAddress;
-        await runner.start();
-
-        await connectClient();
-        await connectClient();
-
-        type SessionStoreAccessor = { mcpHttpServer: { sessionStore: { closeAllSessions(): Promise<void> } } };
-        await (runner as unknown as SessionStoreAccessor).mcpHttpServer.sessionStore.closeAllSessions();
-
-        const body = await (await fetch(monitoringUrl("/metrics"))).text();
-        expect(parsePrometheusValue(body, "mcp_session_created", {})).toBe(2);
-        expect(parsePrometheusValue(body, "mcp_session_closed", { reason: "server_stop" })).toBe(2);
     });
 
     it("exposes custom metrics in /metrics output", async () => {
@@ -177,14 +157,18 @@ describe("/metrics endpoint", () => {
             } satisfies CustomMetrics,
         });
 
-        class CustomTool extends ToolBase<ISession<IToolConfig>, CustomMetrics> {
+        const CustomToolArgsShape = {};
+
+        class CustomTool extends ToolBase<ToolServer<ToolServices<IToolConfig>, CustomMetrics>, CustomMetrics> {
             static toolName = "custom-tool";
             static category: ToolCategory = "mongodb";
             static operationType: OperationType = "read";
             public description = "Custom tool that increments a user-supplied counter";
-            public argsShape = {};
+            public argsShape(): typeof CustomToolArgsShape {
+                return CustomToolArgsShape;
+            }
             protected execute(): Promise<CallToolResult> {
-                this.metrics.get("callCount").inc({ tool_name: "custom-tool" });
+                this.server.metrics.get("callCount").inc({ tool_name: "custom-tool" });
                 return Promise.resolve({ content: [{ type: "text", text: "ok" }] });
             }
             protected resolveTelemetryMetadata(): TelemetryToolMetadata {
@@ -210,15 +194,21 @@ describe("/metrics endpoint", () => {
         const body = await fetch(monitoringUrl("/metrics")).then((r) => r.text());
 
         // Custom counter is registered in the runner's registry and appears in the scrape
-        expect(parsePrometheusValue(body, "custom_tool_call_count", { tool_name: "custom-tool" })).toBe(3);
+        expect(
+            parsePrometheusValue({ body, metricName: "custom_tool_call_count", labels: { tool_name: "custom-tool" } })
+        ).toBe(3);
 
         // Built-in metrics are still present alongside custom ones
         expect(
-            parsePrometheusValue(body, "mcp_tool_execution_duration_seconds_count", {
-                tool_name: "custom-tool",
-                category: "mongodb",
-                status: "success",
-                operation_type: "read",
+            parsePrometheusValue({
+                body,
+                metricName: "mcp_tool_execution_duration_seconds_count",
+                labels: {
+                    tool_name: "custom-tool",
+                    category: "mongodb",
+                    status: "success",
+                    operation_type: "read",
+                },
             })
         ).toBe(3);
     });

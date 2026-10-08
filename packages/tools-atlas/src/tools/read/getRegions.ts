@@ -167,14 +167,18 @@ export class GetRegionsTool extends AtlasToolBase {
     static toolName = "atlas-get-regions";
     static operationType: OperationType = "read";
     public description = "List supported MongoDB Atlas regions for a cloud provider.";
-    public argsShape = GetRegionsArgsShape;
-    public override outputSchema = GetRegionsOutputSchema;
+    public argsShape(): typeof GetRegionsArgsShape {
+        return GetRegionsArgsShape;
+    }
+    public override outputSchema(): typeof GetRegionsOutputSchema {
+        return GetRegionsOutputSchema;
+    }
 
     protected execute(
-        { provider }: ToolArgs<typeof this.argsShape>,
+        { provider }: ToolArgs<ReturnType<typeof this.argsShape>>,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         _context: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const regions = ATLAS_REGIONS[provider];
         const structuredContent = { provider, regions };
 
@@ -190,11 +194,11 @@ export class GetRegionsTool extends AtlasToolBase {
     }
 
     protected override async resolveTelemetryMetadata(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         context: { result: CallToolResult }
     ): Promise<GetRegionsMetadata> {
         const parentMetadata = await super.resolveTelemetryMetadata(args, context);
-        const parsedArgs = z.object(this.argsShape).safeParse(args);
+        const parsedArgs = z.object(this.argsShape()).safeParse(args);
 
         return {
             ...parentMetadata,

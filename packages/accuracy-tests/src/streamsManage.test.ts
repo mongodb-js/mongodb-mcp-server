@@ -11,6 +11,7 @@ const mockedTools = {
     "atlas-list-projects": (): CallToolResult => {
         return {
             content: formatUntrustedData(
+                {},
                 "Found 1 projects",
                 JSON.stringify([
                     {
@@ -26,6 +27,7 @@ const mockedTools = {
     "atlas-streams-discover": (): CallToolResult => {
         return {
             content: formatUntrustedData(
+                {},
                 "Found 1 workspace(s)",
                 JSON.stringify([
                     {
@@ -474,6 +476,43 @@ describeAccuracyTests(
                         workspaceName,
                         resourceName: "rollup",
                         resumeFromCheckpoint: false,
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: `Enable autoscaling for processor '${processorName}' in workspace '${workspaceName}' with minimum SP5, maximum SP30, and baseline SP10`,
+            systemPrompt: projectContext,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-manage",
+                    parameters: {
+                        projectId,
+                        action: "modify-processor",
+                        workspaceName,
+                        resourceName: processorName,
+                        tier: "SP10",
+                        autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" },
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: `Start processor '${processorName}' in workspace '${workspaceName}' with autoscaling enabled between SP5 and SP30`,
+            systemPrompt: projectContext,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-manage",
+                    parameters: {
+                        projectId,
+                        action: "start-processor",
+                        workspaceName,
+                        resourceName: processorName,
+                        autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" },
                     },
                 },
             ],

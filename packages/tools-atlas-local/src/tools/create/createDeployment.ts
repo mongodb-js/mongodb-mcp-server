@@ -1,5 +1,5 @@
-import type { CallToolResult, OperationType } from "@mongodb-js/mcp-types";
-import { AtlasLocalToolBase } from "../../atlasLocalTool.js";
+import type { CallToolResult, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import { AtlasLocalToolBase, type IAtlasLocalConfig } from "../../atlasLocalTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import { CommonArgs } from "@mongodb-js/mcp-core";
 import type { Client, CreateDeploymentOptions, Deployment } from "@mongodb-js/atlas-local";
@@ -15,26 +15,32 @@ const CreateDeploymentOutputSchema = {
 
 export type CreateDeploymentOutput = z.infer<z.ZodObject<typeof CreateDeploymentOutputSchema>>;
 
+const CreateDeploymentArgsShape = {
+    deploymentName: CommonArgs.asciiOnlyString().describe("Name of the deployment to create").optional(),
+    loadSampleData: z.boolean().describe("Load sample data into the deployment").optional().default(false),
+    imageTag: z
+        .string()
+        .describe("Atlas Local image tag: 'preview', 'latest', or a semver (e.g. '8.0.0'). Default: 'preview'.")
+        .optional()
+        .default("preview"),
+};
+
 export class CreateDeploymentTool extends AtlasLocalToolBase {
     static toolName = "atlas-local-create-deployment";
     public description =
         "Create a MongoDB Atlas local deployment. Default image is preview. When the user does not specify an image tag, inform them that preview is used by default and provide this link for more information: https://hub.docker.com/r/mongodb/mongodb-atlas-local";
     static operationType: OperationType = "create";
-    public argsShape = {
-        deploymentName: CommonArgs.asciiOnlyString().describe("Name of the deployment to create").optional(),
-        loadSampleData: z.boolean().describe("Load sample data into the deployment").optional().default(false),
-        imageTag: z
-            .string()
-            .describe("Atlas Local image tag: 'preview', 'latest', or a semver (e.g. '8.0.0'). Default: 'preview'.")
-            .optional()
-            .default("preview"),
-    };
+    public argsShape(): typeof CreateDeploymentArgsShape {
+        return CreateDeploymentArgsShape;
+    }
 
-    public override outputSchema = CreateDeploymentOutputSchema;
+    public override outputSchema(): typeof CreateDeploymentOutputSchema {
+        return CreateDeploymentOutputSchema;
+    }
 
     protected async executeWithAtlasLocalClient(
-        { deploymentName, loadSampleData, imageTag }: ToolArgs<typeof this.argsShape>,
-        { client }: { client: Client }
+        { deploymentName, loadSampleData, imageTag }: ToolArgs<ReturnType<typeof this.argsShape>>,
+        { client }: { client: Client; context: ToolExecutionContext<IAtlasLocalConfig> }
     ): Promise<ToolResult<typeof CreateDeploymentOutputSchema> & Pick<CallToolResult, "_meta">> {
         const deploymentOptions: CreateDeploymentOptions = {
             name: deploymentName,
@@ -44,8 +50,8 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
             },
             loadSampleData,
             imageTag,
-            ...(this.session.config.voyageApiKey ? { voyageApiKey: this.session.config.voyageApiKey } : {}),
-            doNotTrack: !this.telemetry.isTelemetryEnabled(),
+            ...(this.server.config.voyageApiKey ? { voyageApiKey: this.server.config.voyageApiKey } : {}),
+            doNotTrack: !this.server.telemetry.isTelemetryEnabled(),
         };
         // Create the deployment
         const deployment = await client.createDeployment(deploymentOptions);
@@ -56,7 +62,7 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
         let stillStarting = false;
         if (resolvedDeploymentName) {
             try {
-                await waitForConnectionString(client, resolvedDeploymentName);
+                await waitForConnectionString({ client, deploymentName: resolvedDeploymentName });
             } catch (error: unknown) {
                 if (error instanceof AtlasLocalDeploymentNotReadyError) {
                     stillStarting = true;

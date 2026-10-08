@@ -2,6 +2,7 @@ import { formatUntrustedData } from "@mongodb-js/mcp-core";
 import { describeAccuracyTests } from "./sdk/describeAccuracyTests.js";
 import type { CallToolResult } from "@mongodb-js/mcp-types";
 import { Matcher } from "./sdk/matcher.js";
+import type { LLMToolCall } from "./sdk/accuracyResultStorage/resultStorage.js";
 
 const projectId = "68f600519f16226591d054c0";
 const workspaceName = "myworkspace";
@@ -10,6 +11,7 @@ const mockedTools = {
     "atlas-list-projects": (): CallToolResult => {
         return {
             content: formatUntrustedData(
+                {},
                 "Found 1 projects",
                 JSON.stringify([
                     {
@@ -25,6 +27,7 @@ const mockedTools = {
     "atlas-streams-discover": (): CallToolResult => {
         return {
             content: formatUntrustedData(
+                {},
                 "Found 1 workspace(s)",
                 JSON.stringify([
                     {
@@ -72,6 +75,8 @@ const optionalConnectionParams = {
 const optionalProcessorParams = {
     autoStart: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
     dlq: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
+    processorTier: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
+    autoscaling: Matcher.anyOf(Matcher.undefined, Matcher.anyValue),
 };
 
 describeAccuracyTests(
@@ -555,6 +560,73 @@ describeAccuracyTests(
                         processorName: "live-etl",
                         pipeline: Matcher.anyValue,
                         autoStart: true,
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            // Verifies the $iceberg example in the atlas-streams-build tool description:
+            // given an Iceberg sink request, the agent should build a pipeline whose
+            // last stage is $iceberg with the documented shape, not fall back to $merge/$emit.
+            prompt:
+                `Deploy a processor named 'iceberg-sink' in workspace '${workspaceName}' that reads from 'events' ` +
+                `and writes to an Apache Iceberg table on the S3 connection 'archive': bucket 'acme-lakehouse', database 'warehouse', table 'sales', path 'sales-cdc'`,
+            systemPrompt: projectContext,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-build",
+                    parameters: {
+                        ...optionalProcessorParams,
+                        projectId,
+                        resource: "processor",
+                        workspaceName,
+                        processorName: "iceberg-sink",
+                        pipeline: Matcher.anyValue,
+                    },
+                },
+            ],
+            mockedTools,
+            customScorer: (baselineScore: number, actualToolCalls: LLMToolCall[]): number => {
+                const build = actualToolCalls.find(
+                    (call) => call.toolName === "atlas-streams-build" && call.parameters.resource === "processor"
+                );
+                const pipeline = build?.parameters.pipeline;
+                if (!Array.isArray(pipeline) || pipeline.length === 0) {
+                    return 0;
+                }
+                const lastStage = pipeline[pipeline.length - 1] as Record<string, unknown> | undefined;
+                const icebergStage = lastStage?.["$iceberg"] as Record<string, unknown> | undefined;
+                if (!icebergStage) {
+                    return 0;
+                }
+                const { connectionName, bucket, databaseName, tableName, path } = icebergStage;
+                return connectionName === "archive" &&
+                    bucket === "acme-lakehouse" &&
+                    databaseName === "warehouse" &&
+                    tableName === "sales" &&
+                    path === "sales-cdc"
+                    ? baselineScore
+                    : 0;
+            },
+        },
+        {
+            prompt: `Create processor 'autoscale-orders' in workspace '${workspaceName}' at SP10 with autoscaling between SP5 and SP30. Use the existing 'events' source and 'output' sink.`,
+            systemPrompt: projectContext,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-build",
+                    parameters: {
+                        ...optionalProcessorParams,
+                        projectId,
+                        resource: "processor",
+                        workspaceName,
+                        processorName: "autoscale-orders",
+                        pipeline: Matcher.anyValue,
+                        processorTier: "SP10",
+                        autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" },
                     },
                 },
             ],

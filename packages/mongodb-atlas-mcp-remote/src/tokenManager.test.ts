@@ -7,7 +7,13 @@ const TEST_TOKEN_1 = "token-1";
 const TEST_TOKEN_2 = "token-2";
 
 function createManager(fetch: FetchLike): TokenManager {
-    return new TokenManager("https://test.com/api/oauth/token", "client_id", "client_secret", 10_000, fetch);
+    return new TokenManager({
+        tokenUrl: "https://test.com/api/oauth/token",
+        clientId: "client_id",
+        clientSecret: "client_secret",
+        timeoutMs: 10_000,
+        fetch,
+    });
 }
 
 function mockOkFetch(tokens: string[] = [TEST_TOKEN_1]): Mock {

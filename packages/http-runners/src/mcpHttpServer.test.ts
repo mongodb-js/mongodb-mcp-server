@@ -1,30 +1,24 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
+import type express from "express";
 import { MCPHttpServer } from "./mcpHttpServer.js";
-import {
-    SessionRejectedError,
-    SessionLimitExceededError,
-    JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED,
-    RedactingLoggerBase,
-    Keychain,
-} from "@mongodb-js/mcp-core";
+import type { LegacyMcpHandler, LegacySessionOptions } from "./legacyMcpHttpHandler.js";
+import { RedactingLoggerBase, Keychain } from "@mongodb-js/mcp-core";
 import { PrometheusMetrics, createDefaultMetrics } from "@mongodb-js/mcp-metrics";
 import type {
     DefaultMetricDefinitions,
     IMetrics,
     ICompositeLogger,
-    ISessionStore,
-    SessionServer,
+    BaseServer,
     TransportRequestContext,
     HttpServerOptions,
-    SessionManagementOptions,
     LogLevel,
     LogPayload,
     LoggerType,
     ILogger,
 } from "@mongodb-js/mcp-types";
 import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
-import type { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
-import type { McpServer } from "@modelcontextprotocol/server";
+import { McpServer } from "@modelcontextprotocol/server";
+import { z } from "zod";
 
 class MockMetrics
     extends PrometheusMetrics<DefaultPrometheusMetricDefinitions>
@@ -41,7 +35,7 @@ class InMemoryLogger extends RedactingLoggerBase implements ICompositeLogger {
     public attributes: Record<string, string> = {};
 
     constructor() {
-        super({ keychain: Keychain.root });
+        super({ keychain: new Keychain() });
     }
 
     protected logCore(level: LogLevel, payload: LogPayload): void {
@@ -58,89 +52,60 @@ class InMemoryLogger extends RedactingLoggerBase implements ICompositeLogger {
     }
 }
 
-const INIT_BODY = JSON.stringify({
-    jsonrpc: "2.0",
-    method: "initialize",
-    id: 1,
-    params: {
-        protocolVersion: "2024-11-05",
-        capabilities: {},
-        clientInfo: { name: "test", version: "1.0" },
-    },
-});
-
-const NON_INIT_BODY = JSON.stringify({ jsonrpc: "2.0", method: "tools/list", id: 1 });
-
 const httpOptions: HttpServerOptions = {
     host: "127.0.0.1",
     port: 0,
     responseType: "json",
 };
 
-const sessionOptions: SessionManagementOptions = {
-    idleTimeoutMs: 30_000,
-    notificationTimeoutMs: 30_000,
-    externallyManagedSessions: false,
-};
-
-function makeSessionStore(
-    getSessionImpl: (
-        sessionId: string,
-        headers?: Record<string, unknown>
-    ) => Promise<NodeStreamableHTTPServerTransport | null>
-): ISessionStore<NodeStreamableHTTPServerTransport> {
-    return {
-        getSession: vi.fn().mockImplementation(getSessionImpl),
-        addSession: vi.fn().mockResolvedValue(undefined),
-        closeSession: vi.fn().mockResolvedValue(undefined),
-        closeAllSessions: vi.fn().mockResolvedValue(undefined),
-        saveNegotiatedClientState: vi.fn().mockResolvedValue(undefined),
-        loadNegotiatedClientState: vi.fn().mockResolvedValue(undefined),
-    };
-}
-
-function makeFakeServer(): SessionServer {
-    return {
-        session: {
-            logger: new InMemoryLogger(),
-            setMcpClient: vi.fn(),
+/** A 2026-07-28 request carrying the per-request `_meta` envelope claim. */
+const MODERN_BODY = JSON.stringify({
+    jsonrpc: "2.0",
+    method: "tools/list",
+    id: 1,
+    params: {
+        _meta: {
+            "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+            "io.modelcontextprotocol/clientCapabilities": {},
+            "io.modelcontextprotocol/clientInfo": { name: "test", version: "1.0" },
+            requestId: "req-1",
         },
-        mcpServer: {
-            server: {
-                oninitialized: undefined,
-                getClientCapabilities: vi.fn(),
-                getClientVersion: vi.fn(),
-            },
-        } as unknown as McpServer,
+    },
+});
+
+function makeFakeServer(): BaseServer & { connect: (t: unknown) => Promise<void>; close: () => Promise<void> } {
+    const mcpServer = new McpServer({ name: "test-server", version: "1.0.0" });
+    mcpServer.registerTool(
+        "echo",
+        { inputSchema: z.object({ x: z.string() }) },
+
+        ({ x }: { x: string }) => ({ content: [{ type: "text", text: x }] })
+    );
+    return {
+        mcpServer,
         register: vi.fn().mockResolvedValue(undefined),
-        connect: vi.fn().mockResolvedValue(undefined),
+        connect: vi.fn().mockImplementation((transport: never) => mcpServer.connect(transport)),
         close: vi.fn().mockResolvedValue(undefined),
     };
 }
 
-class TestMCPHttpServer extends MCPHttpServer {
-    constructor({
-        logger,
-        sessionStore,
-    }: {
-        logger: InMemoryLogger;
-        sessionStore: ISessionStore<NodeStreamableHTTPServerTransport>;
-    }) {
+class TestMCPHttpServer extends MCPHttpServer<BaseServer> {
+    constructor({ logger, sessionOptions }: { logger: InMemoryLogger; sessionOptions?: LegacySessionOptions }) {
         super({
-            options: { http: httpOptions, session: sessionOptions },
+            options: { http: httpOptions },
             logger,
             metrics: new MockMetrics(),
-            sessionStore,
+            sessionOptions,
         });
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    protected override createServerForRequest(_: TransportRequestContext): Promise<SessionServer> {
+    protected override createServerForRequest(_request: TransportRequestContext): Promise<BaseServer> {
         return Promise.resolve(makeFakeServer());
     }
 }
 
-describe("MCPHttpServer x-request-id logging", () => {
+describe("MCPHttpServer stateless serving", () => {
     let server: TestMCPHttpServer;
     let logger: InMemoryLogger;
 
@@ -148,162 +113,684 @@ describe("MCPHttpServer x-request-id logging", () => {
         await server?.stop();
     });
 
-    async function startServer(
-        sessionStore: ISessionStore<NodeStreamableHTTPServerTransport>,
-        createServerForRequest?: () => Promise<SessionServer>
-    ): Promise<void> {
+    async function startServer(): Promise<void> {
         logger = new InMemoryLogger();
-
-        if (createServerForRequest) {
-            const createServer = createServerForRequest;
-            class CustomTestMCPHttpServer extends TestMCPHttpServer {
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                protected override createServerForRequest(_: TransportRequestContext): Promise<SessionServer> {
-                    return createServer();
-                }
-            }
-            server = new CustomTestMCPHttpServer({ logger, sessionStore });
-        } else {
-            server = new TestMCPHttpServer({ logger, sessionStore });
-        }
-
+        server = new TestMCPHttpServer({ logger });
         await server.start();
     }
 
-    async function post(path: string, body: string, headers: Record<string, string>): Promise<Response> {
+    async function post(path: string, body: string, headers: Record<string, string> = {}): Promise<Response> {
         return fetch(`${server.serverAddress}${path}`, {
             method: "POST",
-            headers: { "content-type": "application/json", ...headers },
+            headers: { "content-type": "application/json", "mcp-method": "tools/list", ...headers },
             body,
         });
     }
 
-    it("includes x-request-id in debug log when session is not found", async () => {
-        await startServer(makeSessionStore(() => Promise.resolve(null)));
-
-        const res = await post("/mcp", NON_INIT_BODY, {
-            "mcp-session-id": "sess-abc",
-            "x-request-id": "req-not-found",
-        });
-
-        expect(res.status).toBe(404);
-        const log = logger.messages.find((m) => m.level === "debug" && m.payload.message.includes("not found"));
-        expect(log?.payload.attributes).toEqual(expect.objectContaining({ "x-request-id": "req-not-found" }));
+    it("serves 2026-07-28 requests through the modern handler", async () => {
+        await startServer();
+        const res = await post("/mcp", MODERN_BODY);
+        expect(res.status).toBe(200);
+        const payload = (await res.json()) as { result?: { tools?: unknown[] } };
+        expect(payload).toHaveProperty("result");
     });
 
-    it("omits x-request-id from debug log when header is absent", async () => {
-        await startServer(makeSessionStore(() => Promise.resolve(null)));
+    it("registers the request-scoped server for every request", async () => {
+        const register = vi.fn().mockResolvedValue(undefined);
+        class RegisterTrackingServer extends TestMCPHttpServer {
+            protected override createServerForRequest(): Promise<BaseServer> {
+                return Promise.resolve({ ...makeFakeServer(), register });
+            }
+        }
+        logger = new InMemoryLogger();
+        server = new RegisterTrackingServer({ logger });
+        await server.start();
 
-        await post("/mcp", NON_INIT_BODY, { "mcp-session-id": "sess-abc" });
+        await post("/mcp", MODERN_BODY);
 
-        const log = logger.messages.find((m) => m.level === "debug" && m.payload.message.includes("not found"));
-        expect(log?.payload.attributes?.["x-request-id"]).toBeUndefined();
+        expect(register).toHaveBeenCalledTimes(1);
     });
 
-    it("includes x-request-id in debug log when externallyManagedSessions is disabled", async () => {
-        await startServer(makeSessionStore(() => Promise.resolve(null)));
+    it("runs host middleware from registerMiddlewares() ahead of the /mcp handlers", async () => {
+        class MiddlewareServer extends TestMCPHttpServer {
+            protected override registerMiddlewares(): void {
+                this.app.use((_req, res, next) => {
+                    res.setHeader("x-mcp-middleware", "ran");
+                    next();
+                });
+            }
+        }
+        logger = new InMemoryLogger();
+        server = new MiddlewareServer({ logger });
+        await server.start();
 
-        const res = await post("/mcp", INIT_BODY, {
-            "mcp-session-id": "sess-xyz",
-            "x-request-id": "req-ext-sessions",
+        const res = await post("/mcp", MODERN_BODY);
+
+        expect(res.headers.get("x-mcp-middleware")).toBe("ran");
+    });
+
+    it("returns a 500 when the server factory throws", async () => {
+        class ThrowingServer extends TestMCPHttpServer {
+            protected override createServerForRequest(): Promise<BaseServer> {
+                return Promise.reject(new Error("factory boom"));
+            }
+        }
+        logger = new InMemoryLogger();
+        server = new ThrowingServer({ logger });
+        await server.start();
+
+        const res = await post("/mcp", MODERN_BODY, { "x-request-id": "req-throw" });
+
+        // The SDK entry reports factory failures as internal server errors.
+        expect(res.status).toBe(500);
+        const body = (await res.json()) as { error?: { message?: string } };
+        expect(body.error?.message).toBe("Internal server error");
+    });
+
+    it("carries no authInfo when no identity is injected", async () => {
+        const seen = vi.fn();
+        class StateTrackingServer extends TestMCPHttpServer {
+            protected override createServerForRequest(request: TransportRequestContext): Promise<BaseServer> {
+                seen(request.authInfo);
+                return Promise.resolve(makeFakeServer());
+            }
+        }
+        logger = new InMemoryLogger();
+        server = new StateTrackingServer({ logger });
+        await server.start();
+
+        const res = await post("/mcp", MODERN_BODY);
+        expect(res.status).toBe(200);
+        // No identity injected → authInfo is absent (the host did not verify one).
+        expect(seen).toHaveBeenCalledWith(undefined);
+    });
+
+    it("normalizes an injected req.auth identity into the authenticated auth state", async () => {
+        const seen = vi.fn();
+        class AuthedServer extends MCPHttpServer<BaseServer> {
+            constructor() {
+                super({
+                    options: { http: httpOptions },
+                    logger: new InMemoryLogger(),
+                    metrics: new MockMetrics(),
+                });
+            }
+            protected override createServerForRequest(request: TransportRequestContext): Promise<BaseServer> {
+                seen(request.authInfo);
+                return Promise.resolve(makeFakeServer());
+            }
+        }
+        server = new AuthedServer() as unknown as TestMCPHttpServer;
+        // Host middleware injects the verified identity as `req.auth`, which
+        // `toNodeHandler` forwards as the handler's authInfo.
+        const app = (server as unknown as { app: express.Express }).app;
+        app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
+            (req as express.Request & { auth?: unknown }).auth = {
+                token: "tok",
+                clientId: "verified-client-1",
+                scopes: [],
+            };
+            next();
+        });
+        await server.start();
+
+        const res = await post("/mcp", MODERN_BODY, { authorization: "Bearer good-token" });
+        expect(res.status).toBe(200);
+        expect(seen).toHaveBeenCalledWith({ token: "tok", clientId: "verified-client-1", scopes: [] });
+    });
+
+    it("carries the host-supplied extra claims (per-user principal) through to the request auth state", async () => {
+        const seen = vi.fn();
+        class ExtraCarryingServer extends MCPHttpServer<BaseServer> {
+            constructor() {
+                super({
+                    options: { http: httpOptions },
+                    logger: new InMemoryLogger(),
+                    metrics: new MockMetrics(),
+                });
+            }
+            protected override createServerForRequest(request: TransportRequestContext): Promise<BaseServer> {
+                seen(request.authInfo);
+                return Promise.resolve(makeFakeServer());
+            }
+        }
+        server = new ExtraCarryingServer() as unknown as TestMCPHttpServer;
+        // The host's token verifier attaches the user subject via the SDK's
+        // AuthInfo.extra; per-user connection scoping depends on it surviving.
+        const app = (server as unknown as { app: express.Express }).app;
+        app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
+            (req as express.Request & { auth?: unknown }).auth = {
+                token: "tok",
+                clientId: "shared-org-gateway",
+                scopes: [],
+                extra: { sub: "alice" },
+            };
+            next();
+        });
+        await server.start();
+
+        const res = await post("/mcp", MODERN_BODY, { authorization: "Bearer good-token" });
+        expect(res.status).toBe(200);
+        expect(seen).toHaveBeenCalledWith({
+            token: "tok",
+            clientId: "shared-org-gateway",
+            scopes: [],
+            extra: { sub: "alice" },
+        });
+    });
+
+    describe("host-enforced authentication", () => {
+        // The library never authenticates on its own: a host that requires
+        // verified identity rejects identity-less requests in its own
+        // middleware, which runs before protocol dispatch — covering the
+        // modern AND legacy paths uniformly.
+        class AuthRequiringServer extends MCPHttpServer<BaseServer> {
+            constructor({ onRequest }: { onRequest?: (request: TransportRequestContext) => void } = {}) {
+                super({
+                    options: { http: httpOptions },
+                    logger: new InMemoryLogger(),
+                    metrics: new MockMetrics(),
+                });
+                this.onRequest = onRequest;
+            }
+            private readonly onRequest?: (request: TransportRequestContext) => void;
+            protected override createServerForRequest(request: TransportRequestContext): Promise<BaseServer> {
+                this.onRequest?.(request);
+                return Promise.resolve(makeFakeServer());
+            }
+            public requireAuth(): void {
+                const app = (this as unknown as { app: express.Express }).app;
+                app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+                    if (req.headers.authorization !== "Bearer good-token") {
+                        res.status(401).json({ error: "Unauthorized" });
+                        return;
+                    }
+                    (req as express.Request & { auth?: unknown }).auth = {
+                        token: "tok",
+                        clientId: "verified-client-1",
+                        scopes: [],
+                    };
+                    next();
+                });
+            }
+        }
+
+        it("rejects requests without verified identity with 401, on both protocol paths", async () => {
+            server = new AuthRequiringServer() as unknown as TestMCPHttpServer;
+            (server as unknown as AuthRequiringServer).requireAuth();
+            await server.start();
+
+            // Modern (2026-07-28) request.
+            expect((await post("/mcp", MODERN_BODY)).status).toBe(401);
+
+            // Legacy (2025-era) request — same middleware rejects it before
+            // protocol dispatch.
+            const legacyRes = await fetch(`${server.serverAddress}/mcp`, {
+                method: "POST",
+                headers: {
+                    "content-type": "application/json",
+                    accept: "application/json, text/event-stream",
+                },
+                body: JSON.stringify({
+                    jsonrpc: "2.0",
+                    method: "initialize",
+                    id: 1,
+                    params: {
+                        protocolVersion: "2025-11-25",
+                        capabilities: {},
+                        clientInfo: { name: "t", version: "1" },
+                    },
+                }),
+            });
+            expect(legacyRes.status).toBe(401);
         });
 
-        expect(res.status).toBe(400);
-        const log = logger.messages.find(
-            (m) => m.level === "debug" && m.payload.message.includes("externallyManagedSessions")
+        it("serves verified requests with an always-authenticated authInfo", async () => {
+            const seen = vi.fn();
+            server = new AuthRequiringServer({ onRequest: seen }) as unknown as TestMCPHttpServer;
+            (server as unknown as AuthRequiringServer).requireAuth();
+            await server.start();
+
+            const res = await post("/mcp", MODERN_BODY, { authorization: "Bearer good-token" });
+            expect(res.status).toBe(200);
+            expect(seen).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    authInfo: { token: "tok", clientId: "verified-client-1", scopes: [] },
+                })
+            );
+        });
+    });
+
+    describe("legacy (2025-era) sessionful serving", () => {
+        // A 2025-era initialize: no `_meta` envelope claim, negotiated via the
+        // legacy handshake. The server serves legacy traffic sessionfully so
+        // the SDK's legacy elicitation shim has a live return channel.
+        const LEGACY_INIT_BODY = JSON.stringify({
+            jsonrpc: "2.0",
+            method: "initialize",
+            id: 1,
+            params: {
+                protocolVersion: "2025-11-25",
+                capabilities: {},
+                clientInfo: { name: "legacy-test", version: "1.0" },
+            },
+        });
+
+        it("serves a legacy initialize POST sessionfully, issuing a session id", async () => {
+            await startServer();
+            const res = await fetch(`${server.serverAddress}/mcp`, {
+                method: "POST",
+                headers: {
+                    "content-type": "application/json",
+                    accept: "application/json, text/event-stream",
+                    "mcp-protocol-version": "2025-11-25",
+                },
+                body: LEGACY_INIT_BODY,
+            });
+            expect(res.status).toBe(200);
+            expect(res.headers.get("mcp-session-id")).toBeTruthy();
+            const text = await res.text();
+            expect(text).toContain("protocolVersion");
+            expect(text).toMatch(/"id":1/);
+        });
+
+        it("uses an overridden legacy handler / injected session store for legacy requests", async () => {
+            const handle = vi
+                .fn()
+                .mockImplementation((req: express.Request, res: express.Response) =>
+                    Promise.resolve(res.status(200).send())
+                );
+            const close = vi.fn().mockResolvedValue(undefined);
+            class CustomLegacyServer extends TestMCPHttpServer {
+                protected override createLegacyHandler(): LegacyMcpHandler {
+                    return { handle, close };
+                }
+            }
+            logger = new InMemoryLogger();
+            server = new CustomLegacyServer({ logger });
+            await server.start();
+
+            // GET /mcp is legacy-only, so it is routed through the overridden handler.
+            const res = await fetch(`${server.serverAddress}/mcp`, { method: "GET" });
+
+            expect(res.status).toBe(200);
+            expect(handle).toHaveBeenCalledTimes(1);
+        });
+
+        it("answers 2025 session operations (GET/DELETE) without a session id", async () => {
+            await startServer();
+            // In JSON response mode there is no SSE idle stream, so GET is 405.
+            const getRes = await fetch(`${server.serverAddress}/mcp`, { method: "GET" });
+            expect(getRes.status).toBe(405);
+
+            const delRes = await fetch(`${server.serverAddress}/mcp`, { method: "DELETE" });
+            expect(delRes.status).toBe(400);
+            await expect(delRes.json()).resolves.toMatchObject({
+                error: { code: -32001, message: "session id is required" },
+            });
+        });
+
+        it("reports legacy session errors with main's codes and statuses", async () => {
+            await startServer();
+            const post = (body: string, headers: Record<string, string> = {}): Promise<Response> =>
+                fetch(`${server.serverAddress}/mcp`, {
+                    method: "POST",
+                    headers: {
+                        "content-type": "application/json",
+                        accept: "application/json, text/event-stream",
+                        ...headers,
+                    },
+                    body,
+                });
+
+            // Non-initialize POST without a session id: invalid request.
+            const noSession = await post(JSON.stringify({ jsonrpc: "2.0", method: "tools/list", id: 2, params: {} }));
+            expect(noSession.status).toBe(400);
+            await expect(noSession.json()).resolves.toMatchObject({
+                error: { code: -32004, message: "invalid request" },
+            });
+
+            // Unknown session id: not found.
+            const unknownSession = await post(
+                JSON.stringify({ jsonrpc: "2.0", method: "tools/list", id: 3, params: {} }),
+                { "mcp-session-id": "does-not-exist" }
+            );
+            expect(unknownSession.status).toBe(404);
+            await expect(unknownSession.json()).resolves.toMatchObject({
+                error: { code: -32003, message: "session not found" },
+            });
+
+            // Initialize carrying a session id: disallowed (no externally managed sessions here).
+            const initWithSession = await post(LEGACY_INIT_BODY, { "mcp-session-id": "external-id" });
+            expect(initWithSession.status).toBe(400);
+            await expect(initWithSession.json()).resolves.toMatchObject({
+                error: { code: -32005 },
+            });
+        });
+
+        it("accepts a client-supplied session id on initialize when externally managed sessions are enabled", async () => {
+            const myLogger = new InMemoryLogger();
+            class ExternalServer extends TestMCPHttpServer {
+                constructor() {
+                    super({
+                        logger: myLogger,
+                        sessionOptions: { externallyManagedSessions: true },
+                    });
+                }
+            }
+            server = new ExternalServer();
+            await server.start();
+
+            const res = await fetch(`${server.serverAddress}/mcp`, {
+                method: "POST",
+                headers: {
+                    "content-type": "application/json",
+                    accept: "application/json, text/event-stream",
+                    "mcp-protocol-version": "2025-11-25",
+                    "mcp-session-id": "external-id",
+                },
+                body: LEGACY_INIT_BODY,
+            });
+
+            expect(res.status).toBe(200);
+            // The client-supplied id is honored, not rejected.
+            expect(res.headers.get("mcp-session-id")).toBe("external-id");
+        });
+
+        it("implicitly re-initializes a missing session for an externally managed session id", async () => {
+            const myLogger = new InMemoryLogger();
+            class ExternalServer extends TestMCPHttpServer {
+                constructor() {
+                    super({
+                        logger: myLogger,
+                        sessionOptions: { externallyManagedSessions: true },
+                    });
+                }
+            }
+            server = new ExternalServer();
+            await server.start();
+
+            // A session-carrying request (non-initialize) whose id is not in the
+            // store. With externally managed sessions enabled the handler attempts
+            // an implicit re-initialization instead of rejecting with 404.
+            const res = await fetch(`${server.serverAddress}/mcp`, {
+                method: "POST",
+                headers: {
+                    "content-type": "application/json",
+                    accept: "application/json, text/event-stream",
+                    "mcp-protocol-version": "2025-11-25",
+                    "mcp-session-id": "external-id",
+                },
+                body: JSON.stringify({ jsonrpc: "2.0", method: "tools/list", id: 4, params: {} }),
+            });
+
+            expect(res.status).toBe(200);
+        });
+    });
+
+    describe("modern-only methods", () => {
+        // `server/discover` and `subscriptions/listen` exist only on the
+        // 2026-07-28 registry, so a request naming one is modern-intent even
+        // without the envelope claim. Routing them to the modern handler lets
+        // the SDK's validation ladder answer with the protocol-version error
+        // (-32022, listing the versions this endpoint serves) instead of the
+        // legacy path's session error.
+        const claimless = (method: string, id = 10): string =>
+            JSON.stringify({ jsonrpc: "2.0", method, id, params: {} });
+
+        const postRaw = (body: string, headers: Record<string, string> = {}): Promise<Response> =>
+            fetch(`${server.serverAddress}/mcp`, {
+                method: "POST",
+                headers: {
+                    "content-type": "application/json",
+                    accept: "application/json, text/event-stream",
+                    ...headers,
+                },
+                body,
+            });
+
+        it("answers a claim-less server/discover with the unsupported-protocol-version error", async () => {
+            await startServer();
+
+            const res = await postRaw(claimless("server/discover"));
+
+            expect(res.status).toBe(400);
+            await expect(res.json()).resolves.toMatchObject({
+                id: 10,
+                error: { code: -32022, data: { supported: ["2026-07-28"] } },
+            });
+        });
+
+        it("answers a claim-less server/discover carrying a live session id with the unsupported-protocol-version error", async () => {
+            await startServer();
+            const init = await postRaw(
+                JSON.stringify({
+                    jsonrpc: "2.0",
+                    method: "initialize",
+                    id: 1,
+                    params: {
+                        protocolVersion: "2025-11-25",
+                        capabilities: {},
+                        clientInfo: { name: "legacy-test", version: "1.0" },
+                    },
+                }),
+                { "mcp-protocol-version": "2025-11-25" }
+            );
+            const sessionId = init.headers.get("mcp-session-id");
+            expect(sessionId).toBeTruthy();
+
+            const res = await postRaw(claimless("server/discover", 11), {
+                "mcp-session-id": sessionId as string,
+            });
+
+            expect(res.status).toBe(400);
+            await expect(res.json()).resolves.toMatchObject({
+                id: 11,
+                error: { code: -32022, data: { supported: ["2026-07-28"] } },
+            });
+        });
+
+        it("answers a claim-less subscriptions/listen with the unsupported-protocol-version error", async () => {
+            await startServer();
+
+            const res = await postRaw(claimless("subscriptions/listen", 12));
+
+            expect(res.status).toBe(400);
+            await expect(res.json()).resolves.toMatchObject({
+                id: 12,
+                error: { code: -32022 },
+            });
+        });
+
+        it("serves an enveloped server/discover normally", async () => {
+            await startServer();
+
+            const res = await postRaw(
+                JSON.stringify({
+                    jsonrpc: "2.0",
+                    method: "server/discover",
+                    id: 13,
+                    params: {
+                        _meta: {
+                            "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+                            "io.modelcontextprotocol/clientCapabilities": {},
+                            "io.modelcontextprotocol/clientInfo": { name: "test", version: "1.0" },
+                        },
+                    },
+                }),
+                { "mcp-protocol-version": "2026-07-28", "mcp-method": "server/discover" }
+            );
+
+            expect(res.status).toBe(200);
+            await expect(res.json()).resolves.toMatchObject({
+                id: 13,
+                result: { supportedVersions: ["2026-07-28"] },
+            });
+        });
+
+        it("leaves claim-less requests to dual-era methods on the legacy path", async () => {
+            await startServer();
+
+            const res = await postRaw(claimless("tools/list", 14));
+
+            // `tools/list` exists in both eras, so a claim-less POST is genuine
+            // 2025-era traffic and keeps the legacy session contract.
+            expect(res.status).toBe(400);
+            await expect(res.json()).resolves.toMatchObject({
+                error: { code: -32004, message: "invalid request" },
+            });
+        });
+    });
+});
+
+describe("MCPHttpServer dangerous-host binding guard", () => {
+    let server: MCPHttpServer<BaseServer> | undefined;
+
+    afterEach(async () => {
+        await server?.stop().catch(() => undefined);
+        server = undefined;
+    });
+
+    function makeDangerousServer(host: string, dangerousHostBinding?: boolean): MCPHttpServer<BaseServer> {
+        const opts: HttpServerOptions = {
+            host,
+            port: 0,
+            responseType: "json",
+            ...(dangerousHostBinding !== undefined ? { dangerousHostBinding } : {}),
+        };
+        return new (class DangerousServer extends MCPHttpServer<BaseServer> {
+            constructor() {
+                super({
+                    options: { http: opts },
+                    logger: new InMemoryLogger(),
+                    metrics: new MockMetrics(),
+                });
+            }
+
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            protected override createServerForRequest(_request: TransportRequestContext): Promise<BaseServer> {
+                return Promise.resolve(makeFakeServer());
+            }
+        })();
+    }
+
+    it("throws when binding to 0.0.0.0 without the opt-in", async () => {
+        server = makeDangerousServer("0.0.0.0");
+        await expect(server.start()).rejects.toThrow(/non-loopback host "0.0.0.0"/);
+    });
+
+    it("throws when binding to an all-interfaces (empty) host without the opt-in", async () => {
+        server = makeDangerousServer("");
+        await expect(server.start()).rejects.toThrow(/non-loopback host "<all interfaces>"/);
+    });
+
+    it("throws when binding to a LAN IP without the opt-in", async () => {
+        server = makeDangerousServer("192.168.1.10");
+        await expect(server.start()).rejects.toThrow(/non-loopback host "192.168.1.10"/);
+    });
+
+    it("starts on a dangerous host when dangerousHostBinding is set", async () => {
+        server = makeDangerousServer("0.0.0.0", true);
+        await expect(server.start()).resolves.toBeUndefined();
+    });
+
+    it("starts on loopback without the opt-in", async () => {
+        server = makeDangerousServer("127.0.0.1");
+        await expect(server.start()).resolves.toBeUndefined();
+    });
+});
+
+describe("MCPHttpServer client protocol reporting", () => {
+    let server: MCPHttpServer<BaseServer> | undefined;
+    let seen: TransportRequestContext[] = [];
+
+    class ProtocolCapturingServer extends MCPHttpServer<BaseServer> {
+        constructor(sessionOptions?: LegacySessionOptions) {
+            super({
+                options: { http: httpOptions },
+                logger: new InMemoryLogger(),
+                metrics: new MockMetrics(),
+                sessionOptions,
+            });
+        }
+
+        protected override createServerForRequest(request: TransportRequestContext): Promise<BaseServer> {
+            seen.push(request);
+            return Promise.resolve(makeFakeServer());
+        }
+    }
+
+    afterEach(async () => {
+        await server?.stop();
+        server = undefined;
+        seen = [];
+    });
+
+    function postMcp(headers: Record<string, string>, body: string): Promise<Response> {
+        return fetch(`${server?.serverAddress}/mcp`, {
+            method: "POST",
+            headers: { "content-type": "application/json", accept: "application/json, text/event-stream", ...headers },
+            body,
+        });
+    }
+
+    it("reports the pinned 2026-07-28 revision for modern requests", async () => {
+        server = new ProtocolCapturingServer();
+        await server.start();
+
+        const res = await postMcp({ "mcp-method": "tools/list" }, MODERN_BODY);
+        expect(res.status).toBe(200);
+        expect(seen.map((request) => request.mcp_client_protocol)).toContain("2026-07-28");
+    });
+
+    it("reports the exact MCP-Protocol-Version header on legacy requests", async () => {
+        server = new ProtocolCapturingServer();
+        await server.start();
+
+        const res = await postMcp(
+            { "mcp-protocol-version": "2025-06-18" },
+            JSON.stringify({
+                jsonrpc: "2.0",
+                method: "initialize",
+                id: 1,
+                params: { protocolVersion: "2025-11-25", capabilities: {}, clientInfo: { name: "x", version: "1" } },
+            })
         );
-        expect(log?.payload.attributes).toEqual(expect.objectContaining({ "x-request-id": "req-ext-sessions" }));
+        expect(res.status).toBe(200);
+        expect(seen.map((request) => request.mcp_client_protocol)).toContain("2025-06-18");
     });
 
-    it("forwards the incoming request headers to sessionStore.addSession", async () => {
-        const addSession = vi.fn().mockResolvedValue(undefined);
-        const sessionStore: ISessionStore<NodeStreamableHTTPServerTransport> = {
-            ...makeSessionStore(() => Promise.resolve(null)),
-            addSession,
-        };
-        await startServer(sessionStore);
+    it("falls back to the initialize body revision when the header is absent", async () => {
+        server = new ProtocolCapturingServer();
+        await server.start();
 
-        await post("/mcp", INIT_BODY, {
-            "x-request-id": "req-add-session",
-        });
-
-        expect(addSession).toHaveBeenCalledTimes(1);
-        const call = addSession.mock.calls[0]?.[0] as { headers?: Record<string, unknown> };
-        expect(call.headers).toEqual(expect.objectContaining({ "x-request-id": "req-add-session" }));
-    });
-
-    it("passes the server session to sessionStore.addSession", async () => {
-        const addSession = vi.fn().mockResolvedValue(undefined);
-        const sessionStore: ISessionStore<NodeStreamableHTTPServerTransport> = {
-            ...makeSessionStore(() => Promise.resolve(null)),
-            addSession,
-        };
-        const fakeServer = makeFakeServer();
-        await startServer(sessionStore, () => Promise.resolve(fakeServer));
-
-        await post("/mcp", INIT_BODY, {});
-
-        expect(addSession).toHaveBeenCalledTimes(1);
-        const call = addSession.mock.calls[0]?.[0] as { session?: unknown };
-        expect(call.session).toBe(fakeServer.session);
-    });
-
-    it("responds as session-not-found when sessionStore.getSession throws SessionRejectedError", async () => {
-        await startServer(makeSessionStore(() => Promise.reject(new SessionRejectedError("identity mismatch"))));
-
-        const rejectedRes = await post("/mcp", NON_INIT_BODY, { "mcp-session-id": "sess-rejected" });
-        const rejectedBody = (await rejectedRes.json()) as unknown;
-
-        await server.stop();
-        await startServer(makeSessionStore(() => Promise.resolve(null)));
-
-        const notFoundRes = await post("/mcp", NON_INIT_BODY, { "mcp-session-id": "sess-missing" });
-        const notFoundBody = (await notFoundRes.json()) as unknown;
-
-        // The rejected response must be indistinguishable from session-not-found
-        // so that callers can't probe whether a session id is valid.
-        expect(rejectedRes.status).toBe(notFoundRes.status);
-        expect(rejectedBody).toEqual(notFoundBody);
-    });
-
-    it("logs the SessionRejectedError reason server-side", async () => {
-        await startServer(makeSessionStore(() => Promise.reject(new SessionRejectedError("identity mismatch"))));
-
-        await post("/mcp", NON_INIT_BODY, { "mcp-session-id": "sess-rejected" });
-
-        const log = logger.messages.find((m) => m.level === "error" && m.payload.message.includes("identity mismatch"));
-        expect(log).toBeDefined();
-    });
-
-    it("responds with 503 when sessionStore.addSession throws SessionLimitExceededError", async () => {
-        const addSession = vi
-            .fn()
-            .mockRejectedValue(new SessionLimitExceededError("Session limit of 1 concurrent sessions reached"));
-        const sessionStore: ISessionStore<NodeStreamableHTTPServerTransport> = {
-            ...makeSessionStore(() => Promise.resolve(null)),
-            addSession,
-        };
-        await startServer(sessionStore, () => Promise.resolve(makeFakeServer()));
-
-        const res = await post("/mcp", INIT_BODY, {});
-        const body = (await res.json()) as { error: { code: number } };
-
-        expect(res.status).toBe(503);
-        expect(body.error.code).toBe(JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED);
-    });
-
-    it("includes x-request-id in error log when handler throws", async () => {
-        await startServer(makeSessionStore(() => Promise.reject(new Error("storage failure"))));
-
-        const res = await post("/mcp", NON_INIT_BODY, {
-            "mcp-session-id": "sess-err",
-            "x-request-id": "req-throw",
-        });
-
-        expect(res.status).toBe(400);
-        const log = logger.messages.find(
-            (m) => m.level === "error" && m.payload.message.includes("Error handling request")
+        const res = await postMcp(
+            {},
+            JSON.stringify({
+                jsonrpc: "2.0",
+                method: "initialize",
+                id: 1,
+                params: { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "x", version: "1" } },
+            })
         );
-        expect(log?.payload.attributes).toEqual(expect.objectContaining({ "x-request-id": "req-throw" }));
+        expect(res.status).toBe(200);
+        expect(seen.map((request) => request.mcp_client_protocol)).toContain("2024-11-05");
+    });
+
+    it("ignores a body protocolVersion on a non-initialize request during implicit session re-initialization", async () => {
+        server = new ProtocolCapturingServer({ externallyManagedSessions: true });
+        await server.start();
+
+        // No MCP-Protocol-Version header, and the body is a tools/list (not an
+        // initialize) that happens to carry a params.protocolVersion field. No
+        // handshake named a revision, so the transport must not report one.
+        await postMcp(
+            { "mcp-session-id": "external-id" },
+            JSON.stringify({ jsonrpc: "2.0", method: "tools/list", id: 1, params: { protocolVersion: "2025-06-18" } })
+        );
+
+        const reported = seen.map((request) => request.mcp_client_protocol);
+        expect(reported).toContain("legacy");
+        expect(reported).not.toContain("2025-06-18");
     });
 });

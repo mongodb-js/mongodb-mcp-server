@@ -14,6 +14,7 @@ export type DefaultEventMap = Record<string, never[]>;
 
 export type MongoDBLogLevel = "info" | "warn" | "error" | "debug" | "fatal";
 
+// eslint-disable-next-line max-params -- type contract: consumed by ILogger implementations keyed by component/id/context/message
 export type LogWriteFunction = (
     component: string,
     id: MongoLogId,

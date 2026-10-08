@@ -28,6 +28,18 @@ export interface AgentHarnessOptions {
      */
     serverUrl?: string;
     /**
+     * Extra HTTP headers sent to the remote (`serverUrl`) MCP server, e.g.
+     * `{ Authorization: "Bearer ..." }`. Ignored for `stdioServer`.
+     */
+    headers?: Record<string, string>;
+    /**
+     * Pre-seed OAuth credentials for the remote (`serverUrl`) MCP server so the
+     * agent can authenticate without an interactive login. The harness writes
+     * them into its native credential store before starting. Mutually exclusive
+     * with `stdioServer`.
+     */
+    oauth?: OAuthCredentials;
+    /**
      * Stdio server spec; when set, the harness spawns the MCP server itself.
      * Mutually exclusive with `serverUrl`.
      */
@@ -42,6 +54,27 @@ export interface AgentHarnessOptions {
     promptTimeoutMs?: number;
     /** Dump the generated config (redacted) to the test logs. */
     debug?: boolean;
+}
+
+/**
+ * OAuth tokens for a remote MCP server, seeded into the harness's credential
+ * store ahead of an interactive browser login.
+ */
+export interface OAuthCredentials {
+    /** Bearer access token. */
+    accessToken: string;
+    /** Refresh token, persisted so the agent can refresh non-interactively. */
+    refreshToken?: string;
+    /** Access-token expiry as epoch milliseconds. */
+    expiresAt?: number;
+    /** OAuth client id the tokens were issued to. */
+    clientId?: string;
+    /** OAuth client secret, persisted alongside the tokens when provided. */
+    clientSecret?: string;
+    /** Granted scopes (used by codex; claude does not persist scopes). */
+    scopes?: string[];
+    /** Authorization-server issuer the tokens are bound to. */
+    issuer?: string;
 }
 
 export interface AgentHarness {

@@ -1,9 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { PauseResumeClusterTool, PauseResumeClusterArgsShape } from "./pauseResumeCluster.js";
 import { z } from "zod";
-import type { IAtlasSession, IAtlasConfig } from "../../atlasTool.js";
-import type { CallToolResult, ITelemetry, ICompositeLogger } from "@mongodb-js/mcp-types";
+import type { IAtlasConfig } from "../../atlasTool.js";
+import type { ITelemetry, ICompositeLogger, CallToolResult } from "@mongodb-js/mcp-types";
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import type { AtlasClusterConnectionInfo } from "@mongodb-js/mcp-types";
@@ -17,6 +16,7 @@ import type { ConnectionManager } from "@mongodb-js/mcp-tools-mongodb";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import { UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
+import type { AtlasToolServer } from "../../atlasTool.js";
 
 const defaultTestConfig: UserConfig = {
     ...UserConfigSchema.parse({}),
@@ -55,9 +55,10 @@ describe("PauseResumeClusterTool", () => {
             options: defaultTestConfig,
             logger: new CompositeLogger(),
             deviceId: DeviceId.create(new CompositeLogger()),
+            keychain: new Keychain(),
         }).view();
 
-        const mockSession: Partial<IAtlasSession> = {
+        const mockSession: Partial<AtlasToolServer> = {
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
             connectionRegistry,
@@ -78,22 +79,24 @@ describe("PauseResumeClusterTool", () => {
 
         const mockElicitation = createMockElicitation();
 
-        const params: ToolConstructorParams<IAtlasSession> = {
-            name: PauseResumeClusterTool.toolName,
-            category: "atlas",
-            operationType: PauseResumeClusterTool.operationType,
-            session: mockSession as IAtlasSession,
+        const server: AtlasToolServer = {
+            ...mockSession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
-        };
+        } as unknown as AtlasToolServer;
 
-        return new PauseResumeClusterTool(params);
+        return new PauseResumeClusterTool({ server });
     }
 
+    // tools under test never return input_required; narrow the invoke() result.
     const exec = async (args: Record<string, unknown>): Promise<CallToolResult> =>
-        (await tool["invoke"](z.object(PauseResumeClusterArgsShape).parse(args), {} as never)) as CallToolResult;
+        (await tool["invoke"](z.object(PauseResumeClusterArgsShape).parse(args), {
+            request: {
+                signal: new AbortController().signal,
+            },
+        })) as CallToolResult;
 
     beforeEach(() => {
         tool = buildTool();
@@ -166,12 +169,12 @@ describe("PauseResumeClusterTool", () => {
             clusterName: CLUSTER_NAME,
             clusterId: "test-cluster-id",
             instanceType: "DEDICATED",
-            username: "test-user",
         };
 
         it("revokes matching connections and mentions them in the response when pausing the cluster", async () => {
             const entry = await connectionRegistry.connect({
-                settings: { connectionString: "mongodb://localhost:27017", atlas: connectedCluster },
+                settings: { connectionString: "mongodb://localhost:27017" },
+                atlasCluster: connectedCluster,
             });
 
             const result = await exec({ ...BASE_ARGS, action: "PAUSE" });
@@ -186,10 +189,8 @@ describe("PauseResumeClusterTool", () => {
 
         it("does not disconnect connections to a different cluster", async () => {
             const entry = await connectionRegistry.connect({
-                settings: {
-                    connectionString: "mongodb://localhost:27017",
-                    atlas: { ...connectedCluster, clusterName: "other-cluster" },
-                },
+                settings: { connectionString: "mongodb://localhost:27017" },
+                atlasCluster: { ...connectedCluster, clusterName: "other-cluster" },
             });
 
             const result = await exec({ ...BASE_ARGS, action: "PAUSE" });

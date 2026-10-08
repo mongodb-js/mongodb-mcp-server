@@ -1,5 +1,4 @@
 import { type CliOptions, generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
-import { Keychain, type Secret } from "@mongodb-js/mcp-core";
 import { UserConfigSchema, ALL_CONFIG_KEYS, type UserConfig } from "./userConfig.js";
 import {
     defaultParserOptions as defaultArgParserOptions,
@@ -86,7 +85,6 @@ export function parseUserConfig({
     // TODO: Separate correctly parsed user config from all other valid
     // arguments relevant to mongosh's args-parser.
     const userConfig: UserConfig = { ...parsed, ...configParseResult.data };
-    registerKnownSecretsInRootKeychain(userConfig);
     return {
         parsed: userConfig,
         warnings,
@@ -153,31 +151,6 @@ function parseUserConfigSources<T extends typeof UserConfigSchema>({
     };
 }
 
-function registerKnownSecretsInRootKeychain(userConfig: Partial<UserConfig>): void {
-    const keychain = Keychain.root;
-
-    const maybeRegister = (value: string | undefined, kind: Secret["kind"]): void => {
-        if (value) {
-            keychain.register(value, kind);
-        }
-    };
-
-    maybeRegister(userConfig.apiClientId, "user");
-    maybeRegister(userConfig.apiClientSecret, "password");
-    maybeRegister(userConfig.awsAccessKeyId, "password");
-    maybeRegister(userConfig.awsIamSessionToken, "password");
-    maybeRegister(userConfig.awsSecretAccessKey, "password");
-    maybeRegister(userConfig.awsSessionToken, "password");
-    maybeRegister(userConfig.password, "password");
-    maybeRegister(userConfig.tlsCAFile, "url");
-    maybeRegister(userConfig.tlsCRLFile, "url");
-    maybeRegister(userConfig.tlsCertificateKeyFile, "url");
-    maybeRegister(userConfig.tlsCertificateKeyFilePassword, "password");
-    maybeRegister(userConfig.username, "user");
-    maybeRegister(userConfig.voyageApiKey, "password");
-    maybeRegister(userConfig.connectionString, "mongodb uri");
-}
-
 function matchingConfigKey(key: string): string | undefined {
     let minLev = Number.MAX_VALUE;
     let suggestion = undefined;
@@ -200,6 +173,18 @@ function getWarnings(config: Partial<UserConfig>, cliArguments: string[]): strin
     if (cliArguments.find((argument: string) => argument.startsWith("--connectionString"))) {
         warnings.push(
             "Warning: The --connectionString argument is deprecated. Prefer using the MDB_MCP_CONNECTION_STRING environment variable or the first positional argument for the connection string."
+        );
+    }
+
+    // `connectionScope` is deprecated (the MCP protocol is moving to sessionless).
+    // Warn when it is set explicitly via the CLI or the environment; the default
+    // (and the eventual removed default) is "global".
+    if (
+        cliArguments.find((argument: string) => /^--connectionScope(?:=|$)/.test(argument)) ||
+        process.env.MDB_MCP_CONNECTION_SCOPE
+    ) {
+        warnings.push(
+            "Warning: The --connectionScope / MDB_MCP_CONNECTION_SCOPE option is deprecated: the MCP protocol is moving to sessionless, so it will soon be removed and the connection scope will default to 'global'. For shared-server use cases, use the Atlas-Managed MCP server or build an authenticated library using the @mongodb-js/mcp-cli package."
         );
     }
 

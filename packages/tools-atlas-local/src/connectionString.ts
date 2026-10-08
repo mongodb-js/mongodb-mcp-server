@@ -24,14 +24,17 @@ function isMissingPortBindingError(error: unknown): boolean {
  * atlas-local-create-deployment can return before Docker publishes port bindings.
  * Retry briefly so connect usually works without exceeding MCP request timeouts.
  */
-export async function waitForConnectionString(
-    client: Client,
-    deploymentName: string,
-    {
-        maxAttempts = DEFAULT_MAX_ATTEMPTS,
-        intervalMs = DEFAULT_INTERVAL_MS,
-    }: { maxAttempts?: number; intervalMs?: number } = {}
-): Promise<string> {
+export async function waitForConnectionString({
+    client,
+    deploymentName,
+    maxAttempts = DEFAULT_MAX_ATTEMPTS,
+    intervalMs = DEFAULT_INTERVAL_MS,
+}: {
+    client: Client;
+    deploymentName: string;
+    maxAttempts?: number;
+    intervalMs?: number;
+}): Promise<string> {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
         try {
             return await client.getConnectionString(deploymentName);

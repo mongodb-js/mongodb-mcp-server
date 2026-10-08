@@ -1,16 +1,16 @@
 import { z } from "zod";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Keychain } from "@mongodb-js/mcp-core";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
-import type { IAtlasSession, IAtlasConfig } from "../../atlasTool.js";
+import type { IAtlasConfig } from "../../atlasTool.js";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
-import type { CallToolResult, ITelemetry, ICompositeLogger } from "@mongodb-js/mcp-types";
+import type { ITelemetry, ICompositeLogger, CallToolResult } from "@mongodb-js/mcp-types";
 import { ATLAS_REGIONS, GetRegionsArgsShape, GetRegionsTool } from "./getRegions.js";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
+import type { AtlasToolServer } from "../../atlasTool.js";
 
 describe("GetRegionsTool", () => {
-    let mockSession: Partial<IAtlasSession>;
+    let mockSession: Partial<AtlasToolServer>;
     let tool: GetRegionsTool;
 
     function buildTool(): GetRegionsTool {
@@ -43,25 +43,25 @@ describe("GetRegionsTool", () => {
 
         const mockElicitation = createMockElicitation();
 
-        const params: ToolConstructorParams<IAtlasSession> = {
-            name: GetRegionsTool.toolName,
-            category: "atlas",
-            operationType: GetRegionsTool.operationType,
-            session: mockSession as IAtlasSession,
+        const server: AtlasToolServer = {
+            ...mockSession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
-        };
+        } as unknown as AtlasToolServer;
 
-        return new GetRegionsTool(params);
+        return new GetRegionsTool({ server });
     }
 
+    // The invoke() result is narrowed to CallToolResult: the tool under test
+    // never returns input_required.
     const exec = async (args: Record<string, unknown>): Promise<CallToolResult> =>
-        (await tool["invoke"](
-            z.object(GetRegionsArgsShape).strict().parse(tool.normalizeRawArgs(args)),
-            {} as never
-        )) as CallToolResult;
+        (await tool["invoke"](z.object(GetRegionsArgsShape).strict().parse(tool.normalizeRawArgs(args)), {
+            request: {
+                signal: new AbortController().signal,
+            },
+        })) as CallToolResult;
 
     beforeEach(() => {
         tool = buildTool();

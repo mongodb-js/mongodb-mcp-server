@@ -1,16 +1,15 @@
-import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
-import type { CallToolResult } from "@mongodb-js/mcp-types";
-import type { IAtlasConfig, IAtlasSession } from "@mongodb-js/mcp-tools-atlas";
+import type { IAtlasConfig } from "@mongodb-js/mcp-tools-atlas";
 import { StreamsBuildTool } from "@mongodb-js/mcp-tools-atlas";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
+import type { CallToolResult } from "@mongodb-js/mcp-types";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+import type { AtlasToolServer } from "../../atlasTool.js";
 
 describe("StreamsBuildTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
@@ -52,7 +51,7 @@ describe("StreamsBuildTool", () => {
                 apiClientSecret: "test-secret",
                 atlasTemporaryDatabaseUserLifetimeMs: 3600000,
             } as unknown as IAtlasConfig,
-        } as unknown as IAtlasSession;
+        } as unknown as AtlasToolServer;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
@@ -71,23 +70,26 @@ describe("StreamsBuildTool", () => {
             confirmationRequired: vi.fn(),
         };
 
-        const params: ToolConstructorParams<IAtlasSession, DefaultPrometheusMetricDefinitions> = {
-            name: StreamsBuildTool.toolName,
-            category: "atlas",
-            operationType: StreamsBuildTool.operationType,
-            session: mockSession,
+        const server: AtlasToolServer = {
+            ...mockSession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation as unknown as Elicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
         };
 
-        tool = new StreamsBuildTool(params);
+        tool = new StreamsBuildTool({ server });
     });
 
     const baseArgs = { projectId: "proj1", workspaceName: "ws1" };
-    const exec = (args: Record<string, unknown>): Promise<CallToolResult> =>
-        tool["execute"](args as never, { signal: new AbortController().signal }) as Promise<CallToolResult>;
+    // The execute() result is narrowed to CallToolResult: the tool under test
+    // never returns input_required.
+    const exec = async (args: Record<string, unknown>): Promise<CallToolResult> =>
+        (await tool["execute"](args as never, {
+            request: {
+                signal: new AbortController().signal,
+            },
+        })) as CallToolResult;
 
     describe("createWorkspace", () => {
         it("should create workspace with correct provider/region/tier", async () => {
@@ -199,6 +201,37 @@ describe("StreamsBuildTool", () => {
             expect(result.structuredContent).toEqual({
                 resource: "processor",
             });
+        });
+
+        it("should create a processor with a baseline tier and autoscaling", async () => {
+            const pipeline = [
+                { $source: { connectionName: "src" } },
+                { $merge: { into: { connectionName: "sink", db: "db1", coll: "coll1" } } },
+            ];
+            mockApiClient.listStreamConnections!.mockResolvedValue({
+                results: [{ name: "src" }, { name: "sink" }],
+            });
+
+            await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "proc1",
+                pipeline,
+                processorTier: "SP10",
+                autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" },
+            });
+
+            expect(mockApiClient.createStreamProcessor).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: {
+                        name: "proc1",
+                        pipeline,
+                        tier: "SP10",
+                        options: { autoscaling: { enabled: true, minTier: "SP5", maxTier: "SP30" } },
+                    },
+                }),
+                expect.anything()
+            );
         });
 
         it("should throw when processorName is missing", async () => {
@@ -763,7 +796,11 @@ describe("StreamsBuildTool", () => {
             expect(mockApiClient.createStreamProcessor).not.toHaveBeenCalled();
         });
 
-        it("should return error when last stage is not a terminal stage", async () => {
+        it("should not reject pipelines whose last stage is not a known sink (API decides)", async () => {
+            mockApiClient.listStreamConnections!.mockResolvedValue({
+                results: [{ name: "src" }],
+            });
+
             const result = await exec({
                 ...baseArgs,
                 resource: "processor",
@@ -771,11 +808,42 @@ describe("StreamsBuildTool", () => {
                 pipeline: [{ $source: { connectionName: "src" } }, { $match: { status: "active" } }],
             });
 
-            expect(result.isError).toBe(true);
-            const text = (result.content[0] as { text: string }).text;
-            expect(text).toContain("last stage must be a terminal stage");
-            expect(text).toContain("$match");
-            expect(mockApiClient.createStreamProcessor).not.toHaveBeenCalled();
+            expect(result.isError).toBeUndefined();
+            expect(mockApiClient.createStreamProcessor).toHaveBeenCalledOnce();
+        });
+
+        it("should accept $iceberg as the last stage", async () => {
+            mockApiClient.listStreamConnections!.mockResolvedValue({
+                results: [{ name: "src" }, { name: "s3" }],
+            });
+
+            const pipeline = [
+                { $source: { connectionName: "src" } },
+                {
+                    $iceberg: {
+                        connectionName: "s3",
+                        bucket: "myBucket",
+                        databaseName: "myDb",
+                        tableName: "myTable",
+                        path: "iceberg-warehouse",
+                    },
+                },
+            ];
+
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "proc1",
+                pipeline,
+            });
+
+            expect(result.isError).toBeUndefined();
+            expect(mockApiClient.createStreamProcessor).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: { name: "proc1", pipeline },
+                }),
+                expect.anything()
+            );
         });
 
         it("should return error when pipeline contains $$NOW", async () => {
@@ -793,7 +861,7 @@ describe("StreamsBuildTool", () => {
             expect(result.isError).toBe(true);
             const text = (result.content[0] as { text: string }).text;
             expect(text).toContain("$$NOW");
-            expect(text).toContain("not available in streaming context");
+            expect(text).toContain("not available in streaming request");
             expect(mockApiClient.createStreamProcessor).not.toHaveBeenCalled();
         });
 
@@ -813,7 +881,7 @@ describe("StreamsBuildTool", () => {
             expect((result.content[0] as { text: string }).text).toContain("$$ROOT");
         });
 
-        it("should accept $emit as a valid terminal stage", async () => {
+        it("should accept $emit as a valid sink stage", async () => {
             mockApiClient.listStreamConnections!.mockResolvedValue({
                 results: [{ name: "src" }, { name: "sink" }],
             });
@@ -829,7 +897,7 @@ describe("StreamsBuildTool", () => {
             expect(mockApiClient.createStreamProcessor).toHaveBeenCalledOnce();
         });
 
-        it("should accept $https as a valid terminal stage", async () => {
+        it("should accept $https as a valid sink stage", async () => {
             mockApiClient.listStreamConnections!.mockResolvedValue({
                 results: [{ name: "src" }, { name: "webhook" }],
             });
@@ -845,7 +913,7 @@ describe("StreamsBuildTool", () => {
             expect(mockApiClient.createStreamProcessor).toHaveBeenCalledOnce();
         });
 
-        it("should accept $externalFunction as a valid terminal stage", async () => {
+        it("should accept $externalFunction as a valid sink stage", async () => {
             mockApiClient.listStreamConnections!.mockResolvedValue({
                 results: [{ name: "src" }, { name: "lambda" }],
             });

@@ -1,5 +1,10 @@
-import { Keychain } from "@mongodb-js/mcp-core";
-import { Resources, UserConfigSchema, createLoggerFromConfig, createRunnerFromConfig } from "@mongodb-js/mcp-cli";
+import {
+    Resources,
+    UserConfigSchema,
+    createKeychainFromConfig,
+    createLoggerFromConfig,
+    createRunnerFromConfig,
+} from "@mongodb-js/mcp-cli";
 import { AllTools, packageInfo } from "mongodb-mcp-server";
 
 export interface InProcessServer {
@@ -23,13 +28,15 @@ export async function startInProcessServer(connectionString: string): Promise<In
         loggers: [],
     });
 
-    const logger = await createLoggerFromConfig({ config, keychain: Keychain.root });
+    const keychain = createKeychainFromConfig({ config });
+    const logger = await createLoggerFromConfig({ config, keychain });
     const transportRunner = await createRunnerFromConfig({
         config,
         serverMetadata: packageInfo,
         tools: AllTools,
         resources: Resources,
         logger,
+        keychain,
     });
 
     // The runner is a StreamableHttpRunner for transport=http.

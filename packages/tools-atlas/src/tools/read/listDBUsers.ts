@@ -36,16 +36,18 @@ export class ListDBUsersTool extends AtlasToolBase {
     static toolName = "atlas-list-db-users";
     public description = "List MongoDB Atlas database users";
     public static operationType: OperationType = "read";
-    public argsShape = {
-        ...ListDBUsersArgs,
-    };
-    public override outputSchema = ListDBUsersOutputSchema;
+    public argsShape(): typeof ListDBUsersArgs {
+        return ListDBUsersArgs;
+    }
+    public override outputSchema(): typeof ListDBUsersOutputSchema {
+        return ListDBUsersOutputSchema;
+    }
 
     protected async execute(
-        { projectId }: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
-        const data = await this.apiClient.listDatabaseUsers(
+        { projectId }: ToolArgs<ReturnType<typeof this.argsShape>>,
+        { request }: ToolExecutionContext
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
+        const data = await this.server.apiClient.listDatabaseUsers(
             {
                 params: {
                     path: {
@@ -53,7 +55,7 @@ export class ListDBUsersTool extends AtlasToolBase {
                     },
                 },
             },
-            context
+            request
         );
 
         if (!data?.results?.length) {
@@ -82,6 +84,7 @@ export class ListDBUsersTool extends AtlasToolBase {
 
         return {
             content: formatUntrustedData(
+                this.server.config,
                 `Found ${data.results.length} database users in project ${projectId}`,
                 JSON.stringify(users)
             ),

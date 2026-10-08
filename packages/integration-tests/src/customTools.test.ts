@@ -95,16 +95,20 @@ describe("Custom Tools", () => {
 /**
  * Example custom tool that can be provided by library consumers
  */
+const CustomGreetingToolArgsShape = {
+    name: z.string().describe("The name to greet"),
+};
+
 class CustomGreetingTool extends ToolBase {
     static toolName = "custom_greeting";
     static category = "mongodb" as const;
     static operationType = "read" as const;
     public description = "A custom tool that greets the user";
-    public argsShape = {
-        name: z.string().describe("The name to greet"),
-    };
+    public argsShape(): typeof CustomGreetingToolArgsShape {
+        return CustomGreetingToolArgsShape;
+    }
 
-    public execute({ name }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    public execute({ name }: ToolArgs<ReturnType<typeof this.argsShape>>): Promise<CallToolResult> {
         return Promise.resolve({
             content: [
                 {
@@ -123,14 +127,18 @@ class CustomGreetingTool extends ToolBase {
 /**
  * Example custom tool that keeps accepting an argument that has been renamed
  */
+const CustomRenamedArgToolArgsShape = {
+    names: z.array(z.string()).min(1).describe("The names to greet"),
+};
+
 class CustomRenamedArgTool extends ToolBase {
     static toolName = "custom_renamed_arg";
     static category = "mongodb" as const;
     static operationType = "read" as const;
     public description = "A custom tool with a renamed argument";
-    public argsShape = {
-        names: z.array(z.string()).min(1).describe("The names to greet"),
-    };
+    public argsShape(): typeof CustomRenamedArgToolArgsShape {
+        return CustomRenamedArgToolArgsShape;
+    }
 
     public override normalizeRawArgs(args: Record<string, unknown>): Record<string, unknown> {
         if (typeof args.name !== "string") {
@@ -141,7 +149,7 @@ class CustomRenamedArgTool extends ToolBase {
         return { ...rest, names: rest.names ?? [name] };
     }
 
-    public execute({ names }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    public execute({ names }: ToolArgs<ReturnType<typeof this.argsShape>>): Promise<CallToolResult> {
         return Promise.resolve({
             content: [{ type: "text", text: `Hello, ${names.join(", ")}!` }],
         });
@@ -155,17 +163,21 @@ class CustomRenamedArgTool extends ToolBase {
 /**
  * Another example custom tool that performs a calculation
  */
+const CustomCalculatorToolArgsShape = {
+    a: z.number().describe("First number"),
+    b: z.number().describe("Second number"),
+};
+
 class CustomCalculatorTool extends ToolBase {
     static toolName = "custom_calculator";
     static category = "mongodb" as const;
     static operationType = "read" as const;
     public description = "A custom tool that performs calculations";
-    public argsShape = {
-        a: z.number().describe("First number"),
-        b: z.number().describe("Second number"),
-    };
+    public argsShape(): typeof CustomCalculatorToolArgsShape {
+        return CustomCalculatorToolArgsShape;
+    }
 
-    public execute({ a, b }: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    public execute({ a, b }: ToolArgs<ReturnType<typeof this.argsShape>>): Promise<CallToolResult> {
         return Promise.resolve({
             content: [
                 {

@@ -4,7 +4,8 @@ import os from "os";
 import { applyEdits, findNodeAtLocation, modify, parseTree } from "jsonc-parser";
 import { exec } from "child_process";
 import type { Platform } from "./setupAiToolsUtils.js";
-import { formatError, getPlatform } from "./setupAiToolsUtils.js";
+import { getPlatform } from "./setupAiToolsUtils.js";
+import type { Keychain } from "@mongodb-js/mcp-core";
 
 export type AIToolType = "cursor" | "vscode" | "windsurf" | "claudeDesktop" | "claudeCode" | "opencode";
 
@@ -78,14 +79,22 @@ const ensureConfigDir = (configPath: string): void => {
     }
 };
 
-const writeConfigFile = (configPath: string, config: McpConfig): void => {
+const writeConfigFile = ({
+    configPath,
+    config,
+    keychain,
+}: {
+    configPath: string;
+    config: McpConfig;
+    keychain: Keychain;
+}): void => {
     const resolvedPath = path.resolve(configPath);
     ensureConfigDir(configPath);
     try {
         fs.writeFileSync(resolvedPath, JSON.stringify(config, null, 2), "utf-8");
     } catch (err: unknown) {
         throw new Error(
-            `Could not write config to ${resolvedPath}: ${formatError(err)}. ` +
+            `Could not write config to ${resolvedPath}: ${keychain.redactErrorMessage(err)}. ` +
                 "Check that the path is correct and you have permission to write to that location.",
             { cause: err }
         );
@@ -124,12 +133,17 @@ function toPatch(entry: McpConfigEntry | OpenCodeMcpEntry, envKey: EnvironmentKe
 }
 
 // Updates existing config content in place using jsonc-parser; preserves comments and spacing.
-const updateConfigInPlace = (
-    existingContent: string,
-    serversKey: McpServers,
-    patch: ConfigEntryPatch,
-    entry: McpConfigEntry | OpenCodeMcpEntry
-): string => {
+const updateConfigInPlace = ({
+    existingContent,
+    serversKey,
+    patch,
+    entry,
+}: {
+    existingContent: string;
+    serversKey: McpServers;
+    patch: ConfigEntryPatch;
+    entry: McpConfigEntry | OpenCodeMcpEntry;
+}): string => {
     const parsedContent = parseTree(existingContent);
     const basePath: [string, string] = [serversKey, MCP_SERVER_KEY];
     const contentBlock = parsedContent ? findNodeAtLocation(parsedContent, basePath) : undefined;
@@ -172,7 +186,7 @@ export abstract class AITool {
         return "env";
     }
 
-    protected readConfig(configPath: string): McpConfig {
+    protected readConfig(configPath: string, keychain: Keychain): McpConfig {
         const serversKey = this.getServersKey();
         const emptyConfig = (): McpConfig => ({ [serversKey]: {} }) as McpConfig;
         let config: McpConfig = emptyConfig();
@@ -183,7 +197,7 @@ export abstract class AITool {
                 getOrCreateServersEntry(config, serversKey);
             } catch (e: unknown) {
                 console.error(
-                    `Warning: Could not parse existing ${this.configFileName}, creating new config. Error is: ${formatError(e)}`
+                    `Warning: Could not parse existing ${this.configFileName}, creating new config. Error is: ${keychain.redactErrorMessage(e)}`
                 );
                 config = emptyConfig();
             }
@@ -203,7 +217,17 @@ export abstract class AITool {
         };
     }
 
-    updateConfig(configPath: string, env: Record<string, string>, isReadOnly: boolean): void {
+    updateConfig({
+        configPath,
+        env,
+        isReadOnly,
+        keychain,
+    }: {
+        configPath: string;
+        env: Record<string, string>;
+        isReadOnly: boolean;
+        keychain: Keychain;
+    }): void {
         const serversKey = this.getServersKey();
         const environmentKey = this.getEnvironmentKey();
         const updatedMcpConfigEntry = this.buildMcpConfigEntry(isReadOnly, env);
@@ -215,26 +239,39 @@ export abstract class AITool {
             try {
                 // Patch in place if file already has content
                 const patch = toPatch(updatedMcpConfigEntry, environmentKey);
-                const newContent = updateConfigInPlace(existingContent, serversKey, patch, updatedMcpConfigEntry);
+                const newContent = updateConfigInPlace({
+                    existingContent,
+                    serversKey,
+                    patch,
+                    entry: updatedMcpConfigEntry,
+                });
                 fs.writeFileSync(resolvedPath, newContent, "utf-8");
             } catch {
                 // Fallback: write full config if in-place update fails (e.g. invalid JSONC)
-                const config = this.readConfig(configPath);
+                const config = this.readConfig(configPath, keychain);
                 const servers = getOrCreateServersEntry(config, serversKey);
                 servers[MCP_SERVER_KEY] = updatedMcpConfigEntry;
-                writeConfigFile(configPath, config);
+                writeConfigFile({ configPath, config, keychain });
             }
         } else {
             // New file: write full config
-            const config = this.readConfig(configPath);
+            const config = this.readConfig(configPath, keychain);
             const servers = getOrCreateServersEntry(config, serversKey);
             servers[MCP_SERVER_KEY] = updatedMcpConfigEntry;
-            writeConfigFile(configPath, config);
+            writeConfigFile({ configPath, config, keychain });
         }
     }
 
     // Returns the shell command to open the config file. Override in subclasses for editor-specific behavior.
-    getOpenConfigCommand(configPath: string, platform: Platform, editor: AIToolType): string | null {
+    getOpenConfigCommand({
+        configPath,
+        platform,
+        editor,
+    }: {
+        configPath: string;
+        platform: Platform;
+        editor: AIToolType;
+    }): string | null {
         switch (platform) {
             case "mac":
                 return getOpenCommandMac(configPath, editor);
@@ -252,7 +289,7 @@ export abstract class AITool {
         if (!platform) {
             return;
         }
-        const cmd = this.getOpenConfigCommand(this.configPath, platform, this.toolType);
+        const cmd = this.getOpenConfigCommand({ configPath: this.configPath, platform, editor: this.toolType });
         if (cmd) {
             await new Promise((resolve, reject) => {
                 exec(cmd, (error) => {
@@ -283,7 +320,7 @@ class Cursor extends AITool {
     get configPath(): string {
         return path.join(getBasePath(true), ".cursor", "mcp.json");
     }
-    override getOpenConfigCommand(configPath: string, platform: Platform): string | null {
+    override getOpenConfigCommand({ configPath, platform }: { configPath: string; platform: Platform }): string | null {
         switch (platform) {
             case "mac":
                 return getOpenCommandMac(configPath, "cursor");
@@ -321,7 +358,7 @@ class VSCode extends AITool {
                 return "";
         }
     }
-    override getOpenConfigCommand(configPath: string, platform: Platform): string | null {
+    override getOpenConfigCommand({ configPath, platform }: { configPath: string; platform: Platform }): string | null {
         switch (platform) {
             case "mac":
                 return getOpenCommandMac(configPath, "vscode");
@@ -346,7 +383,7 @@ class Windsurf extends AITool {
     get configPath(): string {
         return path.join(getBasePath(true), ".codeium", "windsurf", "mcp_config.json");
     }
-    override getOpenConfigCommand(configPath: string, platform: Platform): string | null {
+    override getOpenConfigCommand({ configPath, platform }: { configPath: string; platform: Platform }): string | null {
         switch (platform) {
             case "mac":
                 return getOpenCommandMac(configPath, "windsurf");

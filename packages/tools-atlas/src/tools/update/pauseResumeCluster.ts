@@ -40,25 +40,29 @@ export class PauseResumeClusterTool extends AtlasToolBase {
         "Use the atlas-inspect-cluster tool to poll the cluster state for readiness (state: IDLE). " +
         "If the cluster is not paused, resuming it is a no-op.";
 
-    public override outputSchema = PauseResumeClusterOutputSchema;
+    public override outputSchema(): typeof PauseResumeClusterOutputSchema {
+        return PauseResumeClusterOutputSchema;
+    }
 
-    public argsShape = PauseResumeClusterArgsShape;
+    public argsShape(): typeof PauseResumeClusterArgsShape {
+        return PauseResumeClusterArgsShape;
+    }
 
     protected async execute(
-        args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
+        { request }: ToolExecutionContext
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const projectId = args.projectId;
         const clusterName = args.clusterName;
         const action = args.action;
         const isPause = action === "PAUSE";
 
-        const result = await this.apiClient.updateCluster(
+        const result = await this.server.apiClient.updateCluster(
             {
                 params: { path: { groupId: projectId, clusterName } },
                 body: { paused: isPause } as unknown as ClusterDescription20240805,
             },
-            context
+            request
         );
 
         let text: string;
@@ -70,13 +74,12 @@ export class PauseResumeClusterTool extends AtlasToolBase {
                 `Paused clusters are unavailable for connections and do not incur compute costs.`;
 
             // Revoke any connections established to the cluster being paused.
-            const affected = await this.session.connectionRegistry.find(
+            const affected = await this.server.connectionRegistry.find(
                 (entry) =>
-                    entry.state.connectedAtlasCluster?.projectId === projectId &&
-                    entry.state.connectedAtlasCluster?.clusterName === clusterName
+                    entry.atlasCluster?.projectId === projectId && entry.atlasCluster?.clusterName === clusterName
             );
             for (const entry of affected) {
-                await this.session.connectionRegistry.disconnect(entry.connectionId);
+                await this.server.connectionRegistry.disconnect(entry.connectionId);
             }
             disconnectedConnectionIds = affected.map((entry) => entry.connectionId);
             if (disconnectedConnectionIds.length > 0) {
@@ -103,7 +106,7 @@ export class PauseResumeClusterTool extends AtlasToolBase {
     }
 
     protected override async resolveTelemetryMetadata(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         context: { result: CallToolResult }
     ): Promise<PauseResumeClusterMetadata> {
         const parentMetadata = await super.resolveTelemetryMetadata(args, context);

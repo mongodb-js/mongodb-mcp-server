@@ -2,11 +2,10 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "rootDir": ".",
-    "composite": false,
-    "declaration": false,
-    "declarationMap": false,
-    "erasableSyntaxOnly": false
+    "outDir": "./dist",
+    "erasableSyntaxOnly": true,
+    "composite": true
   },
   "include": ["**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": ["dist", "node_modules"]
 }

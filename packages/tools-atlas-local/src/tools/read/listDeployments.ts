@@ -1,4 +1,4 @@
-import type { CallToolResult } from "@mongodb-js/mcp-types";
+import type { CallToolResult, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { AtlasLocalToolBase } from "../../atlasLocalTool.js";
 import type { ToolArgs } from "@mongodb-js/mcp-core";
 import type { OperationType } from "@mongodb-js/mcp-types";
@@ -18,16 +18,22 @@ const ListDeploymentsOutputSchema = {
     ),
 };
 
+const ListDeploymentsArgsShape = {};
+
 export class ListDeploymentsTool extends AtlasLocalToolBase {
     static toolName = "atlas-local-list-deployments";
     public description = "List MongoDB Atlas local deployments";
     static operationType: OperationType = "read";
-    public argsShape = {};
-    public override outputSchema = ListDeploymentsOutputSchema;
+    public argsShape(): typeof ListDeploymentsArgsShape {
+        return ListDeploymentsArgsShape;
+    }
+    public override outputSchema(): typeof ListDeploymentsOutputSchema {
+        return ListDeploymentsOutputSchema;
+    }
 
     protected async executeWithAtlasLocalClient(
-        _args: ToolArgs<typeof this.argsShape>,
-        { client }: { client: Client }
+        _args: ToolArgs<ReturnType<typeof this.argsShape>>,
+        { client }: { client: Client; context: ToolExecutionContext }
     ): Promise<CallToolResult> {
         // List the deployments
         const deployments = await client.listDeployments();
@@ -59,7 +65,11 @@ export class ListDeploymentsTool extends AtlasLocalToolBase {
         });
 
         return {
-            content: formatUntrustedData(`Found ${deployments.length} deployments`, JSON.stringify(deploymentsJson)),
+            content: formatUntrustedData(
+                this.server.config,
+                `Found ${deployments.length} deployments`,
+                JSON.stringify(deploymentsJson)
+            ),
             structuredContent: {
                 count: deployments.length,
                 deployments: deploymentsJson,

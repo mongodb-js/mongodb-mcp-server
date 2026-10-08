@@ -27,8 +27,8 @@ export function summarizeConnection(entry: ConnectionEntry): z.infer<typeof Conn
 
 function describeConnection(entry: ConnectionEntry): string {
     const state = entry.state;
-    if (state.connectedAtlasCluster) {
-        return `Atlas cluster "${state.connectedAtlasCluster.clusterName}" (project ${state.connectedAtlasCluster.projectId})`;
+    if (entry.atlasCluster) {
+        return `Atlas cluster "${entry.atlasCluster.clusterName}" (project ${entry.atlasCluster.projectId})`;
     }
 
     if (entry.source === "preconfigured" && state.tag === "disconnected") {

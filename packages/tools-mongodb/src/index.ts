@@ -1,16 +1,17 @@
 export {
     MongoDBToolBase,
     type IMongoDBConfig,
-    type IMongoDBSession,
-    type MongoDBToolRegistrationServer,
+    type MongoDBToolServices,
+    type MongoDBToolServer,
     ConnectionIdArgs,
+    ConnectionIdArgsWithoutPreconfigured,
+    connectionScopedArgsShape,
     DBOperationArgs,
     CollOperationArgs,
 } from "./mongodbTool.js";
 export type {
     ConnectionSettings,
     ConnectionState,
-    ConnectionStateConnected,
     ConnectionStateConnecting,
     ConnectionStateDisconnected,
     ConnectionStateErrored,
@@ -20,7 +21,7 @@ export type {
     ConnectionTag,
     OIDCConnectionAuthType,
 } from "./common/connectionManager.js";
-export { MCPConnectionManager, ConnectionManager } from "./common/connectionManager.js";
+export { MCPConnectionManager, ConnectionManager, ConnectionStateConnected } from "./common/connectionManager.js";
 export type {
     ConnectionStringInfo,
     ConnectionStringAuthType,
@@ -133,9 +134,9 @@ import {
     LogsTool,
 } from "./tools/tools.js";
 import type { ToolClass } from "@mongodb-js/mcp-core";
-import type { IMongoDBSession } from "./mongodbTool.js";
+import type { MongoDBToolServer } from "./mongodbTool.js";
 
-export const MongoDBTools: ToolClass<IMongoDBSession>[] = [
+export const MongoDBTools: ToolClass<MongoDBToolServer>[] = [
     AggregateDBTool,
     AggregateTool,
     CollectionIndexesTool,

@@ -5,7 +5,6 @@ import { ExportsManager, MCPConnectionStore, type DeviceId } from "@mongodb-js/m
 import { AllTools, CliServer, Elicitation, connectionErrorHandler, packageInfo } from "mongodb-mcp-server";
 import type { UserConfig } from "mongodb-mcp-server";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
-import { Session } from "@mongodb-js/mcp-cli";
 import {
     PrometheusMetrics,
     createDefaultMetrics,
@@ -39,7 +38,7 @@ export type CreateTestServerOptions = {
  */
 export async function createTestServer(config: UserConfig, options: CreateTestServerOptions = {}): Promise<CliServer> {
     const logger = new CompositeLogger({ loggers: [] });
-    const keychain = Keychain.root;
+    const keychain = new Keychain();
 
     const exportsManager = ExportsManager.init({
         options: {
@@ -53,6 +52,7 @@ export async function createTestServer(config: UserConfig, options: CreateTestSe
     const connectionRegistry = new MCPConnectionStore({
         options: config,
         logger,
+        keychain,
         deviceId: options.deviceId ?? ({} as unknown as DeviceId),
     }).view();
 
@@ -77,24 +77,19 @@ export async function createTestServer(config: UserConfig, options: CreateTestSe
 
     const elicitation = new Elicitation({ server: mcpServer.server });
 
-    const session = new Session({
-        logger,
-        exportsManager,
-        connectionRegistry,
-        keychain,
-        apiClient,
-        connectionErrorHandler,
-        atlasLocalClient,
-        config,
-    });
-
     const metrics = options.metrics ?? new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
     return new CliServer({
-        session,
+        config,
+        logger,
+        keychain,
+        connectionRegistry,
+        exportsManager,
+        apiClient,
+        connectionErrorHandler,
+        atlasLocalClient,
         mcpServer,
         telemetry: options.telemetry ?? (new NoopTelemetry() as unknown as AtlasTelemetry),
-        connectionErrorHandler,
         elicitation,
         metrics,
         tools: options.tools ?? AllTools,

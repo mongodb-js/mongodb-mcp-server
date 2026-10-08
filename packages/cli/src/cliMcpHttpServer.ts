@@ -1,78 +1,110 @@
 import { MCPHttpServer, StreamableHttpRunner } from "@mongodb-js/mcp-http-runners";
-import { SessionStore } from "@mongodb-js/mcp-core";
-import type { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
-import type { HttpServerOptions, SessionManagementOptions } from "@mongodb-js/mcp-types";
-import type { TransportRequestContext } from "@mongodb-js/mcp-types";
+import type { LegacySessionOptions } from "@mongodb-js/mcp-http-runners";
+import type { HttpServerOptions } from "@mongodb-js/mcp-types";
+import type { TransportRequestContext, ConnectionScopePolicy } from "@mongodb-js/mcp-types";
 import type { CliServer } from "./cliServer.js";
-import { createServerFromConfig, type SharedServerServices } from "./createServerServices.js";
+import {
+    createServerFromConfig,
+    closeSharedServices,
+    connectionScopeFromConfig,
+    type SharedServerServices,
+} from "./createServerServices.js";
 import { applyConfigOverrides } from "./config/configOverrides.js";
 
 export type CliMcpHttpServerOptions = {
     http: HttpServerOptions;
-    session: SessionManagementOptions;
+    /** Session lifecycle tunables for the 2025-era HTTP transport (cap / timeouts / eviction). */
+    sessionOptions?: LegacySessionOptions;
+    /**
+     * Controls connection isolation for each request — which live connections
+     * it can see and use. It must be keyed on whatever distinguishes the
+     * callers (e.g. the verified end-user principal for a multi-user OIDC
+     * deployment, or the OAuth client id for service-account / M2M tokens) for
+     * per-caller isolation with no shared state. The CLI's own runner derives a
+     * policy from the `connectionScope` config option via {@link connectionScopeFromConfig};
+     * see `MCP_SERVER_LIBRARY.md` for a per-user example to copy.
+     */
+    connectionScope: ConnectionScopePolicy;
 };
 
 /**
- * HTTP server that creates a fresh {@link CliServer} per session, applying
+ * HTTP server that creates a fresh {@link CliServer} per request, applying
  * request-level config overrides (`applyConfigOverrides`). App-level
- * infrastructure comes from {@link SharedServerServices}.
+ * infrastructure comes from {@link SharedServerServices} and never carries per-client
+ * state: no sessions, no per-request transports held in memory.
  */
 export class CliMcpHttpServer extends MCPHttpServer<CliServer> {
     private readonly sharedServices: SharedServerServices;
+    private readonly connectionScope: ConnectionScopePolicy;
 
     constructor({
         sharedServices,
-        sessionStore,
         options,
     }: {
         sharedServices: SharedServerServices;
-        sessionStore: SessionStore<NodeStreamableHTTPServerTransport>;
         options: CliMcpHttpServerOptions;
     }) {
+        // `connectionScope` is required by type (`CliMcpHttpServerOptions`),
+        // so no runtime check is needed here; HTTP requests that reach the
+        // server always carry one.
         super({
             options,
             logger: sharedServices.logger,
             metrics: sharedServices.metrics,
-            sessionStore,
+            sessionOptions: options.sessionOptions,
         });
         this.sharedServices = sharedServices;
+        this.connectionScope = options.connectionScope;
     }
 
     protected override async createServerForRequest(request: TransportRequestContext): Promise<CliServer> {
         const config = applyConfigOverrides({ baseConfig: this.sharedServices.config, request });
 
-        return Promise.resolve(createServerFromConfig({ config, sharedServices: this.sharedServices }));
+        return Promise.resolve(
+            createServerFromConfig({
+                config,
+                sharedServices: this.sharedServices,
+                request,
+                connectionScope: this.connectionScope,
+            })
+        );
+    }
+
+    /** Stops the HTTP server and releases app-level services. */
+    public override async stop(): Promise<void> {
+        await super.stop();
+        await closeSharedServices(this.sharedServices);
     }
 }
 
-/** Creates the HTTP transport runner with a {@link CliMcpHttpServer} and shared infrastructure. */
+/** Creates the HTTP transport runner with a {@link CliMcpHttpServer} and app-level services. */
 export function createHttpTransportRunnerFromConfig(sharedServices: SharedServerServices): StreamableHttpRunner {
-    const { config, logger, metrics, monitoringServer } = sharedServices;
-
-    const sessionStore = new SessionStore<NodeStreamableHTTPServerTransport>({
-        options: {
-            idleTimeoutMS: config.idleTimeoutMs,
-            notificationTimeoutMS: config.notificationTimeoutMs,
-            maxSessions: config.maxSessions,
-        },
-        logger,
-        metrics,
-    });
+    const { config, logger, monitoringServer } = sharedServices;
 
     const mcpHttpServer = new CliMcpHttpServer({
         sharedServices,
-        sessionStore,
         options: {
             http: {
                 host: config.httpHost,
                 port: config.httpPort,
                 responseType: config.httpResponseType,
                 headers: config.httpHeaders,
+                dangerousHostBinding: config.dangerousHostBinding,
             },
-            session: {
+            // The CLI's own runner is a local, unauthenticated deployment: the
+            // policy comes from the `connectionScope` config option — "session"
+            // (default) keys on the client's mcp-session-id (falling back to the
+            // shared scope on the sessionless 2026-07-28 path when no id is
+            // present); "global" shares one scope across all clients. Hosts
+            // serving authenticated traffic construct CliMcpHttpServer with
+            // their own policy.
+            connectionScope: connectionScopeFromConfig(config),
+            sessionOptions: {
+                maxSessions: config.maxSessions,
+                idleTimeoutMS: config.idleTimeoutMs,
+                notificationTimeoutMS: config.notificationTimeoutMs,
+                evictionIdleGraceMS: config.evictionIdleGraceMS,
                 externallyManagedSessions: config.externallyManagedSessions,
-                idleTimeoutMs: config.idleTimeoutMs,
-                notificationTimeoutMs: config.notificationTimeoutMs,
             },
         },
     });

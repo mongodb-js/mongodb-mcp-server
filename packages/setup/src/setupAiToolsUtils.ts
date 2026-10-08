@@ -1,5 +1,4 @@
 import os from "os";
-import { Keychain } from "@mongodb-js/mcp-core";
 
 export type Platform = "mac" | "windows" | "linux";
 export const getPlatform = (): Platform | null => {
@@ -13,9 +12,4 @@ export const getPlatform = (): Platform | null => {
         default:
             return null;
     }
-};
-
-export const formatError = (error: unknown): string => {
-    const message = error instanceof Error ? error.message : String(error);
-    return Keychain.root.redact(message);
 };

@@ -16,7 +16,7 @@ describe("ClientCredentialsAuthProvider", () => {
     const mockOptions = {
         clientId: "test-client-id",
         clientSecret: "test-client-secret",
-        baseUrl: "https://api.test.com",
+        baseUrl: "https://example.com",
         userAgent: testUserAgent,
         httpClient: {
             fetch: vi.fn() as unknown as typeof fetch,
@@ -43,8 +43,8 @@ describe("ClientCredentialsAuthProvider", () => {
             const issuer = authProvider.oauth2Issuer;
             expect(issuer).toBeDefined();
             expect(issuer?.issuer).toBe(mockOptions.baseUrl);
-            expect(issuer?.token_endpoint).toBe("https://api.test.com/api/oauth/token");
-            expect(issuer?.revocation_endpoint).toBe("https://api.test.com/api/oauth/revoke");
+            expect(issuer?.token_endpoint).toBe("https://example.com/api/oauth/token");
+            expect(issuer?.revocation_endpoint).toBe("https://example.com/api/oauth/revoke");
         });
     });
 

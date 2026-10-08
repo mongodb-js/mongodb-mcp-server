@@ -2,7 +2,11 @@ import { isHarnessDebug } from "./shared.js";
 
 /** Minimal stdout logger for a harness; prefixes messages with `[<label>]`. */
 export class HarnessLogger {
-    constructor(private readonly label: string) {}
+    private readonly label: string;
+
+    constructor(label: string) {
+        this.label = label;
+    }
 
     /** Always-visible message. */
     info(message: string): void {

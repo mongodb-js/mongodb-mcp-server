@@ -41,3 +41,10 @@ export const TRANSPORT_PAYLOAD_LIMITS: Record<TransportType, number> = {
  * explicitly based on their available memory.
  */
 export const DEFAULT_MAX_SESSIONS = 1000;
+
+/**
+ * Default idle grace (ms) a session must have before it is eligible for
+ * least-recently-used eviction at the `maxSessions` cap. Swept back to
+ * `idleTimeoutMs` when larger, so eviction never competes with the reaper.
+ */
+export const DEFAULT_EVICTION_IDLE_GRACE_MS = 120_000;

@@ -10,6 +10,7 @@ export type {
     AgentSession,
     AgentTurn,
     AgentTurnState,
+    OAuthCredentials,
     ToolCallRecord,
 } from "./harness/types.js";
 export { ClaudeTuiHarness, CodexTuiHarness };

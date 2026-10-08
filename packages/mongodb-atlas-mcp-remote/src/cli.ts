@@ -38,13 +38,13 @@ async function main(): Promise<void> {
 
     const proxyFetch = createFetch({ useEnvironmentVariableProxies: true }) as unknown as FetchLike;
 
-    const tokenManager = new TokenManager(
-        config.tokenUrl,
-        config.clientId,
-        config.clientSecret,
-        config.tokenTimeoutMs,
-        proxyFetch
-    );
+    const tokenManager = new TokenManager({
+        tokenUrl: config.tokenUrl,
+        clientId: config.clientId,
+        clientSecret: config.clientSecret,
+        timeoutMs: config.tokenTimeoutMs,
+        fetch: proxyFetch,
+    });
 
     const authProvider: AuthProvider = {
         token: (): Promise<string> => tokenManager.getToken(),

@@ -1,3 +1,5 @@
+import type { McpProtocol } from "./transport.js";
+
 export type TelemetryEvents = {
     "events-emitted": [];
     "events-send-failed": [];
@@ -31,9 +33,10 @@ export type TelemetryCommonProperties = {
     transport?: "stdio" | "http";
     config_atlas_auth?: TelemetryBoolSet;
     config_connection_string?: TelemetryBoolSet;
-    session_id?: string;
     hosting_mode?: string;
     has_docker?: TelemetryBoolSet;
+    /** The exact MCP protocol revision the client used, or `"legacy"` when unset. */
+    mcp_client_protocol?: McpProtocol;
 } & TelemetryCommonStaticProperties;
 
 export type TelemetryEvent<T> = {
@@ -111,6 +114,11 @@ export type ToolEventProperties = {
     error_code?: string;
     error_type?: string;
     is_atlas?: boolean;
+    /** The MCP client that issued the request, per-request (see {@link TelemetryCommonProperties}). */
+    mcp_client_name?: string;
+    mcp_client_version?: string;
+    /** The exact MCP protocol revision the client used, per-request (see {@link TelemetryCommonProperties}). */
+    mcp_client_protocol?: string;
 } & TelemetryToolMetadata;
 
 export type ToolEvent = TelemetryEvent<ToolEventProperties>;

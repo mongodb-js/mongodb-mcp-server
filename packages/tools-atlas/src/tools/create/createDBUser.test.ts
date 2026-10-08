@@ -1,15 +1,16 @@
+import { createMockLogger, type MockLogger } from "@mongodb-js/mcp-test-utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { CreateDBUserTool, CreateDBUserArgs } from "./createDBUser.js";
-import type { IAtlasSession, IAtlasConfig } from "../../atlasTool.js";
-import type { ITelemetry, ICompositeLogger } from "@mongodb-js/mcp-types";
+import type { IAtlasConfig } from "../../atlasTool.js";
+import type { ITelemetry } from "@mongodb-js/mcp-types";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics } from "../../mockMetrics.js";
 import { createMockElicitation } from "@mongodb-js/mcp-test-utils";
-import { Keychain } from "@mongodb-js/mcp-core";
+import { Keychain, type CallToolResult } from "@mongodb-js/mcp-core";
 import { ensureCurrentIpInAccessList } from "../../helpers/accessListUtils.js";
 import type * as AccessListUtils from "../../helpers/accessListUtils.js";
+import type { AtlasToolServer } from "../../atlasTool.js";
 
 vi.mock("../../helpers/accessListUtils.js", async (importOriginal) => {
     const actual = await importOriginal<typeof AccessListUtils>();
@@ -26,8 +27,10 @@ vi.mock("../../helpers/generatePassword.js", () => ({
 describe("CreateDBUserTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
     let keychain: Keychain;
-    let registerSpy: ReturnType<typeof vi.spyOn>;
     let tool: CreateDBUserTool;
+    let mockLogger: MockLogger;
+    let emitEvents: ReturnType<typeof vi.fn>;
+    let telemetryEnabled: boolean;
 
     const baseArgs = {
         projectId: "507f1f77bcf86cd799439011",
@@ -37,61 +40,57 @@ describe("CreateDBUserTool", () => {
 
     beforeEach(() => {
         keychain = new Keychain();
-        registerSpy = vi.spyOn(keychain, "register");
         mockApiClient = {
             createDatabaseUser: vi.fn().mockResolvedValue({}),
         };
 
-        const mockLogger = {
-            info: vi.fn(),
-            debug: vi.fn(),
-            warning: vi.fn(),
-            error: vi.fn(),
-            setAttribute: vi.fn(),
-            addLogger: vi.fn(),
-        } as unknown as ICompositeLogger;
+        mockLogger = createMockLogger();
 
         const mockSession = {
-            sessionId: "test-session",
-            logger: mockLogger,
+            logger: mockLogger.asCompositeLogger(),
             apiClient: mockApiClient as unknown as ApiClient,
-            connectedAtlasCluster: undefined,
-            connectToMongoDB: vi.fn().mockResolvedValue(undefined),
             keychain,
             config: {
                 apiClientId: "test-id",
                 apiClientSecret: "test-secret",
+                // Empty so invoke() proceeds to execute rather than returning an
+                // input_required confirmation (which the mock throws on);
+                // previewFeatures avoids the appendUIResource branch.
+                confirmationRequiredTools: [],
+                previewFeatures: [],
             } as unknown as IAtlasConfig,
-            disconnect: vi.fn().mockResolvedValue(undefined),
-            close: vi.fn().mockResolvedValue(undefined),
-            isConnectedToMongoDB: false,
-            on: vi.fn(),
-            setMcpClient: vi.fn(),
-        } as unknown as IAtlasSession;
+        } as unknown as AtlasToolServer;
 
-        const params: ToolConstructorParams<IAtlasSession> = {
-            name: CreateDBUserTool.toolName,
-            category: "atlas",
-            operationType: CreateDBUserTool.operationType,
-            session: mockSession,
-            telemetry: { isTelemetryEnabled: () => false, emitEvents: vi.fn() } as unknown as ITelemetry,
+        telemetryEnabled = false;
+        emitEvents = vi.fn();
+        const server: AtlasToolServer = {
+            ...mockSession,
+            telemetry: {
+                isTelemetryEnabled: () => telemetryEnabled,
+                emitEvents,
+            } as unknown as ITelemetry,
             elicitation: createMockElicitation(),
             metrics: new MockMetrics(),
         };
 
-        tool = new CreateDBUserTool(params);
+        tool = new CreateDBUserTool({ server });
     });
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown> = baseArgs) =>
-        tool["execute"](args as never, { signal: new AbortController().signal });
+        tool["execute"](args as never, {
+            request: {
+                signal: new AbortController().signal,
+            },
+        });
 
     it("creates a user with a supplied password", async () => {
         const result = await exec({ ...baseArgs, password: "user-password" });
 
         expect((result.content[0] as { text: string }).text).toBe('User "test-user" created successfully.');
-        expect(registerSpy).toHaveBeenCalledWith("test-user", "user");
-        expect(registerSpy).toHaveBeenCalledWith("user-password", "password");
+        // The keychain is immutable and set once at construction; a created DB
+        // user's password is only delivered to the caller (in content), never
+        // registered on the keychain.
         expect(result.structuredContent).toEqual({
             username: baseArgs.username,
         });
@@ -101,11 +100,41 @@ describe("CreateDBUserTool", () => {
         const result = await exec();
 
         expect((result.content[0] as { text: string }).text).toContain("with password: `generated-password`");
-        expect(registerSpy).toHaveBeenCalledWith("generated-password", "password");
+        // The generated password is delivered to the caller (in structuredContent),
+        // not registered on the immutable keychain.
         expect(result.structuredContent).toEqual({
             username: baseArgs.username,
             password: "generated-password",
         });
+    });
+
+    it("never leaks the password to the logger or telemetry (only to the delivered result)", async () => {
+        // The keychain is immutable and the password is not registered on it, so
+        // the tool must keep the generated/supplied password out of every side
+        // channel: logger output and telemetry. It is only returned to the caller.
+        telemetryEnabled = true;
+        const password = "LeakyS3cret-Passw0rd";
+
+        const result = (await tool["invoke"](
+            z
+                .object(CreateDBUserArgs as never)
+                .strict()
+                .parse(tool.normalizeRawArgs({ ...baseArgs, password })),
+            {
+                request: { signal: new AbortController().signal },
+            }
+        )) as CallToolResult;
+
+        // Delivered to the caller (in the content text for a supplied password it
+        // is not echoed, but structuredContent carries the username only; the
+        // password is not re-emitted). Assert neither logger nor telemetry saw it.
+        expect(result.isError).toBeFalsy();
+
+        expect(mockLogger.allLogMessages()).not.toContain(password);
+
+        const telemetryEvents = emitEvents.mock.calls.map((call) => JSON.stringify(call)).join(" ");
+        expect(telemetryEvents).not.toContain(password);
+        expect(emitEvents).toHaveBeenCalled();
     });
 
     it("explains that the current IP cannot be determined when the IP setup is skipped", async () => {

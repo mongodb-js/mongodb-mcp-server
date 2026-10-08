@@ -137,7 +137,7 @@ describe("runSharedTierAlertsHook", () => {
         await runSharedTierAlertsHook({
             ...baseParams,
             instanceType: "FREE",
-            context: { requestInfo: { headers: { "x-request-id": "req-hook-1" } } },
+            context: { headers: { "x-request-id": "req-hook-1" } },
         });
 
         const payload = warning.mock.calls[0]?.[0];

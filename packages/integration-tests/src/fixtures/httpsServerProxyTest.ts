@@ -62,6 +62,7 @@ export class HTTPServerProxyTestSetup {
 
         const onconnect =
             (server: HTTPServer) =>
+            // eslint-disable-next-line max-params -- http server `connect` event callback
             (req: IncomingMessage, socket: Duplex, head: Buffer): void => {
                 const [username, pw] = parseHTTPAuthHeader(req.headers["proxy-authorization"]);
                 if (this.authHandler?.(username, pw) === false) {

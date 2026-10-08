@@ -1,24 +1,27 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { UpgradeClusterTool } from "./upgradeCluster.js";
-import type { IAtlasSession, IAtlasConfig } from "../../atlasTool.js";
-import type { CallToolResult, ITelemetry, ICompositeLogger } from "@mongodb-js/mcp-types";
+import type { IAtlasConfig } from "../../atlasTool.js";
+import type { ITelemetry, ICompositeLogger, CallToolResult } from "@mongodb-js/mcp-types";
 import { Keychain } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
+import type { AtlasToolServer } from "../../atlasTool.js";
 
 function notFoundError(): ApiClientError {
-    return ApiClientError.fromError(new Response(null, { status: 404, statusText: "Not Found" }), "cluster not found");
+    return ApiClientError.fromError({
+        response: new Response(null, { status: 404, statusText: "Not Found" }),
+        error: "cluster not found",
+    });
 }
 
 function flexOnRegularApiError(): ApiClientError {
-    return ApiClientError.fromError(
-        new Response(null, { status: 400, statusText: "Bad Request" }),
-        "Flex cluster cannot be used in the Cluster API"
-    );
+    return ApiClientError.fromError({
+        response: new Response(null, { status: 400, statusText: "Bad Request" }),
+        error: "Flex cluster cannot be used in the Cluster API",
+    });
 }
 
 const FREE_CLUSTER_RAW = {
@@ -141,7 +144,7 @@ const UPGRADE_RESULT = { id: "upgraded-cluster-id" };
 
 describe("UpgradeClusterTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
-    let mockSession: Partial<IAtlasSession>;
+    let mockSession: Partial<AtlasToolServer>;
     let tool: UpgradeClusterTool;
 
     function buildTool(): UpgradeClusterTool {
@@ -180,22 +183,24 @@ describe("UpgradeClusterTool", () => {
 
         const mockElicitation = createMockElicitation();
 
-        const params: ToolConstructorParams<IAtlasSession> = {
-            name: UpgradeClusterTool.toolName,
-            category: "atlas",
-            operationType: UpgradeClusterTool.operationType,
-            session: mockSession as IAtlasSession,
+        const server: AtlasToolServer = {
+            ...mockSession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
-        };
+        } as unknown as AtlasToolServer;
 
-        return new UpgradeClusterTool(params);
+        return new UpgradeClusterTool({ server });
     }
 
+    // tools under test never return input_required; narrow the invoke() result.
     const exec = async (args: Record<string, unknown>): Promise<CallToolResult> =>
-        (await tool["invoke"](args, {} as never)) as CallToolResult;
+        (await tool["invoke"](args, {
+            request: {
+                signal: new AbortController().signal,
+            },
+        })) as CallToolResult;
 
     beforeEach(() => {
         tool = buildTool();
@@ -203,7 +208,7 @@ describe("UpgradeClusterTool", () => {
 
     describe("error cases", () => {
         it("requires projectId and clusterName in the args schema", () => {
-            const schema = z.object(tool.argsShape);
+            const schema = z.object(tool.argsShape());
 
             expect(schema.safeParse({}).success).toBe(false);
             expect(schema.safeParse({ projectId: "507f1f77bcf86cd799439011" }).success).toBe(false);
@@ -234,10 +239,10 @@ describe("UpgradeClusterTool", () => {
         });
 
         it("returns error for non-404 getCluster failure without falling through to getFlexCluster", async () => {
-            const serverError = ApiClientError.fromError(
-                new Response(null, { status: 500, statusText: "Internal Server Error" }),
-                "internal server error"
-            );
+            const serverError = ApiClientError.fromError({
+                response: new Response(null, { status: 500, statusText: "Internal Server Error" }),
+                error: "internal server error",
+            });
             mockApiClient.getCluster!.mockRejectedValue(serverError);
 
             const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });

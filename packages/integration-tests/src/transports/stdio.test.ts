@@ -3,46 +3,44 @@ import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { describeWithMongoDB } from "../mongodbHelpers.js";
-
 // Get absolute path to the built server entry point
 const currentDir = import.meta.dirname;
 const projectRoot = path.resolve(currentDir, "../../../..");
 const serverPath = path.resolve(projectRoot, "packages/mongodb-mcp-server/dist/esm/index.js");
-
-describeWithMongoDB("StdioRunner", (integration) => {
-    describe("client connects successfully", () => {
-        let client: Client;
-        let transport: StdioClientTransport;
-        beforeAll(async () => {
-            transport = new StdioClientTransport({
-                command: "node",
-                args: [serverPath, "--disabledTools", "atlas-local"],
-                env: {
-                    MDB_MCP_TRANSPORT: "stdio",
-                    MDB_MCP_CONNECTION_STRING: integration.connectionString(),
-                },
+describeWithMongoDB({
+    name: "StdioRunner",
+    fn: (integration) => {
+        describe("client connects successfully", () => {
+            let client: Client;
+            let transport: StdioClientTransport;
+            beforeAll(async () => {
+                transport = new StdioClientTransport({
+                    command: "node",
+                    args: [serverPath, "--disabledTools", "atlas-local"],
+                    env: {
+                        MDB_MCP_TRANSPORT: "stdio",
+                        MDB_MCP_CONNECTION_STRING: integration.connectionString(),
+                    },
+                });
+                client = new Client({
+                    name: "test",
+                    version: "0.0.0",
+                });
+                await client.connect(transport);
             });
-            client = new Client({
-                name: "test",
-                version: "0.0.0",
+            afterAll(async () => {
+                await client.close();
+                await transport.close();
             });
-            await client.connect(transport);
+            it("handles requests and sends responses", async () => {
+                const response = await client.listTools();
+                expect(response).toBeDefined();
+                expect(response.tools).toBeDefined();
+                expect(response.tools).toHaveLength(27);
+                const sortedTools = response.tools.sort((a, b) => a.name.localeCompare(b.name));
+                expect(sortedTools[0]?.name).toBe("aggregate");
+                expect(sortedTools[0]?.description).toBe("Run an aggregation against a MongoDB collection");
+            });
         });
-
-        afterAll(async () => {
-            await client.close();
-            await transport.close();
-        });
-
-        it("handles requests and sends responses", async () => {
-            const response = await client.listTools();
-            expect(response).toBeDefined();
-            expect(response.tools).toBeDefined();
-            expect(response.tools).toHaveLength(27);
-
-            const sortedTools = response.tools.sort((a, b) => a.name.localeCompare(b.name));
-            expect(sortedTools[0]?.name).toBe("aggregate");
-            expect(sortedTools[0]?.description).toBe("Run an aggregation against a MongoDB collection");
-        });
-    });
+    },
 });

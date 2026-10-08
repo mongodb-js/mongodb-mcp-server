@@ -18,10 +18,12 @@ import { Histogram } from 'prom-client';
 import { InputRequiredResult } from '@modelcontextprotocol/server';
 import type { InputResponses } from '@modelcontextprotocol/server';
 import type { LoggingMessageNotification } from '@modelcontextprotocol/server';
-import { McpServer } from '@modelcontextprotocol/server';
+import type { McpServer } from '@modelcontextprotocol/server';
+import { MongoClient } from 'mongodb';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import type { RequestMeta } from '@modelcontextprotocol/server';
 import { Secret } from 'mongodb-redact';
+import type { ServerContext } from '@modelcontextprotocol/server';
 import { ToolAnnotations } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import { ZodRawShape } from 'zod';
@@ -34,7 +36,7 @@ export type AnyToolBase = ToolBase<any>;
 
 // @public (undocumented)
 export class ApiClient {
-    constructor(options: ApiClientOptions, logger: LoggerBase, authProvider?: AuthProvider);
+    constructor(input: ApiClientConstruction);
     // (undocumented)
     acceptVpcPeeringConnection(options: FetchOptions<operations["acceptGroupStreamVpcPeeringConnection"]>, context?: ApiClientRequestContext): Promise<void>;
     // (undocumented)
@@ -202,8 +204,7 @@ export interface ApiClientOptions {
 export type AtlasClusterConnectionInfo = {
     projectId: string;
     clusterName: string;
-    clusterId: string;
-    username?: string;
+    clusterId?: string;
     instanceType?: "FREE" | "FLEX" | "DEDICATED";
 };
 
@@ -286,7 +287,7 @@ export type ConnectionErrorHandler = (error: MongoDBError<typeof ErrorCodes.NotC
 
 // @public (undocumented)
 export type ConnectionErrorHandlerContext = {
-    availableTools: AnyToolBase[];
+    availableTools: ToolServerTool[];
     connectionState?: AnyConnectionState;
 };
 
@@ -347,15 +348,13 @@ export type ConnectionMetadata = AtlasMetadata & AtlasLocalToolMetadata & {
 
 // @public (undocumented)
 export interface ConnectionSettings extends Omit<ConnectionInfo, "driverOptions"> {
-    // (undocumented)
-    atlas?: AtlasClusterConnectionInfo;
     driverOptions?: ConnectionInfo["driverOptions"];
+    hostType?: ConnectionStringHostType;
+    mongoClient?: MongoClient;
 }
 
 // @public (undocumented)
 export interface ConnectionState {
-    // (undocumented)
-    connectedAtlasCluster?: AtlasClusterConnectionInfo;
     // (undocumented)
     connectionStringInfo?: ConnectionStringInfo;
     // (undocumented)
@@ -367,10 +366,7 @@ export class ConnectionStateConnected implements ConnectionState {
     constructor(input: {
         serviceProvider: NodeDriverServiceProvider;
         connectionStringInfo?: ConnectionStringInfo;
-        connectedAtlasCluster?: AtlasClusterConnectionInfo;
     });
-    // (undocumented)
-    connectedAtlasCluster?: AtlasClusterConnectionInfo;
     // (undocumented)
     connectionStringInfo?: ConnectionStringInfo;
     // (undocumented)
@@ -572,14 +568,9 @@ export const jsonExportFormat: z.ZodEnum<{
 
 // @public
 export class Keychain implements IKeychain {
-    constructor();
-    // (undocumented)
-    clearAllSecrets(): void;
+    constructor(secrets?: SecretRecord);
     redact<T>(value: T): T;
-    // (undocumented)
-    register(value: Secret["value"], kind: Secret["kind"]): void;
-    // (undocumented)
-    static get root(): Keychain;
+    redactErrorMessage(error: unknown): string;
 }
 
 // @public (undocumented)
@@ -657,14 +648,6 @@ export interface ReadyExport extends CommonExportData {
 export { Secret }
 
 // @public (undocumented)
-export type SessionEvents = {
-    connect: [];
-    close: [];
-    disconnect: [];
-    "connection-error": [unknown];
-};
-
-// @public (undocumented)
 export type StoredExport = ReadyExport | InProgressExport;
 
 // @public (undocumented)
@@ -689,7 +672,7 @@ export class Telemetry implements ITelemetry {
     // (undocumented)
     protected readonly serverMetadata: ServerMetadata;
     // (undocumented)
-    protected setup(): Promise<void>;
+    setup(): Promise<void>;
     setupPromise: Promise<[string, boolean]> | undefined;
 }
 
@@ -708,9 +691,9 @@ export type TelemetryCommonProperties = {
     transport?: "stdio" | "http";
     config_atlas_auth?: TelemetryBoolSet;
     config_connection_string?: TelemetryBoolSet;
-    session_id?: string;
     hosting_mode?: string;
     has_docker?: TelemetryBoolSet;
+    mcp_client_protocol?: McpProtocol;
 } & TelemetryCommonStaticProperties;
 
 // @public (undocumented)
@@ -765,47 +748,43 @@ export type ToolArgs<T extends ZodRawShape> = {
 };
 
 // @public
-export abstract class ToolBase<TSession extends IToolSession = IToolSession, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
-    constructor(input: ToolConstructorParams<TSession, TMetricsDefinitions>);
+export abstract class ToolBase<TServer extends ToolServer = ToolServer, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
+    constructor(input: ToolServerParam<TServer>);
     // (undocumented)
     get annotations(): ToolAnnotations;
-    abstract argsShape: ZodRawShape;
+    abstract argsShape(): ZodRawShape;
     readonly category: ToolCategory;
-    protected get config(): TSession["config"];
     abstract description: string;
     // (undocumented)
     disable(): void;
-    protected readonly elicitation: IElicitation;
     // (undocumented)
     enable(): void;
-    protected abstract execute(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
-    protected getConfirmationMessage(args: ToolArgs<typeof ToolBase.argsShape>): string;
-    // (undocumented)
-    protected getConnectionInfoMetadata(connectionState?: SupportedConnectionState): ConnectionMetadata;
-    protected handleError(error: unknown, args: z.infer<z.ZodObject<typeof ToolBase.argsShape>>): Promise<CallToolResult> | CallToolResult;
-    invoke(args: ToolArgs<typeof ToolBase.argsShape>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
+    protected abstract execute(args: ToolArgs<ReturnType<typeof ToolBase.argsShape>>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
+    protected getConfirmationMessage(args: ToolArgs<ReturnType<typeof ToolBase.argsShape>>): string;
+    protected getConnectionInfoMetadata(entry?: {
+        state: SupportedConnectionState;
+        atlasCluster?: AtlasClusterConnectionInfo;
+    }): ConnectionMetadata;
+    protected handleError(error: unknown, args: z.infer<z.ZodObject<ReturnType<typeof ToolBase.argsShape>>>): Promise<CallToolResult> | CallToolResult;
+    invoke(args: ToolArgs<ReturnType<typeof ToolBase.argsShape>>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
     // (undocumented)
     isEnabled(): boolean;
     // (undocumented)
     protected isFeatureEnabled(feature: PreviewFeature_2): boolean;
-    protected readonly metrics: IMetrics<TMetricsDefinitions>;
     readonly name: string;
     normalizeRawArgs(args: Record<string, unknown>): Record<string, unknown>;
     readonly operationType: OperationType;
-    outputSchema?: ZodRawShape;
+    outputSchema?(): ZodRawShape;
     // (undocumented)
-    register(server: {
-        mcpServer: McpServer;
-    }): boolean;
+    register(): boolean;
     protected requestConfirmation(message: string, context: ToolExecutionContext): boolean | undefined;
     requiresConfirmation(): boolean;
-    protected abstract resolveTelemetryMetadata(args: ToolArgs<typeof ToolBase.argsShape>, input: {
+    protected abstract resolveTelemetryMetadata(args: ToolArgs<ReturnType<typeof ToolBase.argsShape>>, input: {
         result: CallToolResult;
     }): TelemetryToolMetadata_2 | Promise<TelemetryToolMetadata_2>;
-    protected schemaVariantKey(): string;
-    protected readonly session: TSession;
-    protected readonly telemetry: ITelemetry;
+    protected readonly server: TServer;
     protected get toolMeta(): Record<string, unknown>;
+    protected readonly transportRequest?: TransportRequestContext;
     // (undocumented)
     protected verifyAllowed(): boolean;
 }
@@ -814,42 +793,48 @@ export abstract class ToolBase<TSession extends IToolSession = IToolSession, TMe
 export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant" | "custom";
 
 // @public
-export type ToolClass<TSession extends IToolSession = IToolSession, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
-    new (args: ToolConstructorParams<TSession, TMetricsDefinitions>): ToolBase<TSession, TMetricsDefinitions>;
+export type ToolClass<TServer extends ToolServer = ToolServer, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
+    new (arg: ToolServerParam<TServer>): ToolBase<TServer, TMetricsDefinitions>;
     toolName: string;
     category: ToolCategory;
     operationType: OperationType;
 };
 
 // @public
-export type ToolConstructorParams<TSession extends IToolSession = IToolSession, TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
-    name: string;
-    category: ToolCategory;
-    operationType: OperationType;
-    session: TSession;
-    telemetry: ITelemetry;
-    elicitation: IElicitation;
-    metrics: IMetrics<TMetricsDefinitions>;
-    uiRegistry?: IUIRegistry;
+export type ToolExecutionContext<TConfig extends IToolConfig = IToolConfig> = {
+    request: ToolRequest<TConfig>;
+    config?: Partial<TConfig>;
 };
 
 // @public
-export type ToolExecutionContext = {
+export type ToolRequest<TConfig extends IToolConfig = IToolConfig> = {
+    readonly raw?: ServerContext["mcpReq"];
     signal: AbortSignal;
-    requestInfo?: {
-        headers?: Record<string, unknown>;
-    };
+    headers?: Record<string, unknown>;
     _meta?: RequestMeta;
-    requestId?: string | number;
+    id?: string | number;
     sendNotification?: (notification: unknown) => Promise<void>;
     inputResponses?: ElicitationInputResponses;
     elicitationDurationMs?: number;
+    clientInfo?: {
+        name?: string;
+        version?: string;
+        title?: string;
+    };
+};
+
+// @public
+export type ToolServerParam<TServer extends ToolServer = ToolServer> = {
+    server: TServer;
+    transportRequest?: TransportRequestContext;
 };
 
 // @public (undocumented)
 export type TransportRequestContext = {
     headers?: Record<string, string | string[] | undefined>;
     query?: Record<string, string | string[] | undefined>;
+    authInfo?: RequestAuthInfo;
+    mcp_client_protocol?: McpProtocol;
 };
 
 // @public

@@ -43,6 +43,7 @@ export function getVercelToolCallingAgent(
     requestedSystemPrompt?: string
 ): Agent<Model<LanguageModel>, VercelMCPClientTools, VercelAgentPromptResult> {
     return {
+        // eslint-disable-next-line max-params
         async prompt(
             prompt: PromptDefinition,
             model: Model<LanguageModel>,

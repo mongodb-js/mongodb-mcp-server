@@ -1,13 +1,18 @@
 import { describe, it, expect, vi } from "vitest";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
+
 import { FindTool } from "../tools/read/find.js";
-import type { IMongoDBSession, IMongoDBConfig } from "../mongodbTool.js";
-import type { ITelemetry } from "@mongodb-js/mcp-types";
+import type { MongoDBToolServer, IMongoDBConfig } from "../mongodbTool.js";
+import type { ITelemetry, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 
+type TestTool = {
+    assertMqlIsAllowed: (config: IMongoDBConfig, ...values: unknown[]) => void;
+    resolveConfig: (context: ToolExecutionContext<IMongoDBConfig>) => IMongoDBConfig;
+};
+
 // assertMqlIsAllowed only reads config, so a minimally-constructed MongoDB tool is enough to exercise it.
-function makeTool(config: Partial<IMongoDBConfig>): (...values: unknown[]) => void {
+function makeFindTool(config: Partial<IMongoDBConfig>): TestTool {
     const mockLogger = {
         info: vi.fn(),
         debug: vi.fn(),
@@ -15,31 +20,40 @@ function makeTool(config: Partial<IMongoDBConfig>): (...values: unknown[]) => vo
         error: vi.fn(),
     } as unknown as CompositeLogger;
 
-    const params: ToolConstructorParams<IMongoDBSession> = {
-        name: FindTool.toolName,
-        category: "mongodb",
-        operationType: FindTool.operationType,
-        session: {
-            logger: mockLogger,
-
-            config: {
-                disableServerSideJs: true,
-                readOnly: false,
-                disabledTools: [],
-                confirmationRequiredTools: [],
-                previewFeatures: [],
-                ...config,
-            } as unknown as IMongoDBSession["config"],
-        } as unknown as IMongoDBSession,
+    const server: MongoDBToolServer = {
+        config: {
+            disableServerSideJs: true,
+            readOnly: false,
+            disabledTools: [],
+            confirmationRequiredTools: [],
+            previewFeatures: [],
+            ...config,
+        } as unknown as IMongoDBConfig,
+        logger: mockLogger,
+        keychain: { redact: (value: unknown) => value } as never,
+        connectionRegistry: {} as never,
+        connectionErrorHandler: (() => ({ errorHandled: false, result: undefined })) as never,
+        exportsManager: { createJSONExport: vi.fn() },
         telemetry: { isTelemetryEnabled: () => false, emitEvents: vi.fn() } as unknown as ITelemetry,
         elicitation: createMockElicitation(),
         metrics: new MockMetrics(),
-
         uiRegistry: { get: vi.fn().mockResolvedValue(null) },
-    };
+    } as unknown as MongoDBToolServer;
 
-    const tool = new FindTool(params) as unknown as { assertMqlIsAllowed: (...values: unknown[]) => void };
-    return (...values: unknown[]) => tool.assertMqlIsAllowed(...values);
+    return new FindTool({ server }) as unknown as TestTool;
+}
+
+function makeContext(override?: Partial<IMongoDBConfig>): ToolExecutionContext<IMongoDBConfig> {
+    return { request: { signal: new AbortController().signal }, ...(override ? { config: override } : {}) };
+}
+
+function assertWith(tool: TestTool, override: Partial<IMongoDBConfig> | undefined, ...values: unknown[]): void {
+    tool.assertMqlIsAllowed(tool.resolveConfig(makeContext(override)), ...values);
+}
+
+function makeTool(config: Partial<IMongoDBConfig>): (...values: unknown[]) => void {
+    const tool = makeFindTool(config);
+    return (...values: unknown[]) => assertWith(tool, undefined, ...values);
 }
 
 const jsProjection = { computed: { $function: { body: "function() { return 1; }", args: [], lang: "js" } } };
@@ -78,6 +92,23 @@ describe("assertMqlIsAllowed", () => {
         it("allows a pipeline without write stages", () => {
             const assert = makeTool({ readOnly: true });
             expect(() => assert([{ $match: { age: { $gt: 8 } } }])).not.toThrow();
+        });
+    });
+
+    describe("with a per-call config override", () => {
+        it("rejects a write stage when the override forces readOnly on", () => {
+            const tool = makeFindTool({ readOnly: false });
+            expect(() => assertWith(tool, { readOnly: true }, [{ $out: "leaked" }])).toThrow(/\$out or \$merge/);
+        });
+
+        it("allows a write stage when the override forces readOnly off", () => {
+            const tool = makeFindTool({ readOnly: true });
+            expect(() => assertWith(tool, { readOnly: false }, [{ $out: "leaked" }])).not.toThrow();
+        });
+
+        it("falls back to the server config when the override is absent", () => {
+            const tool = makeFindTool({ readOnly: true });
+            expect(() => assertWith(tool, undefined, [{ $merge: { into: "leaked" } }])).toThrow(/\$out or \$merge/);
         });
     });
 });

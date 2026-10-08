@@ -4,7 +4,7 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { Client } from "@modelcontextprotocol/client";
 import {
     MongoDBToolBase,
-    ConnectionIdArgs,
+    connectionScopedArgsShape,
     MCPConnectionStore,
     DeviceId,
     ExportsManager,
@@ -12,12 +12,13 @@ import {
     MongoDBTools,
     connectionErrorHandler,
     type ConnectionErrorHandler,
+    type IMongoDBConfig,
 } from "@mongodb-js/mcp-tools-mongodb";
 import * as MongoDbTools from "@mongodb-js/mcp-tools-mongodb";
-import type { OperationType } from "@mongodb-js/mcp-types";
+import type { OperationType, ToolRequest, ToolServer } from "@mongodb-js/mcp-types";
 import type { ToolArgs } from "@mongodb-js/mcp-core";
 import { type UserConfig } from "mongodb-mcp-server";
-import { Session, CliServer } from "@mongodb-js/mcp-cli";
+import { CliServer } from "@mongodb-js/mcp-cli";
 import type { AnyToolClass } from "@mongodb-js/mcp-core";
 import { CompositeLogger, InMemoryTransport, Keychain, Elicitation } from "@mongodb-js/mcp-core";
 import { createTestApiClient, defaultTestConfig, expectDefined } from "../../integrationHelpers.js";
@@ -58,12 +59,16 @@ const injectedErrorHandler: ConnectionErrorHandler = (error) => {
     }
 };
 
+const RandomToolArgsShapeVariants = connectionScopedArgsShape({});
+
 class RandomTool extends MongoDBToolBase {
     static toolName = "Random";
     static operationType: OperationType = "read";
     public description = "This is a tool.";
-    public argsShape = { ...ConnectionIdArgs };
-    protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    public argsShape(): typeof RandomToolArgsShapeVariants.preconfigured {
+        return this.selectConnectionScopedArgsShape(RandomToolArgsShapeVariants);
+    }
+    protected async execute(args: ToolArgs<ReturnType<typeof this.argsShape>>): Promise<CallToolResult> {
         await this.resolveConnection(args.connectionId);
         return { content: [{ type: "text", text: "Something" }] };
     }
@@ -73,13 +78,15 @@ class UnusableVoyageTool extends MongoDBToolBase {
     static toolName = "UnusableVoyageTool";
     static operationType: OperationType = "read";
     public description = "This is a Voyage tool.";
-    public argsShape = { ...ConnectionIdArgs };
+    public argsShape(): typeof RandomToolArgsShapeVariants.preconfigured {
+        return this.selectConnectionScopedArgsShape(RandomToolArgsShapeVariants);
+    }
 
     override verifyAllowed(): boolean {
         return false;
     }
 
-    protected async execute(args: ToolArgs<typeof this.argsShape>): Promise<CallToolResult> {
+    protected async execute(args: ToolArgs<ReturnType<typeof this.argsShape>>): Promise<CallToolResult> {
         await this.resolveConnection(args.connectionId);
         return { content: [{ type: "text", text: "Something" }] };
     }
@@ -102,28 +109,21 @@ describe("MongoDBTool implementations", () => {
         const logger = new CompositeLogger();
         const exportsManager = ExportsManager.init({ options: userConfig, logger: logger });
         deviceId = DeviceId.create(logger);
-        const connectionRegistry = new MCPConnectionStore({ options: userConfig, logger, deviceId }).view();
-        const session = new Session({
+        const keychain = new Keychain();
+        const connectionRegistry = new MCPConnectionStore({ options: userConfig, logger, deviceId, keychain }).view();
+        const apiClient = createTestApiClient({
+            baseUrl: userConfig.apiBaseUrl,
+            serverMetadata: { mcpServerName: "test", version: "1" },
             logger,
-            exportsManager,
-            connectionRegistry,
-            keychain: new Keychain(),
-            connectionErrorHandler: errorHandler,
-            apiClient: createTestApiClient({
-                baseUrl: userConfig.apiBaseUrl,
-                serverMetadata: { mcpServerName: "test", version: "1" },
-                logger,
-                clientId: userConfig.apiClientId,
-                clientSecret: userConfig.apiClientSecret,
-            }),
-            config: userConfig,
+            clientId: userConfig.apiClientId,
+            clientSecret: userConfig.apiClientSecret,
         });
 
         const telemetry = AtlasTelemetry.create({
             logger,
             deviceId,
-            apiClient: session.apiClient,
-            keychain: session.keychain,
+            apiClient,
+            keychain,
             enabled: false,
             serverMetadata: {
                 mcpServerName: "test-server",
@@ -159,7 +159,13 @@ describe("MongoDBTool implementations", () => {
         });
 
         mcpServer = new CliServer({
-            session,
+            config: userConfig,
+            logger,
+            keychain,
+            connectionRegistry,
+            exportsManager,
+            apiClient,
+            atlasLocalClient: undefined,
             telemetry,
             mcpServer: internalMcpServer,
             connectionErrorHandler: errorHandler,
@@ -180,7 +186,7 @@ describe("MongoDBTool implementations", () => {
     }
 
     async function cleanup(): Promise<void> {
-        await mcpServer?.session.connectionRegistry.close();
+        await mcpServer?.connectionRegistry.close();
         await mcpClient?.close();
         mcpClient = undefined;
 
@@ -198,7 +204,7 @@ describe("MongoDBTool implementations", () => {
     afterEach(async () => {
         vi.clearAllMocks();
         if (mcpServer) {
-            await mcpServer.session.connectionRegistry.close();
+            await mcpServer.connectionRegistry.close();
         }
     });
 
@@ -208,7 +214,7 @@ describe("MongoDBTool implementations", () => {
         describe("and comes across a MongoDB Error - NotConnectedToMongoDB", () => {
             it("should handle the error", async () => {
                 // An entry that exists but was never dialed resolves to a NotConnectedToMongoDB error.
-                const entry = await mcpServer?.session.connectionRegistry.createEntry({ name: "test" });
+                const entry = await mcpServer?.connectionRegistry.createEntry({ name: "test" });
                 expectDefined(entry);
                 const toolResponse = await mcpClient?.callTool({
                     name: "Random",
@@ -299,7 +305,7 @@ describe("MongoDBTool implementations", () => {
 
         describe("and comes across a MongoDB Error - NotConnectedToMongoDB", () => {
             it("should handle the error", async () => {
-                const entry = await mcpServer?.session.connectionRegistry.createEntry({ name: "test" });
+                const entry = await mcpServer?.connectionRegistry.createEntry({ name: "test" });
                 expectDefined(entry);
                 const toolResponse = await mcpClient?.callTool({
                     name: "Random",
@@ -514,7 +520,10 @@ describe("MongoDBTool implementations", () => {
             const randomTool = tool as RandomTool;
 
             const signal = AbortSignal.timeout(5000);
-            const options = randomTool["getOperationOptions"](signal);
+            const options = randomTool["getOperationOptions"]({
+                server: mcpServer as unknown as ToolServer,
+                signal,
+            } as ToolRequest<IMongoDBConfig>);
 
             expect(options).toEqual({ signal });
             expect(options).not.toHaveProperty("maxTimeMS");
@@ -527,7 +536,10 @@ describe("MongoDBTool implementations", () => {
             const randomTool = tool as RandomTool;
 
             const signal = AbortSignal.timeout(5000);
-            const options = randomTool["getOperationOptions"](signal);
+            const options = randomTool["getOperationOptions"]({
+                server: mcpServer as unknown as ToolServer,
+                signal,
+            } as ToolRequest<IMongoDBConfig>);
 
             expect(options).toEqual({ signal, maxTimeMS: 30000 });
         });
@@ -538,7 +550,10 @@ describe("MongoDBTool implementations", () => {
             expectDefined(tool);
             const randomTool = tool as RandomTool;
 
-            const options = randomTool["getOperationOptions"](undefined);
+            const options = randomTool["getOperationOptions"]({
+                server: mcpServer as unknown as ToolServer,
+                signal: undefined as AbortSignal | undefined,
+            } as ToolRequest<IMongoDBConfig>);
 
             expect(options).toEqual({ maxTimeMS: 15000 });
         });
@@ -549,7 +564,10 @@ describe("MongoDBTool implementations", () => {
             expectDefined(tool);
             const randomTool = tool as RandomTool;
 
-            const options = randomTool["getOperationOptions"](undefined);
+            const options = randomTool["getOperationOptions"]({
+                server: mcpServer as unknown as ToolServer,
+                signal: undefined as AbortSignal | undefined,
+            } as ToolRequest<IMongoDBConfig>);
 
             expect(options).toEqual({});
         });
@@ -561,7 +579,10 @@ describe("MongoDBTool implementations", () => {
             const randomTool = tool as RandomTool;
 
             const signal = AbortSignal.timeout(5000);
-            const options = randomTool["getOperationOptions"](signal);
+            const options = randomTool["getOperationOptions"]({
+                server: mcpServer as unknown as ToolServer,
+                signal,
+            } as ToolRequest<IMongoDBConfig>);
 
             expect(options).toEqual({ signal, maxTimeMS: 0 });
         });
@@ -572,7 +593,10 @@ describe("MongoDBTool implementations", () => {
             expectDefined(tool);
             const randomTool = tool as RandomTool;
 
-            const options = randomTool["getOperationOptions"](undefined);
+            const options = randomTool["getOperationOptions"]({
+                server: mcpServer as unknown as ToolServer,
+                signal: undefined as AbortSignal | undefined,
+            } as ToolRequest<IMongoDBConfig>);
 
             expect(options).toEqual({ maxTimeMS: 0 });
         });

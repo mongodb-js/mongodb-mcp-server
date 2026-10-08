@@ -2,10 +2,12 @@ import type { ClientCapabilities, Implementation } from "@modelcontextprotocol/s
 import type { ILogger, ICompositeLogger } from "./logging.js";
 import type { IMetrics, DefaultMetricDefinitions } from "./metrics.js";
 
+/** @deprecated The per-client session concept is being removed; the 2025-era legacy path is the only remaining consumer. */
 export type CloseableTransport = {
     close(): Promise<void>;
 };
 
+/** @deprecated The per-client session concept is being removed; the 2025-era legacy path is the only remaining consumer. */
 export type SessionCloseReason = "idle_timeout" | "transport_closed" | "server_stop" | "unknown" | "evicted";
 
 /**
@@ -14,12 +16,16 @@ export type SessionCloseReason = "idle_timeout" | "transport_closed" | "server_s
  * pod that never saw the client's `initialize` request) to retain the
  * client's capabilities -- e.g. whether it supports elicitation -- instead of
  * treating the restored client as capability-less.
+ *
+ * @deprecated The per-client session concept is being removed; the 2025-era
+ * legacy path is the only remaining consumer.
  */
 export type NegotiatedClientState = {
     clientCapabilities?: ClientCapabilities;
     clientInfo?: Implementation;
 };
 
+/** @deprecated The per-client session concept is being removed; the 2025-era legacy path is the only remaining consumer. */
 export interface ISessionStore<T extends CloseableTransport = CloseableTransport> {
     /**
      * Returns the transport for the given session id or `undefined` if the
@@ -50,6 +56,8 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
         session?: { logger: ICompositeLogger };
         headers?: Record<string, unknown>;
     }): Promise<void>;
+    /** Returns whether a session exists, without resetting its idle timeout (unlike {@link getSession}). */
+    hasSession(sessionId: string): boolean;
     closeSession(params: { sessionId: string; reason?: SessionCloseReason }): Promise<void>;
     closeAllSessions(): Promise<void>;
     /**
@@ -74,6 +82,7 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
     ): Promise<NegotiatedClientState | undefined>;
 }
 
+/** @deprecated The per-client session concept is being removed; the 2025-era legacy path is the only remaining consumer. */
 export type SessionStoreConstructorArgs<TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions> = {
     options: {
         idleTimeoutMS: number;

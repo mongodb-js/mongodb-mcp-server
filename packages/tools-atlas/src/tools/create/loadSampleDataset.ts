@@ -41,32 +41,34 @@ export class LoadSampleDatasetTool extends AtlasToolBase {
         "`jobId` and initial state. To check progress, call this tool again with `jobId` " +
         "(sample dataset loads typically take 1–5 minutes). State can be WORKING, COMPLETED, or FAILED.";
     static operationType: OperationType = "create";
-    public argsShape = {
-        ...LoadSampleDatasetArgs,
-    };
-    public override outputSchema = LoadSampleDatasetOutputSchema;
+    public argsShape(): typeof LoadSampleDatasetArgs {
+        return LoadSampleDatasetArgs;
+    }
+    public override outputSchema(): typeof LoadSampleDatasetOutputSchema {
+        return LoadSampleDatasetOutputSchema;
+    }
 
     protected async execute(
-        { projectId, clusterName, jobId }: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+        { projectId, clusterName, jobId }: ToolArgs<ReturnType<typeof this.argsShape>>,
+        { request }: ToolExecutionContext
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         let status: SampleDatasetStatus;
         let headerText: string;
         if (jobId !== undefined && clusterName === undefined) {
-            status = await this.apiClient.getSampleDatasetLoad(
+            status = await this.server.apiClient.getSampleDatasetLoad(
                 {
                     params: { path: { groupId: projectId, sampleDatasetId: jobId } },
                 },
-                context
+                request
             );
 
             headerText = `Sample dataset load status for cluster "${status.clusterName}" in project ${projectId}.`;
         } else if (clusterName !== undefined && jobId === undefined) {
-            status = await this.apiClient.requestSampleDatasetLoad(
+            status = await this.server.apiClient.requestSampleDatasetLoad(
                 {
                     params: { path: { groupId: projectId, name: clusterName } },
                 },
-                context
+                request
             );
 
             headerText = `Sample dataset load requested for cluster "${status.clusterName}" in project ${projectId}.`;

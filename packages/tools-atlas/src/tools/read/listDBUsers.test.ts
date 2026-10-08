@@ -1,13 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { ListDBUsersTool } from "./listDBUsers.js";
-import type { IAtlasSession } from "../../atlasTool.js";
 import type { ITelemetry } from "@mongodb-js/mcp-types";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
+import type { AtlasToolServer } from "../../atlasTool.js";
 
 describe("ListDBUsersTool", () => {
     let mockApiClient: Record<string, ReturnType<typeof vi.fn>>;
@@ -26,9 +25,10 @@ describe("ListDBUsersTool", () => {
         } as unknown as CompositeLogger;
 
         const mockSession = {
+            config: {},
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
-        } as unknown as IAtlasSession;
+        } as unknown as AtlasToolServer;
 
         const mockTelemetry = {
             isTelemetryEnabled: () => true,
@@ -37,24 +37,25 @@ describe("ListDBUsersTool", () => {
 
         const mockElicitation = createMockElicitation() as unknown as Elicitation;
 
-        const params: ToolConstructorParams<IAtlasSession> = {
-            name: ListDBUsersTool.toolName,
-            category: "atlas",
-            operationType: ListDBUsersTool.operationType,
-            session: mockSession,
+        const server: AtlasToolServer = {
+            ...mockSession,
             telemetry: mockTelemetry,
             elicitation: mockElicitation,
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
         };
 
-        tool = new ListDBUsersTool(params);
+        tool = new ListDBUsersTool({ server });
     });
 
     const baseArgs = { projectId: "507f1f77bcf86cd799439011" };
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["execute"](args as never, { signal: new AbortController().signal });
+        tool["execute"](args as never, {
+            request: {
+                signal: new AbortController().signal,
+            },
+        });
 
     it("returns database users when they exist", async () => {
         mockApiClient.listDatabaseUsers!.mockResolvedValue({

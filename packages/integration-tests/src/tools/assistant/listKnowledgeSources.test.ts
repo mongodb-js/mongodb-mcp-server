@@ -16,13 +16,14 @@ vi.mock("@mongodb-js/devtools-proxy-support", () => ({
 describeWithAssistant("list-knowledge-sources", (integration) => {
     const { mockListSources, mockAPIError, mockNetworkError } = makeMockAssistantAPI();
 
-    validateToolMetadata(
+    validateToolMetadata({
         integration,
-        "list-knowledge-sources",
-        "List available data sources in the MongoDB Assistant knowledge base. Use this to explore available data sources or to find search filter parameters to use in search-knowledge.",
-        "read",
-        []
-    );
+        name: "list-knowledge-sources",
+        description:
+            "List available data sources in the MongoDB Assistant knowledge base. Use this to explore available data sources or to find search filter parameters to use in search-knowledge.",
+        operationType: "read",
+        parameters: [],
+    });
 
     describe("happy path", () => {
         it("returns list of data sources with metadata", async () => {

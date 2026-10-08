@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { NoopLogger, type CompositeLogger } from "@mongodb-js/mcp-core";
+import { Keychain, NoopLogger, type CompositeLogger } from "@mongodb-js/mcp-core";
 import { StdioRunner } from "@mongodb-js/mcp-core";
 import type * as McpCore from "@mongodb-js/mcp-core";
+import type { ConnectionRegistry } from "@mongodb-js/mcp-tools-mongodb";
 import type * as McpToolsMongodb from "@mongodb-js/mcp-tools-mongodb";
 import { StreamableHttpRunner } from "@mongodb-js/mcp-http-runners";
 import type { TransportRequestContext } from "@mongodb-js/mcp-types";
@@ -28,7 +29,11 @@ vi.mock("@mongodb-js/mcp-tools-mongodb", async (importOriginal) => {
     return {
         ...actual,
         DeviceId: {
-            create: vi.fn().mockReturnValue({}),
+            create: vi.fn().mockReturnValue({
+                // Must not collide with the global crypto: createServerServices
+                // uses globalThis.crypto.randomUUID() for ephemeral scopes.
+                get: vi.fn((fn: () => string) => Promise.resolve(fn())),
+            }),
         },
         MCPConnectionManager: vi.fn().mockImplementation(function MockMCPConnectionManager() {
             return {};
@@ -51,41 +56,27 @@ vi.mock("@mongodb-js/mcp-core", async (importOriginal) => {
     };
 });
 
-const { createdSessions, createdServers } = vi.hoisted(() => ({
-    createdSessions: [] as Array<{ sessionId: string; config: unknown; connectionRegistry: unknown }>,
-    createdServers: [] as Array<{ id: number; session: unknown }>,
-}));
-
-vi.mock("./cliSession.js", () => ({
-    Session: class MockSession {
-        public sessionId = `mock-session-${createdSessions.length}`;
-        public config: unknown;
-        public connectionRegistry: unknown;
-        public logger = {};
-        constructor({ config, connectionRegistry }: { config: unknown; connectionRegistry: unknown }) {
-            this.config = config;
-            this.connectionRegistry = connectionRegistry;
-            createdSessions.push(this);
-        }
-        close(): Promise<void> {
-            return Promise.resolve();
-        }
-    },
+const { createdServers } = vi.hoisted(() => ({
+    createdServers: [] as Array<{ id: number; config: unknown; connectionRegistry: unknown }>,
 }));
 
 vi.mock("./cliServer.js", () => ({
     CliServer: class MockCliServer {
-        public session: unknown;
+        public config: unknown;
+        public connectionRegistry: { close(): Promise<void> };
         public mcpServer = { server: {} };
-        constructor({ session }: { session: unknown }) {
-            this.session = session;
-            createdServers.push({ id: createdServers.length, session });
+        constructor(options: { config: unknown; connectionRegistry: { close(): Promise<void> } }) {
+            this.config = options.config;
+            this.connectionRegistry = options.connectionRegistry;
+            createdServers.push({ id: createdServers.length, ...options });
         }
         connect(): Promise<void> {
             return Promise.resolve();
         }
+        // Mirrors the real CliServer.close(): the registry view is closed with
+        // the server (owned views reap their connections, unowned ones no-op).
         close(): Promise<void> {
-            return Promise.resolve();
+            return this.connectionRegistry.close();
         }
     },
 }));
@@ -98,11 +89,40 @@ import {
     CliMcpHttpServer,
     type SharedServerServices,
 } from "./createRunnerFromConfig.js";
+import { connectionScopeFromConfig, GLOBAL_CONNECTION_SCOPE, SESSION_ID_HEADER } from "./createServerServices.js";
 import { createExportsManagerFromConfig } from "./createExportsManagerFromConfig.js";
 import { createApiClientFromConfig } from "./createApiClientFromConfig.js";
 import { createTelemetryFromConfig } from "./createTelemetryFromConfig.js";
 import { createMonitoringServerFromConfig } from "./createMonitoringServerFromConfig.js";
 import { CliServer } from "./cliServer.js";
+
+// Example connection-scope policies. The library ships only the seam
+// (connectionScope is required, and `undefined` → ephemeral); the per-user and
+// per-client policies are the embedder's decision, so these are local fixtures
+// that exercise the seam's fail-closed behavior rather than public API.
+
+/** Per verified user via the OIDC `sub` claim (fail-closed: no `sub` → ephemeral). */
+function userPrincipalScope(request: TransportRequestContext): string | undefined {
+    if (!request.authInfo) {
+        return undefined;
+    }
+    const { clientId, extra } = request.authInfo;
+    const sub = extra?.sub;
+    if (typeof sub !== "string" || sub === "") {
+        return undefined;
+    }
+    // JSON-encode the tuple so it is injective regardless of the claim values
+    // (e.g. sub containing a delimiter or a quote cannot collide).
+    return `user:${JSON.stringify([clientId, sub])}`;
+}
+
+/** Per OAuth client application (application-level isolation; M2M only). */
+function clientIdScope(request: TransportRequestContext): string | undefined {
+    if (!request.authInfo) {
+        return undefined;
+    }
+    return `client:${request.authInfo.clientId}`;
+}
 
 describe("createSharedServicesFromConfig", () => {
     const serverMetadata = {
@@ -115,31 +135,36 @@ describe("createSharedServicesFromConfig", () => {
         vi.clearAllMocks();
     });
 
-    it("creates app-level infrastructure shared by all servers", async () => {
+    it("creates app-level infrastructure once, shared by every request", async () => {
         const config = UserConfigSchema.parse({
             telemetry: "disabled",
             loggers: ["stderr"],
         });
 
-        const services = await createSharedServicesFromConfig({
+        const sharedServices = await createSharedServicesFromConfig({
             config,
             serverMetadata,
             tools: [],
             resources: [],
             logger,
+            keychain: new Keychain(),
         });
 
         expect(createMonitoringServerFromConfig).toHaveBeenCalledWith(expect.objectContaining({ config }));
-        expect(services.config).toBe(config);
-        expect(services.metrics).toBeDefined();
-        expect(services.keychain).toBeDefined();
-        expect(services.deviceId).toBeDefined();
-        expect(services.connectionStore).toBeDefined();
-        expect(services.atlasLocalClient).toBeUndefined();
+        expect(createExportsManagerFromConfig).toHaveBeenCalledWith(expect.objectContaining({ config }));
+        expect(createApiClientFromConfig).toHaveBeenCalledWith(expect.objectContaining({ config, serverMetadata }));
+        expect(createTelemetryFromConfig).toHaveBeenCalledWith(expect.objectContaining({ config, serverMetadata }));
+        expect(sharedServices.config).toBe(config);
+        expect(sharedServices.metrics).toBeDefined();
+        expect(sharedServices.keychain).toBeDefined();
+        expect(sharedServices.deviceId).toBeDefined();
+        expect(sharedServices.connectionStore).toBeDefined();
+        expect(sharedServices.connectionRegistry).toBeDefined();
+        expect(sharedServices.atlasLocalClient).toBeUndefined();
     });
 });
 
-describe("createServerFromConfig (per-server isolation)", () => {
+describe("createServerFromConfig (request-scoped server)", () => {
     const serverMetadata = {
         mcpServerName: "MongoDB MCP Server",
         version: "1.2.3-test",
@@ -148,11 +173,10 @@ describe("createServerFromConfig (per-server isolation)", () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        createdSessions.length = 0;
         createdServers.length = 0;
     });
 
-    async function makeShared(
+    async function makeSharedServerServices(
         config: Parameters<typeof createSharedServicesFromConfig>[0]["config"]
     ): Promise<SharedServerServices> {
         return createSharedServicesFromConfig({
@@ -161,66 +185,58 @@ describe("createServerFromConfig (per-server isolation)", () => {
             tools: [],
             resources: [],
             logger,
+            keychain: new Keychain(),
         });
     }
 
-    it("wires config-based factories when creating a server", async () => {
+    it("wires config-based factories once at the app level", async () => {
         const config = UserConfigSchema.parse({
             telemetry: "disabled",
             loggers: ["stderr"],
         });
 
-        const shared = await makeShared(config);
-        const server = createServerFromConfig({ config, sharedServices: shared });
+        const sharedServices = await makeSharedServerServices(config);
+        const server = createServerFromConfig({ config, sharedServices });
 
         expect(server).toBeInstanceOf(CliServer);
-        expect(createExportsManagerFromConfig).toHaveBeenCalledWith(expect.objectContaining({ config }));
-        expect(createApiClientFromConfig).toHaveBeenCalledWith(expect.objectContaining({ config, serverMetadata }));
-        expect(createTelemetryFromConfig).toHaveBeenCalledWith(expect.objectContaining({ config, serverMetadata }));
-        expect(createMonitoringServerFromConfig).toHaveBeenCalledWith(expect.objectContaining({ config }));
+        expect(createExportsManagerFromConfig).toHaveBeenCalledTimes(1);
+        expect(createApiClientFromConfig).toHaveBeenCalledTimes(1);
+        expect(createTelemetryFromConfig).toHaveBeenCalledTimes(1);
+        expect(createMonitoringServerFromConfig).toHaveBeenCalledTimes(1);
     });
 
-    it("creates a fresh server per call with distinct sessions and connection registries", async () => {
+    it("creates a fresh server per call over the same shared app-level services", async () => {
         const config = UserConfigSchema.parse({
             telemetry: "disabled",
         });
 
-        const shared = await makeShared(config);
+        const sharedServices = await makeSharedServerServices(config);
 
-        const serverA = createServerFromConfig({ config, sharedServices: shared });
-        const serverB = createServerFromConfig({ config, sharedServices: shared });
+        const serverA = createServerFromConfig({ config, sharedServices });
+        const serverB = createServerFromConfig({ config, sharedServices });
 
         expect(serverA).not.toBe(serverB);
-        expect(serverA.session).not.toBe(serverB.session);
 
-        // Distinct session ids
-        const sessionA = createdSessions[0]!;
-        const sessionB = createdSessions[1]!;
-        expect(sessionA.sessionId).not.toBe(sessionB.sessionId);
+        // Both request-scoped servers share the SAME app-level connection
+        // registry: connections survive across requests.
+        expect(serverA.connectionRegistry).toBe(sharedServices.connectionRegistry);
+        expect(serverB.connectionRegistry).toBe(sharedServices.connectionRegistry);
 
-        // Each session gets its own scoped view of the shared connection store
-        expect(sessionA.connectionRegistry).toBeDefined();
-        expect(sessionB.connectionRegistry).toBeDefined();
-        expect(sessionA.connectionRegistry).not.toBe(sessionB.connectionRegistry);
-
-        // Session-scoped factories fire per server ...
-        expect(createExportsManagerFromConfig).toHaveBeenCalledTimes(2);
-        expect(createApiClientFromConfig).toHaveBeenCalledTimes(2);
-        expect(createTelemetryFromConfig).toHaveBeenCalledTimes(2);
-        // ... while the shared infrastructure was built exactly once for all
-        // servers (one monitoring server for the whole process).
-        expect(createMonitoringServerFromConfig).toHaveBeenCalledTimes(1);
-        expect(createdServers[0]!.session).toBe(createdSessions[0]);
+        // App-level factories ran exactly once for the whole process.
+        expect(createExportsManagerFromConfig).toHaveBeenCalledTimes(1);
+        expect(createApiClientFromConfig).toHaveBeenCalledTimes(1);
+        expect(createTelemetryFromConfig).toHaveBeenCalledTimes(1);
+        expect(createdServers).toHaveLength(2);
     });
 
-    it("isolates per-request config overrides across sessions", async () => {
+    it("carries per-request config overrides on the request-scoped server", async () => {
         const config = UserConfigSchema.parse({
             telemetry: "disabled",
             allowRequestOverrides: true,
             readOnly: false,
         });
 
-        const shared = await makeShared(config);
+        const sharedServices = await makeSharedServerServices(config);
         const { applyConfigOverrides } = await import("./config/configOverrides.js");
 
         const requestA: TransportRequestContext = {
@@ -235,15 +251,14 @@ describe("createServerFromConfig (per-server isolation)", () => {
         const configA = applyConfigOverrides({ baseConfig: config, request: requestA });
         const configB = applyConfigOverrides({ baseConfig: config, request: requestB });
 
-        const serverA = createServerFromConfig({ config: configA, sharedServices: shared });
-        const serverB = createServerFromConfig({ config: configB, sharedServices: shared });
+        const serverA = createServerFromConfig({ config: configA, sharedServices });
+        const serverB = createServerFromConfig({ config: configB, sharedServices });
 
-        // Per-request config isolation: override applies to one session only
-        expect((serverA.session as { config: { readOnly: boolean } }).config.readOnly).toBe(true);
-        expect((serverB.session as { config: { readOnly: boolean } }).config.readOnly).toBe(false);
+        // Per-request config isolation: override applies to one request only.
+        expect((serverA.config as { readOnly: boolean }).readOnly).toBe(true);
+        expect((serverB.config as { readOnly: boolean }).readOnly).toBe(false);
 
         expect(createdServers).toHaveLength(2);
-        expect(createdSessions).toHaveLength(2);
     });
 });
 
@@ -270,6 +285,7 @@ describe("createRunnerFromConfig", () => {
             tools: [],
             resources: [],
             logger,
+            keychain: new Keychain(),
         });
 
         expect(runner).toBeInstanceOf(StdioRunner);
@@ -287,13 +303,14 @@ describe("createRunnerFromConfig", () => {
             tools: [],
             resources: [],
             logger,
+            keychain: new Keychain(),
         });
 
         expect(runner).toBeInstanceOf(StreamableHttpRunner);
     });
 });
 
-describe("CliMcpHttpServer (per-request HTTP server isolation)", () => {
+describe("CliMcpHttpServer (per-request HTTP server)", () => {
     const serverMetadata = {
         mcpServerName: "MongoDB MCP Server",
         version: "1.2.3-test",
@@ -302,11 +319,10 @@ describe("CliMcpHttpServer (per-request HTTP server isolation)", () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        createdSessions.length = 0;
         createdServers.length = 0;
     });
 
-    async function makeShared(
+    async function makeSharedServerServices(
         config: Parameters<typeof createSharedServicesFromConfig>[0]["config"]
     ): Promise<SharedServerServices> {
         return createSharedServicesFromConfig({
@@ -315,6 +331,7 @@ describe("CliMcpHttpServer (per-request HTTP server isolation)", () => {
             tools: [],
             resources: [],
             logger,
+            keychain: new Keychain(),
         });
     }
 
@@ -324,15 +341,14 @@ describe("CliMcpHttpServer (per-request HTTP server isolation)", () => {
             telemetry: "disabled",
         });
 
-        const shared = await makeShared(config);
-        const runner = createHttpTransportRunnerFromConfig(shared);
+        const sharedServices = await makeSharedServerServices(config);
+        const runner = createHttpTransportRunnerFromConfig(sharedServices);
 
         expect(runner).toBeInstanceOf(StreamableHttpRunner);
         expect(createdServers).toHaveLength(0);
-        expect(createdSessions).toHaveLength(0);
     });
 
-    it("the CliMcpHttpServer creates a distinct server per session request", async () => {
+    it("the CliMcpHttpServer creates a distinct server per request over shared services", async () => {
         const config = UserConfigSchema.parse({
             transport: "http",
             telemetry: "disabled",
@@ -340,18 +356,9 @@ describe("CliMcpHttpServer (per-request HTTP server isolation)", () => {
             readOnly: false,
         });
 
-        const shared = await makeShared(config);
+        const sharedServices = await makeSharedServerServices(config);
         const mcpHttpServer = new CliMcpHttpServer({
-            sharedServices: shared,
-            sessionStore: new (await import("@mongodb-js/mcp-core")).SessionStore({
-                options: {
-                    idleTimeoutMS: config.idleTimeoutMs,
-                    notificationTimeoutMS: config.notificationTimeoutMs,
-                    maxSessions: config.maxSessions,
-                },
-                logger,
-                metrics: shared.metrics,
-            }),
+            sharedServices,
             options: {
                 http: {
                     host: config.httpHost,
@@ -359,11 +366,7 @@ describe("CliMcpHttpServer (per-request HTTP server isolation)", () => {
                     responseType: config.httpResponseType,
                     headers: config.httpHeaders,
                 },
-                session: {
-                    externallyManagedSessions: config.externallyManagedSessions,
-                    idleTimeoutMs: config.idleTimeoutMs,
-                    notificationTimeoutMs: config.notificationTimeoutMs,
-                },
+                connectionScope: connectionScopeFromConfig(config),
             },
         });
 
@@ -381,11 +384,476 @@ describe("CliMcpHttpServer (per-request HTTP server isolation)", () => {
         const serverB = await hook({ headers: {}, query: {} });
 
         expect(serverA).not.toBe(serverB);
-        expect(createdSessions).toHaveLength(2);
-        expect(createdSessions[0]!.connectionRegistry).not.toBe(createdSessions[1]!.connectionRegistry);
+        expect(createdServers).toHaveLength(2);
 
-        // Request override isolation: only the first session got read-only=true
-        expect((serverA as { session: { config: { readOnly: boolean } } }).session.config.readOnly).toBe(true);
-        expect((serverB as { session: { config: { readOnly: boolean } } }).session.config.readOnly).toBe(false);
+        // HTTP requests (even anonymous ones) get isolated registry views over
+        // the shared store — never the app-level registry itself.
+        expect((serverA as { connectionRegistry: unknown }).connectionRegistry).not.toBe(
+            sharedServices.connectionRegistry
+        );
+        expect((serverB as { connectionRegistry: unknown }).connectionRegistry).not.toBe(
+            sharedServices.connectionRegistry
+        );
+
+        // Request override isolation: only the first request got read-only=true
+        expect((serverA as { config: { readOnly: boolean } }).config.readOnly).toBe(true);
+        expect((serverB as { config: { readOnly: boolean } }).config.readOnly).toBe(false);
+    });
+
+    it("a per-user connection-scope policy isolates users within one shared OAuth client", async () => {
+        // Regression test: clientId identifies the OAuth client application,
+        // not the end user. Two users authenticated through the same shared
+        // client registration must not see each other's connections.
+        const config = UserConfigSchema.parse({
+            transport: "http",
+            telemetry: "disabled",
+        });
+
+        const sharedServices = await makeSharedServerServices(config);
+        const mcpHttpServer = new CliMcpHttpServer({
+            sharedServices,
+            options: {
+                http: {
+                    host: config.httpHost,
+                    port: config.httpPort,
+                    responseType: config.httpResponseType,
+                    headers: config.httpHeaders,
+                },
+                connectionScope: userPrincipalScope,
+            },
+        });
+
+        const hook = (
+            mcpHttpServer as unknown as {
+                createServerForRequest: (request: TransportRequestContext) => Promise<unknown>;
+            }
+        ).createServerForRequest.bind(mcpHttpServer);
+
+        const sharedClient = "shared-org-gateway";
+        const alice1 = await hook({
+            headers: {},
+            query: {},
+            authInfo: { token: "t", clientId: sharedClient, scopes: [], extra: { sub: "alice" } },
+        });
+        const alice2 = await hook({
+            headers: {},
+            query: {},
+            authInfo: { token: "t", clientId: sharedClient, scopes: [], extra: { sub: "alice" } },
+        });
+        // Bob authenticates through the SAME OAuth client as alice.
+        const bob = await hook({
+            headers: {},
+            query: {},
+            authInfo: { token: "t", clientId: sharedClient, scopes: [], extra: { sub: "bob" } },
+        });
+        // The same subject under a DIFFERENT client is also a different scope.
+        const otherClientAlice = await hook({
+            headers: {},
+            query: {},
+            authInfo: { token: "t", clientId: "other-client", scopes: [], extra: { sub: "alice" } },
+        });
+
+        const regAlice1 = (alice1 as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+        const regAlice2 = (alice2 as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+        const regBob = (bob as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+        const regOtherAlice = (otherClientAlice as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+
+        // Same user, same client → the connection survives across her requests.
+        const created = await regAlice1.createEntry({ name: "alice-conn" });
+        expect(await regAlice2.get(created.connectionId)).toBe(created);
+
+        // A different user behind the same OAuth client cannot see it...
+        expect(await regBob.get(created.connectionId)).toBeUndefined();
+        // ...and neither can the same subject under a different client.
+        expect(await regOtherAlice.get(created.connectionId)).toBeUndefined();
+    });
+
+    it("a per-user scope policy fails closed: requests without a usable sub claim get ephemeral, isolated scopes", async () => {
+        const config = UserConfigSchema.parse({
+            transport: "http",
+            telemetry: "disabled",
+        });
+
+        const sharedServices = await makeSharedServerServices(config);
+        const mcpHttpServer = new CliMcpHttpServer({
+            sharedServices,
+            options: {
+                http: {
+                    host: config.httpHost,
+                    port: config.httpPort,
+                    responseType: config.httpResponseType,
+                    headers: config.httpHeaders,
+                },
+                connectionScope: userPrincipalScope,
+            },
+        });
+
+        const hook = (
+            mcpHttpServer as unknown as {
+                createServerForRequest: (request: TransportRequestContext) => Promise<unknown>;
+            }
+        ).createServerForRequest.bind(mcpHttpServer);
+
+        const scopedUser = await hook({
+            headers: {},
+            query: {},
+            authInfo: { token: "t", clientId: "client-1", scopes: [], extra: { sub: "alice" } },
+        });
+        // Non-string claims do not qualify as a principal...
+        const numericSub = await hook({
+            headers: {},
+            query: {},
+            authInfo: { token: "t", clientId: "client-1", scopes: [], extra: { sub: 42 } },
+        });
+        // ...and neither does a missing claim.
+        const noPrincipal1 = await hook({
+            headers: {},
+            query: {},
+            authInfo: { token: "t", clientId: "client-1", scopes: [] },
+        });
+        const noPrincipal2 = await hook({
+            headers: {},
+            query: {},
+            authInfo: { token: "t", clientId: "client-1", scopes: [] },
+        });
+
+        const regUser = (scopedUser as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+        const regNumericSub = (numericSub as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+        const regNoPrincipal1 = (noPrincipal1 as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+        const regNoPrincipal2 = (noPrincipal2 as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+
+        // No silent sharing: a request without a usable `sub` gets an
+        // ephemeral scope — it cannot see the scoped user's entries...
+        const byUser = await regUser.createEntry({ name: "user-conn" });
+        expect(await regNoPrincipal1.get(byUser.connectionId)).toBeUndefined();
+        expect(await regNumericSub.get(byUser.connectionId)).toBeUndefined();
+
+        // ...and two principal-less requests do NOT fall back into one shared
+        // clientId namespace (the pre-fix behavior); each is ephemeral and
+        // isolated even from the other.
+        const ephemeral1 = await regNoPrincipal1.createEntry({ name: "ephemeral-conn" });
+        expect(await regNoPrincipal2.get(ephemeral1.connectionId)).toBeUndefined();
+        expect(await regNumericSub.get(ephemeral1.connectionId)).toBeUndefined();
+    });
+
+    it("a per-client connection-scope policy keys on the verified clientId, ignoring spoofable headers", async () => {
+        // Application-level scope: only safe when tokens represent the client
+        // application itself (M2M / client credentials) or when per-user
+        // isolation is explicitly not wanted.
+        const config = UserConfigSchema.parse({
+            transport: "http",
+            telemetry: "disabled",
+        });
+
+        const sharedServices = await makeSharedServerServices(config);
+        const mcpHttpServer = new CliMcpHttpServer({
+            sharedServices,
+            options: {
+                http: {
+                    host: config.httpHost,
+                    port: config.httpPort,
+                    responseType: config.httpResponseType,
+                    headers: config.httpHeaders,
+                },
+                connectionScope: clientIdScope,
+            },
+        });
+
+        const hook = (
+            mcpHttpServer as unknown as {
+                createServerForRequest: (request: TransportRequestContext) => Promise<unknown>;
+            }
+        ).createServerForRequest.bind(mcpHttpServer);
+
+        // Two requests from the same verified client share a scope even if
+        // they send different (spoofable) client-name headers.
+        const authedA1 = await hook({
+            headers: { "x-mcp-client-name": "spoofed" },
+            query: {},
+            authInfo: { token: "t", clientId: "verified-client-1", scopes: [] },
+        });
+        const authedA2 = await hook({
+            headers: { "x-mcp-client-name": "other-spoof" },
+            query: {},
+            authInfo: { token: "t", clientId: "verified-client-1", scopes: [] },
+        });
+        const authedB = await hook({
+            headers: { "x-mcp-client-name": "spoofed" },
+            query: {},
+            authInfo: { token: "t", clientId: "verified-client-2", scopes: [] },
+        });
+        // Unauthenticated requests get ephemeral scopes under this policy —
+        // the header is ignored, only verified identity keys the scope.
+        const unauthed1 = await hook({ headers: { "x-mcp-client-name": "spoofed" }, query: {} });
+        const unauthed2 = await hook({ headers: { "x-mcp-client-name": "spoofed" }, query: {} });
+
+        const regA1 = (authedA1 as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+        const regA2 = (authedA2 as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+        const regB = (authedB as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+        const regUnauthed1 = (unauthed1 as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+        const regUnauthed2 = (unauthed2 as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+
+        // Same verified clientId → the same connection is visible across requests,
+        // regardless of the (client-controlled) name headers.
+        const created = await regA1.createEntry({ name: "authed-conn" });
+        expect(await regA2.get(created.connectionId)).toBe(created);
+
+        // A different verified client cannot see it, even sending the same header.
+        expect(await regB.get(created.connectionId)).toBeUndefined();
+
+        // Unauthenticated requests are ephemeral and isolated — even from each other.
+        expect(await regUnauthed1.get(created.connectionId)).toBeUndefined();
+        const anonymous = await regUnauthed1.createEntry({ name: "anon-conn" });
+        expect(await regUnauthed2.get(anonymous.connectionId)).toBeUndefined();
+    });
+
+    it("a per-client scope is the embedder's choice — the seam does not protect a misapplied app-level policy", async () => {
+        // Documents the hazard: the library ships only the seam (connectionScope
+        // is required; `undefined` → ephemeral). If a consumer deliberately
+        // ships a clientId-scope for a multi-user deployment, two users of one
+        // shared client WILL share connections — there is no guard. That's why
+        // per-user isolation is the embedder's responsibility to get right.
+        const config = UserConfigSchema.parse({
+            transport: "http",
+            telemetry: "disabled",
+        });
+
+        const sharedServices = await makeSharedServerServices(config);
+        const mcpHttpServer = new CliMcpHttpServer({
+            sharedServices,
+            options: {
+                http: {
+                    host: config.httpHost,
+                    port: config.httpPort,
+                    responseType: config.httpResponseType,
+                    headers: config.httpHeaders,
+                },
+                connectionScope: clientIdScope,
+            },
+        });
+
+        const hook = (
+            mcpHttpServer as unknown as {
+                createServerForRequest: (request: TransportRequestContext) => Promise<unknown>;
+            }
+        ).createServerForRequest.bind(mcpHttpServer);
+
+        const alice = await hook({
+            headers: {},
+            query: {},
+            authInfo: { token: "t", clientId: "shared-org-gateway", scopes: [], extra: { sub: "alice" } },
+        });
+        const bob = await hook({
+            headers: {},
+            query: {},
+            authInfo: { token: "t", clientId: "shared-org-gateway", scopes: [], extra: { sub: "bob" } },
+        });
+
+        const regAlice = (alice as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+        const regBob = (bob as { connectionRegistry: ConnectionRegistry }).connectionRegistry;
+        const created = await regAlice.createEntry({ name: "alice-conn" });
+        // Under a clientId scope, bob can see alice's connection — the leak.
+        expect(await regBob.get(created.connectionId)).toBe(created);
+    });
+
+    it("fails closed when an HTTP request is served without a connectionScope policy", async () => {
+        const config = UserConfigSchema.parse({
+            transport: "http",
+            telemetry: "disabled",
+        });
+
+        const sharedServices = await makeSharedServerServices(config);
+        // Direct callers (not via CliMcpHttpServer) supplying a `request` must
+        // supply a policy — no implicit default is applied.
+        expect(() =>
+            createServerFromConfig({
+                config,
+                sharedServices,
+                request: { headers: {}, query: {} },
+            })
+        ).toThrow(/no connectionScope policy was set/);
+    });
+
+    it("ephemeral (anonymous) connections are reaped when the request-scoped server closes", async () => {
+        // v2.x `connectionScope: "session"` behavior: a session's connections
+        // die with it — the legacy sessionful path closes the server when the
+        // session ends. A legacy request with no session id is ephemeral.
+        const config = UserConfigSchema.parse({
+            transport: "http",
+            telemetry: "disabled",
+            connectionScope: "session",
+        });
+
+        const sharedServices = await makeSharedServerServices(config);
+        const server = createServerFromConfig({
+            config,
+            sharedServices,
+            request: { headers: {}, query: {}, mcp_client_protocol: "legacy" },
+            connectionScope: connectionScopeFromConfig(config),
+        });
+
+        const created = await server.connectionRegistry.createEntry({ name: "session-conn" });
+        // The app-level view sees the entry while the session is alive.
+        expect(await sharedServices.connectionRegistry.get(created.connectionId)).toBe(created);
+
+        await server.close();
+
+        // After the session ends, the ephemeral scope's entries are revoked —
+        // unreachable even from the unbound app-level view.
+        expect(await sharedServices.connectionRegistry.get(created.connectionId)).toBeUndefined();
+        expect(await server.connectionRegistry.get(created.connectionId)).toBeUndefined();
+    });
+
+    it("stable-scope connections survive the request-scoped server closing", async () => {
+        // Session-keyed (and auth-keyed) scopes are shared across requests, so
+        // closing one request's server must not reap them.
+        const config = UserConfigSchema.parse({
+            transport: "http",
+            telemetry: "disabled",
+            connectionScope: "session",
+        });
+
+        const sharedServices = await makeSharedServerServices(config);
+        const request: TransportRequestContext = {
+            headers: { [SESSION_ID_HEADER]: "sess-1" },
+            query: {},
+            mcp_client_protocol: "2026-07-28",
+        };
+        const server = createServerFromConfig({
+            config,
+            sharedServices,
+            request,
+            connectionScope: connectionScopeFromConfig(config),
+        });
+
+        const created = await server.connectionRegistry.createEntry({ name: "alice-conn" });
+        await server.close();
+
+        const nextRequest = createServerFromConfig({
+            config,
+            sharedServices,
+            request,
+            connectionScope: connectionScopeFromConfig(config),
+        });
+        expect(await nextRequest.connectionRegistry.get(created.connectionId)).toBe(created);
+    });
+
+    describe("connectionScope config (v2.x semantics)", () => {
+        it("defaults to 'session'", () => {
+            expect(UserConfigSchema.parse({}).connectionScope).toBe("session");
+        });
+
+        it("'global' shares one scope across all clients and survives session close", async () => {
+            const config = UserConfigSchema.parse({
+                transport: "http",
+                telemetry: "disabled",
+                connectionScope: "global",
+            });
+
+            const sharedServices = await makeSharedServerServices(config);
+            const policy = connectionScopeFromConfig(config);
+
+            const anon = createServerFromConfig({
+                config,
+                sharedServices,
+                request: { headers: {}, query: {} },
+                connectionScope: policy,
+            });
+            const another = createServerFromConfig({
+                config,
+                sharedServices,
+                request: { headers: {}, query: {} },
+                connectionScope: policy,
+            });
+
+            // Every request lands in the one global scope.
+            const created = await anon.connectionRegistry.createEntry({ name: "shared-conn" });
+            expect(await another.connectionRegistry.get(created.connectionId)).toBe(created);
+
+            // Session rotation does not reap global connections.
+            await anon.close();
+            expect(await another.connectionRegistry.get(created.connectionId)).toBe(created);
+        });
+
+        it("'session' keys on mcp-session-id; without one the sessionless path falls back to global", () => {
+            const config = UserConfigSchema.parse({
+                transport: "http",
+                telemetry: "disabled",
+                connectionScope: "session",
+            });
+
+            const policy = connectionScopeFromConfig(config);
+            // A request carrying an mcp-session-id resolves to that id.
+            expect(
+                policy({ headers: { [SESSION_ID_HEADER]: "sess-1" }, query: {}, mcp_client_protocol: "2026-07-28" })
+            ).toBe("sess-1");
+            // Sessionless request without an id → shared (global) scope.
+            expect(policy({ headers: {}, query: {}, mcp_client_protocol: "2026-07-28" })).toBe(GLOBAL_CONNECTION_SCOPE);
+            // Legacy sessionful request without an id → ephemeral (undefined).
+            expect(policy({ headers: {}, query: {}, mcp_client_protocol: "legacy" })).toBeUndefined();
+            // Oversized / non-string ids fail closed (no session id, so global on sessionless).
+            expect(
+                policy({
+                    headers: { [SESSION_ID_HEADER]: "x".repeat(600) },
+                    query: {},
+                    mcp_client_protocol: "2026-07-28",
+                })
+            ).toBe(GLOBAL_CONNECTION_SCOPE);
+            expect(
+                policy({ headers: { [SESSION_ID_HEADER]: ["a", "b"] }, query: {}, mcp_client_protocol: "2026-07-28" })
+            ).toBe(GLOBAL_CONNECTION_SCOPE);
+        });
+
+        it("stateless requests sharing an mcp-session-id see each other's connections", async () => {
+            const config = UserConfigSchema.parse({
+                transport: "http",
+                telemetry: "disabled",
+                connectionScope: "session",
+            });
+            const sharedServices = await makeSharedServerServices(config);
+            const policy = connectionScopeFromConfig(config);
+
+            const req = (id?: string): TransportRequestContext => ({
+                headers: id ? { [SESSION_ID_HEADER]: id } : {},
+                query: {},
+                mcp_client_protocol: "2026-07-28",
+            });
+
+            const a1 = createServerFromConfig({
+                config,
+                sharedServices,
+                request: req("sess-1"),
+                connectionScope: policy,
+            });
+            const a2 = createServerFromConfig({
+                config,
+                sharedServices,
+                request: req("sess-1"),
+                connectionScope: policy,
+            });
+            const b = createServerFromConfig({
+                config,
+                sharedServices,
+                request: req("sess-2"),
+                connectionScope: policy,
+            });
+            const anon1 = createServerFromConfig({ config, sharedServices, request: req(), connectionScope: policy });
+            const anon2 = createServerFromConfig({ config, sharedServices, request: req(), connectionScope: policy });
+
+            // Same session id → visible across requests (sessionless persistence).
+            const created = await a1.connectionRegistry.createEntry({ name: "sess-conn" });
+            expect(await a2.connectionRegistry.get(created.connectionId)).toBe(created);
+
+            // Different session id → isolated.
+            expect(await b.connectionRegistry.get(created.connectionId)).toBeUndefined();
+
+            // No session id → falls back to the shared (global) scope, so two
+            // anonymous sessionless requests share connections.
+            expect(await anon1.connectionRegistry.get(created.connectionId)).toBeUndefined();
+            const shared = await anon1.connectionRegistry.createEntry({ name: "anon-conn" });
+            expect(await anon2.connectionRegistry.get(shared.connectionId)).toBe(shared);
+            // ...but a session-keyed request cannot see the anonymous ones.
+            expect(await a1.connectionRegistry.get(shared.connectionId)).toBeUndefined();
+        });
     });
 });

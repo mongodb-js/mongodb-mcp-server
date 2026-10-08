@@ -25,16 +25,18 @@ export class InspectAccessListTool extends AtlasToolBase {
     static toolName = "atlas-inspect-access-list";
     public description = "Inspect Ip/CIDR ranges with access to your MongoDB Atlas clusters.";
     static operationType: OperationType = "read";
-    public argsShape = {
-        ...InspectAccessListArgs,
-    };
-    public override outputSchema = InspectAccessListOutputSchema;
+    public argsShape(): typeof InspectAccessListArgs {
+        return InspectAccessListArgs;
+    }
+    public override outputSchema(): typeof InspectAccessListOutputSchema {
+        return InspectAccessListOutputSchema;
+    }
 
     protected async execute(
-        { projectId }: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
-        const accessList = await this.apiClient.listAccessListEntries(
+        { projectId }: ToolArgs<ReturnType<typeof this.argsShape>>,
+        { request }: ToolExecutionContext
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
+        const accessList = await this.server.apiClient.listAccessListEntries(
             {
                 params: {
                     path: {
@@ -42,7 +44,7 @@ export class InspectAccessListTool extends AtlasToolBase {
                     },
                 },
             },
-            context
+            request
         );
 
         const results = accessList.results ?? [];
@@ -65,7 +67,11 @@ export class InspectAccessListTool extends AtlasToolBase {
         }));
 
         return {
-            content: formatUntrustedData(`Found ${results.length} access list entries`, JSON.stringify(entries)),
+            content: formatUntrustedData(
+                this.server.config,
+                `Found ${results.length} access list entries`,
+                JSON.stringify(entries)
+            ),
             structuredContent: {
                 projectId,
                 entries,

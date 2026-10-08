@@ -29,18 +29,32 @@ export abstract class ExpressBasedHttpServer {
     }
 
     private checkHttpHost(): void {
-        const host = this.httpOptions.host.trim();
+        const host = this.httpOptions.host;
+        const trimmed = host.trim();
+        // Loopback only. Everything else (0.0.0.0, ::, a LAN IP, a hostname, or
+        // an empty string meaning "listen on all interfaces") exposes the server
+        // to the network and is treated as dangerous.
         const safeHosts = new Set(["127.0.0.1", "localhost", "::1"]);
-        const shouldWarn = !safeHosts.has(host) && host !== "";
-
-        if (shouldWarn) {
-            this.logger.warning({
-                id: LogId.streamableHttpTransportHttpHostWarning,
-                context: this.logContext,
-                message: `Binding to ${this.httpOptions.host} can expose the MCP Server to the entire local network, which allows other devices on the same network to potentially access the MCP Server. This is a security risk and could allow unauthorized access to your database context.`,
-                noRedaction: true,
-            });
+        const isDangerous = !safeHosts.has(trimmed);
+        if (!isDangerous) {
+            return;
         }
+
+        const displayHost = host === "" ? "<all interfaces>" : host;
+        if (this.httpOptions.dangerousHostBinding !== true) {
+            throw new Error(
+                `Refusing to bind the ${this.logContext} server to non-loopback host "${displayHost}". ` +
+                    `Binding to this host exposes the server to the entire network and can allow unauthorized access to your database context. ` +
+                    `If you are intentionally exposing this server, pass --dangerousHostBinding or set the MDB_MCP_DANGEROUS_HOST_BINDING environment variable.`
+            );
+        }
+
+        this.logger.warning({
+            id: LogId.streamableHttpTransportHttpHostWarning,
+            context: this.logContext,
+            message: `Binding to ${displayHost} can expose the MCP Server to the entire local network, which allows other devices on the same network to potentially access the MCP Server. This is a security risk and could allow unauthorized access to your database context.`,
+            noRedaction: true,
+        });
     }
 
     public get serverAddress(): string {

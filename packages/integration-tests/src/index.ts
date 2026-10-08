@@ -21,7 +21,6 @@ export {
     connect,
     InMemoryLogger,
 } from "./integrationHelpers.js";
-
 export {
     prepareTestData,
     setupMongoDBIntegrationTest,
@@ -31,7 +30,6 @@ export {
     type MongoDBIntegrationTest,
     type MongoDBIntegrationTestCase,
     describeWithMongoDB,
-    syncMongoToolsConfigFromUserConfig,
     validateAutoConnectBehavior,
     getSingleDocFromUntrustedContent,
     getDocsFromUntrustedContent,

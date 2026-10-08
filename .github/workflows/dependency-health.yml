@@ -18,7 +18,7 @@ jobs:
     # against any other branch, even for manual workflow_dispatch runs.
     if: github.ref == 'refs/heads/main'
     steps:
-      - uses: mongodb-js/devtools-shared/actions/setup-bot-token@4b1d47bae509ef8c45c809893fa8a53dfc943c32 # main
+      - uses: mongodb-js/devtools-shared/actions/setup-bot-token@d9b3431b50a916345471259794a44bd4533fcc58 # main
         id: app-token
         with:
           app-id: ${{ vars.DEVTOOLS_BOT_APP_ID }}
@@ -65,7 +65,7 @@ jobs:
 
       - name: Configure AWS credentials for DevProd Platforms ECR
         if: always()
-        uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c # v6.2.4
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: ${{ secrets.DEVPROD_PLATFORMS_ECR_ROLE_ARN }}
           aws-region: us-east-1

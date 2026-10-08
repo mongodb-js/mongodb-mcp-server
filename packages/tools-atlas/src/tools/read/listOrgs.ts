@@ -28,16 +28,18 @@ export class ListOrganizationsTool extends AtlasToolBase {
     static toolName = "atlas-list-orgs";
     public description = "List MongoDB Atlas organizations";
     static operationType: OperationType = "read";
-    public argsShape = {
-        ...ListOrganizationsArgs,
-    };
-    public override outputSchema = ListOrganizationsOutputSchema;
+    public argsShape(): typeof ListOrganizationsArgs {
+        return ListOrganizationsArgs;
+    }
+    public override outputSchema(): typeof ListOrganizationsOutputSchema {
+        return ListOrganizationsOutputSchema;
+    }
 
     protected async execute(
-        { limit, pageNum, includeCount }: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
-        const data = await this.apiClient.listOrgs(
+        { limit, pageNum, includeCount }: ToolArgs<ReturnType<typeof this.argsShape>>,
+        { request }: ToolExecutionContext
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
+        const data = await this.server.apiClient.listOrgs(
             {
                 params: {
                     query: {
@@ -47,7 +49,7 @@ export class ListOrganizationsTool extends AtlasToolBase {
                     },
                 },
             },
-            context
+            request
         );
 
         const orgs = (data?.results ?? []).map((org) => ({
@@ -78,6 +80,7 @@ export class ListOrganizationsTool extends AtlasToolBase {
 
         return {
             content: formatUntrustedData(
+                this.server.config,
                 `Found ${orgs.length} organizations in your MongoDB Atlas account.${
                     moreResultsAvailable ? " Use pagination arguments if more results are expected." : ""
                 }`,

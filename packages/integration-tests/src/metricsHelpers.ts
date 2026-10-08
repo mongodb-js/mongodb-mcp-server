@@ -6,14 +6,18 @@
  * line is found.
  *
  * @example
- * parsePrometheusValue(body, "mcp_tool_execution_total", { status: "success" })
+ * parsePrometheusValue({ body, metricName: "mcp_tool_execution_total", labels: { status: "success" } })
  * // → 3
  */
-export function parsePrometheusValue(
-    body: string,
-    metricName: string,
-    labels: Record<string, string>
-): number | undefined {
+export function parsePrometheusValue({
+    body,
+    metricName,
+    labels,
+}: {
+    body: string;
+    metricName: string;
+    labels: Record<string, string>;
+}): number | undefined {
     for (const line of body.split("\n")) {
         if (line.startsWith("#") || !line.trim()) {
             continue;

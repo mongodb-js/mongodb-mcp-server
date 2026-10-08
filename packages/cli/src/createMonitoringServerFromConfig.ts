@@ -40,6 +40,7 @@ export function createMonitoringServerFromConfig({
             http: {
                 host,
                 port,
+                dangerousHostBinding: config.dangerousHostBinding,
             },
             features: config.monitoringServerFeatures,
         },

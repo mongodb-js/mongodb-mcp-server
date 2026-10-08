@@ -1,58 +1,131 @@
 import { z, type ZodRawShape } from "zod";
 import {
     isInputRequiredResult,
+    CLIENT_INFO_META_KEY,
     type RegisteredTool,
-    type McpServer,
     type CallToolResult,
     type InputRequiredResult,
     type ToolAnnotations,
     type ServerContext,
     type Notification,
     type StandardSchemaWithJSON,
+    type Implementation,
 } from "@modelcontextprotocol/server";
 import type {
-    ITelemetry,
     ConnectionMetadata,
     TelemetryToolMetadata,
     ToolEvent,
-    IToolSession,
-    IElicitation,
+    ToolServer,
     PreviewFeature,
-    IUIRegistry,
-    IMetrics,
     DefaultMetricDefinitions,
     OperationType,
     ToolCategory,
     ToolExecutionContext,
+    IToolConfig,
     SupportedConnectionState,
+    TransportRequestContext,
+    AtlasClusterConnectionInfo,
 } from "@mongodb-js/mcp-types";
 import { createUIResource, type UIResource } from "@mcp-ui/server";
 import { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
 import { getRandomUUID } from "@mongodb-js/mcp-core";
 import { requestIdAttr } from "./helpers/requestIdAttr.js";
+import { clientTelemetryProperties, protocolTelemetryProperties } from "./helpers/clientTelemetry.js";
 
 import { LogId } from "./logId.js";
 
 /**
  * Adapts the v2 SDK server context (`ctx`) to the tool execution context
  * consumed by tool implementations. The v2 SDK nests the per-request fields
- * (`signal`, `id`, `_meta`, `notify`) under `ctx.mcpReq` and the HTTP request
- * under `ctx.http` (see the SDK's v1 → v2 migration guide).
+ * (`signal`, `id`, `_meta`, `inputResponses`, `notify`) under `ctx.mcpReq`
+ * and the HTTP request under `ctx.http` (see the SDK's v1 → v2 migration
+ * guide).
+ *
+ * The request-scoped server is NOT carried on the execution context's request:
+ * a tool reads services/config off its construction-time `this.server` (the
+ * same request-scoped instance, which already holds the effective
+ * possibly-request-overridden config). The execution context carries only
+ * per-request data.
+ * @param clientInfo The client identity negotiated (or envelope-declared) for
+ * the request's server instance. The server holds no per-client state, so the
+ * identity is carried on the execution context instead.
  */
-function toToolExecutionContext(ctx: ServerContext): ToolExecutionContext {
+export function toToolExecutionContext<TConfig extends IToolConfig = IToolConfig>(
+    ctx: ServerContext,
+    clientInfo?: Implementation
+): ToolExecutionContext<TConfig> {
     const headers: Record<string, unknown> = Object.fromEntries(ctx.http?.req?.headers ?? []);
     // Tests capture the raw `McpServer.registerTool` callback and invoke it
     // without a real SDK context, so tolerate a missing/incomplete `mcpReq`.
     const mcpReq = (ctx as Partial<ServerContext>).mcpReq;
     return {
-        signal: mcpReq?.signal ?? new AbortController().signal,
-        requestId: mcpReq?.id,
-        _meta: mcpReq?._meta,
-        inputResponses: mcpReq?.inputResponses,
-        requestInfo: ctx.http?.req ? { headers } : undefined,
-        sendNotification: mcpReq?.notify
-            ? (notification: unknown): Promise<void> => mcpReq.notify(notification as Notification)
-            : undefined,
+        request: {
+            // raw is the original per-request `mcpReq` (id, method, _meta,
+            // envelope, signal, ...) this request was built around.
+            raw: mcpReq,
+            signal: mcpReq?.signal ?? new AbortController().signal,
+            id: mcpReq?.id,
+            _meta: mcpReq?._meta,
+            inputResponses: mcpReq?.inputResponses,
+            headers: ctx.http?.req ? headers : undefined,
+            sendNotification: mcpReq?.notify
+                ? (notification: unknown): Promise<void> => mcpReq.notify(notification as Notification)
+                : undefined,
+            clientInfo: normalizeClientInfo(resolveClientInfo(mcpReq, clientInfo)),
+        },
+    };
+}
+
+/**
+ * Resolves the client identity for a request. The 2026-07-28 protocol declares
+ * it on the per-request `_meta` envelope (`mcpReq.envelope[CLIENT_INFO_META_KEY]`),
+ * which is how a stateless per-request server learns it without an `initialize`
+ * handshake; the deprecated `Server.getClientVersion()` is only populated via the
+ * legacy `initialize` negotiation (or is backfilled from that same envelope).
+ * Prefer the envelope declaration, falling back to the negotiated value so both
+ * the modern (2026-07-28) and legacy (2025-era) paths report the client name.
+ */
+function resolveClientInfo(
+    mcpReq: ServerContext["mcpReq"] | undefined,
+    negotiated: Implementation | undefined
+): Implementation | undefined {
+    const envelope = mcpReq?.envelope;
+    if (isRecord(envelope)) {
+        const declared = envelope[CLIENT_INFO_META_KEY];
+        if (isImplementation(declared)) {
+            return declared;
+        }
+    }
+    return negotiated;
+}
+
+/** Narrow a possibly-undefined per-request envelope to a keyed object. */
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null;
+}
+
+/** Narrow for the per-request envelope's client identity value. */
+function isImplementation(value: unknown): value is Implementation {
+    return (
+        typeof value === "object" &&
+        value !== null &&
+        (typeof (value as { name?: unknown }).name === "string" ||
+            typeof (value as { version?: unknown }).version === "string")
+    );
+}
+
+/** Normalizes client identity fields, defaulting missing ones to `"unknown"`. */
+function normalizeClientInfo(
+    clientInfo: Implementation | undefined
+): { name?: string; version?: string; title?: string } | undefined {
+    if (!clientInfo) {
+        return undefined;
+    }
+    const version = clientInfo.version ?? "";
+    return {
+        name: clientInfo.name || "unknown",
+        version: version || "unknown",
+        title: clientInfo.title || "unknown",
     };
 }
 
@@ -75,65 +148,30 @@ type StructuredToolResult<OutputSchema extends ZodRawShape> = {
 };
 
 /**
- * Parameters passed to the constructor of all tools that extends `ToolBase`.
+ * The constructor argument every `ToolBase` subclass receives: the server
+ * itself, with the services it exposes carried by a services generic. There is
+ * deliberately no per-request "session" (or services) object — the server is
+ * the composition: it holds the individually-injected app-level services as
+ * fields (see {@link ToolServer}) plus the request-scoped infrastructure
+ * (MCP server, elicitation), and tools read everything from it.
  *
- * The MongoDB MCP Server automatically injects these parameters when
- * constructing tools and registering to the MCP Server.
- *
- * See `Server.registerTools` method in `src/server.ts` for further reference.
+ * Per-tool identity (`name`, `category`, `operationType`) is NOT passed in:
+ * it is read from the tool class's static properties at construction time.
  */
-export type ToolConstructorParams<
-    TSession extends IToolSession = IToolSession,
-    TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions,
-> = {
-    /**
-     * The unique name of this tool (injected from the static
-     * `toolName` property on the Tool class).
-     */
-    name: string;
-
-    /**
-     * The category that the tool belongs to (injected from the static
-     * `category` property on the Tool class).
-     */
-    category: ToolCategory;
-
-    /**
-     * The type of operation the tool performs (injected from the static
-     * `operationType` property on the Tool class).
-     */
-    operationType: OperationType;
-
-    /**
-     * An instance of Session class providing access to MongoDB connections,
-     * loggers, config, etc.
-     *
-     * See `src/common/session.ts` for further reference.
-     */
-    session: TSession;
-
-    /**
-     * The telemetry service for tracking tool usage.
-     *
-     * See `src/telemetry/telemetry.ts` for further reference.
-     */
-    telemetry: ITelemetry;
-
-    /**
-     * The elicitation service for requesting user confirmation.
-     *
-     * See `src/elicitation.ts` for further reference.
-     */
-    elicitation: IElicitation;
-
-    /**
-     * The metrics service for tracking tool usage.
-     *
-     * See `src/common/metrics/index.ts` for further reference.
-     */
-    metrics: IMetrics<TMetricsDefinitions>;
-
-    uiRegistry?: IUIRegistry;
+/**
+ * The object every {@link ToolBase} subclass receives at construction: the
+ * request-scoped server (carrying the services a tool reads) plus the transport
+ * request that drove server creation.
+ *
+ * The server carries the effective (possibly request-overridden) config and the
+ * app services (logger, telemetry, elicitation, metrics, ...). `transportRequest`
+ * is the transport context (headers, query, auth) that produced this server and is
+ * `undefined` for non-HTTP constructions (stdio / dry-run).
+ */
+export type ToolServerParam<TServer extends ToolServer = ToolServer> = {
+    server: TServer;
+    /** The transport request that drove server creation (— undefined for stdio / dry-run). */
+    transportRequest?: TransportRequestContext;
 };
 
 /**
@@ -141,13 +179,18 @@ export type ToolConstructorParams<
  * for the MongoDB MCP Server.
  *
  * This type enforces that tool classes have static properties `toolName`, `category`,
- * and `operationType` which are injected during instantiation of tool classes.
+ * and `operationType` which are used during instantiation of tool classes (the
+ * constructor receives only the {@link ToolServer}).
  *
  * @example
  * ```typescript
  * import { StreamableHttpRunner, UserConfigSchema } from "mongodb-mcp-server"
- * import { ToolBase, type ToolClass, type ToolCategory, type OperationType } from "@mongodb-js/mcp-core";
+ * import { ToolBase, type ToolClass, type ToolCategory, type OperationType, type ToolServer } from "@mongodb-js/mcp-core";
  * import { z } from "zod";
+ *
+ * const MyCustomToolArgsShape = {
+ *   query: z.string().describe("The query parameter"),
+ * };
  *
  * class MyCustomTool extends ToolBase {
  *   // Required static properties for ToolClass conformance
@@ -157,9 +200,9 @@ export type ToolConstructorParams<
  *
  *   // Required abstract properties
  *   public description = "My custom tool description";
- *   public argsShape = {
- *     query: z.string().describe("The query parameter"),
- *   };
+ *   public argsShape(): typeof MyCustomToolArgsShape {
+ *     return MyCustomToolArgsShape;
+ *   }
  *
  *   // Required abstract method: implement the tool's logic
  *   protected async execute(args) {
@@ -183,11 +226,11 @@ export type ToolConstructorParams<
  * ```
  */
 export type ToolClass<
-    TSession extends IToolSession = IToolSession,
+    TServer extends ToolServer = ToolServer,
     TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > = {
-    /** Constructor signature for the tool class */
-    new (args: ToolConstructorParams<TSession, TMetricsDefinitions>): ToolBase<TSession, TMetricsDefinitions>;
+    /** Constructor signature: `{ server, transportRequest }`. */
+    new (arg: ToolServerParam<TServer>): ToolBase<TServer, TMetricsDefinitions>;
 
     /**
      * The unique name of this tool.
@@ -206,7 +249,7 @@ export type ToolClass<
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyToolClass = Omit<ToolClass<any, any>, "new"> & {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    new (args: ToolConstructorParams<any, any>): AnyToolBase;
+    new (arg: ToolServerParam<ToolServer<any>>): AnyToolBase;
 };
 
 /**
@@ -220,7 +263,7 @@ export type AnyToolClass = Omit<ToolClass<any, any>, "new"> & {
  * To create a custom tool, you must:
  * 1. Extend the `ToolBase` class
  * 2. Define static properties: `toolName`, `category`, and `operationType`
- * 3. Implement required abstract members: `description`, `argsShape`,
+ * 3. Implement required abstract members: `description`, `argsShape()`,
  *    `execute()`, `resolveTelemetryMetadata()`
  *
  * @example Basic Custom Tool
@@ -228,6 +271,10 @@ export type AnyToolClass = Omit<ToolClass<any, any>, "new"> & {
  * import { StreamableHttpRunner, UserConfigSchema } from "mongodb-mcp-server"
  * import { ToolBase, type ToolClass, type ToolCategory, type OperationType } from "@mongodb-js/mcp-core";
  * import { z } from "zod";
+ *
+ * const MyCustomToolArgsShape = {
+ *   query: z.string().describe("The query parameter"),
+ * };
  *
  * class MyCustomTool extends ToolBase {
  *   // Required static properties for ToolClass conformance
@@ -237,9 +284,9 @@ export type AnyToolClass = Omit<ToolClass<any, any>, "new"> & {
  *
  *   // Required abstract properties
  *   public description = "My custom tool description";
- *   public argsShape = {
- *     query: z.string().describe("The query parameter"),
- *   };
+ *   public argsShape(): typeof MyCustomToolArgsShape {
+ *     return MyCustomToolArgsShape;
+ *   }
  *
  *   // Required abstract method: implement the tool's logic
  *   protected async execute(args) {
@@ -264,11 +311,13 @@ export type AnyToolClass = Omit<ToolClass<any, any>, "new"> & {
  *
  * ## Protected Members Available to Subclasses
  *
- * - `session` - Access to MongoDB connection, logger, and other session
- *   resources
- * - `config` - Server configuration (`IToolConfig`)
- * - `telemetry` - Telemetry service for tracking usage
- * - `elicitation` - Service for requesting user confirmations
+ * - `server` - The server this tool reads its app-level services from
+ *   (logger, keychain, telemetry, metrics, ...). Every server is
+ *   request-scoped (the SDK constructs a fresh one per HTTP request), so
+ *   `server.config` already holds the effective per-request config — read it
+ *   directly off `this.server`.
+ * - `server.telemetry` - Telemetry service for tracking usage
+ * - `server.elicitation` - Service for requesting user confirmations
  *
  * ## Instance Properties Set by Constructor
  *
@@ -285,15 +334,28 @@ export type AnyToolClass = Omit<ToolClass<any, any>, "new"> & {
  * - `handleError()` - Customize error handling behavior
  *
  * @see {@link ToolClass} for the type that tool classes must conform to
- * @see {@link ToolConstructorParams} for the parameters passed to the
- * constructor
+ * @see {@link ToolServer} for the service surface a tool reads from its
+ * server
  */
 export abstract class ToolBase<
-    TSession extends IToolSession = IToolSession,
+    TServer extends ToolServer = ToolServer,
     TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions,
 > {
     /**
-     * The unique name of this tool.
+     * The server this tool reads its services from. Services are carried on
+     * the server as fields (see {@link ToolServer}) — there is no per-request
+     * "session" (or services) object; the server is the composition.
+     */
+    protected readonly server: TServer;
+
+    /**
+     * The transport request that drove creation of this server (`undefined` for
+     * non-HTTP constructions such as stdio / dry-run).
+     */
+    protected readonly transportRequest?: TransportRequestContext;
+
+    /**
+     * The unique name of this tool (read from the class static).
      *
      * Must be unique across all tools in the server.
      */
@@ -325,32 +387,45 @@ export abstract class ToolBase<
     public abstract description: string;
 
     /**
-     * Zod schema defining the tool's arguments.
+     * Returns the Zod schema defining the tool's arguments.
      *
-     * Use an empty object `{}` if the tool takes no arguments.
+     * Must return a stable, module-level object (defined outside the class) so
+     * that every instance of this tool shares the same schema object rather
+     * than rebuilding it on each construction. Return an empty object `{}` if
+     * the tool takes no arguments.
      *
      * @example
      * ```typescript
-     * public argsShape = {
+     * const MyToolArgsShape = {
      *   query: z.string().describe("The search query"),
      *   limit: z.number().optional().describe("Maximum results to return"),
      * };
+     *
+     * public argsShape(): typeof MyToolArgsShape {
+     *   return MyToolArgsShape;
+     * }
      * ```
      */
-    public abstract argsShape: ZodRawShape;
+    public abstract argsShape(): ZodRawShape;
 
     /**
      * Optional Zod schema defining the tool's structured output.
      *
      * This schema is registered with the MCP server and used to validate
-     * `structuredContent` in the tool's response.
+     * `structuredContent` in the tool's response. Must return a stable,
+     * module-level object (defined outside the class) so that every instance
+     * of this tool shares the same schema object.
      *
      * @example
      * ```typescript
-     * protected outputSchema = {
+     * const MyToolOutputSchema = {
      *   items: z.array(z.object({ name: z.string(), count: z.number() })),
      *   totalCount: z.number(),
      * };
+     *
+     * protected outputSchema(): typeof MyToolOutputSchema {
+     *   return MyToolOutputSchema;
+     * }
      *
      * protected async execute(): Promise<CallToolResult> {
      *   const items = await this.fetchItems();
@@ -361,7 +436,7 @@ export abstract class ToolBase<
      * }
      * ```
      */
-    public outputSchema?: ZodRawShape;
+    public outputSchema?(): ZodRawShape;
 
     /**
      * Normalizes the raw arguments of a tool call before they are validated against `argsShape`.
@@ -437,12 +512,12 @@ export abstract class ToolBase<
      * ```
      */
     protected get toolMeta(): Record<string, unknown> {
-        const transport = this.session.config.transport;
+        const transport = this.server.config.transport;
         let maxRequestPayloadBytes = TRANSPORT_PAYLOAD_LIMITS[transport] ?? TRANSPORT_PAYLOAD_LIMITS.stdio;
 
         // If the transport is http and the httpBodyLimit is set, use the httpBodyLimit
-        if (transport === "http" && this.session.config.httpBodyLimit) {
-            maxRequestPayloadBytes = this.session.config.httpBodyLimit;
+        if (transport === "http" && this.server.config.httpBodyLimit) {
+            maxRequestPayloadBytes = this.server.config.httpBodyLimit;
         }
 
         return {
@@ -462,13 +537,15 @@ export abstract class ToolBase<
      * result conforming to the MCP protocol.
      *
      * @param args - The validated arguments passed to the tool
-     * @param context - The execution context containing signal and optional request info
+     * @param context - The execution context carrying the request object
+     * (`context.request`) with the effective config, raw request, signal and
+     * optional request info
      * @returns A promise resolving to the tool execution result
      *
      * @example
      * ```typescript
-     * protected async execute(args: { query: string }, context): Promise<CallToolResult> {
-     *   const results = await this.session.db.collection('items').find({
+     * protected async execute(args: { query: string }, { request }: ToolExecutionContext): Promise<CallToolResult> {
+     *   const results = await this.connectionRegistry.resolve(args.connectionId).find({
      *     name: { $regex: args.query, $options: 'i' }
      *   }).toArray();
      *
@@ -482,13 +559,13 @@ export abstract class ToolBase<
      * ```
      */
     protected abstract execute(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         context: ToolExecutionContext
     ): Promise<CallToolResult | InputRequiredResult>;
 
     /** This is used internally by the server to invoke the tool. It can also be run manually to call the tool directly. */
     public async invoke(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         context: ToolExecutionContext
     ): Promise<CallToolResult | InputRequiredResult> {
         const startTime: number = Date.now();
@@ -501,11 +578,11 @@ export abstract class ToolBase<
         const recordOutcome = (result: CallToolResult, error?: unknown): void => {
             // Time the user spent answering an elicitation is not time the tool
             // spent working, so it counts towards neither duration below.
-            const executionStartTime = startTime + (context.elicitationDurationMs ?? 0);
+            const executionStartTime = startTime + (context.request.elicitationDurationMs ?? 0);
 
-            this.emitToolEvent(args, { startTime: executionStartTime, result });
+            this.emitToolEvent(args, { startTime: executionStartTime, result, clientInfo: context.request.clientInfo });
 
-            this.metrics.get("toolExecutionDuration").observe(
+            this.server.metrics.get("toolExecutionDuration").observe(
                 {
                     tool_name: this.name,
                     category: this.category,
@@ -518,7 +595,7 @@ export abstract class ToolBase<
         };
 
         try {
-            if (this.requiresConfirmation() && this.elicitation.supportsElicitation()) {
+            if (this.requiresConfirmation() && this.server.elicitation.supportsElicitation()) {
                 // Multi-round-trip elicitation (protocol revision 2026-07-28):
                 // the first entry returns an `inputRequired` result asking the
                 // user to confirm; on re-entry the answers are read back from
@@ -528,31 +605,30 @@ export abstract class ToolBase<
                 // without prompting.
                 const confirmed = this.requestConfirmation(this.getConfirmationMessage(args), context);
                 if (confirmed === undefined) {
-                    return this.elicitation.confirmationRequired(this.getConfirmationMessage(args));
+                    return this.server.elicitation.confirmationRequired(this.getConfirmationMessage(args));
                 }
 
                 if (!confirmed) {
                     const text = `User did not confirm the execution of the \`${this.name}\` tool so the operation was not performed.`;
-                    this.session.logger.debug({
+                    this.server.logger.debug({
                         id: LogId.toolExecute,
                         context: "tool",
                         message: text,
                         noRedaction: true,
-                        attributes: { ...requestIdAttr(context.requestInfo?.headers) },
+                        attributes: { ...requestIdAttr(context.request.headers) },
                     });
                     const declined: CallToolResult = { content: [{ type: "text", text }], isError: true };
                     recordOutcome(declined);
                     return declined;
                 }
             }
-            this.session.logger.debug({
+            this.server.logger.debug({
                 id: LogId.toolExecute,
                 context: "tool",
                 message: `Executing tool ${this.name}`,
                 noRedaction: true,
-                attributes: { ...requestIdAttr(context.requestInfo?.headers) },
+                attributes: { ...requestIdAttr(context.request.headers) },
             });
-
             const toolCallResult = await this.execute(args, context);
             if (isInputRequiredResult(toolCallResult)) {
                 // Multi-round-trip: the tool needs more input (e.g. write-stage
@@ -564,20 +640,20 @@ export abstract class ToolBase<
 
             recordOutcome(result);
 
-            this.session.logger.debug({
+            this.server.logger.debug({
                 id: LogId.toolExecute,
                 context: "tool",
                 message: `Executed tool ${this.name}`,
                 noRedaction: true,
-                attributes: { ...requestIdAttr(context.requestInfo?.headers) },
+                attributes: { ...requestIdAttr(context.request.headers) },
             });
             return result;
         } catch (error: unknown) {
-            this.session.logger.error({
+            this.server.logger.error({
                 id: LogId.toolExecuteFailure,
                 context: "tool",
                 message: `Error executing ${this.name}: ${error as string}`,
-                attributes: { ...requestIdAttr(context.requestInfo?.headers) },
+                attributes: { ...requestIdAttr(context.request.headers) },
             });
             const toolResult = await this.handleError(error, args);
 
@@ -605,24 +681,24 @@ export abstract class ToolBase<
      * ```
      */
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    protected getConfirmationMessage(args: ToolArgs<typeof this.argsShape>): string {
+    protected getConfirmationMessage(args: ToolArgs<ReturnType<typeof this.argsShape>>): string {
         return `You are about to execute the \`${this.name}\` tool which requires additional confirmation. Would you like to proceed?`;
     }
 
     /** Checks if the tool requires elicitation */
     public requiresConfirmation(): boolean {
-        return this.session.config.confirmationRequiredTools.includes(this.name);
+        return this.server.config.confirmationRequiredTools.includes(this.name);
     }
 
     /**
      * Asks the user to confirm an operation.
      *
      * Multi-round-trip elicitation (protocol revision 2026-07-28): on the
-     * first entry this reads `context.inputResponses` and, when this round
-     * carries no answer yet, returns `undefined` — the caller must return
-     * {@link IElicitation.confirmationRequired} from its handler instead of
-     * proceeding. On re-entry it resolves to `true` when the user accepted
-     * and `false` when they declined.
+     * first entry this reads `context.request.inputResponses` and, when this
+     * round carries no answer yet, returns `undefined` — the caller must
+     * return `IElicitation.confirmationRequired` from its handler
+     * instead of proceeding. On re-entry it resolves to `true` when the user
+     * accepted and `false` when they declined.
      *
      * This is automatically called by `invoke` for confirmationRequired tools.
      * Other tools can call it at any point of their execution, which matters when
@@ -632,157 +708,39 @@ export abstract class ToolBase<
      * elicitation, matching how confirmation-required tools behave there.
      *
      * @param message - The message to display to the user.
-     * @param context - The tool execution context.
+     * @param context - The tool execution context (carries the request
+     * object under `request`).
      * @returns `true` when confirmed, `false` when declined, `undefined` when
      * this round carries no answer yet (return
-     * {@link IElicitation.confirmationRequired} instead).
+     * `IElicitation.confirmationRequired` instead).
      */
     protected requestConfirmation(message: string, context: ToolExecutionContext): boolean | undefined {
-        const confirmed = this.elicitation.readConfirmation(context.inputResponses);
-        this.session.logger.info({
+        const confirmed = this.server.elicitation.readConfirmation(context.request.inputResponses);
+        this.server.logger.info({
             id: LogId.toolConfirmationRequested,
             context: "tool",
             message: `Requesting user confirmation for ${this.name}`,
             noRedaction: true,
             attributes: {
                 tool: this.name,
-                requestId: context.requestId !== undefined ? String(context.requestId) : "(undefined)",
+                requestId: context.request.id !== undefined ? String(context.request.id) : "(undefined)",
                 confirmed: confirmed !== undefined ? String(confirmed) : "pending",
-                ...requestIdAttr(context.requestInfo?.headers),
+                ...requestIdAttr(context.request.headers),
             },
         });
         return confirmed;
     }
 
-    /**
-     * Access to the session instance. Provides access to MongoDB connections,
-     * loggers, connection manager, config, and other session-level resources.
-     */
-    protected readonly session: TSession;
-
-    /** Access to the session's configuration. */
-    protected get config(): TSession["config"] {
-        return this.session.config;
-    }
-
-    /**
-     * Access to the telemetry service. Use this to emit custom telemetry events
-     * if needed.
-     */
-    protected readonly telemetry: ITelemetry;
-
-    /**
-     * Access to the elicitation service. Use this to request user confirmations
-     * or inputs during tool execution.
-     */
-    protected readonly elicitation: IElicitation;
-
-    /**
-     * Access to the metrics service. Use this to emit custom metrics events
-     * if needed.
-     */
-    protected readonly metrics: IMetrics<TMetricsDefinitions>;
-
-    private readonly uiRegistry?: IUIRegistry;
-
-    constructor({
-        name,
-        category,
-        operationType,
-        session,
-        telemetry,
-        elicitation,
-        metrics,
-        uiRegistry,
-    }: ToolConstructorParams<TSession, TMetricsDefinitions>) {
-        this.name = name;
+    constructor({ server, transportRequest }: ToolServerParam<TServer>) {
+        this.server = server;
+        this.transportRequest = transportRequest;
+        const { toolName, category, operationType } = this.constructor as ToolClass<TServer, TMetricsDefinitions>;
+        this.name = toolName;
         this.category = category;
         this.operationType = operationType;
-        this.session = session;
-        this.telemetry = telemetry;
-        this.elicitation = elicitation;
-        this.metrics = metrics;
-        this.uiRegistry = uiRegistry;
     }
 
-    /**
-     * Schemas are session-invariant, so they are built once per concrete tool
-     * class and config variant, then shared across every session. Both caches
-     * are keyed by the concrete constructor; the input cache is additionally
-     * keyed by `schemaVariantKey()` to separate config-dependent variants.
-     */
-    private static readonly sharedInputSchemas = new WeakMap<
-        object,
-        Map<string, { shape: ZodRawShape; schema: z.ZodType }>
-    >();
-    private static readonly sharedOutputSchemas = new WeakMap<object, { shape: ZodRawShape; schema: z.ZodType }>();
-
-    /**
-     * Identifies config-dependent variations of a tool's `argsShape`. Tools that
-     * vary their shape by config override this so each variant is cached and
-     * shared separately. The default reports no variation.
-     */
-    protected schemaVariantKey(): string {
-        return "";
-    }
-
-    /**
-     * Returns the shared strict input schema for this tool's config variant,
-     * building it once. Also redirects this instance's `argsShape` to the shared
-     * shape so its own per-instance graph becomes collectible.
-     */
-    private resolveSharedInputSchema(): z.ZodType {
-        const ctor = this.constructor;
-        let byVariant = ToolBase.sharedInputSchemas.get(ctor);
-        if (!byVariant) {
-            byVariant = new Map();
-            ToolBase.sharedInputSchemas.set(ctor, byVariant);
-        }
-        const key = this.schemaVariantKey();
-        let entry = byVariant.get(key);
-        if (!entry) {
-            // Wrap the raw shape in a strict object so the SDK rejects unrecognized
-            // argument keys instead of silently stripping them (see MCP-602). Only the
-            // top-level object is strict; nested schemas keep their own behavior.
-            entry = { shape: this.argsShape, schema: z.object(this.argsShape).strict() };
-            byVariant.set(key, entry);
-        }
-        this.redirectToSharedShape("argsShape", entry.shape);
-        return entry.schema;
-    }
-
-    /**
-     * Points a class-field schema property at the shared shape so the instance's
-     * own graph becomes collectible. Getter-based tools recompute their shape
-     * transiently and hold nothing to release, so they are left untouched.
-     */
-    private redirectToSharedShape(property: "argsShape" | "outputSchema", shape: ZodRawShape): void {
-        const descriptor = Object.getOwnPropertyDescriptor(this, property);
-        if (descriptor && "value" in descriptor && descriptor.writable) {
-            this[property] = shape;
-        }
-    }
-
-    /**
-     * Returns the shared output schema for this tool, building it once. Output
-     * schemas do not vary by config. Redirects this instance's `outputSchema` to
-     * the shared shape so its own per-instance graph becomes collectible.
-     */
-    private resolveSharedOutputSchema(): z.ZodType | undefined {
-        if (!this.outputSchema) {
-            return undefined;
-        }
-        const ctor = this.constructor;
-        let entry = ToolBase.sharedOutputSchemas.get(ctor);
-        if (!entry) {
-            entry = { shape: this.outputSchema, schema: z.object(this.outputSchema) };
-            ToolBase.sharedOutputSchemas.set(ctor, entry);
-        }
-        this.redirectToSharedShape("outputSchema", entry.shape);
-        return entry.schema;
-    }
-
-    public register(server: { mcpServer: McpServer }): boolean {
+    public register(): boolean {
         if (!this.verifyAllowed()) {
             return false;
         }
@@ -792,9 +750,9 @@ export abstract class ToolBase<
             // raw `z.ZodType` shapes assembled from `ZodRawShape` here, TypeScript
             // cannot infer the callback's args type, so we register through a
             // structurally-typed wrapper and route through `invoke`.
-            /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion -- the generic registers are not directly assignable to this callback shape */
+            /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion, max-params -- the generic registers are not directly assignable to this callback shape, and registerTool's signature is a fixed (name, config, cb) contract */
             (
-                server.mcpServer.registerTool as unknown as (
+                this.server.mcpServer.registerTool as unknown as (
                     name: string,
                     config: {
                         description?: string;
@@ -804,23 +762,53 @@ export abstract class ToolBase<
                         _meta?: Record<string, unknown>;
                     },
                     cb: (
-                        args: ToolArgs<ZodRawShape>,
+                        args: ToolArgs<ReturnType<typeof this.argsShape>>,
                         ctx: ServerContext
                     ) => Promise<CallToolResult | InputRequiredResult>
                 ) => RegisteredTool
             )(
-                /* eslint-enable @typescript-eslint/no-unnecessary-type-assertion */ this.name,
+                /* eslint-enable @typescript-eslint/no-unnecessary-type-assertion, max-params */ this.name,
                 {
                     description: this.description,
-                    inputSchema: this.resolveSharedInputSchema(),
-                    outputSchema: this.resolveSharedOutputSchema(),
+                    // Wrap the raw shape in a strict object so the SDK rejects unrecognized
+                    // argument keys instead of silently stripping them (see MCP-602). Only the
+                    // top-level object is strict; nested schemas keep their own behavior.
+                    inputSchema: ToolBase.cachedInputSchema(this.argsShape()),
+                    outputSchema: ToolBase.cachedOutputSchema(this.outputSchema?.()),
                     annotations: this.annotations,
                     _meta: this.toolMeta,
                 },
-                (args, ctx) => this.invoke(args, toToolExecutionContext(ctx))
+                // The request-scoped server is already the tool's construction-time
+                // `this.server` (same instance), so tools read config/services off
+                // `this.server` rather than the request. Per-request identity travels
+                // on the execution context via `toToolExecutionContext`.
+                (args, ctx) =>
+                    this.invoke(args, toToolExecutionContext(ctx, this.server.mcpServer?.server?.getClientVersion()))
             );
 
         return true;
+    }
+
+    // Caches so that we always pass the same instances to the MCP SDK
+    private static inputSchemaCache = new WeakMap<ZodRawShape, z.ZodObject<ZodRawShape>>();
+    private static outputSchemaCache = new WeakMap<ZodRawShape, z.ZodObject<ZodRawShape>>();
+    private static cachedInputSchema(inputShape: ZodRawShape): z.ZodObject<ZodRawShape> {
+        if (!this.inputSchemaCache.has(inputShape)) {
+            this.inputSchemaCache.set(inputShape, z.object(inputShape).strict());
+        }
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        return this.inputSchemaCache.get(inputShape)!;
+    }
+
+    private static cachedOutputSchema(outputShape: ZodRawShape | undefined): z.ZodObject<ZodRawShape> | undefined {
+        if (!outputShape) {
+            return undefined;
+        }
+        if (!this.outputSchemaCache.has(outputShape)) {
+            this.outputSchemaCache.set(outputShape, z.object(outputShape).strict());
+        }
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        return this.outputSchemaCache.get(outputShape)!;
     }
 
     public isEnabled(): boolean {
@@ -829,7 +817,7 @@ export abstract class ToolBase<
 
     public disable(): void {
         if (!this.registeredTool) {
-            this.session.logger.warning({
+            this.server.logger.warning({
                 id: LogId.toolMetadataChange,
                 context: `tool - ${this.name}`,
                 message: "Requested disabling of tool but it was never registered",
@@ -841,7 +829,7 @@ export abstract class ToolBase<
 
     public enable(): void {
         if (!this.registeredTool) {
-            this.session.logger.warning({
+            this.server.logger.warning({
                 id: LogId.toolMetadataChange,
                 context: `tool - ${this.name}`,
                 message: "Requested enabling of tool but it was never registered",
@@ -856,18 +844,18 @@ export abstract class ToolBase<
         let errorClarification: string | undefined;
 
         // Check read-only mode first
-        if (this.session.config.readOnly && !["read", "metadata", "connect"].includes(this.operationType)) {
+        if (this.server.config.readOnly && !["read", "metadata", "connect"].includes(this.operationType)) {
             errorClarification = `read-only mode is enabled, its operation type, \`${this.operationType}\`,`;
-        } else if (this.session.config.disabledTools.includes(this.category)) {
+        } else if (this.server.config.disabledTools.includes(this.category)) {
             errorClarification = `its category, \`${this.category}\`,`;
-        } else if (this.session.config.disabledTools.includes(this.operationType)) {
+        } else if (this.server.config.disabledTools.includes(this.operationType)) {
             errorClarification = `its operation type, \`${this.operationType}\`,`;
-        } else if (this.session.config.disabledTools.includes(this.name)) {
+        } else if (this.server.config.disabledTools.includes(this.name)) {
             errorClarification = `it`;
         }
 
         if (errorClarification) {
-            this.session.logger.debug({
+            this.server.logger.debug({
                 id: LogId.toolDisabled,
                 context: "tool",
                 message: `Prevented registration of ${this.name} because ${errorClarification} is disabled in the config`,
@@ -911,10 +899,10 @@ export abstract class ToolBase<
     protected handleError(
         error: unknown,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        args: z.infer<z.ZodObject<typeof this.argsShape>>
+        args: z.infer<z.ZodObject<ReturnType<typeof this.argsShape>>>
     ): Promise<CallToolResult> | CallToolResult {
         const rawMessage = error instanceof Error ? error.message : String(error);
-        const safeMessage = this.session.keychain.redact(rawMessage);
+        const safeMessage = this.server.keychain.redact(rawMessage);
         return {
             content: [
                 {
@@ -951,7 +939,7 @@ export abstract class ToolBase<
      * ```
      */
     protected abstract resolveTelemetryMetadata(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         { result }: { result: CallToolResult }
     ): TelemetryToolMetadata | Promise<TelemetryToolMetadata>;
 
@@ -964,10 +952,14 @@ export abstract class ToolBase<
      * @param args - The arguments passed to the tool
      */
     private emitToolEvent(
-        args: ToolArgs<typeof this.argsShape>,
-        { startTime, result }: { startTime: number; result: CallToolResult }
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
+        {
+            startTime,
+            result,
+            clientInfo,
+        }: { startTime: number; result: CallToolResult; clientInfo?: { name?: string; version?: string } }
     ): void {
-        if (!this.telemetry.isTelemetryEnabled()) {
+        if (!this.server.telemetry.isTelemetryEnabled()) {
             return;
         }
         const duration = Date.now() - startTime;
@@ -983,13 +975,15 @@ export abstract class ToolBase<
                     component: "tool",
                     duration_ms: duration,
                     result: result.isError ? "failure" : "success",
+                    ...clientTelemetryProperties(clientInfo),
+                    ...protocolTelemetryProperties(this.server.mcpServer, this.transportRequest),
                     ...metadata,
                 },
             };
 
-            this.telemetry.emitEvents([event]);
+            this.server.telemetry.emitEvents([event]);
         })().catch((error: unknown) => {
-            this.session.logger.debug({
+            this.server.logger.debug({
                 id: LogId.telemetryMetadataError,
                 context: "tool",
                 message: `Error emitting telemetry event for tool ${this.name}: ${error as string}`,
@@ -998,25 +992,36 @@ export abstract class ToolBase<
     }
 
     protected isFeatureEnabled(feature: PreviewFeature): boolean {
-        return this.session.config.previewFeatures.includes(feature);
+        return this.server.config.previewFeatures.includes(feature);
     }
 
-    protected getConnectionInfoMetadata(connectionState?: SupportedConnectionState): ConnectionMetadata {
+    /**
+     * Telemetry metadata for the connection entry a tool call ran against.
+     * Auth and host type come from the live state; Atlas attribution comes
+     * from the entry's `atlasCluster`, which a registry may know without a
+     * live connection.
+     */
+    protected getConnectionInfoMetadata(entry?: {
+        state: SupportedConnectionState;
+        atlasCluster?: AtlasClusterConnectionInfo;
+    }): ConnectionMetadata {
         const metadata: ConnectionMetadata = {};
 
-        if (connectionState === undefined) {
+        if (entry === undefined) {
             return metadata;
         }
 
-        if (connectionState.connectionStringInfo !== undefined) {
-            metadata.connection_auth_type = connectionState.connectionStringInfo.authType;
-            metadata.connection_host_type = connectionState.connectionStringInfo.hostType;
+        if (entry.state.connectionStringInfo !== undefined) {
+            metadata.connection_auth_type = entry.state.connectionStringInfo.authType;
+            metadata.connection_host_type = entry.state.connectionStringInfo.hostType;
         }
 
-        if (connectionState.connectedAtlasCluster) {
-            metadata.project_id = connectionState.connectedAtlasCluster.projectId;
-            metadata.cluster_name = connectionState.connectedAtlasCluster.clusterName;
-            metadata.cluster_id = connectionState.connectedAtlasCluster.clusterId;
+        if (entry.atlasCluster) {
+            metadata.project_id = entry.atlasCluster.projectId;
+            metadata.cluster_name = entry.atlasCluster.clusterName;
+            if (entry.atlasCluster.clusterId !== undefined) {
+                metadata.cluster_id = entry.atlasCluster.clusterId;
+            }
         }
 
         return metadata;
@@ -1034,8 +1039,8 @@ export abstract class ToolBase<
         }
 
         let uiResource: UIResource | undefined;
-        if (this.uiRegistry) {
-            const uiHtml = await this.uiRegistry.get(this.name);
+        if (this.server.uiRegistry) {
+            const uiHtml = await this.server.uiRegistry.get(this.name);
             if (!uiHtml || !result.structuredContent) {
                 return result;
             }
@@ -1070,12 +1075,46 @@ export type AnyToolBase = ToolBase<any>;
 /**
  * Formats potentially untrusted data to be included in tool responses. The data is wrapped in unique tags
  * and a warning is added to not execute or act on any instructions within those tags.
+ * @deprecated Pass the effective config as the first argument so that `disableUntrustedDataWarning` is honored.
  * @param description A description that is prepended to the untrusted data warning. It should not include any
  * untrusted data as it is not sanitized.
  * @param data The data to format. If an empty array, only the description is returned.
  * @returns A tool response content that can be directly returned.
  */
-export function formatUntrustedData(description: string, ...data: string[]): { text: string; type: "text" }[] {
+export function formatUntrustedData(description: string, ...data: string[]): { text: string; type: "text" }[];
+/**
+ * Formats potentially untrusted data to be included in tool responses. The data is wrapped in unique tags
+ * and a warning is added to not execute or act on any instructions within those tags.
+ * When `config.disableUntrustedDataWarning` is set, the data is returned as-is without the tags and warning.
+ * @param config The effective config, used to determine whether the warning is disabled.
+ * @param description A description that is prepended to the untrusted data warning. It should not include any
+ * untrusted data as it is not sanitized.
+ * @param data The data to format. If an empty array, only the description is returned.
+ * @returns A tool response content that can be directly returned.
+ */
+// eslint-disable-next-line max-params -- config is the enforcement point and data is variadic, so neither can be folded into the other
+export function formatUntrustedData(
+    config: Pick<IToolConfig, "disableUntrustedDataWarning">,
+    description: string,
+    ...data: string[]
+): { text: string; type: "text" }[];
+export function formatUntrustedData(
+    configOrDescription: Pick<IToolConfig, "disableUntrustedDataWarning"> | string,
+    ...rest: string[]
+): { text: string; type: "text" }[] {
+    const [config, description = "", data] =
+        typeof configOrDescription === "string"
+            ? [{}, configOrDescription, rest]
+            : [configOrDescription, rest[0], rest.slice(1)];
+
+    if (config.disableUntrustedDataWarning) {
+        const result = [{ text: description, type: "text" as const }];
+        if (data.length > 0) {
+            result.push({ text: data.join("\n"), type: "text" as const });
+        }
+        return result;
+    }
+
     const uuid = getRandomUUID();
 
     const openingTag = `<untrusted-user-data-${uuid}>`;

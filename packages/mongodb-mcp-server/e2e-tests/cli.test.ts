@@ -34,6 +34,8 @@ describe("CLI entrypoint", () => {
                 "--readOnly",
                 "--httpPort",
                 "8080",
+                "--maxSessions",
+                "1234",
                 "--httpHeaders",
                 '{"test": "3"}',
             ],
@@ -41,6 +43,7 @@ describe("CLI entrypoint", () => {
         });
         expect(stdout).toContain('"connectionString":"mongodb://localhost:1000"');
         expect(stdout).toContain('"httpPort":8080');
+        expect(stdout).toContain('"maxSessions":1234');
         expect(stdout).toContain('"httpHeaders":{"test":"3"}');
         expect(stdout).toContain('"readOnly":true');
     });

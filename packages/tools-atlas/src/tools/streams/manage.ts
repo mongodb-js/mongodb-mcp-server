@@ -1,9 +1,16 @@
 import { z } from "zod";
 import { StreamsToolBase } from "../../streams/streamsToolBase.js";
-import type { CallToolResult, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
+import type { IAtlasConfig } from "../../atlasTool.js";
+import type { CallToolResult, OperationType, ToolExecutionContext, ToolRequest } from "@mongodb-js/mcp-types";
 import { LogId, requestIdAttr, type ToolArgs } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
-import { ConnectionConfig, StreamsArgs } from "../../streams/streamsArgs.js";
+import {
+    ConnectionConfig,
+    StreamsArgs,
+    StreamsAutoscaling,
+    StreamsTier,
+    toStreamsAutoscaling,
+} from "../../streams/streamsArgs.js";
 import { StreamsInvalidArgumentError } from "../../streams/errors.js";
 
 const ManageAction = z.enum([
@@ -24,12 +31,103 @@ export const ManageOutputSchema = z.object({
     processorState: ProcessorState.optional().describe("Processor state after a lifecycle action"),
     connectionState: ConnectionState.optional().describe("Connection state after an update"),
     region: z.string().optional().describe("Confirmed workspace region after an update"),
-    tier: z.string().optional().describe("Confirmed workspace tier after an update"),
-    maxTier: z.string().optional().describe("Confirmed workspace max tier after an update"),
+    tier: StreamsTier.optional().describe("Confirmed workspace or processor baseline tier"),
+    effectiveTier: StreamsTier.optional().describe("Current effective processor tier"),
+    maxTier: StreamsTier.optional().describe("Confirmed workspace max tier after an update"),
+    autoscaling: StreamsAutoscaling.optional().describe("Confirmed processor autoscaling configuration"),
     peeringState: PeeringState.optional().describe("Outcome of a VPC peering accept or reject action"),
 });
 
 export type ManageOutput = z.infer<typeof ManageOutputSchema>;
+
+const StreamsManageArgsShape = {
+    projectId: AtlasArgs.projectId().describe(
+        "Atlas project ID. Use atlas-list-projects to find project IDs if not available."
+    ),
+    workspaceName: StreamsArgs.workspaceName().describe("Workspace name containing the resource to manage."),
+    action: ManageAction.describe(
+        "Action to perform. One of: " +
+            "'start-processor' — begin or resume processing (requires resourceName). " +
+            "'stop-processor' — pause processing (requires resourceName). " +
+            "'modify-processor' — change pipeline, DLQ, name, baseline tier, or autoscaling (requires resourceName and at least one changed field; processor must be stopped first). " +
+            "'update-workspace' — change workspace tier or region. " +
+            "'update-connection' — update connection config (requires resourceName). " +
+            "'accept-peering' — accept a VPC peering request (requires peeringId, requesterAccountId, requesterVpcId). " +
+            "'reject-peering' — reject a VPC peering request (requires peeringId). " +
+            "For peering actions, workspaceName can be any workspace in the project (peering is project-level)."
+    ),
+    resourceName: StreamsArgs.resourceName()
+        .optional()
+        .describe("Processor or connection name. Required for processor and connection actions."),
+
+    // start-processor options
+    tier: StreamsTier.optional().describe(
+        "Processing tier. For 'start-processor', sets the baseline tier for this run. " +
+            "For 'modify-processor', updates the persisted baseline tier. Must not exceed the workspace maximum tier."
+    ),
+    autoscaling: StreamsAutoscaling.optional().describe(
+        "Autoscaling configuration for 'start-processor' or 'modify-processor'. " +
+            "Omit to preserve persisted settings. Set enabled=false to disable and clear it. " +
+            "Omitted bounds preserve persisted values or use workspace defaults when first enabling."
+    ),
+    resumeFromCheckpoint: z
+        .boolean()
+        .optional()
+        .describe(
+            "Resume from last checkpoint on start. Default: true. " +
+                "Set false to reprocess from beginning (drops accumulated window state). Only for 'start-processor'."
+        ),
+    startAtOperationTime: z
+        .string()
+        .optional()
+        .describe("ISO 8601 timestamp to resume from. Only for 'start-processor'."),
+
+    // modify-processor options
+    pipeline: z
+        .array(z.record(z.string(), z.unknown()))
+        .optional()
+        .describe(
+            "New pipeline stages as an array of objects, e.g. " +
+                "[{$source: {connectionName: 'src'}}, {$match: {status: 'active'}}, {$merge: {into: {connectionName: 'dest', db: 'db', coll: 'coll'}}}]. " +
+                "Only for 'modify-processor'. Processor must be stopped first. " +
+                "If changing a window stage interval, the processor must be restarted with resumeFromCheckpoint=false."
+        ),
+    dlq: z
+        .object({
+            connectionName: z.string(),
+            db: z.string(),
+            coll: z.string(),
+        })
+        .optional()
+        .describe("New DLQ configuration. Only for 'modify-processor'."),
+    newName: z.string().optional().describe("Rename processor. Only for 'modify-processor'."),
+
+    // update-workspace options
+    newRegion: z
+        .string()
+        .optional()
+        .describe(
+            "New region for workspace. Only for 'update-workspace'. Use Atlas region names (e.g. AWS: 'VIRGINIA_USA', Azure: 'eastus2', GCP: 'US_CENTRAL1')."
+        ),
+    newTier: StreamsTier.optional().describe("New default tier for workspace. Only for 'update-workspace'."),
+
+    // update-connection options
+    connectionConfig: ConnectionConfig.optional().describe(
+        "Updated connection configuration. Only for 'update-connection'. " +
+            "Provide only the fields to change. " +
+            "Note: networking config and connection type cannot be modified after creation — to change these, delete and recreate the connection."
+    ),
+
+    // peering options
+    peeringId: StreamsArgs.peeringId()
+        .optional()
+        .describe("VPC peering connection ID. Required for 'accept-peering' and 'reject-peering'."),
+    requesterAccountId: z
+        .string()
+        .optional()
+        .describe("AWS account ID of the peering requester. Required for 'accept-peering'."),
+    requesterVpcId: z.string().optional().describe("VPC ID of the peering requester. Required for 'accept-peering'."),
+};
 
 export class StreamsManageTool extends StreamsToolBase {
     static toolName = "atlas-streams-manage";
@@ -41,121 +139,33 @@ export class StreamsManageTool extends StreamsToolBase {
         "Common workflow: action='stop-processor' → action='modify-processor' → action='start-processor'. " +
         "Use `atlas-streams-discover` with action 'inspect-processor' to check state before managing.";
 
-    public argsShape = {
-        projectId: AtlasArgs.projectId().describe(
-            "Atlas project ID. Use atlas-list-projects to find project IDs if not available."
-        ),
-        workspaceName: StreamsArgs.workspaceName().describe("Workspace name containing the resource to manage."),
-        action: ManageAction.describe(
-            "Action to perform. One of: " +
-                "'start-processor' — begin or resume processing (requires resourceName). " +
-                "'stop-processor' — pause processing (requires resourceName). " +
-                "'modify-processor' — change pipeline, DLQ, or rename (requires resourceName and at least one of: pipeline, dlq, newName; processor must be stopped first). " +
-                "'update-workspace' — change workspace tier or region. " +
-                "'update-connection' — update connection config (requires resourceName). " +
-                "'accept-peering' — accept a VPC peering request (requires peeringId, requesterAccountId, requesterVpcId). " +
-                "'reject-peering' — reject a VPC peering request (requires peeringId). " +
-                "For peering actions, workspaceName can be any workspace in the project (peering is project-level)."
-        ),
-        resourceName: StreamsArgs.resourceName()
-            .optional()
-            .describe("Processor or connection name. Required for processor and connection actions."),
+    public argsShape(): typeof StreamsManageArgsShape {
+        return StreamsManageArgsShape;
+    }
 
-        // start-processor options
-        tier: z
-            .enum(["SP2", "SP5", "SP10", "SP30", "SP50"])
-            .optional()
-            .describe(
-                "Override processing tier for this run. " +
-                    "Must not exceed the workspace's max tier. Use `atlas-streams-discover` action='inspect-workspace' to check. " +
-                    "Only for 'start-processor'."
-            ),
-        resumeFromCheckpoint: z
-            .boolean()
-            .optional()
-            .describe(
-                "Resume from last checkpoint on start. Default: true. " +
-                    "Set false to reprocess from beginning (drops accumulated window state). Only for 'start-processor'."
-            ),
-        startAtOperationTime: z
-            .string()
-            .optional()
-            .describe("ISO 8601 timestamp to resume from. Only for 'start-processor'."),
-
-        // modify-processor options
-        pipeline: z
-            .array(z.record(z.string(), z.unknown()))
-            .optional()
-            .describe(
-                "New pipeline stages as an array of objects, e.g. " +
-                    "[{$source: {connectionName: 'src'}}, {$match: {status: 'active'}}, {$merge: {into: {connectionName: 'dest', db: 'db', coll: 'coll'}}}]. " +
-                    "Only for 'modify-processor'. Processor must be stopped first. " +
-                    "If changing a window stage interval, the processor must be restarted with resumeFromCheckpoint=false."
-            ),
-        dlq: z
-            .object({
-                connectionName: z.string(),
-                db: z.string(),
-                coll: z.string(),
-            })
-            .optional()
-            .describe("New DLQ configuration. Only for 'modify-processor'."),
-        newName: z.string().optional().describe("Rename processor. Only for 'modify-processor'."),
-
-        // update-workspace options
-        newRegion: z
-            .string()
-            .optional()
-            .describe(
-                "New region for workspace. Only for 'update-workspace'. Use Atlas region names (e.g. AWS: 'VIRGINIA_USA', Azure: 'eastus2', GCP: 'US_CENTRAL1')."
-            ),
-        newTier: z
-            .enum(["SP2", "SP5", "SP10", "SP30", "SP50"])
-            .optional()
-            .describe("New default tier for workspace. Only for 'update-workspace'."),
-
-        // update-connection options
-        connectionConfig: ConnectionConfig.optional().describe(
-            "Updated connection configuration. Only for 'update-connection'. " +
-                "Provide only the fields to change. " +
-                "Note: networking config and connection type cannot be modified after creation — to change these, delete and recreate the connection."
-        ),
-
-        // peering options
-        peeringId: StreamsArgs.peeringId()
-            .optional()
-            .describe("VPC peering connection ID. Required for 'accept-peering' and 'reject-peering'."),
-        requesterAccountId: z
-            .string()
-            .optional()
-            .describe("AWS account ID of the peering requester. Required for 'accept-peering'."),
-        requesterVpcId: z
-            .string()
-            .optional()
-            .describe("VPC ID of the peering requester. Required for 'accept-peering'."),
-    };
-
-    public override outputSchema = ManageOutputSchema.shape;
+    public override outputSchema(): typeof ManageOutputSchema.shape {
+        return ManageOutputSchema.shape;
+    }
 
     protected async execute(
-        args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
+        { request }: ToolExecutionContext
     ): Promise<CallToolResult> {
         switch (args.action) {
             case "start-processor":
-                return this.startProcessor(args, context);
+                return this.startProcessor(args, request);
             case "stop-processor":
-                return this.stopProcessor(args, context);
+                return this.stopProcessor(args, request);
             case "modify-processor":
-                return this.modifyProcessor(args, context);
+                return this.modifyProcessor(args, request);
             case "update-workspace":
-                return this.updateWorkspace(args, context);
+                return this.updateWorkspace(args, request);
             case "update-connection":
-                return this.updateConnection(args, context);
+                return this.updateConnection(args, request);
             case "accept-peering":
-                return this.acceptPeering(args, context);
+                return this.acceptPeering(args, request);
             case "reject-peering":
-                return this.rejectPeering(args, context);
+                return this.rejectPeering(args, request);
             default:
                 return {
                     content: [{ type: "text", text: `Unknown action: ${args.action as string}` }],
@@ -164,7 +174,7 @@ export class StreamsManageTool extends StreamsToolBase {
         }
     }
 
-    protected override getConfirmationMessage(args: ToolArgs<typeof this.argsShape>): string {
+    protected override getConfirmationMessage(args: ToolArgs<ReturnType<typeof this.argsShape>>): string {
         switch (args.action) {
             case "start-processor": {
                 const name = this.requireResourceName(args.resourceName, "start-processor");
@@ -214,7 +224,10 @@ export class StreamsManageTool extends StreamsToolBase {
     private static mapUpdateWorkspaceStructuredContent(
         updated: {
             dataProcessRegion?: { cloudProvider?: string; region?: string };
-            streamConfig?: { tier?: string; maxTierSize?: string } | null;
+            streamConfig?: {
+                tier?: z.infer<typeof StreamsTier>;
+                maxTierSize?: z.infer<typeof StreamsTier>;
+            } | null;
         },
         options: { includeRegion: boolean; includeTier: boolean }
     ): ManageOutput {
@@ -232,16 +245,16 @@ export class StreamsManageTool extends StreamsToolBase {
     }
 
     private async startProcessor(
-        args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
+        request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult> {
         const name = this.requireResourceName(args.resourceName, "start-processor");
 
-        const processor = await this.apiClient.getStreamProcessor(
+        const processor = await this.server.apiClient.getStreamProcessor(
             {
                 params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
             },
-            context
+            request
         );
         if (processor?.state === "STARTED") {
             return {
@@ -256,13 +269,13 @@ export class StreamsManageTool extends StreamsToolBase {
         }
 
         if (args.tier) {
-            const tierOrder = ["SP2", "SP5", "SP10", "SP30", "SP50"];
+            const tierOrder = StreamsTier.options;
             try {
-                const ws = await this.apiClient.getStreamWorkspace(
+                const ws = await this.server.apiClient.getStreamWorkspace(
                     {
                         params: { path: { groupId: args.projectId, tenantName: args.workspaceName } },
                     },
-                    context
+                    request
                 );
                 const maxTier = ws?.streamConfig?.maxTierSize;
                 if (maxTier && tierOrder.indexOf(args.tier) > tierOrder.indexOf(maxTier)) {
@@ -287,28 +300,30 @@ export class StreamsManageTool extends StreamsToolBase {
 
         const hasStartOptions =
             args.tier !== undefined ||
+            args.autoscaling !== undefined ||
             args.resumeFromCheckpoint !== undefined ||
             args.startAtOperationTime !== undefined;
 
         if (hasStartOptions) {
             const startBody: Record<string, unknown> = {};
             if (args.tier !== undefined) startBody.tier = args.tier;
+            if (args.autoscaling !== undefined) startBody.autoscaling = args.autoscaling;
             if (args.resumeFromCheckpoint !== undefined) startBody.resumeFromCheckpoint = args.resumeFromCheckpoint;
             if (args.startAtOperationTime !== undefined) startBody.startAtOperationTime = args.startAtOperationTime;
 
-            await this.apiClient.startStreamProcessorWith(
+            await this.server.apiClient.startStreamProcessorWith(
                 {
                     params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
                     body: startBody,
                 },
-                context
+                request
             );
         } else {
-            await this.apiClient.startStreamProcessor(
+            await this.server.apiClient.startStreamProcessor(
                 {
                     params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
                 },
-                context
+                request
             );
         }
 
@@ -333,17 +348,17 @@ export class StreamsManageTool extends StreamsToolBase {
     }
 
     private async stopProcessor(
-        args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
+        request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult> {
         const name = this.requireResourceName(args.resourceName, "stop-processor");
 
         try {
-            const processor = await this.apiClient.getStreamProcessor(
+            const processor = await this.server.apiClient.getStreamProcessor(
                 {
                     params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
                 },
-                context
+                request
             );
             if (processor?.state === "STOPPED" || processor?.state === "CREATED") {
                 return {
@@ -358,19 +373,19 @@ export class StreamsManageTool extends StreamsToolBase {
             }
         } catch (error: unknown) {
             // Processor may be in error state — proceed with stop attempt
-            this.session.logger.debug({
+            this.server.logger.debug({
                 id: LogId.streamsProcessorStateLookupFailure,
                 context: "streams-manage",
                 message: `Failed to get processor state before stop: ${error instanceof Error ? error.message : String(error)}`,
-                attributes: { ...requestIdAttr(context.requestInfo?.headers) },
+                attributes: { ...requestIdAttr(request?.headers) },
             });
         }
 
-        await this.apiClient.stopStreamProcessor(
+        await this.server.apiClient.stopStreamProcessor(
             {
                 params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
             },
-            context
+            request
         );
 
         return {
@@ -387,16 +402,16 @@ export class StreamsManageTool extends StreamsToolBase {
     }
 
     private async modifyProcessor(
-        args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
+        request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult> {
         const name = this.requireResourceName(args.resourceName, "modify-processor");
 
-        const processor = await this.apiClient.getStreamProcessor(
+        const processor = await this.server.apiClient.getStreamProcessor(
             {
                 params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
             },
-            context
+            request
         );
         if (processor?.state === "STARTED") {
             return {
@@ -413,27 +428,42 @@ export class StreamsManageTool extends StreamsToolBase {
         const body: Record<string, unknown> = {};
         if (args.pipeline) body.pipeline = args.pipeline;
         if (args.newName) body.name = args.newName;
-        if (args.dlq) body.options = { dlq: args.dlq };
+        if (args.tier) body.tier = args.tier;
+        const options = {
+            ...(args.dlq !== undefined && { dlq: args.dlq }),
+            ...(args.autoscaling !== undefined && { autoscaling: args.autoscaling }),
+        };
+        if (Object.keys(options).length > 0) body.options = options;
 
         if (Object.keys(body).length === 0) {
             return {
                 content: [
                     {
                         type: "text",
-                        text: "No modifications specified. Provide at least one of: pipeline, dlq, or newName.",
+                        text: "No modifications specified. Provide at least one of: pipeline, dlq, newName, tier, or autoscaling.",
                     },
                 ],
                 isError: true,
             };
         }
 
-        await this.apiClient.updateStreamProcessor(
+        const updated = await this.server.apiClient.updateStreamProcessor(
             {
                 params: { path: { groupId: args.projectId, tenantName: args.workspaceName, processorName: name } },
                 body: body,
             },
-            context
+            request
         );
+
+        const structuredContent: ManageOutput = { processorState: "STOPPED" };
+        if (args.tier !== undefined && updated.tier !== undefined) structuredContent.tier = updated.tier;
+        if ((args.tier !== undefined || args.autoscaling !== undefined) && updated.effectiveTier !== undefined) {
+            structuredContent.effectiveTier = updated.effectiveTier;
+        }
+        if (args.autoscaling !== undefined) {
+            const autoscaling = toStreamsAutoscaling(updated.options?.autoscaling);
+            if (autoscaling !== undefined) structuredContent.autoscaling = autoscaling;
+        }
 
         const changes = Object.keys(body).join(", ");
         return {
@@ -445,23 +475,23 @@ export class StreamsManageTool extends StreamsToolBase {
                         `Use action 'start-processor' to resume processing with the updated configuration.`,
                 },
             ],
-            structuredContent: { processorState: "STOPPED" },
+            structuredContent,
         };
     }
 
     private async updateWorkspace(
-        args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
+        request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult> {
         const body: Record<string, unknown> = {};
         if (args.newRegion) {
             // The Atlas API requires cloudProvider alongside region in the update request body.
             // Fetch the current workspace to get the existing cloudProvider.
-            const workspace = await this.apiClient.getStreamWorkspace(
+            const workspace = await this.server.apiClient.getStreamWorkspace(
                 {
                     params: { path: { groupId: args.projectId, tenantName: args.workspaceName } },
                 },
-                context
+                request
             );
             const cloudProvider = workspace?.dataProcessRegion?.cloudProvider;
             if (!cloudProvider) {
@@ -496,12 +526,12 @@ export class StreamsManageTool extends StreamsToolBase {
             };
         }
 
-        const updated = await this.apiClient.updateStreamWorkspace(
+        const updated = await this.server.apiClient.updateStreamWorkspace(
             {
                 params: { path: { groupId: args.projectId, tenantName: args.workspaceName } },
                 body: body,
             },
-            context
+            request
         );
 
         const updatedRegion = updated?.dataProcessRegion?.region;
@@ -540,8 +570,8 @@ export class StreamsManageTool extends StreamsToolBase {
     }
 
     private async updateConnection(
-        args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
+        request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult> {
         const name = this.requireResourceName(args.resourceName, "update-connection");
 
@@ -549,15 +579,15 @@ export class StreamsManageTool extends StreamsToolBase {
             throw new StreamsInvalidArgumentError("connectionConfig is required to update a connection.");
         }
 
-        const connection = (await this.apiClient.getStreamConnection(
+        const connection = (await this.server.apiClient.getStreamConnection(
             {
                 params: { path: { groupId: args.projectId, tenantName: args.workspaceName, connectionName: name } },
             },
-            context
+            request
         )) as { type?: string; state?: string };
 
         const normalizedConfig = ConnectionConfig.parse(args.connectionConfig);
-        const updated = (await this.apiClient.updateStreamConnection(
+        const updated = (await this.server.apiClient.updateStreamConnection(
             {
                 params: { path: { groupId: args.projectId, tenantName: args.workspaceName, connectionName: name } },
                 body: {
@@ -566,7 +596,7 @@ export class StreamsManageTool extends StreamsToolBase {
                     name,
                 } as never,
             },
-            context
+            request
         )) as { state?: string } | undefined;
 
         const connectionState = updated?.state ?? connection.state;
@@ -587,8 +617,8 @@ export class StreamsManageTool extends StreamsToolBase {
     }
 
     private async acceptPeering(
-        args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
+        request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult> {
         if (!args.peeringId)
             throw new StreamsInvalidArgumentError("peeringId is required to accept a VPC peering connection.");
@@ -601,7 +631,7 @@ export class StreamsManageTool extends StreamsToolBase {
         const requesterAccountId = args.requesterAccountId;
         const requesterVpcId = args.requesterVpcId;
 
-        await this.apiClient.acceptVpcPeeringConnection(
+        await this.server.apiClient.acceptVpcPeeringConnection(
             {
                 params: { path: { groupId: args.projectId, id: peeringId } },
                 body: {
@@ -609,7 +639,7 @@ export class StreamsManageTool extends StreamsToolBase {
                     requesterVpcId,
                 },
             },
-            context
+            request
         );
 
         return {
@@ -624,17 +654,17 @@ export class StreamsManageTool extends StreamsToolBase {
     }
 
     private async rejectPeering(
-        args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
+        request: ToolRequest<IAtlasConfig>
     ): Promise<CallToolResult> {
         if (!args.peeringId)
             throw new StreamsInvalidArgumentError("peeringId is required to reject a VPC peering connection.");
 
-        await this.apiClient.rejectVpcPeeringConnection(
+        await this.server.apiClient.rejectVpcPeeringConnection(
             {
                 params: { path: { groupId: args.projectId, id: args.peeringId } },
             },
-            context
+            request
         );
 
         return {

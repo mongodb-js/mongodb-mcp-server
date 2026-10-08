@@ -47,11 +47,15 @@ export function getAccessListNote(result: EnsureCurrentIpResult): string | undef
     }
 }
 
-export async function makeCurrentIpAccessListEntry(
-    apiClient: ApiClient,
-    projectId: string,
-    comment: string = DEFAULT_ACCESS_LIST_COMMENT
-): Promise<{ groupId: string; ipAddress: string; comment: string }> {
+export async function makeCurrentIpAccessListEntry({
+    apiClient,
+    projectId,
+    comment = DEFAULT_ACCESS_LIST_COMMENT,
+}: {
+    apiClient: ApiClient;
+    projectId: string;
+    comment?: string;
+}): Promise<{ groupId: string; ipAddress: string; comment: string }> {
     const { currentIpv4Address } = await apiClient.getIpInfo();
     return {
         groupId: projectId,
@@ -76,17 +80,21 @@ export type EnsureCurrentIpResult = "added" | "already-present" | "skipped" | "f
  * @param apiClient The Atlas API client instance
  * @param projectId The Atlas project ID
  */
-export async function ensureCurrentIpInAccessList(
-    apiClient: ApiClient,
-    projectId: string,
-    context?: ApiClientRequestContext
-): Promise<EnsureCurrentIpResult> {
+export async function ensureCurrentIpInAccessList({
+    apiClient,
+    projectId,
+    context,
+}: {
+    apiClient: ApiClient;
+    projectId: string;
+    context?: ApiClientRequestContext;
+}): Promise<EnsureCurrentIpResult> {
     if (!apiClient.supportsCurrentIpLookup) {
         apiClient.logger.debug({
             id: LogId.atlasIpAccessListAddFailure,
             context: "accessListUtils",
             message: `Skipping IP access list setup for project ${projectId}: this deployment does not support current IP detection.`,
-            attributes: { ...requestIdAttr(context?.requestInfo?.headers) },
+            attributes: { ...requestIdAttr(context?.headers) },
         });
 
         return "skipped";
@@ -94,7 +102,7 @@ export async function ensureCurrentIpInAccessList(
 
     let entry: { groupId: string; ipAddress: string; comment: string } | undefined;
     try {
-        entry = await makeCurrentIpAccessListEntry(apiClient, projectId, DEFAULT_ACCESS_LIST_COMMENT);
+        entry = await makeCurrentIpAccessListEntry({ apiClient, projectId });
         await apiClient.createAccessListEntry(
             {
                 params: { path: { groupId: projectId } },
@@ -106,7 +114,7 @@ export async function ensureCurrentIpInAccessList(
             id: LogId.atlasIpAccessListAdded,
             context: "accessListUtils",
             message: `IP access list created: ${JSON.stringify(entry)}`,
-            attributes: { ...requestIdAttr(context?.requestInfo?.headers) },
+            attributes: { ...requestIdAttr(context?.headers) },
         });
         return "added";
     } catch (err) {
@@ -116,7 +124,7 @@ export async function ensureCurrentIpInAccessList(
                 id: LogId.atlasIpAccessListAdded,
                 context: "accessListUtils",
                 message: `IP address ${entry.ipAddress} is already present in the access list for project ${projectId}.`,
-                attributes: { ...requestIdAttr(context?.requestInfo?.headers) },
+                attributes: { ...requestIdAttr(context?.headers) },
             });
 
             return "already-present";
@@ -126,7 +134,7 @@ export async function ensureCurrentIpInAccessList(
             id: LogId.atlasIpAccessListAddFailure,
             context: "accessListUtils",
             message: `Error adding IP access list: ${err instanceof Error ? err.message : String(err)}`,
-            attributes: { ...requestIdAttr(context?.requestInfo?.headers) },
+            attributes: { ...requestIdAttr(context?.headers) },
         });
     }
 

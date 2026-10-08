@@ -50,6 +50,7 @@ const mockedTools = {
         const totalText = params.includeCount === true ? ` (total: ${results.length})` : "";
         return {
             content: formatUntrustedData(
+                {},
                 `Found ${results.length} alerts with status "${status}" in project ${projectId}${totalText}`,
                 JSON.stringify(results)
             ),

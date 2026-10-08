@@ -1,36 +1,35 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { SessionStore, SessionLimitExceededError } from "@mongodb-js/mcp-core";
-import type { CloseableTransport } from "@mongodb-js/mcp-types";
-import type { LoggerBase } from "@mongodb-js/mcp-core";
-import type { Session } from "@mongodb-js/mcp-cli";
+import type { CloseableTransport, ILogger, ICompositeLogger } from "@mongodb-js/mcp-types";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 
 function createMockTransport(): CloseableTransport {
     return { close: vi.fn().mockResolvedValue(undefined) };
 }
 
-function createMockLogger(): LoggerBase {
+function createMockLogger(): ILogger {
     return {
         info: vi.fn(),
         debug: vi.fn(),
         warning: vi.fn(),
         error: vi.fn(),
-    } as unknown as LoggerBase;
+    } as unknown as ILogger;
 }
 
-function createMockSession(): Session {
-    return { logger: createMockLogger() } as unknown as Session;
+/** A minimal session-shaped object the store stores alongside the transport. */
+function createMockSession(): { logger: ICompositeLogger } {
+    return { logger: createMockLogger() as unknown as ICompositeLogger };
 }
 
-describe("SessionStore metrics", () => {
+describe("SessionStore<CloseableTransport> metrics", () => {
     let metrics: MockMetrics;
-    let logger: LoggerBase;
-    let store: SessionStore;
+    let logger: ILogger;
+    let store: SessionStore<CloseableTransport>;
 
     beforeEach(() => {
         metrics = new MockMetrics();
         logger = createMockLogger();
-        store = new SessionStore({
+        store = new SessionStore<CloseableTransport>({
             options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 100 },
             logger,
             metrics,
@@ -187,11 +186,11 @@ describe("SessionStore metrics", () => {
     });
 });
 
-describe("SessionStore.hasSession", () => {
-    let store: SessionStore;
+describe("SessionStore<CloseableTransport>.hasSession", () => {
+    let store: SessionStore<CloseableTransport>;
 
     beforeEach(() => {
-        store = new SessionStore({
+        store = new SessionStore<CloseableTransport>({
             options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 100 },
             logger: createMockLogger(),
             metrics: new MockMetrics(),
@@ -245,11 +244,11 @@ describe("SessionStore.hasSession", () => {
     });
 });
 
-describe("SessionStore maxSessions", () => {
+describe("SessionStore<CloseableTransport> maxSessions", () => {
     it("rejects a constructor maxSessions value below 1", () => {
         expect(
             () =>
-                new SessionStore({
+                new SessionStore<CloseableTransport>({
                     options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 0 },
                     logger: createMockLogger(),
                     metrics: new MockMetrics(),
@@ -258,7 +257,7 @@ describe("SessionStore maxSessions", () => {
     });
 
     it("allows sessions up to the configured limit", async () => {
-        const store = new SessionStore({
+        const store = new SessionStore<CloseableTransport>({
             options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 2 },
             logger: createMockLogger(),
             metrics: new MockMetrics(),
@@ -282,7 +281,7 @@ describe("SessionStore maxSessions", () => {
     });
 
     it("throws SessionLimitExceededError once the limit is reached", async () => {
-        const store = new SessionStore({
+        const store = new SessionStore<CloseableTransport>({
             options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 1 },
             logger: createMockLogger(),
             metrics: new MockMetrics(),
@@ -308,7 +307,7 @@ describe("SessionStore maxSessions", () => {
     });
 
     it("frees a slot when a session is closed", async () => {
-        const store = new SessionStore({
+        const store = new SessionStore<CloseableTransport>({
             options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 1 },
             logger: createMockLogger(),
             metrics: new MockMetrics(),
@@ -333,11 +332,14 @@ describe("SessionStore maxSessions", () => {
     });
 });
 
-describe("SessionStore LRU idle-eviction", () => {
+describe("SessionStore<CloseableTransport> LRU idle-eviction", () => {
     // idleTimeoutMS is set well above the 2-min grace so an idle session is evictable
     // by the LRU valve before the background reaper would remove it.
-    function makeStore(maxSessions: number, metrics: MockMetrics = new MockMetrics()): SessionStore {
-        return new SessionStore({
+    function makeStore(
+        maxSessions: number,
+        metrics: MockMetrics = new MockMetrics()
+    ): SessionStore<CloseableTransport> {
+        return new SessionStore<CloseableTransport>({
             options: {
                 idleTimeoutMS: 600_000,
                 notificationTimeoutMS: 30_000,
@@ -465,9 +467,9 @@ describe("SessionStore LRU idle-eviction", () => {
     });
 });
 
-describe("SessionStore eviction under concurrent admissions", () => {
-    function makeStore(maxSessions: number, metrics: MockMetrics): SessionStore {
-        return new SessionStore({
+describe("SessionStore<CloseableTransport> eviction under concurrent admissions", () => {
+    function makeStore(maxSessions: number, metrics: MockMetrics): SessionStore<CloseableTransport> {
+        return new SessionStore<CloseableTransport>({
             options: {
                 idleTimeoutMS: 600_000,
                 notificationTimeoutMS: 30_000,
@@ -479,7 +481,7 @@ describe("SessionStore eviction under concurrent admissions", () => {
         });
     }
 
-    function add(store: SessionStore, sessionId: string): Promise<void> {
+    function add(store: SessionStore<CloseableTransport>, sessionId: string): Promise<void> {
         return store.addSession({
             sessionId,
             transport: createMockTransport(),

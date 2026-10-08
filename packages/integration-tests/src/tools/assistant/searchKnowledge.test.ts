@@ -18,12 +18,13 @@ vi.mock("@mongodb-js/devtools-proxy-support", () => ({
 describeWithAssistant("search-knowledge", (integration) => {
     const { mockSearchResults, mockAPIError, mockNetworkError } = makeMockAssistantAPI();
 
-    validateToolMetadata(
+    validateToolMetadata({
         integration,
-        "search-knowledge",
-        "Search for information in the MongoDB Assistant knowledge base. This includes official documentation, curated expert guidance, and other resources provided by MongoDB. Supports filtering by data source and version.",
-        "read",
-        [
+        name: "search-knowledge",
+        description:
+            "Search for information in the MongoDB Assistant knowledge base. This includes official documentation, curated expert guidance, and other resources provided by MongoDB. Supports filtering by data source and version.",
+        operationType: "read",
+        parameters: [
             {
                 name: "dataSources",
                 description:
@@ -44,18 +45,22 @@ describeWithAssistant("search-knowledge", (integration) => {
                 type: "string",
                 required: true,
             },
-        ]
-    );
+        ],
+    });
 
-    validateThrowsForInvalidArguments(integration, "search-knowledge", [
-        {}, // missing required query
-        { query: 123 }, // invalid query type
-        { query: "test", limit: -1 }, // invalid limit
-        { query: "test", limit: 101 }, // limit too high
-        { query: "test", dataSources: "invalid" }, // invalid dataSources type
-        { query: "test", dataSources: [{ name: 123 }] }, // invalid dataSource name type
-        { query: "test", dataSources: [{}] }, // missing required name field
-    ]);
+    validateThrowsForInvalidArguments({
+        integration,
+        name: "search-knowledge",
+        args: [
+            {}, // missing required query
+            { query: 123 }, // invalid query type
+            { query: "test", limit: -1 }, // invalid limit
+            { query: "test", limit: 101 }, // limit too high
+            { query: "test", dataSources: "invalid" }, // invalid dataSources type
+            { query: "test", dataSources: [{ name: 123 }] }, // invalid dataSource name type
+            { query: "test", dataSources: [{}] }, // missing required name field
+        ],
+    });
 
     describe("success cases", () => {
         it("searches with query only", async () => {

@@ -30,11 +30,15 @@ export type RunSharedTierAlertsHookParams = {
     context?: ApiClientRequestContext;
 };
 
-function buildRecommendationParagraph(
-    clusterName: string,
-    tier: SharedTierTier,
-    metricNames: SharedTierMetricName[]
-): string {
+function buildRecommendationParagraph({
+    clusterName,
+    tier,
+    metricNames,
+}: {
+    clusterName: string;
+    tier: SharedTierTier;
+    metricNames: SharedTierMetricName[];
+}): string {
     const metricsList = [...metricNames].sort().join(", ");
     return (
         `Note: Atlas reports open shared-tier threshold alerts for cluster "${clusterName}" affecting: ${metricsList}. ` +
@@ -83,7 +87,7 @@ export async function runSharedTierAlertsHook({
             id: LogId.atlasSharedTierAlertsHookWarning,
             context: "shared-tier-alerts-hook",
             message: `Failed to list Atlas alerts for shared-tier hook: ${message}`,
-            attributes: { ...requestIdAttr(context?.requestInfo?.headers) },
+            attributes: { ...requestIdAttr(context?.headers) },
         });
         return undefined;
     }
@@ -104,7 +108,7 @@ export async function runSharedTierAlertsHook({
     const tier = instanceType === "FREE" ? "Free" : "Flex";
 
     return {
-        recommendationText: buildRecommendationParagraph(clusterName, tier, alertTypes),
+        recommendationText: buildRecommendationParagraph({ clusterName, tier, metricNames: alertTypes }),
         tier,
         alertTypes,
     };

@@ -1,7 +1,12 @@
 import { z } from "zod";
-import { CollOperationArgs, ConnectionIdArgs, MongoDBToolBase } from "../../mongodbTool.js";
+import {
+    CollOperationArgs,
+    connectionScopedArgsShape,
+    MongoDBToolBase,
+    type IMongoDBConfig,
+} from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
-import type { OperationType } from "@mongodb-js/mcp-types";
+import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import { checkIndexUsage } from "../../helpers/indexCheck.js";
 import { zEJSON } from "../../args.js";
 
@@ -16,43 +21,44 @@ const UpdateManyOutputSchema = {
 
 export type UpdateManyOutput = z.infer<z.ZodObject<typeof UpdateManyOutputSchema>>;
 
+const UpdateManyArgsShapeVariants = connectionScopedArgsShape({
+    ...CollOperationArgs,
+    filter: zEJSON()
+        .optional()
+        .describe(
+            "The selection criteria for the update, matching the syntax of the filter argument of db.collection.updateOne()"
+        ),
+    update: zEJSON().describe(
+        "An update document describing the modifications to apply using update operator expressions"
+    ),
+    upsert: z
+        .boolean()
+        .optional()
+        .describe("Controls whether to insert a new document if no documents match the filter"),
+});
+
 export class UpdateManyTool extends MongoDBToolBase {
     static toolName = "update-many";
     public description =
         "Updates all documents that match the specified filter for a collection. If the list of documents is above com.mongodb/maxRequestPayloadBytes, consider updating them in batches.";
-    public override outputSchema = UpdateManyOutputSchema;
-    public argsShape = {
-        ...ConnectionIdArgs,
-        ...CollOperationArgs,
-        filter: zEJSON()
-            .optional()
-            .describe(
-                "The selection criteria for the update, matching the syntax of the filter argument of db.collection.updateOne()"
-            ),
-        update: zEJSON().describe(
-            "An update document describing the modifications to apply using update operator expressions"
-        ),
-        upsert: z
-            .boolean()
-            .optional()
-            .describe("Controls whether to insert a new document if no documents match the filter"),
-    };
+    public override outputSchema(): typeof UpdateManyOutputSchema {
+        return UpdateManyOutputSchema;
+    }
+    public argsShape(): typeof UpdateManyArgsShapeVariants.preconfigured {
+        return this.selectConnectionScopedArgsShape(UpdateManyArgsShapeVariants);
+    }
     static operationType: OperationType = "update";
 
-    protected async execute({
-        connectionId,
-        database,
-        collection,
-        filter,
-        update,
-        upsert,
-    }: ToolArgs<typeof this.argsShape>): Promise<ToolResult<typeof this.outputSchema>> {
+    protected async execute(
+        { connectionId, database, collection, filter, update, upsert }: ToolArgs<ReturnType<typeof this.argsShape>>,
+        context: ToolExecutionContext<IMongoDBConfig>
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const provider = await this.resolveConnection(connectionId);
 
-        this.assertMqlIsAllowed(filter);
+        this.assertMqlIsAllowed(this.resolveConfig(context), filter);
 
         // Check if update operation uses an index if enabled
-        if (this.config.indexCheck) {
+        if (this.server.config.indexCheck) {
             await checkIndexUsage({
                 database,
                 collection,
@@ -71,10 +77,12 @@ export class UpdateManyTool extends MongoDBToolBase {
                             ],
                         },
                         verbosity: "queryPlanner",
-                        ...(this.config.maxTimeMS !== undefined && { maxTimeMS: this.config.maxTimeMS }),
+                        ...(this.server.config.maxTimeMS !== undefined && {
+                            maxTimeMS: this.server.config.maxTimeMS,
+                        }),
                     });
                 },
-                logger: this.session.logger,
+                logger: this.server.logger,
             });
         }
 

@@ -10,21 +10,27 @@ const CreateFreeClusterOutputSchema = {
     created: z.boolean().describe("Whether the cluster was created successfully"),
 };
 
+const CreateFreeClusterArgsShape = {
+    projectId: AtlasArgs.projectId().describe("Atlas project ID to create the cluster in"),
+    name: AtlasArgs.clusterName().describe("Name of the cluster"),
+    region: AtlasArgs.region().describe("Region of the cluster").default("US_EAST_1"),
+};
+
 export class CreateFreeClusterTool extends AtlasToolBase {
     static toolName = "atlas-create-free-cluster";
     public description = "Create a free MongoDB Atlas cluster";
     static operationType: OperationType = "create";
-    public argsShape = {
-        projectId: AtlasArgs.projectId().describe("Atlas project ID to create the cluster in"),
-        name: AtlasArgs.clusterName().describe("Name of the cluster"),
-        region: AtlasArgs.region().describe("Region of the cluster").default("US_EAST_1"),
-    };
-    public override outputSchema = CreateFreeClusterOutputSchema;
+    public argsShape(): typeof CreateFreeClusterArgsShape {
+        return CreateFreeClusterArgsShape;
+    }
+    public override outputSchema(): typeof CreateFreeClusterOutputSchema {
+        return CreateFreeClusterOutputSchema;
+    }
 
     protected async execute(
-        { projectId, name, region }: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+        { projectId, name, region }: ToolArgs<ReturnType<typeof this.argsShape>>,
+        { request }: ToolExecutionContext
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const input = {
             groupId: projectId,
             name,
@@ -47,8 +53,12 @@ export class CreateFreeClusterTool extends AtlasToolBase {
             terminationProtectionEnabled: false,
         } as unknown as ClusterDescription20240805;
 
-        const ipAccessListResult = await ensureCurrentIpInAccessList(this.apiClient, projectId, context);
-        await this.apiClient.createCluster(
+        const ipAccessListResult = await ensureCurrentIpInAccessList({
+            apiClient: this.server.apiClient,
+            projectId,
+            context: request,
+        });
+        await this.server.apiClient.createCluster(
             {
                 params: {
                     path: {
@@ -57,7 +67,7 @@ export class CreateFreeClusterTool extends AtlasToolBase {
                 },
                 body: input,
             },
-            context
+            request
         );
 
         const ipAccessListNote = getAccessListNote(ipAccessListResult);

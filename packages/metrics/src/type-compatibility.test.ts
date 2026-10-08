@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { ICounter, IObservable, IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
-import { PrometheusMetrics, createDefaultMetrics } from "./index.js";
+import { PrometheusMetrics, createDefaultMetrics, Counter } from "./index.js";
 
 /**
  * Type compatibility test for metrics interfaces.
@@ -16,11 +16,11 @@ describe("metrics type compatibility", () => {
     });
 
     it("prom-client Counter should be assignable to ICounter", () => {
-        const defaultMetrics = createDefaultMetrics();
+        const counter = new Counter({ name: "test_counter", help: "test help" });
 
-        const _counter: ICounter = defaultMetrics.sessionCreated;
+        const _counter: ICounter = counter;
         expect(_counter).toBeDefined();
-        expect(typeof defaultMetrics.sessionCreated.inc).toBe("function");
+        expect(typeof counter.inc).toBe("function");
     });
 
     it("prom-client Histogram should be assignable to IObservable", () => {
@@ -35,13 +35,9 @@ describe("metrics type compatibility", () => {
         const prometheusMetrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
         const metrics: IMetrics<DefaultMetricDefinitions> = prometheusMetrics;
 
-        const sessionCreated = metrics.get("sessionCreated");
-        sessionCreated.inc();
-
         const toolExecutionDuration = metrics.get("toolExecutionDuration");
         toolExecutionDuration.observe({ tool_name: "test" }, 0.1);
 
-        expect(sessionCreated).toBeDefined();
         expect(toolExecutionDuration).toBeDefined();
     });
 });

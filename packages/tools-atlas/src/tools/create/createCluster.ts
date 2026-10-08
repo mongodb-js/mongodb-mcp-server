@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { type ToolArgs, type ToolResult, ToolArgumentValidationError } from "@mongodb-js/mcp-core";
-import type { OperationType, ToolExecutionContext, CallToolResult } from "@mongodb-js/mcp-types";
+import type { OperationType, ToolExecutionContext, ToolRequest, CallToolResult } from "@mongodb-js/mcp-types";
+import type { IAtlasConfig } from "../../atlasTool.js";
 import { AtlasToolBase } from "../../atlasTool.js";
 import type { ClusterDescription20240805 } from "@mongodb-js/mcp-atlas-api-client";
 import { AtlasArgs, type AtlasCloudProvider } from "../../args.js";
@@ -45,11 +46,15 @@ type ReplicationSpec = {
     }>;
 };
 
-function buildAutoScaling(
-    instanceSize: StandardInstanceSize,
-    computeEnabled: boolean,
-    provider: AtlasCloudProvider
-): AutoScalingConfig {
+function buildAutoScaling({
+    instanceSize,
+    computeEnabled,
+    provider,
+}: {
+    instanceSize: StandardInstanceSize;
+    computeEnabled: boolean;
+    provider: AtlasCloudProvider;
+}): AutoScalingConfig {
     return {
         compute: {
             enabled: computeEnabled,
@@ -63,13 +68,19 @@ function buildAutoScaling(
 
 const ELECTABLE_NODE_DISTRIBUTIONS = [[3], [2, 1], [2, 2, 1]] as const;
 
-function buildReplicationSpecs(
-    provider: AtlasCloudProvider,
-    regions: string[],
-    instanceSize: StandardInstanceSize,
-    autoScaling: AutoScalingConfig,
-    diskSizeGB?: number
-): ReplicationSpec[] {
+function buildReplicationSpecs({
+    provider,
+    regions,
+    instanceSize,
+    autoScaling,
+    diskSizeGB,
+}: {
+    provider: AtlasCloudProvider;
+    regions: string[];
+    instanceSize: StandardInstanceSize;
+    autoScaling: AutoScalingConfig;
+    diskSizeGB?: number;
+}): ReplicationSpec[] {
     const nodeDistribution = ELECTABLE_NODE_DISTRIBUTIONS[regions.length - 1] ?? [];
 
     return [
@@ -211,8 +222,12 @@ export class CreateClusterTool extends AtlasToolBase {
         "Note to LLM: Omit instance size unless specified by the user. " +
         "If provider and regions are not already known, ask for the provider and desired locations together. " +
         "Use atlas-get-regions to resolve natural-language locations or uncertain region codes before calling this tool.";
-    public override outputSchema = CreateClusterOutputSchema;
-    public argsShape = CreateClusterArgsShape;
+    public override outputSchema(): typeof CreateClusterOutputSchema {
+        return CreateClusterOutputSchema;
+    }
+    public argsShape(): typeof CreateClusterArgsShape {
+        return CreateClusterArgsShape;
+    }
 
     /** Accepts the `region` argument that `regions` replaced, mapping it to a single-region cluster. */
     public override normalizeRawArgs(args: Record<string, unknown>): Record<string, unknown> {
@@ -225,9 +240,9 @@ export class CreateClusterTool extends AtlasToolBase {
     }
 
     protected async execute(
-        args: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
+        { request }: ToolExecutionContext
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const { projectId, clusterName, provider, regions, clusterType, terminationProtectionEnabled } = args;
 
         if (clusterType === "SHARDED" && (args.instanceSize === "M10" || args.instanceSize === "M20")) {
@@ -241,18 +256,27 @@ export class CreateClusterTool extends AtlasToolBase {
             instanceSize = "M30";
         } else {
             // REPLICASET defaults to M10 if there are less than 2 clusters in the project, M30 otherwise.
-            const existing = await this.apiClient.listClusters({ params: { path: { groupId: projectId } } }, context);
+            const existing = await this.server.apiClient.listClusters(
+                { params: { path: { groupId: projectId } } },
+                request
+            );
             instanceSize = (existing.results?.length ?? 0) < 2 ? "M10" : "M30";
         }
 
-        const autoScaling = buildAutoScaling(instanceSize, args.computeAutoScaling, provider);
-        const replicationSpecs = buildReplicationSpecs(provider, regions, instanceSize, autoScaling, args.diskSizeGB);
+        const autoScaling = buildAutoScaling({ instanceSize, computeEnabled: args.computeAutoScaling, provider });
+        const replicationSpecs = buildReplicationSpecs({
+            provider,
+            regions,
+            instanceSize,
+            autoScaling,
+            diskSizeGB: args.diskSizeGB,
+        });
         const backupConfig = buildBackupConfig(args.backup);
         const versionConfig = buildVersionConfig(args.mongoDBVersion);
 
         let encryptionAtRestProvider = args.encryptionAtRestProvider;
         if (encryptionAtRestProvider === undefined) {
-            const validConfigExists = await this.doesValidEARConfigExist(provider, projectId, context);
+            const validConfigExists = await this.doesValidEARConfigExist({ provider, projectId, request });
             encryptionAtRestProvider = validConfigExists ? provider : "NONE";
         }
 
@@ -266,14 +290,18 @@ export class CreateClusterTool extends AtlasToolBase {
             encryptionAtRestProvider,
         } as unknown as ClusterDescription20240805;
 
-        const ipAccessListResult = await ensureCurrentIpInAccessList(this.apiClient, projectId, context);
+        const ipAccessListResult = await ensureCurrentIpInAccessList({
+            apiClient: this.server.apiClient,
+            projectId,
+            context: request,
+        });
 
-        const result = await this.apiClient.createCluster(
+        const result = await this.server.apiClient.createCluster(
             {
                 params: { path: { groupId: projectId } },
                 body,
             },
-            context
+            request
         );
 
         const ipAccessListNote = getAccessListNote(ipAccessListResult);
@@ -305,15 +333,19 @@ export class CreateClusterTool extends AtlasToolBase {
         };
     }
 
-    protected async doesValidEARConfigExist(
-        provider: AtlasCloudProvider,
-        projectId: string,
-        context: ToolExecutionContext
-    ): Promise<boolean> {
+    protected async doesValidEARConfigExist({
+        provider,
+        projectId,
+        request,
+    }: {
+        provider: AtlasCloudProvider;
+        projectId: string;
+        request: ToolRequest<IAtlasConfig>;
+    }): Promise<boolean> {
         try {
-            const encryptionAtRest = await this.apiClient.getEncryptionAtRest(
+            const encryptionAtRest = await this.server.apiClient.getEncryptionAtRest(
                 { params: { path: { groupId: projectId } } },
-                context
+                request
             );
 
             let config;
@@ -339,7 +371,7 @@ export class CreateClusterTool extends AtlasToolBase {
         }
     }
 
-    protected override handleError(error: unknown, args: ToolArgs<typeof this.argsShape>): CallToolResult {
+    protected override handleError(error: unknown, args: ToolArgs<ReturnType<typeof this.argsShape>>): CallToolResult {
         if (error instanceof CreateClusterError) {
             return {
                 content: [{ type: "text", text: error.message }],
@@ -350,7 +382,7 @@ export class CreateClusterTool extends AtlasToolBase {
     }
 
     protected override async resolveTelemetryMetadata(
-        args: ToolArgs<typeof this.argsShape>,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>,
         context: { result: CallToolResult }
     ): Promise<CreateClusterMetadata> {
         const parentMetadata = await super.resolveTelemetryMetadata(args, context);

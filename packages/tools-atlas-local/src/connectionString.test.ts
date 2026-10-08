@@ -10,9 +10,9 @@ describe("waitForConnectionString", () => {
             getConnectionString: vi.fn().mockResolvedValue("mongodb://localhost:27017"),
         };
 
-        await expect(waitForConnectionString(client as unknown as Client, "local1")).resolves.toBe(
-            "mongodb://localhost:27017"
-        );
+        await expect(
+            waitForConnectionString({ client: client as unknown as Client, deploymentName: "local1" })
+        ).resolves.toBe("mongodb://localhost:27017");
         expect(client.getConnectionString).toHaveBeenCalledTimes(1);
     });
 
@@ -26,7 +26,12 @@ describe("waitForConnectionString", () => {
         };
 
         await expect(
-            waitForConnectionString(client as unknown as Client, "local1", { maxAttempts: 5, intervalMs: 1 })
+            waitForConnectionString({
+                client: client as unknown as Client,
+                deploymentName: "local1",
+                maxAttempts: 5,
+                intervalMs: 1,
+            })
         ).resolves.toBe("mongodb://localhost:27017");
         expect(client.getConnectionString).toHaveBeenCalledTimes(3);
     });
@@ -37,7 +42,12 @@ describe("waitForConnectionString", () => {
         };
 
         await expect(
-            waitForConnectionString(client as unknown as Client, "local1", { maxAttempts: 3, intervalMs: 1 })
+            waitForConnectionString({
+                client: client as unknown as Client,
+                deploymentName: "local1",
+                maxAttempts: 3,
+                intervalMs: 1,
+            })
         ).rejects.toThrow("No such container: local1");
         expect(client.getConnectionString).toHaveBeenCalledTimes(1);
     });
@@ -49,7 +59,12 @@ describe("waitForConnectionString", () => {
         };
 
         await expect(
-            waitForConnectionString(client as unknown as Client, "local1", { maxAttempts, intervalMs: 1 })
+            waitForConnectionString({
+                client: client as unknown as Client,
+                deploymentName: "local1",
+                maxAttempts,
+                intervalMs: 1,
+            })
         ).rejects.toBeInstanceOf(AtlasLocalDeploymentNotReadyError);
         expect(client.getConnectionString).toHaveBeenCalledTimes(maxAttempts);
     });

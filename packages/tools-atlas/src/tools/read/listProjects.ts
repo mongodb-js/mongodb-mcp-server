@@ -37,17 +37,19 @@ export class ListProjectsTool extends AtlasToolBase {
     static toolName = "atlas-list-projects";
     public description = "List MongoDB Atlas projects.";
     static operationType: OperationType = "read";
-    public argsShape = {
-        ...ListProjectsArgs,
-    };
-    public override outputSchema = ListProjectsOutputSchema;
+    public argsShape(): typeof ListProjectsArgs {
+        return ListProjectsArgs;
+    }
+    public override outputSchema(): typeof ListProjectsOutputSchema {
+        return ListProjectsOutputSchema;
+    }
 
     protected async execute(
-        { orgId, limit, pageNum, includeCount }: ToolArgs<typeof this.argsShape>,
-        context: ToolExecutionContext
-    ): Promise<ToolResult<typeof this.outputSchema>> {
+        { orgId, limit, pageNum, includeCount }: ToolArgs<ReturnType<typeof this.argsShape>>,
+        { request }: ToolExecutionContext
+    ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const data = orgId
-            ? await this.apiClient.getOrgGroups(
+            ? await this.server.apiClient.getOrgGroups(
                   {
                       params: {
                           path: {
@@ -60,9 +62,9 @@ export class ListProjectsTool extends AtlasToolBase {
                           },
                       },
                   },
-                  context
+                  request
               )
-            : await this.apiClient.listGroups(
+            : await this.server.apiClient.listGroups(
                   {
                       params: {
                           query: {
@@ -72,7 +74,7 @@ export class ListProjectsTool extends AtlasToolBase {
                           },
                       },
                   },
-                  context
+                  request
               );
 
         const projects = (data?.results ?? []).map((project) => ({
@@ -114,6 +116,7 @@ export class ListProjectsTool extends AtlasToolBase {
 
         return {
             content: formatUntrustedData(
+                this.server.config,
                 `Found ${projects.length} projects.${
                     moreResultsAvailable ? " Use pagination arguments if more results are expected." : ""
                 }`,

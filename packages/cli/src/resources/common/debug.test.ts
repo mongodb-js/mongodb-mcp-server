@@ -3,13 +3,11 @@ import { DebugResource } from "./debug.js";
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import { ApiClient, userAgentFromServerMetadata } from "@mongodb-js/mcp-atlas-api-client";
-import { Session, UserConfigSchema, type UserConfig } from "@mongodb-js/mcp-cli";
+import { UserConfigSchema, type UserConfig, type CliServer } from "@mongodb-js/mcp-cli";
 import {
     PRECONFIGURED_CONNECTION_ID,
-    ExportsManager,
     DeviceId,
     MCPConnectionStore,
-    connectionErrorHandler,
     FakeConnectionManager,
     type ConnectionRegistry,
     type ConnectionManager,
@@ -19,7 +17,6 @@ const defaultTestConfig: UserConfig = {
     ...UserConfigSchema.parse({}),
     telemetry: "disabled",
     loggers: ["stderr"],
-    connectionScope: "global",
     maxActiveConnections: 10,
 };
 
@@ -33,7 +30,6 @@ describe("debug resource", () => {
     const deviceId = DeviceId.create(logger);
 
     let managers: FakeConnectionManager[];
-    let session: Session;
     let registry: ConnectionRegistry;
     let debugResource: DebugResource;
 
@@ -46,42 +42,45 @@ describe("debug resource", () => {
     }
 
     function setup(config: UserConfig = defaultTestConfig): void {
+        const keychain = new Keychain();
         registry = new TestStore({
             options: config,
             logger,
             deviceId,
+            keychain,
         }).view();
 
-        session = new Session({
-            logger,
-            exportsManager: ExportsManager.init({ options: config, logger }),
-            connectionRegistry: registry,
-            keychain: new Keychain(),
-            connectionErrorHandler,
-            apiClient: new ApiClient(
-                {
-                    baseUrl: config.apiBaseUrl,
-                    userAgent: userAgentFromServerMetadata(testServerMetadata),
-                    httpClient: {
-                        fetch: globalThis.fetch.bind(globalThis),
-                        Request: globalThis.Request,
-                    },
+        const apiClient = new ApiClient({
+            options: {
+                baseUrl: config.apiBaseUrl,
+                userAgent: userAgentFromServerMetadata(testServerMetadata),
+                httpClient: {
+                    fetch: globalThis.fetch.bind(globalThis),
+                    Request: globalThis.Request,
                 },
-                logger
-            ),
-            config,
+            },
+            logger,
         });
 
         const telemetry = AtlasTelemetry.create({
             logger,
             deviceId,
-            apiClient: session.apiClient,
-            keychain: session.keychain,
+            apiClient,
+            keychain,
             enabled: false,
             serverMetadata: testServerMetadata,
         });
 
-        debugResource = new DebugResource(session, telemetry);
+        debugResource = new DebugResource({
+            server: {
+                config,
+                logger,
+                keychain,
+                telemetry,
+                connectionRegistry: registry,
+                tools: [],
+            } as unknown as CliServer,
+        });
     }
 
     beforeEach(() => {
@@ -101,7 +100,10 @@ describe("debug resource", () => {
             },
             { name: "find", category: "mongodb", operationType: "read", isEnabled: (): boolean => true },
         ];
-        (debugResource as unknown as { server: { tools: typeof fakeTools } }).server = { tools: fakeTools };
+        (debugResource as unknown as { server: { tools: typeof fakeTools; connectionRegistry: ConnectionRegistry } }).server = {
+            tools: fakeTools,
+            connectionRegistry: registry,
+        };
 
         const output = await debugResource.toOutput();
 
@@ -143,15 +145,12 @@ describe("debug resource", () => {
 
     it("should show the atlas cluster information when provided", async () => {
         const entry = await registry.connect({
-            settings: {
-                connectionString: "mongodb://localhost:27017",
-                atlas: {
-                    clusterName: "My Test Cluster",
-                    projectId: "COFFEEFABADA",
-                    clusterId: "DEADBEEF",
-                    username: "",
-                    instanceType: "FREE",
-                },
+            settings: { connectionString: "mongodb://localhost:27017" },
+            atlasCluster: {
+                clusterName: "My Test Cluster",
+                projectId: "COFFEEFABADA",
+                clusterId: "DEADBEEF",
+                instanceType: "FREE",
             },
         });
         vi.spyOn(entry, "isSearchSupported").mockResolvedValue(false);

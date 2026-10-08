@@ -1,14 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ToolConstructorParams } from "@mongodb-js/mcp-core";
 import { CreateAccessListTool } from "./createAccessList.js";
 import { DEFAULT_ACCESS_LIST_COMMENT } from "../../helpers/accessListUtils.js";
-import type { IAtlasConfig, IAtlasSession } from "../../atlasTool.js";
 import type { ITelemetry, ICompositeLogger } from "@mongodb-js/mcp-types";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import { Keychain, ToolArgumentValidationError } from "@mongodb-js/mcp-core";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import type { RegisteredTool } from "@modelcontextprotocol/server";
+import type { AtlasToolServer } from "../../atlasTool.js";
 
 const projectId = "507f1f77bcf86cd799439011";
 const currentIpAddress = "203.0.113.10";
@@ -45,26 +44,30 @@ describe("CreateAccessListTool", () => {
                 confirmationRequiredTools: [],
                 previewFeatures: [],
                 disabledTools: [],
-            } as unknown as IAtlasConfig,
-        } as unknown as IAtlasSession;
+            } as unknown as AtlasToolServer["config"],
+        } as unknown as AtlasToolServer;
 
-        const params: ToolConstructorParams<IAtlasSession> = {
-            name: CreateAccessListTool.toolName,
-            category: "atlas",
-            operationType: CreateAccessListTool.operationType,
-            session: mockSession,
+        const server: AtlasToolServer = {
+            ...mockSession,
             telemetry: { isTelemetryEnabled: () => false, emitEvents: vi.fn() } as unknown as ITelemetry,
             elicitation: createMockElicitation(),
             metrics: new MockMetrics(),
             uiRegistry: new UIRegistry(),
+            mcpServer: { registerTool: () => ({ enabled: true, disable: vi.fn(), enable: vi.fn() }) } as never,
+            tools: [],
+            isToolCategoryAvailable: () => true,
         };
 
-        return new CreateAccessListTool(params);
+        return new CreateAccessListTool({ server });
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const exec = (args: Record<string, unknown>) =>
-        tool["execute"](args as never, { signal: new AbortController().signal });
+        tool["execute"](args as never, {
+            request: {
+                signal: new AbortController().signal,
+            },
+        });
 
     it("creates access list entries for IPs and CIDR blocks", async () => {
         const result = await exec({
@@ -114,7 +117,7 @@ describe("CreateAccessListTool", () => {
     });
 
     it("includes the currentIpAddress arg when current IP lookup is supported", () => {
-        expect(Object.keys(tool.argsShape)).toContain("currentIpAddress");
+        expect(Object.keys(tool.argsShape())).toContain("currentIpAddress");
     });
 
     describe("when current IP lookup is not supported", () => {
@@ -123,7 +126,7 @@ describe("CreateAccessListTool", () => {
         });
 
         it("omits the currentIpAddress arg", () => {
-            expect(Object.keys(tool.argsShape)).not.toContain("currentIpAddress");
+            expect(Object.keys(tool.argsShape())).not.toContain("currentIpAddress");
         });
 
         it("directs the user to provide explicit IPs when no inputs are provided", async () => {
@@ -145,37 +148,35 @@ describe("CreateAccessListTool", () => {
         });
     });
 
-    describe("shared schema caching by IP-lookup variant", () => {
+    describe("argsShape variant by IP-lookup support", () => {
         type CapturedSchema = { safeParse: (value: unknown) => { success: boolean } };
 
         function registeredInputSchema(t: CreateAccessListTool): CapturedSchema {
             let inputSchema: unknown;
-            const mockServer = {
-                mcpServer: {
-                    registerTool: (_name: string, config: { inputSchema: unknown }): RegisteredTool => {
-                        inputSchema = config.inputSchema;
-                        return { enabled: true, disable: vi.fn(), enable: vi.fn() } as unknown as RegisteredTool;
-                    },
-                },
+            (t as unknown as { server: { mcpServer: { registerTool: unknown } } }).server.mcpServer.registerTool = (
+                _name: string,
+                config: { inputSchema: unknown }
+            ): RegisteredTool => {
+                inputSchema = config.inputSchema;
+                return { enabled: true, disable: vi.fn(), enable: vi.fn() } as unknown as RegisteredTool;
             };
-            t.register(mockServer as never);
+            t.register();
             return inputSchema as CapturedSchema;
         }
 
-        it("caches the two variants separately without cross-talk", () => {
+        it("produces distinct shapes for the two variants without cross-talk", () => {
             const withLookup = registeredInputSchema(makeTool({ ...mockApiClient, supportsCurrentIpLookup: true }));
             const withoutLookup = registeredInputSchema(makeTool({ ...mockApiClient, supportsCurrentIpLookup: false }));
 
-            // Distinct shapes must not collapse onto one shared cache entry.
             expect(withLookup).not.toBe(withoutLookup);
             expect(withLookup.safeParse({ projectId, currentIpAddress: true }).success).toBe(true);
             expect(withoutLookup.safeParse({ projectId, currentIpAddress: true }).success).toBe(false);
         });
 
-        it("shares one schema instance across registrations of the same variant", () => {
-            const a = registeredInputSchema(makeTool({ ...mockApiClient, supportsCurrentIpLookup: true }));
-            const b = registeredInputSchema(makeTool({ ...mockApiClient, supportsCurrentIpLookup: true }));
-            expect(a).toBe(b);
+        it("returns the same argsShape object across instances selecting the same variant", () => {
+            const a = makeTool({ ...mockApiClient, supportsCurrentIpLookup: true });
+            const b = makeTool({ ...mockApiClient, supportsCurrentIpLookup: true });
+            expect(a.argsShape()).toBe(b.argsShape());
         });
 
         it("accepts a comment at the 80-character limit and rejects longer ones", () => {

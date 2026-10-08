@@ -4,9 +4,21 @@ import path from "path";
 import { findLicenseFiles, findPackagePath, getLicenses } from "./licenses.js";
 import type { Conversion, CycloneDxBom, CycloneDxComponent, DependencyWithLicense } from "./types.js";
 
+// Runs via `pnpm --filter @mongodb-js/mcp-scripts` (cwd = packages/scripts); the
+// SBOM output is consumed from the repo root, so write relative to the monorepo root.
+const MONOREPO_ROOT = path.join(import.meta.dirname, "../../../../");
+
 export const CONVERSIONS: Conversion[] = [
-    { prod: false, outputPath: ".sbom/dependencies.json", rawOutputPath: ".sbom/sbom.cyclonedx.json" },
-    { prod: true, outputPath: ".sbom/dependencies-prod.json", rawOutputPath: ".sbom/sbom-prod.cyclonedx.json" },
+    {
+        prod: false,
+        outputPath: path.join(MONOREPO_ROOT, ".sbom/dependencies.json"),
+        rawOutputPath: path.join(MONOREPO_ROOT, ".sbom/sbom.cyclonedx.json"),
+    },
+    {
+        prod: true,
+        outputPath: path.join(MONOREPO_ROOT, ".sbom/dependencies-prod.json"),
+        rawOutputPath: path.join(MONOREPO_ROOT, ".sbom/sbom-prod.cyclonedx.json"),
+    },
 ];
 
 function dependencyKey(dependency: DependencyWithLicense): string {

@@ -67,7 +67,7 @@ jobs:
           echo "::notice::Docker tags to publish: ${DOCKER_TAGS}"
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e
+        uses: docker/setup-buildx-action@594f3bf4285d9ea8dc53c9a0c9c4092420091003
 
       - name: Login to Docker Hub
         uses: docker/login-action@abd2ef45e78c5afb21d64d4ca52ee8550d9572c7
@@ -76,7 +76,7 @@ jobs:
           password: "${{ secrets.DOCKERHUB_PASSWORD }}"
 
       - name: Build and push image to dockerhub registry
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
         with:
           context: packages/mongodb-mcp-server
           platforms: linux/amd64,linux/arm64

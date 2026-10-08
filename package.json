@@ -53,14 +53,14 @@
     "eval:serve": "pnpm --filter @mongodb-js/mcp-eval-tests eval:serve",
     "eval:push": "pnpm --filter @mongodb-js/mcp-eval-tests eval:push",
     "create-dependency-sbom-lists": "pnpm --filter @mongodb-js/mcp-scripts run create-dependency-sbom-lists",
-    "update-third-party-notices": "pnpm --filter @mongodb-js/mcp-scripts exec mongodb-sbom-tools generate-3rd-party-notices --product=\"MongoDB MCP Server\" --dependencies=.sbom/dependencies-prod.json --config=licenses.json > THIRD_PARTY_NOTICES.md"
+    "update-third-party-notices": "mongodb-sbom-tools generate-3rd-party-notices --product=\"MongoDB MCP Server\" --dependencies=.sbom/dependencies-prod.json --config=licenses.json > THIRD_PARTY_NOTICES.md"
   },
   "license": "Apache-2.0",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@mongodb-js/sbom-tools": "^0.10.5",
+    "@mongodb-js/sbom-tools": "^0.10.23",
     "@types/node": "^25.6.0",
-    "@typescript-eslint/parser": "^8.61.0",
+    "@typescript-eslint/parser": "^8.70.0",
     "@vitest/coverage-v8": "^4.1.11",
     "@vitest/eslint-plugin": "^1.6.24",
     "concurrently": "^10.0.5",
@@ -69,7 +69,7 @@
     "eslint-plugin-prettier": "^5.5.6",
     "globals": "^17.6.0",
     "husky": "^9.1.7",
-    "knip": "^6.16.1",
+    "knip": "^6.34.0",
     "prettier": "^3.8.3",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.67.0",
@@ -77,5 +77,6 @@
   },
   "engines": {
     "node": "^20.19.0 || ^22.13.0 || >= 24.0.0"
-  }
+  },
+  "version": "3.1.0-pre.1"
 }

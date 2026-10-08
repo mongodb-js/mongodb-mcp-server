@@ -6,4 +6,5 @@ export {
     EchoTool,
     NoopTool,
     ConfirmingTool,
+    type TestServer,
 } from "./mockTools.js";
