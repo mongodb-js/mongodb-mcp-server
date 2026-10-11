@@ -1,5 +1,5 @@
 The following third-party software is used by and included in **MongoDB MCP Server**.
-This document was automatically generated on Sun Oct 04 2026.
+This document was automatically generated on Sun Oct 11 2026.
 
 ## List of dependencies
 
@@ -474,7 +474,6 @@ Package|Version|License
 **[long](#d4b99df79a95ae6374238bf62ea4f31c9b59fb111ea94d946ee9c21b8510443f)**|5.3.2|Apache-2.0
 **[loose-envify](#ad111a7991710520d4756d1da3b0e32e519d3053b71b5b7b7f4676aaf027590a)**|1.4.0|MIT
 **[lru-cache](#3a13bfe2b7911beeb55053c270fe074ee8a432183299ad08d7bf05856f064df0)**|10.4.3|ISC
-**[lru-cache](#e163550123a385379047d114f4cc02c101ece95d675bc412c5ff84662a3d791e)**|11.5.2|BlueOak-1.0.0
 **[lru-cache](#aca9cdd4321dd851dbbfaf788934444ffe451fa027ea25ecda331e53138e9cd6)**|11.5.3|BlueOak-1.0.0
 **[magic-string](#a2e515768834b0a42b52b722957680865e904bc4e6d5f57760d3b02d31f15658)**|0.30.21|MIT
 **[magicast](#571115b54ca1f7e5b09cf7d18e144fca2f594beaeebb8cf3961093bc87c0c5d3)**|0.5.4|MIT
@@ -501,6 +500,7 @@ Package|Version|License
 **[mongodb-build-info](#a141155010340cf8407ae9b3dc89f79dec50b3121d860b75670fc406751bbf54)**|1.9.11|Apache-2.0
 **[mongodb-client-encryption](#f24794d804800d6c453e41a022153224598e9e9c89b0cf7a097419d8e9df3a2e)**|7.0.0|Apache-2.0
 **[mongodb-connection-string-url](#296e917903ac3f9373c527dbe188f557395fb620f871b166921cd51aa5db6ce5)**|7.0.1|Apache-2.0
+**[mongodb-connection-string-url](#267005f447433080cc6f4777fd158a8ea3dc603ee3a9d3d77cace34dcf82718c)**|7.0.2|Apache-2.0
 **[mongodb-download-url](#af62fa89f07d299bf31dfa5c7d0453d8f7c046b8151c83450301a6228573bd2a)**|1.8.15|Apache-2.0
 **[mongodb-log-writer](#0788567a51c952a5640e64bd3cb5ef4a5e445f340b3bc971f286caa80334a932)**|2.5.13|Apache-2.0
 **[mongodb-ns](#1681b02f7072ef576cc967fe600d4bc561bc1f5f8e0e451d2903288655650eaf)**|3.1.6|Apache-2.0
@@ -679,8 +679,8 @@ Package|Version|License
 **[tinyexec](#356bc9523dbe876b0a061ed85d592c9e4274d394b9abd0c0e6aa502c6270de85)**|1.3.0|MIT
 **[tinyglobby](#b066f6a628712391f95f1d1ed52a2609ac83b683b12c4cf8e4ff399658f4854a)**|0.2.17|MIT
 **[tinyrainbow](#6d7c548315438974db6f6984cfc8dbd64b66b09f26a63ea28835da30eb63cf5a)**|3.1.1|MIT
-**[tldts-core](#9488ca4f3708f3c387b3296d58832d93926379f1ce474eac6fdef3b31ddcea7a)**|7.4.16|MIT
-**[tldts](#b0c476a4fdfdc9383d62730d4aabe902ce22df17c0c6900d59ca6ff99c2d12c9)**|7.4.16|MIT
+**[tldts-core](#dd02b237093b6d431284cbd7c9e689774398beaf8fc1df9427add85eae25921c)**|7.4.15|MIT
+**[tldts](#f439e3091ae86801002143a3b9797a8286423fab1382c1aa79ff1cdc49bab9a8)**|7.4.15|MIT
 **[tmp](#633692989ef11eac6ff1f1756dbcbc05fad830376a6066c7ab6a90b9786adf48)**|0.2.7|MIT
 **[to-buffer](#aab39571abfe03a19c99b49788f7f62925cd5528a69849c2734ff85994221209)**|1.2.2|MIT
 **[toidentifier](#2067d1f99d35f28c8384d3e9762282f3c2ded0041392af855caf28ba2209bd2a)**|1.0.1|MIT
@@ -3169,11 +3169,6 @@ License tags: MIT
 License tags: ISC
 
 
-<a id="e163550123a385379047d114f4cc02c101ece95d675bc412c5ff84662a3d791e"></a>
-### [lru-cache](https://www.npmjs.com/package/lru-cache) (version 11.5.2)
-License tags: BlueOak-1.0.0
-
-
 <a id="aca9cdd4321dd851dbbfaf788934444ffe451fa027ea25ecda331e53138e9cd6"></a>
 ### [lru-cache](https://www.npmjs.com/package/lru-cache) (version 11.5.3)
 License tags: BlueOak-1.0.0
@@ -3301,6 +3296,11 @@ License tags: Apache-2.0
 
 <a id="296e917903ac3f9373c527dbe188f557395fb620f871b166921cd51aa5db6ce5"></a>
 ### [mongodb-connection-string-url](https://www.npmjs.com/package/mongodb-connection-string-url) (version 7.0.1)
+License tags: Apache-2.0
+
+
+<a id="267005f447433080cc6f4777fd158a8ea3dc603ee3a9d3d77cace34dcf82718c"></a>
+### [mongodb-connection-string-url](https://www.npmjs.com/package/mongodb-connection-string-url) (version 7.0.2)
 License tags: Apache-2.0
 
 
@@ -4234,13 +4234,13 @@ License tags: MIT
 License tags: MIT
 
 
-<a id="9488ca4f3708f3c387b3296d58832d93926379f1ce474eac6fdef3b31ddcea7a"></a>
-### [tldts-core](https://www.npmjs.com/package/tldts-core) (version 7.4.16)
+<a id="dd02b237093b6d431284cbd7c9e689774398beaf8fc1df9427add85eae25921c"></a>
+### [tldts-core](https://www.npmjs.com/package/tldts-core) (version 7.4.15)
 License tags: MIT
 
 
-<a id="b0c476a4fdfdc9383d62730d4aabe902ce22df17c0c6900d59ca6ff99c2d12c9"></a>
-### [tldts](https://www.npmjs.com/package/tldts) (version 7.4.16)
+<a id="f439e3091ae86801002143a3b9797a8286423fab1382c1aa79ff1cdc49bab9a8"></a>
+### [tldts](https://www.npmjs.com/package/tldts) (version 7.4.15)
 License tags: MIT
 
 
