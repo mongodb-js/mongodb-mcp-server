@@ -591,4 +591,129 @@ describe("CreateClusterTool", () => {
             expect(result.isError).toBe(true);
         });
     });
+
+    describe("Atlas Infinite (databaseEdition INFINITE)", () => {
+        it("sends an Infinite body with 2 electable nodes and databaseEdition, and no disk size", async () => {
+            const result = await exec({ ...BASE_ARGS, databaseEdition: "INFINITE" });
+
+            expect(result.isError).toBeFalsy();
+            expect(mockApiClient.createCluster).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "507f1f77bcf86cd799439011" } },
+                    body: {
+                        name: "my-cluster",
+                        clusterType: "REPLICASET",
+                        databaseEdition: "INFINITE",
+                        backupEnabled: true,
+                        pitEnabled: false,
+                        terminationProtectionEnabled: false,
+                        versionReleaseSystem: "CONTINUOUS",
+                        encryptionAtRestProvider: "NONE",
+                        replicationSpecs: [
+                            {
+                                regionConfigs: [
+                                    {
+                                        providerName: "AWS",
+                                        regionName: "US_EAST_1",
+                                        priority: 7,
+                                        electableSpecs: { instanceSize: "M10", nodeCount: 2 },
+                                        autoScaling: {
+                                            compute: {
+                                                enabled: true,
+                                                scaleDownEnabled: true,
+                                                minInstanceSize: "M10",
+                                                maxInstanceSize: "M30",
+                                            },
+                                            diskGB: { enabled: true },
+                                        },
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                },
+                expect.anything()
+            );
+        });
+
+        it("adds readOnlySpecs and the max storage limit when provided", async () => {
+            await exec({
+                ...BASE_ARGS,
+                databaseEdition: "INFINITE",
+                instanceSize: "M50",
+                readOnlyNodes: 2,
+                maxStorageGB: 98304,
+            });
+
+            const call = mockApiClient.createCluster!.mock.calls[0]![0] as {
+                body: {
+                    replicationSpecs: Array<{ regionConfigs: Array<Record<string, unknown>> }>;
+                };
+            };
+            const regionConfig = call.body.replicationSpecs[0]!.regionConfigs[0]!;
+            expect(regionConfig.readOnlySpecs).toEqual({ instanceSize: "M50", nodeCount: 2 });
+            expect(regionConfig.electableSpecs).toEqual({ instanceSize: "M50", nodeCount: 2 });
+            expect(regionConfig.autoScaling).toMatchObject({
+                compute: { minInstanceSize: "M50", maxInstanceSize: "M60" },
+                storageConfig: { shardSizeLimitGB: 98304 },
+            });
+        });
+
+        it("clamps compute autoscaling max to M60 for Infinite clusters", async () => {
+            await exec({ ...BASE_ARGS, databaseEdition: "INFINITE", instanceSize: "M50" });
+
+            const call = mockApiClient.createCluster!.mock.calls[0]![0] as {
+                body: {
+                    replicationSpecs: Array<{
+                        regionConfigs: Array<{ autoScaling: { compute: { maxInstanceSize?: string } } }>;
+                    }>;
+                };
+            };
+            expect(call.body.replicationSpecs[0]!.regionConfigs[0]!.autoScaling.compute.maxInstanceSize).toBe("M60");
+        });
+
+        it("does not send databaseEdition for Atlas Core clusters", async () => {
+            await exec(BASE_ARGS);
+
+            const call = mockApiClient.createCluster!.mock.calls[0]![0] as { body: Record<string, unknown> };
+            expect(call.body.databaseEdition).toBeUndefined();
+        });
+
+        it("reports databaseEdition in structuredContent", async () => {
+            const result = await exec({ ...BASE_ARGS, databaseEdition: "INFINITE", maxStorageGB: 1024 });
+
+            expect(result.isError).toBeFalsy();
+            expect(result.structuredContent).toMatchObject({
+                databaseEdition: "INFINITE",
+                maxStorageGB: 1024,
+            });
+        });
+
+        it.each([
+            ["a non-AWS provider", { ...BASE_ARGS, provider: "GCP" }, "AWS only"],
+            ["multiple regions", { ...BASE_ARGS, regions: ["US_EAST_1", "US_WEST_2"] }, "single region"],
+            ["a sharded cluster", { ...BASE_ARGS, clusterType: "SHARDED" }, "sharded"],
+            ["an M80 instance size", { ...BASE_ARGS, instanceSize: "M80" }, "M10-M60"],
+            ["a pinned MongoDB version", { ...BASE_ARGS, mongoDBVersion: "8.0" }, "auto upgrades"],
+            ["backups off", { ...BASE_ARGS, backup: "OFF" }, "always enabled"],
+            ["a disk size", { ...BASE_ARGS, diskSizeGB: 100 }, "disk size"],
+        ] as const)("returns error when Infinite edition is combined with %s", async (_case, args, expectedText) => {
+            const result = await exec({ ...args, databaseEdition: "INFINITE" });
+
+            expect(result.isError).toBe(true);
+            expect((result.content[0] as { text: string }).text).toContain(expectedText);
+        });
+
+        it.each([
+            ["readOnlyNodes", { readOnlyNodes: 2 }],
+            ["maxStorageGB", { maxStorageGB: 1024 }],
+        ] as const)("returns error when %s is passed for an Atlas Core cluster", async (_case, extraArgs) => {
+            const result = await exec({ ...BASE_ARGS, ...extraArgs });
+
+            expect(result.isError).toBe(true);
+            expect((result.content[0] as { text: string }).text).toContain(
+                "only supported when databaseEdition is INFINITE"
+            );
+        });
+    });
 });

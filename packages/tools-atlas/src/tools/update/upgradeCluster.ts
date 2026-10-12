@@ -7,7 +7,16 @@ import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import type { ClusterDescription20240805 } from "@mongodb-js/mcp-atlas-api-client";
 import { AtlasArgs } from "../../args.js";
-import { standardInstanceSizeEnum, getMaxAutoScalingSize, type StandardInstanceSize } from "../../helpers/cluster.js";
+import {
+    standardInstanceSizeEnum,
+    getMaxAutoScalingSize,
+    getInfiniteMaxAutoScalingSize,
+    infiniteInstanceSizeEnum,
+    databaseEditionEnum,
+    type DatabaseEdition,
+    type InfiniteInstanceSize,
+    type StandardInstanceSize,
+} from "../../helpers/cluster.js";
 import type { UpgradeClusterMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 
 const ALLOWED_PROVIDER_REGEX = /^[A-Z_]+$/;
@@ -22,6 +31,9 @@ function isHigherInstanceSize(a: string, b: string): boolean {
 // maxInstanceSize can go beyond standardInstanceSizeEnum since autoscaling may grow an M60/M80 cluster past M80.
 const maxAutoScalingSizeEnum = z.enum([...standardInstanceSizeEnum.options, "M140", "M200"]);
 
+// Atlas Infinite HA shards are one primary plus one standby node.
+const INFINITE_ELECTABLE_NODE_COUNT = 2;
+
 // Hardcoded defaults for all dedicated (M10) upgrade paths.
 // provider and region are the only fields callers may override.
 const DEDICATED_CLUSTER_DEFAULTS = {
@@ -35,11 +47,12 @@ const DEDICATED_CLUSTER_DEFAULTS = {
     },
 } as const;
 
-type FreeToM10Body = {
+type FreeUpgradeBody = {
     name: string;
+    databaseEdition?: "INFINITE";
     providerSettings: {
         providerName?: string;
-        instanceSizeName: "M10";
+        instanceSizeName: "M10" | InfiniteInstanceSize;
         regionName?: string;
         autoScaling?: { compute?: { minInstanceSize?: string; maxInstanceSize?: string } };
     };
@@ -49,9 +62,10 @@ type FreeToM10Body = {
     };
 };
 
-type FlexToM10Body = {
+type FlexUpgradeBody = {
     name: string;
     clusterType: "REPLICASET";
+    databaseEdition?: "INFINITE";
     replicationSpecs: Array<{
         regionConfigs: Array<{
             providerName?: string;
@@ -96,53 +110,35 @@ function resolveM10AutoScaling(autoScalingArgs: AutoScalingArgs, provider: strin
     };
 }
 
+// Builds the tenantUpgrade request body for a Free or Flex source cluster.
+// targetSize defaults to M10 (Atlas Core Dedicated); edition INFINITE targets
+// an Atlas Infinite cluster, which uses 2 electable nodes per HA shard.
 function buildM10UpgradeBody({
     baseTier,
     clusterName,
     autoScaling,
     provider,
     region,
-}: {
-    baseTier: "FREE";
-    clusterName: string;
-    autoScaling: ResolvedM10AutoScaling;
-    provider?: string;
-    region?: string;
-}): FreeToM10Body;
-function buildM10UpgradeBody({
-    baseTier,
-    clusterName,
-    autoScaling,
-    provider,
-    region,
-}: {
-    baseTier: "FLEX";
-    clusterName: string;
-    autoScaling: ResolvedM10AutoScaling;
-    provider?: string;
-    region?: string;
-}): FlexToM10Body;
-function buildM10UpgradeBody({
-    baseTier,
-    clusterName,
-    autoScaling,
-    provider,
-    region,
+    targetSize = "M10",
+    edition = "CORE",
 }: {
     baseTier: "FREE" | "FLEX";
     clusterName: string;
     autoScaling: ResolvedM10AutoScaling;
     provider?: string;
     region?: string;
-}): FreeToM10Body | FlexToM10Body {
+    targetSize?: "M10" | InfiniteInstanceSize;
+    edition?: DatabaseEdition;
+}): FreeUpgradeBody | FlexUpgradeBody {
     const { enabled, minInstanceSize, maxInstanceSize } = autoScaling;
 
     if (baseTier === "FREE") {
         return {
             name: clusterName,
+            ...(edition === "INFINITE" && { databaseEdition: "INFINITE" as const }),
             providerSettings: {
                 ...(provider !== undefined && { providerName: provider }),
-                instanceSizeName: DEDICATED_CLUSTER_DEFAULTS.regionConfig.electableSpecs.instanceSize,
+                instanceSizeName: targetSize,
                 ...(region !== undefined && { regionName: region }),
                 ...(enabled && { autoScaling: { compute: { minInstanceSize, maxInstanceSize } } }),
             },
@@ -155,13 +151,18 @@ function buildM10UpgradeBody({
     return {
         name: clusterName,
         clusterType: DEDICATED_CLUSTER_DEFAULTS.clusterType,
+        ...(edition === "INFINITE" && { databaseEdition: "INFINITE" as const }),
         replicationSpecs: [
             {
                 regionConfigs: [
                     {
                         ...(provider !== undefined && { providerName: provider }),
                         ...(region !== undefined && { regionName: region }),
-                        ...DEDICATED_CLUSTER_DEFAULTS.regionConfig,
+                        priority: DEDICATED_CLUSTER_DEFAULTS.regionConfig.priority,
+                        electableSpecs: {
+                            instanceSize: targetSize,
+                            nodeCount: edition === "INFINITE" ? INFINITE_ELECTABLE_NODE_COUNT : 3,
+                        },
                         autoScaling: {
                             compute: { enabled, scaleDownEnabled: enabled, minInstanceSize, maxInstanceSize },
                             diskGB: { enabled: true },
@@ -173,12 +174,49 @@ function buildM10UpgradeBody({
     };
 }
 
+// Validates and resolves the autoscaling args for a Free/Flex to Atlas Infinite upgrade,
+// where bounds are limited to the M10-M60 instance sizes Infinite supports.
+function resolveInfiniteUpgradeAutoScaling(
+    autoScalingArgs: AutoScalingArgs,
+    targetSize: InfiniteInstanceSize
+): ResolvedM10AutoScaling {
+    const { minInstanceSize, maxInstanceSize } = autoScalingArgs;
+
+    if (minInstanceSize !== undefined && !infiniteInstanceSizeEnum.safeParse(minInstanceSize).success) {
+        throw new UpgradeClusterError(
+            `minInstanceSize must be an M10-M60 instance size when upgrading to Atlas Infinite.`
+        );
+    }
+    if (maxInstanceSize !== undefined && !infiniteInstanceSizeEnum.safeParse(maxInstanceSize).success) {
+        throw new UpgradeClusterError(
+            `maxInstanceSize must be an M10-M60 instance size when upgrading to Atlas Infinite.`
+        );
+    }
+
+    const enabled = autoScalingArgs.computeAutoScaling ?? true;
+    if (!enabled) {
+        return {
+            enabled,
+            minInstanceSize,
+            maxInstanceSize,
+        };
+    }
+
+    const min = minInstanceSize ?? targetSize;
+    const max = maxInstanceSize ?? getInfiniteMaxAutoScalingSize(targetSize);
+    if (isHigherInstanceSize(min, max)) {
+        throw new UpgradeClusterError(`minInstanceSize "${min}" cannot be higher than maxInstanceSize "${max}".`);
+    }
+    return { enabled, minInstanceSize: min, maxInstanceSize: max };
+}
+
 type ResolvedClusterInfo = {
     instanceType: "FREE" | "FLEX" | "DEDICATED";
     provider?: string;
     region?: string;
     raw?: ClusterDescription20240805;
     instanceSize?: string;
+    databaseEdition?: DatabaseEdition;
 };
 
 async function resolveClusterInfo({
@@ -203,6 +241,7 @@ async function resolveClusterInfo({
             region: argOverrides.region ?? cluster.region,
             raw,
             instanceSize: cluster.instanceSize,
+            databaseEdition: cluster.databaseEdition,
         };
     } catch (err) {
         // Atlas returns 400 for Flex clusters on the regular cluster endpoint ("cannot be used in the Cluster API")
@@ -321,6 +360,20 @@ function validateDedicatedScaling({
             `Cluster "${clusterName}" has instance size "${clusterInfo.instanceSize ?? "unknown"}", which this tool does not support scaling. Only standard M10-M80 instance sizes are supported.`
         );
     }
+    if (clusterInfo.databaseEdition === "INFINITE") {
+        // Atlas Infinite is capped at M10-M60 during public preview, and edition changes are not possible.
+        for (const [label, size] of [
+            ["targetTier", args.targetTier],
+            ["minInstanceSize", args.minInstanceSize],
+            ["maxInstanceSize", args.maxInstanceSize],
+        ] as const) {
+            if (size !== undefined && size !== "FLEX" && !infiniteInstanceSizeEnum.safeParse(size).success) {
+                throw new UpgradeClusterError(
+                    `${label} "${size}" is not supported for Atlas Infinite clusters, which support M10-M60 instance sizes during public preview.`
+                );
+            }
+        }
+    }
     const clusterType = clusterInfo.raw?.clusterType;
     if (
         (clusterType !== "REPLICASET" && clusterType !== "SHARDED") ||
@@ -349,20 +402,47 @@ function validateDedicatedScaling({
     return regionConfigs[0]?.autoScaling?.compute;
 }
 
-// Validates and resolves the upgrade target for a Free/Flex source cluster: defaults to FLEX for Free,
-// M10 for Flex, and rejects any targetTier value that isn't a valid choice for a non-Dedicated source.
-function resolveNonDedicatedTarget(args: { targetTier?: string }, instanceType: "FREE" | "FLEX"): "FLEX" | "M10" {
+// Validates and resolves the upgrade target for a Free/Flex source cluster.
+// Atlas Core upgrades keep the previous behavior (FLEX or M10). Targeting
+// Atlas Infinite accepts any M10-M60 instance size as the starting tier.
+function resolveNonDedicatedTarget(
+    args: { targetTier?: string; targetEdition?: DatabaseEdition },
+    instanceType: "FREE" | "FLEX"
+): { tier: "FLEX" | "M10" | InfiniteInstanceSize; edition: DatabaseEdition } {
+    if (args.targetEdition === "INFINITE") {
+        if (args.targetTier === "FLEX") {
+            throw new UpgradeClusterError(
+                `targetTier "FLEX" is not valid when targetEdition is INFINITE. Omit targetTier or choose an M10-M60 instance size.`
+            );
+        }
+        if (args.targetTier !== undefined && !infiniteInstanceSizeEnum.safeParse(args.targetTier).success) {
+            throw new UpgradeClusterError(
+                `targetTier "${args.targetTier}" is not valid when upgrading to Atlas Infinite. Choose an M10-M60 instance size.`
+            );
+        }
+        return { tier: (args.targetTier as InfiniteInstanceSize | undefined) ?? "M10", edition: "INFINITE" };
+    }
     if (args.targetTier !== undefined && args.targetTier !== "FLEX" && args.targetTier !== "M10") {
         throw new UpgradeClusterError(
             `targetTier "${args.targetTier}" is not valid when upgrading from ${instanceType}. Choose FLEX or M10 - larger instance sizes are only valid once the cluster is already Dedicated.`
         );
     }
-    return args.targetTier ?? (instanceType === "FREE" ? "FLEX" : "M10");
+    return { tier: args.targetTier ?? (instanceType === "FREE" ? "FLEX" : "M10"), edition: "CORE" };
+}
+
+// Atlas Infinite runs on AWS only during public preview.
+function validateInfiniteUpgradeProvider(clusterInfo: ResolvedClusterInfo, clusterName: string): void {
+    if (clusterInfo.provider !== undefined && clusterInfo.provider !== "AWS") {
+        throw new UpgradeClusterError(
+            `Atlas Infinite clusters are available on AWS only during public preview, but cluster "${clusterName}" is on "${clusterInfo.provider}".`
+        );
+    }
 }
 
 export const UpgradeClusterOutputSchema = {
     originalTier: z.enum(["FREE", "FLEX", ...standardInstanceSizeEnum.options]),
     targetTier: z.enum(["FLEX", ...standardInstanceSizeEnum.options]),
+    databaseEdition: databaseEditionEnum.optional(),
     computeAutoScaling: z.boolean().optional(),
     minInstanceSize: z.string().optional(),
     maxInstanceSize: z.string().optional(),
@@ -378,8 +458,15 @@ const UpgradeClusterArgsShape = {
         .enum(["FLEX", ...standardInstanceSizeEnum.options])
         .optional()
         .describe(
-            "For a Free/Flex source cluster: the target tier to upgrade to, defaults to FLEX for Free clusters, M10 for Flex clusters. " +
+            "For a Free/Flex source cluster: the target tier to upgrade to. Defaults to FLEX for Free clusters, M10 for Flex clusters; when targetEdition is INFINITE, any M10-M60 size can be selected (defaults to M10). " +
                 "For a Dedicated cluster: the new instance size (M10-M80) to scale it to."
+        ),
+    targetEdition: databaseEditionEnum
+        .optional()
+        .describe(
+            "Database edition to upgrade to. `INFINITE` upgrades a Free or Flex cluster to an Atlas Infinite cluster (public preview, AWS only, M10-M60). " +
+                "Cannot be changed on a Dedicated cluster: Atlas Core clusters cannot be upgraded to Atlas Infinite and vice versa. " +
+                "Omit to keep the cluster's current edition."
         ),
     computeAutoScaling: z
         .boolean()
@@ -414,7 +501,7 @@ const UpgradeClusterArgsShape = {
 export class UpgradeClusterTool extends AtlasToolBase {
     static toolName = "atlas-upgrade-cluster";
     public description =
-        "Upgrade or scale a MongoDB Atlas cluster. Free and Flex clusters can be upgraded to Flex or M10 Dedicated. Dedicated clusters can be scaled to a different instance size, and compute autoscaling settings can be updated. " +
+        "Upgrade or scale a MongoDB Atlas cluster. Free and Flex clusters can be upgraded to Flex, M10 Dedicated, or Atlas Infinite (set targetEdition to INFINITE). Dedicated clusters can be scaled to a different instance size, and compute autoscaling settings can be updated. " +
         "When scaling a Dedicated cluster, at least one of targetTier, computeAutoScaling, minInstanceSize, or maxInstanceSize must be provided. " +
         "Compute autoscaling defaults to enabled when upgrading to M10 Dedicated: min instance size is set to the selected instance size, max is set two tiers above, unless overridden. " +
         "Note to LLM: If provider and region are not already known, ask for both together in a single question before calling this tool. " +
@@ -443,14 +530,29 @@ export class UpgradeClusterTool extends AtlasToolBase {
 
         let clusterId: string | undefined;
         let targetInstanceSize: string | undefined;
+        let targetEdition: DatabaseEdition | undefined;
         let computeAutoScaling: boolean | undefined;
         let minInstanceSize: string | undefined;
         let maxInstanceSize: string | undefined;
         let isScaling = false;
-        let target: "FLEX" | "M10" | undefined;
+        let target: "FLEX" | "M10" | InfiniteInstanceSize | undefined;
 
         switch (clusterInfo.instanceType) {
             case "DEDICATED": {
+                if (args.targetEdition !== undefined) {
+                    const currentEdition = clusterInfo.databaseEdition ?? "CORE";
+                    if (currentEdition === "INFINITE" && args.targetEdition === "CORE") {
+                        throw new UpgradeClusterError(
+                            `Cluster "${clusterName}" is an Atlas Infinite cluster. Clusters cannot change their database edition.`
+                        );
+                    }
+                    if (currentEdition === "CORE" && args.targetEdition === "INFINITE") {
+                        throw new UpgradeClusterError(
+                            `Cluster "${clusterName}" is an Atlas Core cluster. Upgrading an Atlas Core cluster to Atlas Infinite is not supported; create a new Atlas Infinite cluster with the atlas-create-cluster tool instead.`
+                        );
+                    }
+                }
+
                 const currentAutoScaling = validateDedicatedScaling({ clusterInfo, args, clusterName });
 
                 // Target size: an explicit resize, or unchanged if only autoscaling is being adjusted.
@@ -507,6 +609,15 @@ export class UpgradeClusterTool extends AtlasToolBase {
                         getMaxAutoScalingSize(resolvedInstanceSize, clusterInfo.provider ?? "");
                 }
 
+                // Atlas Infinite does not support tiers above M60 during public preview.
+                if (
+                    clusterInfo.databaseEdition === "INFINITE" &&
+                    resolvedMax !== undefined &&
+                    isHigherInstanceSize(resolvedMax, "M60")
+                ) {
+                    resolvedMax = "M60";
+                }
+
                 if (
                     resolvedEnabled &&
                     resolvedMin !== undefined &&
@@ -538,20 +649,28 @@ export class UpgradeClusterTool extends AtlasToolBase {
                 );
                 clusterId = result.id;
                 targetInstanceSize = resolvedInstanceSize;
+                targetEdition = clusterInfo.databaseEdition ?? "CORE";
                 computeAutoScaling = resolvedEnabled;
                 minInstanceSize = resolvedMin;
                 maxInstanceSize = resolvedMax;
                 break;
             }
             case "FLEX": {
-                target = resolveNonDedicatedTarget(args, "FLEX");
-                if (target === "FLEX") {
+                const resolved = resolveNonDedicatedTarget(args, "FLEX");
+                target = resolved.tier;
+                if (resolved.tier === "FLEX") {
                     throw new UpgradeClusterError(`Cluster "${clusterName}" is already a Flex cluster.`);
                 }
 
-                const resolvedAutoScaling = resolveM10AutoScaling(args, clusterInfo.provider);
+                const isInfiniteUpgrade = resolved.edition === "INFINITE";
+                if (isInfiniteUpgrade) {
+                    validateInfiniteUpgradeProvider(clusterInfo, clusterName);
+                }
+                const resolvedAutoScaling = isInfiniteUpgrade
+                    ? resolveInfiniteUpgradeAutoScaling(args, resolved.tier)
+                    : resolveM10AutoScaling(args, clusterInfo.provider);
 
-                // tenantUpgrade: upgrades Flex clusters to Dedicated (M10+)
+                // tenantUpgrade: upgrades Flex clusters to Dedicated (M10+) or Atlas Infinite
                 ({ id: clusterId } = await this.server.apiClient.tenantUpgrade(
                     {
                         params: { path: { groupId: projectId } },
@@ -561,16 +680,22 @@ export class UpgradeClusterTool extends AtlasToolBase {
                             autoScaling: resolvedAutoScaling,
                             provider: clusterInfo.provider,
                             region: clusterInfo.region,
+                            ...(isInfiniteUpgrade && {
+                                targetSize: resolved.tier,
+                                edition: "INFINITE",
+                            }),
                         }),
                     } as unknown as Parameters<typeof this.server.apiClient.tenantUpgrade>[0],
                     request
                 ));
+                targetEdition = resolved.edition;
                 break;
             }
-            case "FREE":
-                target = resolveNonDedicatedTarget(args, "FREE");
+            case "FREE": {
+                const resolved = resolveNonDedicatedTarget(args, "FREE");
+                target = resolved.tier;
                 if (
-                    target === "FLEX" &&
+                    resolved.tier === "FLEX" &&
                     (args.computeAutoScaling !== undefined ||
                         args.minInstanceSize !== undefined ||
                         args.maxInstanceSize !== undefined)
@@ -580,16 +705,27 @@ export class UpgradeClusterTool extends AtlasToolBase {
                     );
                 }
 
+                const isInfiniteUpgrade = resolved.edition === "INFINITE";
+                if (isInfiniteUpgrade) {
+                    validateInfiniteUpgradeProvider(clusterInfo, clusterName);
+                }
+                const resolvedAutoScaling = isInfiniteUpgrade
+                    ? resolveInfiniteUpgradeAutoScaling(args, resolved.tier as InfiniteInstanceSize)
+                    : resolveM10AutoScaling(args, clusterInfo.provider);
+
                 ({ id: clusterId } = await this.upgradeFreeCluster({
                     projectId,
                     clusterName,
-                    target,
+                    target: resolved.tier,
+                    edition: resolved.edition,
                     backingProviderName: clusterInfo.provider,
                     regionName: clusterInfo.region,
-                    autoScalingArgs: args,
+                    autoScaling: resolvedAutoScaling,
                     request,
                 }));
+                targetEdition = resolved.edition;
                 break;
+            }
         }
 
         if (clusterInfo.instanceType === "DEDICATED") {
@@ -622,6 +758,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
                 structuredContent: {
                     originalTier: clusterInfo.instanceSize as StandardInstanceSize,
                     targetTier: targetInstanceSize as StandardInstanceSize,
+                    databaseEdition: targetEdition,
                     computeAutoScaling,
                     minInstanceSize,
                     maxInstanceSize,
@@ -636,19 +773,21 @@ export class UpgradeClusterTool extends AtlasToolBase {
             args.computeAutoScaling !== undefined ||
             args.minInstanceSize !== undefined ||
             args.maxInstanceSize !== undefined;
+        const targetLabel = targetEdition === "INFINITE" ? `Atlas Infinite (${target} tier)` : `${target} tier`;
 
         return {
             content: [
                 {
                     type: "text",
                     text: isAutoscaling
-                        ? `Cluster "${clusterName}" is being upgraded from ${clusterInfo.instanceType} to ${target} tier with compute autoscaling ${computeAutoScaling ? `enabled (${minInstanceSize}-${maxInstanceSize})` : "disabled"}. This may take a few minutes.`
-                        : `Cluster "${clusterName}" is being upgraded from ${clusterInfo.instanceType} to ${target} tier. This may take a few minutes.`,
+                        ? `Cluster "${clusterName}" is being upgraded from ${clusterInfo.instanceType} to ${targetLabel} with compute autoscaling ${computeAutoScaling ? `enabled (${minInstanceSize}-${maxInstanceSize})` : "disabled"}. This may take a few minutes.`
+                        : `Cluster "${clusterName}" is being upgraded from ${clusterInfo.instanceType} to ${targetLabel}. This may take a few minutes.`,
                 },
             ],
             structuredContent: {
                 originalTier: clusterInfo.instanceType,
-                targetTier: target as "FLEX" | "M10",
+                targetTier: target as "FLEX" | "M10" | InfiniteInstanceSize,
+                databaseEdition: targetEdition,
                 resolvedProvider: clusterInfo.provider,
                 resolvedRegion: clusterInfo.region,
                 clusterId,
@@ -671,17 +810,19 @@ export class UpgradeClusterTool extends AtlasToolBase {
         projectId,
         clusterName,
         target,
+        edition,
         backingProviderName,
         regionName,
-        autoScalingArgs,
+        autoScaling,
         request,
     }: {
         projectId: string;
         clusterName: string;
-        target: "FLEX" | "M10";
+        target: "FLEX" | "M10" | InfiniteInstanceSize;
+        edition: DatabaseEdition;
         backingProviderName: string | undefined;
         regionName: string | undefined;
-        autoScalingArgs: AutoScalingArgs;
+        autoScaling: ResolvedM10AutoScaling;
         request: ToolRequest<IAtlasConfig>;
     }): Promise<{ id?: string }> {
         // upgradeTenantUpgrade: upgrades Free (M0/shared) clusters to Flex or Dedicated (M10+)
@@ -702,20 +843,26 @@ export class UpgradeClusterTool extends AtlasToolBase {
                     } as unknown as Parameters<typeof this.server.apiClient.upgradeTenantUpgrade>[0],
                     request
                 );
-            case "M10":
+            default: {
+                // M10 (Atlas Core Dedicated), or any M10-M60 size when targeting Atlas Infinite.
                 return await this.server.apiClient.upgradeTenantUpgrade(
                     {
                         params: { path: { groupId: projectId } },
                         body: buildM10UpgradeBody({
                             baseTier: "FREE",
                             clusterName,
-                            autoScaling: resolveM10AutoScaling(autoScalingArgs, backingProviderName),
+                            autoScaling,
                             provider: backingProviderName,
                             region: regionName,
+                            ...(edition === "INFINITE" && {
+                                targetSize: target,
+                                edition: "INFINITE",
+                            }),
                         }),
                     } as unknown as Parameters<typeof this.server.apiClient.upgradeTenantUpgrade>[0],
                     request
                 );
+            }
         }
     }
 
@@ -731,6 +878,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
             ...parentMetadata,
             original_tier: UpgradeClusterTool.toLowerCase(sc?.originalTier),
             target_tier: UpgradeClusterTool.toLowerCase(sc?.targetTier),
+            database_edition: sc?.databaseEdition,
             compute_auto_scaling:
                 sc?.computeAutoScaling === undefined ? undefined : sc.computeAutoScaling ? "true" : "false",
             min_instance_size: UpgradeClusterTool.toLowerCase(sc?.minInstanceSize),

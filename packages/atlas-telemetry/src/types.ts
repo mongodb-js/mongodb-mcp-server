@@ -36,6 +36,7 @@ export type TelemetryBaseEvent = TelemetryEvent<unknown>;
 export type UpgradeClusterMetadata = AtlasMetadata & {
     original_tier?: string;
     target_tier?: string;
+    database_edition?: string;
     original_cluster_id?: string;
     target_cluster_id?: string;
     compute_auto_scaling?: TelemetryBoolSet;
@@ -63,6 +64,7 @@ export type CreateClusterMetadata = AtlasMetadata & {
     disk_size_gb?: number;
     mongodb_version?: string;
     encryption_at_rest_provider?: "AWS" | "AZURE" | "GCP" | "NONE";
+    database_edition?: "CORE" | "INFINITE";
 };
 
 /**

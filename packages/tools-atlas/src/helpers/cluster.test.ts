@@ -48,6 +48,37 @@ describe("formatCluster", () => {
 
         expect(formatCluster(withoutId).clusterId).toBeUndefined();
     });
+
+    it("reports databaseEdition INFINITE from effectiveDatabaseEdition", () => {
+        const infiniteCluster = {
+            ...dedicatedClusterDescription,
+            effectiveDatabaseEdition: "INFINITE",
+        } as ClusterDescription20240805;
+
+        expect(formatCluster(infiniteCluster).databaseEdition).toBe("INFINITE");
+    });
+
+    it("reports databaseEdition INFINITE from the storageSystem fallback when the edition field is absent", () => {
+        const legacyInfiniteCluster = {
+            ...dedicatedClusterDescription,
+            storageSystem: "DISAGGREGATED_STORAGE",
+        } as ClusterDescription20240805;
+
+        expect(formatCluster(legacyInfiniteCluster).databaseEdition).toBe("INFINITE");
+    });
+
+    it("reports databaseEdition CORE from effectiveDatabaseEdition", () => {
+        const coreCluster = {
+            ...dedicatedClusterDescription,
+            effectiveDatabaseEdition: "CORE",
+        } as ClusterDescription20240805;
+
+        expect(formatCluster(coreCluster).databaseEdition).toBe("CORE");
+    });
+
+    it("leaves databaseEdition undefined when the API response carries no edition fields", () => {
+        expect(formatCluster(dedicatedClusterDescription).databaseEdition).toBeUndefined();
+    });
 });
 
 describe("formatFlexCluster", () => {
