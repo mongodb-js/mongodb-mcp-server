@@ -245,6 +245,42 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  handle-sbom-failure:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    needs: [check, upload-release-sbom]
+    if: ${{ failure() && needs.upload-release-sbom.result == 'failure' }}
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1
+      - name: Check out code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: mongodb-js/devtools-shared/actions/setup-bot-token@d9b3431b50a916345471259794a44bd4533fcc58 # main
+        id: app-token
+        with:
+          app-id: ${{ vars.DEVTOOLS_BOT_APP_ID }}
+          private-key: ${{ secrets.DEVTOOLS_BOT_PRIVATE_KEY }}
+      - name: Create SBOM failure issue
+        uses: imjohnbo/issue-bot@3188c6ce06249206709d3b1f274d0d4c5a521601
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          title: Release SBOM upload failed for ${{ needs.check.outputs.GIT_TAG_VERSION }}
+          body: |
+            The release SBOM job failed after publication. Kondukto may still reflect an older release.
+
+            - Version: ${{ needs.check.outputs.GIT_TAG_VERSION }}
+            - Channel: ${{ needs.check.outputs.RELEASE_CHANNEL }}
+            - Commit: ${{ github.sha }}
+            - SBOM job result: ${{ needs.upload-release-sbom.result }}
+
+            Investigate the failed step and rerun the failed jobs to upload the release SBOM.
+
+            See https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          labels: "release_failure"
+
   docker-push:
     needs: [check, publish]
     uses: ./.github/workflows/docker-publish.yml
