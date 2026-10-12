@@ -5,7 +5,8 @@ overrides:
   "mongodb": "^7.1.1"
   "kerberos": "^7.0.0"
   "bson": "^7.2.0"
-  "zod": "^4.4.2"
+  "zod": "^4.6.6"
+  "basic-ftp": "^6.2.3"
 allowBuilds:
   "@modelcontextprotocol/ext-apps": false
   braintrust: true
@@ -27,3 +28,5 @@ minimumReleaseAgeExclude:
   - "@rushstack/node-core-library@5.23.2"
   - "@rushstack/terminal@0.24.1"
   - "@rushstack/ts-command-line@5.3.11"
+  - ip-address@10.7.4
+  - zod@4.6.6
