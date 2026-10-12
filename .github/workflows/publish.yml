@@ -178,6 +178,73 @@ jobs:
           package-name: mongodb-mcp-server
           package-version: ${{ needs.check.outputs.NPM_VERSION }}
 
+  upload-release-sbom:
+    runs-on: ubuntu-latest
+    environment: Production
+    needs: [check, publish]
+    if: needs.check.outputs.VERSION_EXISTS == 'false' && needs.check.outputs.RELEASE_CHANNEL == 'latest'
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout release commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate release dependency SBOM
+        run: pnpm run create-dependency-sbom-lists
+
+      - name: Configure AWS credentials for DevProd Platforms ECR
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ secrets.DEVPROD_PLATFORMS_ECR_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Upload release SBOM to Kondukto via SilkBomb
+        env:
+          KONDUKTO_BRANCH: ${{ github.ref_name }}
+          KONDUKTO_TOKEN: ${{ secrets.KONDUKTO_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          ECR_HOST=901841024863.dkr.ecr.us-east-1.amazonaws.com
+          SILKBOMB_IMAGE="${ECR_HOST}/release-infrastructure/silkbomb:2.0"
+
+          aws ecr get-login-password --region us-east-1 \
+            | docker login --username AWS --password-stdin "${ECR_HOST}"
+
+          docker pull "${SILKBOMB_IMAGE}"
+
+          docker run --rm \
+            -e KONDUKTO_TOKEN \
+            -v "$PWD":/pwd \
+            "${SILKBOMB_IMAGE}" \
+            augment \
+            --repo "$GITHUB_REPOSITORY" \
+            --branch "$KONDUKTO_BRANCH" \
+            --sbom-in /pwd/.sbom/sbom-prod.cyclonedx.json \
+            --sbom-out /pwd/.sbom/sbom.json
+
+      - name: Upload release SBOM artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-sbom-${{ needs.check.outputs.GIT_TAG_VERSION }}
+          path: |
+            .sbom/sbom-prod.cyclonedx.json
+            .sbom/sbom.json
+          if-no-files-found: ignore
+          retention-days: 7
+
   docker-push:
     needs: [check, publish]
     uses: ./.github/workflows/docker-publish.yml
