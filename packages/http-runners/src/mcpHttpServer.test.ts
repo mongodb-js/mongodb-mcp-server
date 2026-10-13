@@ -90,9 +90,17 @@ function makeFakeServer(): BaseServer & { connect: (t: unknown) => Promise<void>
 }
 
 class TestMCPHttpServer extends MCPHttpServer<BaseServer> {
-    constructor({ logger, sessionOptions }: { logger: InMemoryLogger; sessionOptions?: LegacySessionOptions }) {
+    constructor({
+        logger,
+        sessionOptions,
+        bodyLimit,
+    }: {
+        logger: InMemoryLogger;
+        sessionOptions?: LegacySessionOptions;
+        bodyLimit?: number;
+    }) {
         super({
-            options: { http: httpOptions },
+            options: { http: { ...httpOptions, bodyLimit } },
             logger,
             metrics: new MockMetrics(),
             sessionOptions,
@@ -408,6 +416,39 @@ describe("MCPHttpServer stateless serving", () => {
             const text = await res.text();
             expect(text).toContain("protocolVersion");
             expect(text).toMatch(/"id":1/);
+        });
+
+        it("serves legacy requests larger than 4 MiB within the configured body limit", async () => {
+            logger = new InMemoryLogger();
+            server = new TestMCPHttpServer({ logger, bodyLimit: 8 * 1024 * 1024 });
+            await server.start();
+
+            const res = await fetch(`${server.serverAddress}/mcp`, {
+                method: "POST",
+                headers: {
+                    "content-type": "application/json",
+                    accept: "application/json, text/event-stream",
+                    "mcp-protocol-version": "2025-11-25",
+                },
+                body: JSON.stringify({
+                    jsonrpc: "2.0",
+                    method: "initialize",
+                    id: 1,
+                    params: {
+                        protocolVersion: "2025-11-25",
+                        capabilities: {},
+                        clientInfo: { name: "legacy-test", version: "1.0" },
+                        _meta: { padding: "x".repeat(4 * 1024 * 1024) },
+                    },
+                }),
+            });
+
+            expect(res.status).toBe(200);
+            expect(res.headers.get("mcp-session-id")).toBeTruthy();
+            await expect(res.json()).resolves.toMatchObject({
+                id: 1,
+                result: { protocolVersion: "2025-11-25" },
+            });
         });
 
         it("uses an overridden legacy handler / injected session store for legacy requests", async () => {
