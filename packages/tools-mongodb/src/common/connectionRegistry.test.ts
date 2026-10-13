@@ -48,6 +48,20 @@ class ConnectingManager extends ConnectionManager {
     override close(): Promise<void> {
         return this.disconnect().then(() => undefined);
     }
+
+    /** Mimics the plugin switching an inferred auth-code flow to device flow. */
+    switchToDeviceFlow(): void {
+        const state = this.currentConnectionState;
+        if (state.tag !== "connecting") {
+            return;
+        }
+        this.changeState("connection-request", {
+            ...state,
+            oidcConnectionType: "oidc-device-flow",
+            oidcLoginUrl: "https://example.com/device",
+            oidcUserCode: "ABCD-1234",
+        });
+    }
 }
 
 describe("ConnectionRegistry", () => {
@@ -159,6 +173,24 @@ describe("ConnectionRegistry", () => {
             }).view();
 
             await expect(registry.resolve(PRECONFIGURED_CONNECTION_ID)).resolves.toEqual({ fake: true });
+        });
+
+        it("stops waiting and fails fast when the preconfigured auth-code flow switches to device flow", async () => {
+            const never = new Promise<NodeDriverServiceProvider>(() => undefined);
+            const connecting = new ConnectingManager("oidc-auth-flow", never);
+            managerFactory = (): ConnectionManager => connecting;
+            const registry = makeStore({
+                options: { ...defaultTestConfig, connectionString: "mongodb://localhost:27017" },
+            }).view();
+
+            const resolving = registry.resolve(PRECONFIGURED_CONNECTION_ID);
+            // Let resolve() dial and start waiting before the plugin switches flows.
+            await vi.advanceTimersByTimeAsync(0);
+            connecting.switchToDeviceFlow();
+
+            const error = await resolving.catch((e: unknown) => e);
+            expect(error).toBeInstanceOf(MongoDBError);
+            expect((error as MongoDBError).code).toBe(ErrorCodes.NotConnectedToMongoDB);
         });
 
         it("fails fast for an explicit connection's pending OIDC auth-code flow", async () => {
@@ -301,6 +333,24 @@ describe("ConnectionRegistry", () => {
 
             await expect(store.connectPreconfigured()).resolves.toBeUndefined();
             expect((await store.view().peek(PRECONFIGURED_CONNECTION_ID))?.lastError).toBe("bad string");
+        });
+
+        it("closes a startup dial that completes after the store is closed", async () => {
+            const store = makeStore({ options: config });
+            const manager = managers[0] as FakeConnectionManager;
+            const entry = await store.view().peek(PRECONFIGURED_CONNECTION_ID);
+            if (!entry) throw new Error("expected a preconfigured entry");
+            let release!: () => void;
+            manager.connectGate = new Promise<void>((resolve) => {
+                release = resolve;
+            });
+
+            const dialing = store.connectPreconfigured();
+            await store.closeAll();
+            release();
+            await dialing;
+
+            expect(entry.state.tag).toBe("disconnected");
         });
     });
 

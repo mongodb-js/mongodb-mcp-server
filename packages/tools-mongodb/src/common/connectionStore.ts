@@ -393,6 +393,12 @@ export class MCPConnectionStore {
                 connectionSpecifier: this.options.connectionString,
             });
             await entry.connect(connectionInfo);
+            // The store may have been closed while the dial was in flight, in
+            // which case the entry is no longer reachable — close the provider
+            // we just created instead of leaking it.
+            if (this.entries.get(PRECONFIGURED_CONNECTION_ID)?.entry !== entry) {
+                await entry.close().catch(() => undefined);
+            }
         })().finally(() => {
             this.preconfiguredDial = undefined;
         });

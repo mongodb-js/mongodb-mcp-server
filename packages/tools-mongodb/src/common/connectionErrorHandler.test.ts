@@ -76,6 +76,26 @@ describe("connectionErrorHandler", () => {
         expect(serialized).toContain("browser window");
     });
 
+    it("asks the caller to retry when a device flow has no URL/code yet", async () => {
+        const handler = await connectionErrorHandler(
+            new MongoDBError(ErrorCodes.NotConnectedToMongoDB, "not connected"),
+            {
+                availableTools: [],
+                connectionState: {
+                    tag: "connecting",
+                    serviceProvider: Promise.resolve({}) as never,
+                    oidcConnectionType: "oidc-device-flow",
+                } satisfies ConnectionStateConnecting,
+            }
+        );
+
+        expect(handler.errorHandled).toBe(true);
+        if (!handler.errorHandled) throw new Error("unreachable");
+        const serialized = JSON.stringify(handler.result);
+        expect(serialized).not.toContain("browser window");
+        expect(serialized).toContain("Retry the request to get the verification URL and user code");
+    });
+
     it("surfaces the verification URL and user code for a device-flow OIDC flow", async () => {
         const handler = await connectionErrorHandler(
             new MongoDBError(ErrorCodes.NotConnectedToMongoDB, "not connected"),
