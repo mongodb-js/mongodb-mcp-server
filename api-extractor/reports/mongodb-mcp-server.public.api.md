@@ -1065,7 +1065,7 @@ export const UserConfigSchema: z.ZodObject<{
         stderr: "stderr";
         disk: "disk";
         mcp: "mcp";
-    }>>, string | string[] | undefined>>;
+    }>>>>;
     logPath: z.ZodDefault<z.ZodString>;
     mcpClientLogLevel: z.ZodDefault<z.ZodEnum<{
         error: "error";
@@ -1077,13 +1077,13 @@ export const UserConfigSchema: z.ZodObject<{
         alert: "alert";
         emergency: "emergency";
     }>>;
-    disabledTools: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodString>, string | string[] | undefined>>;
-    confirmationRequiredTools: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodString>, string | string[] | undefined>>;
+    disabledTools: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodString>>>;
+    confirmationRequiredTools: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodString>>>;
     elicitationTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
-    readOnly: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean, unknown>>;
-    indexCheck: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean, unknown>>;
-    disableUntrustedDataWarning: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean, unknown>>;
-    disableServerSideJs: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean, unknown>>;
+    readOnly: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
+    indexCheck: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
+    disableUntrustedDataWarning: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
+    disableServerSideJs: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
     telemetry: z.ZodDefault<z.ZodEnum<{
         enabled: "enabled";
         disabled: "disabled";
@@ -1095,7 +1095,7 @@ export const UserConfigSchema: z.ZodObject<{
     httpPort: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     httpHost: z.ZodDefault<z.ZodString>;
     httpHeaders: z.ZodDefault<z.ZodObject<{}, z.core.$catchall<z.ZodString>>>;
-    dangerousHostBinding: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean, unknown>>;
+    dangerousHostBinding: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
     httpBodyLimit: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxActiveConnections: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     connectionIdleTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
@@ -1120,8 +1120,8 @@ export const UserConfigSchema: z.ZodObject<{
     voyageApiKey: z.ZodDefault<z.ZodString>;
     previewFeatures: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
         mcpUI: "mcpUI";
-    }>>, string | string[] | undefined>>;
-    allowRequestOverrides: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean, unknown>>;
+    }>>>>;
+    allowRequestOverrides: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
     dryRun: z.ZodDefault<z.ZodBoolean>;
     httpResponseType: z.ZodDefault<z.ZodEnum<{
         sse: "sse";
@@ -1134,7 +1134,7 @@ export const UserConfigSchema: z.ZodObject<{
     monitoringServerFeatures: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
         "health-check": "health-check";
         metrics: "metrics";
-    }>>, string | string[] | undefined>>;
+    }>>>>;
     gssapiHostName: z.ZodOptional<z.ZodString>;
     sslFIPSMode: z.ZodOptional<z.ZodBoolean>;
     ssl: z.ZodOptional<z.ZodBoolean>;
