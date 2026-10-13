@@ -84,6 +84,10 @@ There are three main approaches:
 3. **Override `MCPHttpServer.createServerForRequest`**: when hosting over HTTP and you need per-request customization, subclass `MCPHttpServer` and override `createServerForRequest(request: TransportRequestContext): Promise<TServer>` (return a request-scoped `CliServer` via `createServerFromConfig`). In v3 this hook lives on `MCPHttpServer`, **not** on `StreamableHttpRunner`.
 4. **Inject HTTP middleware** by overriding `MCPHttpServer.registerMiddlewares()` — called after body parsing and header validation, ahead of the `/mcp` route handlers. Add `this.app.use(...)` for auth, rate-limiting, or observability; it runs per `/mcp` request. For a custom legacy session store, override `createLegacyHandler()` to pass an `ISessionStore` to the `LegacyMcpHttpHandler`.
 
+### HTTP compatibility
+
+Custom HTTP clients and reverse proxies must preserve the modern protocol's required headers. See [HTTP Compatibility When Upgrading](README.md#http-compatibility-when-upgrading) for the SDK upgrade's header validation and redirect changes, continued legacy session support, and request size limits.
+
 ### Server metadata
 
 `CliServer` and the telemetry pipeline require a `ServerMetadata` value — the product name/version reported to clients and used for telemetry and driver `appName`:

@@ -317,6 +317,16 @@ With Atlas API credentials:
 }
 ```
 
+### HTTP Compatibility When Upgrading
+
+The upgrade to MCP SDK `2.3.1` and the Node adapter `2.1.1` tightens HTTP validation. These changes do not affect stdio clients.
+
+- **Modern requests (`2026-07-28`):** Custom HTTP clients must send `MCP-Protocol-Version: 2026-07-28` and `Mcp-Method` matching the JSON-RPC method. Requests with a named target, such as `tools/call`, must also send the corresponding `Mcp-Name` using the protocol's encoding. Headers must agree with the body. Missing or inconsistent required headers are rejected with HTTP `400`, even if the body is otherwise valid. Current MCP SDK clients supply these headers; reverse proxies must preserve them.
+- **Legacy requests (2025-era):** Initialization and session-based requests remain supported. Keep using the negotiated protocol version and the returned `Mcp-Session-Id` for subsequent requests. The new modern-header requirements do not apply to legacy requests. Routing is determined by the body, so removing a modern request's headers does not make it a legacy request.
+- **HTTP redirects:** SDK HTTP clients now default to `redirectPolicy: "same-origin"`. Cross-origin redirects are rejected, as are redirects that would rewrite a POST's method (such as `301`, `302`, or `303`). Same-origin `307` and `308` redirects preserve the method and can be followed. Configure clients and proxies to use the final MCP endpoint URL directly. This also applies to the HTTP connection made by `mongodb-atlas-mcp-remote`, which uses the SDK defaults.
+
+The configured `httpBodyLimit` continues to control incoming request size, including legacy requests larger than 4 MiB; there is no additional 4 MiB classification limit.
+
 ## 🛠️ Supported Tools
 
 ### Tool List
