@@ -847,6 +847,7 @@ export class UIRegistry implements IUIRegistry {
 export type UpgradeClusterMetadata = AtlasMetadata & {
     original_tier?: string;
     target_tier?: string;
+    database_edition?: string;
     original_cluster_id?: string;
     target_cluster_id?: string;
     compute_auto_scaling?: TelemetryBoolSet;

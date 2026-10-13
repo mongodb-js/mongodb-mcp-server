@@ -18,6 +18,7 @@ interface ClusterMockParams {
     clusterType?: string;
     provider?: string;
     regions?: string[];
+    databaseEdition?: string;
 }
 
 function mockCreateClusterResponse({
@@ -27,13 +28,14 @@ function mockCreateClusterResponse({
     regions,
     instanceSize = "M10",
     clusterType = "REPLICASET",
+    databaseEdition,
 }: ClusterMockParams & { regions: string[] }): () => CallToolResult {
     return () => ({
         content: [
             {
                 type: "text",
                 text:
-                    `Cluster "${clusterName}" is being created in project "${projectId}" (${instanceSize} ${clusterType} on ${provider}/${regions.join(", ")}). ` +
+                    `Cluster "${clusterName}" is being created in project "${projectId}" (${databaseEdition === "INFINITE" ? "Atlas Infinite" : `${instanceSize} ${clusterType} on ${provider}/${regions.join(", ")}`}). ` +
                     `Use the atlas-inspect-cluster tool with projectId "${projectId}" and clusterName "${clusterName}" to poll for readiness. ` +
                     `The cluster is ready when its state is IDLE, connection strings are unavailable until then.`,
             },
@@ -566,6 +568,62 @@ describeAccuracyTests([
                     provider: "AWS",
                     regions: ["US_EAST_1"],
                     encryptionAtRestProvider: "NONE",
+                    clusterType: Matcher.anyOf(Matcher.undefined, Matcher.value("REPLICASET")),
+                },
+            },
+        ],
+    },
+    {
+        prompt: `Create an Atlas Infinite cluster named "${CLUSTER_NAME}" in project "${PROJECT_ID}" on AWS in US_EAST_1`,
+        mockedTools: {
+            ...mockListProjects,
+            "atlas-create-cluster": mockCreateClusterResponse({
+                projectId: PROJECT_ID,
+                clusterName: CLUSTER_NAME,
+                provider: "AWS",
+                regions: ["US_EAST_1"],
+                databaseEdition: "INFINITE",
+            }),
+        },
+        expectedToolCalls: [
+            ...optionalListProjects,
+            {
+                toolName: "atlas-create-cluster",
+                parameters: {
+                    projectId: PROJECT_ID,
+                    clusterName: CLUSTER_NAME,
+                    provider: "AWS",
+                    regions: ["US_EAST_1"],
+                    databaseEdition: "INFINITE",
+                    clusterType: Matcher.anyOf(Matcher.undefined, Matcher.value("REPLICASET")),
+                },
+            },
+        ],
+    },
+    {
+        prompt: `Create an Atlas Infinite cluster named "${CLUSTER_NAME}" in project "${PROJECT_ID}" on AWS in US_EAST_1 with 2 read-only nodes and a 1 TB max storage limit`,
+        mockedTools: {
+            ...mockListProjects,
+            "atlas-create-cluster": mockCreateClusterResponse({
+                projectId: PROJECT_ID,
+                clusterName: CLUSTER_NAME,
+                provider: "AWS",
+                regions: ["US_EAST_1"],
+                databaseEdition: "INFINITE",
+            }),
+        },
+        expectedToolCalls: [
+            ...optionalListProjects,
+            {
+                toolName: "atlas-create-cluster",
+                parameters: {
+                    projectId: PROJECT_ID,
+                    clusterName: CLUSTER_NAME,
+                    provider: "AWS",
+                    regions: ["US_EAST_1"],
+                    databaseEdition: "INFINITE",
+                    readOnlyNodes: 2,
+                    maxStorageGB: 1024,
                     clusterType: Matcher.anyOf(Matcher.undefined, Matcher.value("REPLICASET")),
                 },
             },

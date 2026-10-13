@@ -22,11 +22,6 @@ export const databaseEditionEnum = z.enum(["CORE", "INFINITE"]);
 
 export type DatabaseEdition = z.infer<typeof databaseEditionEnum>;
 
-// Atlas Infinite supports M10-M60 during public preview (no M80, no sharding).
-export const infiniteInstanceSizeEnum = z.enum(["M10", "M20", "M30", "M40", "M50", "M60"]);
-
-export type InfiniteInstanceSize = z.infer<typeof infiniteInstanceSizeEnum>;
-
 // Upper bound of the Atlas Infinite max storage limit: 128 TB of logical data.
 export const INFINITE_MAX_STORAGE_GB = 131072;
 
@@ -43,9 +38,11 @@ export function getMaxAutoScalingSize(size: StandardInstanceSize, provider: stri
 
 // Like getMaxAutoScalingSize, but clamped to M60: Atlas Infinite does not
 // support tiers above M60 during public preview.
-export function getInfiniteMaxAutoScalingSize(size: InfiniteInstanceSize): StandardInstanceSize {
+export function getInfiniteMaxAutoScalingSize(size: string): StandardInstanceSize {
     const options = standardInstanceSizeEnum.options;
-    return options[Math.min(options.indexOf(size) + 2, options.indexOf("M60"))] as StandardInstanceSize;
+    return options[
+        Math.min(options.indexOf(size as StandardInstanceSize) + 2, options.indexOf("M60"))
+    ] as StandardInstanceSize;
 }
 
 type AtlasProcessId = `${string}:${number}`;

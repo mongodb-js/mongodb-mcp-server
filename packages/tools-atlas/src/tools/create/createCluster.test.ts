@@ -690,18 +690,27 @@ describe("CreateClusterTool", () => {
         });
 
         it.each([
-            ["a non-AWS provider", { ...BASE_ARGS, provider: "GCP" }, "AWS only"],
             ["multiple regions", { ...BASE_ARGS, regions: ["US_EAST_1", "US_WEST_2"] }, "single region"],
-            ["a sharded cluster", { ...BASE_ARGS, clusterType: "SHARDED" }, "sharded"],
-            ["an M80 instance size", { ...BASE_ARGS, instanceSize: "M80" }, "M10-M60"],
-            ["a pinned MongoDB version", { ...BASE_ARGS, mongoDBVersion: "8.0" }, "auto upgrades"],
-            ["backups off", { ...BASE_ARGS, backup: "OFF" }, "always enabled"],
             ["a disk size", { ...BASE_ARGS, diskSizeGB: 100 }, "disk size"],
         ] as const)("returns error when Infinite edition is combined with %s", async (_case, args, expectedText) => {
             const result = await exec({ ...args, databaseEdition: "INFINITE" });
 
             expect(result.isError).toBe(true);
             expect((result.content[0] as { text: string }).text).toContain(expectedText);
+        });
+
+        it("passes preview-constraint violations (e.g. M80) through to the API instead of rejecting them client-side", async () => {
+            const result = await exec({ ...BASE_ARGS, databaseEdition: "INFINITE", instanceSize: "M80" });
+
+            expect(result.isError).toBeFalsy();
+            const call = mockApiClient.createCluster!.mock.calls[0]![0] as {
+                body: {
+                    databaseEdition?: string;
+                    replicationSpecs: Array<{ regionConfigs: Array<{ electableSpecs: { instanceSize: string } }> }>;
+                };
+            };
+            expect(call.body.databaseEdition).toBe("INFINITE");
+            expect(call.body.replicationSpecs[0]!.regionConfigs[0]!.electableSpecs.instanceSize).toBe("M80");
         });
 
         it.each([

@@ -11,12 +11,10 @@ import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import {
     standardInstanceSizeEnum,
     getMaxAutoScalingSize,
-    infiniteInstanceSizeEnum,
     getInfiniteMaxAutoScalingSize,
     databaseEditionEnum,
     INFINITE_MAX_STORAGE_GB,
     type StandardInstanceSize,
-    type InfiniteInstanceSize,
 } from "../../helpers/cluster.js";
 
 /** @public */
@@ -177,46 +175,16 @@ function buildVersionConfig(version: MongoDBVersion): {
 
 class CreateClusterError extends ToolArgumentValidationError {}
 
-// Enforces the Atlas Infinite public preview constraints: AWS only, single
-// region, replica set, M10-M60, latest version with auto upgrades, cloud
-// backup always on, and no disk provisioning (storage scales on its own).
-function validateInfiniteCreateArgs(args: {
-    provider: AtlasCloudProvider;
-    regions: string[];
-    clusterType: "REPLICASET" | "SHARDED";
-    instanceSize?: StandardInstanceSize;
-    diskSizeGB?: number;
-    mongoDBVersion: MongoDBVersion;
-    backup: Backup;
-    readOnlyNodes?: number;
-    maxStorageGB?: number;
-}): void {
-    if (args.provider !== "AWS") {
-        throw new CreateClusterError(
-            `Atlas Infinite clusters are available on AWS only during public preview, but provider is "${args.provider}".`
-        );
-    }
+// Cross-field validation for Atlas Infinite requests. Only cases the Atlas API
+// cannot handle for us are checked: inputs the Infinite body builder would
+// silently drop or misrepresent. Preview constraints the API enforces
+// (AWS-only, replica set, M10-M60, version pinning, always-on backup) are
+// deliberately not mirrored here; the API rejects them with clear errors and
+// relaxes automatically when the preview expands.
+function validateInfiniteCreateArgs(args: { regions: string[]; diskSizeGB?: number }): void {
     if (args.regions.length > 1) {
         throw new CreateClusterError(
             "Atlas Infinite clusters deploy in a single region during public preview. Provide exactly one region."
-        );
-    }
-    if (args.clusterType === "SHARDED") {
-        throw new CreateClusterError(
-            "Atlas Infinite clusters do not support sharded clusters during public preview. Use clusterType REPLICASET."
-        );
-    }
-    if (args.instanceSize !== undefined && !infiniteInstanceSizeEnum.safeParse(args.instanceSize).success) {
-        throw new CreateClusterError("Atlas Infinite clusters support M10-M60 instance sizes during public preview.");
-    }
-    if (args.mongoDBVersion !== "LATEST") {
-        throw new CreateClusterError(
-            "Atlas Infinite clusters run the latest MongoDB version with auto upgrades. Omit mongoDBVersion or set it to LATEST."
-        );
-    }
-    if (args.backup === "OFF") {
-        throw new CreateClusterError(
-            "Cloud backup is always enabled on Atlas Infinite clusters. Use SNAPSHOT or CONTINUOUS."
         );
     }
     if (args.diskSizeGB !== undefined) {
@@ -408,8 +376,8 @@ export class CreateClusterTool extends AtlasToolBase {
                   instanceSize,
                   computeEnabled: args.computeAutoScaling,
                   provider,
-                  // validateInfiniteCreateArgs rejected sizes above M60 already.
-                  maxInstanceSize: getInfiniteMaxAutoScalingSize(instanceSize as InfiniteInstanceSize),
+                  // Derived default, clamped to M60; an explicitly oversized request is rejected by the API.
+                  maxInstanceSize: getInfiniteMaxAutoScalingSize(instanceSize),
               })
             : buildAutoScaling({ instanceSize, computeEnabled: args.computeAutoScaling, provider });
 

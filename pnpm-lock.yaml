@@ -24,6 +24,9 @@ importers:
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
+      '@types/yargs-parser':
+        specifier: ^21.0.3
+        version: 21.0.3
       '@typescript-eslint/parser':
         specifier: ^8.70.0
         version: 8.70.0(eslint@10.9.1(jiti@2.7.0))(typescript@5.9.3)

@@ -1336,19 +1336,6 @@ describe("UpgradeClusterTool", () => {
             );
         });
 
-        it("rejects an Infinite upgrade when the cluster is not on AWS", async () => {
-            mockApiClient.getCluster!.mockRejectedValue(notFoundError());
-            mockApiClient.getFlexCluster!.mockResolvedValue({
-                ...FLEX_CLUSTER_RAW,
-                providerSettings: { backingProviderName: "GCP", regionName: "CENTRAL_US" },
-            });
-
-            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetEdition: "INFINITE" });
-
-            expect(result.isError).toBe(true);
-            expect((result.content[0] as { text: string }).text).toContain("AWS only");
-        });
-
         it("rejects upgrading a Dedicated Atlas Core cluster to Infinite", async () => {
             mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_RAW);
 
@@ -1398,13 +1385,13 @@ describe("UpgradeClusterTool", () => {
             );
         });
 
-        it("rejects scaling an Atlas Infinite cluster beyond M60", async () => {
+        it("passes preview-constraint violations (e.g. M80) through to the API instead of rejecting them client-side", async () => {
             mockApiClient.getCluster!.mockResolvedValue(INFINITE_CLUSTER_RAW);
 
             const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M80" });
 
-            expect(result.isError).toBe(true);
-            expect((result.content[0] as { text: string }).text).toContain("M10-M60");
+            expect(result.isError).toBeFalsy();
+            expect(mockApiClient.updateCluster).toHaveBeenCalledTimes(1);
         });
     });
 });
