@@ -40,7 +40,7 @@
     "@mongodb-js/mcp-test-utils": "workspace:*",
     "@mongodb-js/mcp-ui": "workspace:*",
     "@mongodb-js/mcp-cli": "workspace:*",
-    "@modelcontextprotocol/server": "^2.0.0"
+    "@modelcontextprotocol/server": "^2.3.1"
   },
   "publishConfig": {
     "access": "public"

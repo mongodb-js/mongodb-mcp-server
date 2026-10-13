@@ -16,8 +16,8 @@
     "typescript": "^5.9.2",
     "vitest": "^4.1.11",
     "uuid": "^14.0.0",
-    "@modelcontextprotocol/client": "^2.0.0",
-    "@modelcontextprotocol/server": "^2.0.0",
+    "@modelcontextprotocol/client": "^2.3.1",
+    "@modelcontextprotocol/server": "^2.3.1",
     "mongodb": "^7.1.1",
     "@mongodb-js/mcp-integration-tests": "workspace:*",
     "@mongodb-js/mcp-tools-mongodb": "workspace:*",
@@ -27,14 +27,14 @@
     "@mongodb-js/mcp-types": "workspace:*",
     "@mongodb-js/mcp-tools-assistant": "workspace:*",
     "@mongodb-js/mcp-test-utils": "workspace:*",
-    "@ai-sdk/google": "^3.0.67",
-    "@ai-sdk/azure": "^3.0.62",
-    "@ai-sdk/openai": "^3.0.61",
-    "@ai-sdk/mcp": "^1.0.40",
-    "@ai-sdk/anthropic": "^3.0.71",
-    "ai": "^6.0.175",
+    "@ai-sdk/google": "^3.0.131",
+    "@ai-sdk/azure": "^3.0.137",
+    "@ai-sdk/openai": "^3.0.126",
+    "@ai-sdk/mcp": "^1.0.93",
+    "@ai-sdk/anthropic": "^3.0.129",
+    "ai": "^6.0.304",
     "proper-lockfile": "^4.1.2",
     "@types/proper-lockfile": "^4.1.4",
-    "simple-git": "^3.36.0"
+    "simple-git": "^4.0.2"
   }
 }

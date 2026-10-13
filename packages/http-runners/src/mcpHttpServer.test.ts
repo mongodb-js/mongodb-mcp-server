@@ -122,7 +122,12 @@ describe("MCPHttpServer stateless serving", () => {
     async function post(path: string, body: string, headers: Record<string, string> = {}): Promise<Response> {
         return fetch(`${server.serverAddress}${path}`, {
             method: "POST",
-            headers: { "content-type": "application/json", "mcp-method": "tools/list", ...headers },
+            headers: {
+                "content-type": "application/json",
+                "mcp-method": "tools/list",
+                "mcp-protocol-version": "2026-07-28",
+                ...headers,
+            },
             body,
         });
     }
@@ -133,6 +138,17 @@ describe("MCPHttpServer stateless serving", () => {
         expect(res.status).toBe(200);
         const payload = (await res.json()) as { result?: { tools?: unknown[] } };
         expect(payload).toHaveProperty("result");
+    });
+
+    it("rejects modern requests without the required protocol version header", async () => {
+        await startServer();
+        const res = await fetch(`${server.serverAddress}/mcp`, {
+            method: "POST",
+            headers: { "content-type": "application/json", "mcp-method": "tools/list" },
+            body: MODERN_BODY,
+        });
+        expect(res.status).toBe(400);
+        await expect(res.json()).resolves.toMatchObject({ error: { code: -32020 } });
     });
 
     it("registers the request-scoped server for every request", async () => {
@@ -738,7 +754,7 @@ describe("MCPHttpServer client protocol reporting", () => {
         server = new ProtocolCapturingServer();
         await server.start();
 
-        const res = await postMcp({ "mcp-method": "tools/list" }, MODERN_BODY);
+        const res = await postMcp({ "mcp-method": "tools/list", "mcp-protocol-version": "2026-07-28" }, MODERN_BODY);
         expect(res.status).toBe(200);
         expect(seen.map((request) => request.mcp_client_protocol)).toContain("2026-07-28");
     });

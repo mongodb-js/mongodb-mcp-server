@@ -28,7 +28,7 @@
     "check": "tsc --noEmit --project tsconfig.json"
   },
   "dependencies": {
-    "@modelcontextprotocol/server": "^2.0.0",
+    "@modelcontextprotocol/server": "^2.3.1",
     "mongodb-redact": "^1.4.6"
   },
   "devDependencies": {
