@@ -7,6 +7,18 @@ overrides:
   "bson": "^7.2.0"
   "zod": "^4.6.6"
   "basic-ftp": "^6.2.3"
+  "@grpc/grpc-js@^1.0.0": "^1.14.5"
+  "@hono/node-server@^1.0.0": "^1.19.15"
+  "@modelcontextprotocol/sdk@^1.0.0": "^1.31.0"
+  "bn.js@^4.0.0": "^4.12.3"
+  "bn.js@^5.0.0": "^5.2.3"
+  "fast-uri@^3.0.0": "^3.1.8"
+  "fast-xml-builder@^1.0.0": "^1.1.7"
+  "fflate@^0.8.0": "^0.8.3"
+  "hono@^4.0.0": "^4.13.7"
+  "js-yaml@^4.0.0": "^4.3.2"
+  "pbkdf2@^3.0.0": "^3.1.7"
+  "shell-quote@^1.0.0": "^1.11.0"
 allowBuilds:
   "@modelcontextprotocol/ext-apps": false
   braintrust: true
@@ -30,3 +42,8 @@ minimumReleaseAgeExclude:
   - "@rushstack/ts-command-line@5.3.11"
   - ip-address@10.7.4
   - zod@4.6.6
+  - "@ai-sdk/azure@3.0.137"
+  - "@ai-sdk/deepseek@2.0.72"
+  - "@ai-sdk/mcp@1.0.93"
+  - "@ai-sdk/openai@3.0.126"
+  - ai@6.0.304

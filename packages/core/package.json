@@ -29,7 +29,7 @@
   },
   "dependencies": {
     "@mcp-ui/server": "^6.1.0",
-    "@modelcontextprotocol/server": "^2.0.0",
+    "@modelcontextprotocol/server": "^2.3.1",
     "bson": "^7.2.0",
     "mongodb-redact": "^1.1.6",
     "zod": "^4.4.2"
