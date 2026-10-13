@@ -86,7 +86,13 @@ There are three main approaches:
 
 ### HTTP compatibility
 
-Custom HTTP clients and reverse proxies must preserve the modern protocol's required headers. See [HTTP Compatibility When Upgrading](README.md#http-compatibility-when-upgrading) for the SDK upgrade's header validation and redirect changes, continued legacy session support, and request size limits.
+The following requirements apply to HTTP clients and hosts, not stdio connections.
+
+- **Modern requests (`2026-07-28`):** Custom HTTP clients must send `MCP-Protocol-Version: 2026-07-28` and `Mcp-Method` matching the JSON-RPC method. Requests with a named target, such as `tools/call`, must also send the corresponding `Mcp-Name` using the protocol's encoding. Headers must agree with the body. Missing or inconsistent required headers are rejected with HTTP `400`, even if the body is otherwise valid. Current MCP SDK clients supply these headers; reverse proxies must preserve them.
+- **Legacy requests (2025-era):** Initialization and session-based requests remain supported. Keep using the negotiated protocol version and the returned `Mcp-Session-Id` for subsequent requests. The modern-header requirements do not apply to legacy requests. Routing is determined by the body, so removing a modern request's headers does not make it a legacy request.
+- **HTTP redirects:** SDK HTTP clients default to `redirectPolicy: "same-origin"`. Cross-origin redirects are rejected, as are redirects that would rewrite a POST's method (such as `301`, `302`, or `303`). Same-origin `307` and `308` redirects preserve the method and can be followed. Configure clients and proxies to use the final MCP endpoint URL directly. This also applies to the HTTP connection made by `mongodb-atlas-mcp-remote`, which uses the SDK defaults.
+
+The configured `httpBodyLimit` controls incoming request size, including legacy requests larger than 4 MiB; there is no additional 4 MiB classification limit.
 
 ### Server metadata
 
