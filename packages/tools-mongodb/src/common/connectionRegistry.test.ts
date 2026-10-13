@@ -10,6 +10,7 @@ import { DeviceId } from "../helpers/deviceId.js";
 import { ErrorCodes, MongoDBError } from "./errors.js";
 
 const defaultTestConfig: ConnectionStoreConfig = {
+    connectionStrings: {},
     maxActiveConnections: 10,
     connectionIdleTimeoutMs: 600_000,
     transport: "stdio",
@@ -142,7 +143,10 @@ describe("ConnectionRegistry", () => {
     });
 
     describe("preconfigured entry", () => {
-        const config = { ...defaultTestConfig, connectionString: "mongodb://localhost:27017" };
+        const config = {
+            ...defaultTestConfig,
+            connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: "mongodb://localhost:27017" },
+        };
 
         it("is seeded undialed when a connection string is configured", async () => {
             const registry = makeStore({ options: config }).view();
@@ -208,13 +212,13 @@ describe("ConnectionRegistry", () => {
     });
 
     describe("named connection strings", () => {
+        const named = {
+            analytics: "mongodb://analytics.example.com:27017",
+            "orders-replica": "mongodb://orders.example.com:27017",
+        };
         const config = {
             ...defaultTestConfig,
-            connectionString: "mongodb://default.example.com:27017",
-            connectionStrings: {
-                analytics: "mongodb://analytics.example.com:27017",
-                "orders-replica": "mongodb://orders.example.com:27017",
-            },
+            connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: "mongodb://default.example.com:27017", ...named },
         };
 
         /** The seeded managers in seeding order: preconfigured, analytics, orders-replica. */
@@ -238,7 +242,7 @@ describe("ConnectionRegistry", () => {
         });
 
         it("is seeded without a default connection string", async () => {
-            const registry = makeStore({ options: { ...config, connectionString: undefined } }).view();
+            const registry = makeStore({ options: { ...config, connectionStrings: named } }).view();
             await expect(registry.peek(PRECONFIGURED_CONNECTION_ID)).resolves.toBeUndefined();
             await expect(registry.peek("analytics")).resolves.toBeDefined();
         });
@@ -298,7 +302,6 @@ describe("ConnectionRegistry", () => {
         });
 
         it.each([
-            { name: PRECONFIGURED_CONNECTION_ID, error: /reserved/ },
             { name: "has space", error: /may only contain/ },
             { name: "a".repeat(65), error: /may only contain/ },
         ])("rejects the invalid name $name when the store is constructed directly", ({ name, error }) => {
@@ -350,7 +353,7 @@ describe("ConnectionRegistry", () => {
             const registry = makeStore({
                 options: {
                     ...defaultTestConfig,
-                    connectionString: "mongodb://localhost:27017",
+                    connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: "mongodb://localhost:27017" },
                     maxActiveConnections: 2,
                 },
             }).view();
@@ -401,7 +404,10 @@ describe("ConnectionRegistry", () => {
     });
 
     describe("scoped views", () => {
-        const scopedConfig = { ...defaultTestConfig, connectionString: "mongodb://localhost:27017" };
+        const scopedConfig = {
+            ...defaultTestConfig,
+            connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: "mongodb://localhost:27017" },
+        };
 
         it("hides entries created through one view from other views", async () => {
             const store = makeStore();
@@ -499,7 +505,10 @@ describe("ConnectionRegistry", () => {
     describe("store closeAll", () => {
         it("closes and removes every entry, including the preconfigured one", async () => {
             const store = makeStore({
-                options: { ...defaultTestConfig, connectionString: "mongodb://localhost:27017" },
+                options: {
+                    ...defaultTestConfig,
+                    connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: "mongodb://localhost:27017" },
+                },
             });
             const scoped = store.view({ scope: "scope-a" });
             const unbound = store.view();
@@ -606,7 +615,7 @@ describe("ConnectionRegistry", () => {
             const store = makeStore({
                 options: {
                     ...defaultTestConfig,
-                    connectionString: "mongodb://localhost:27017",
+                    connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: "mongodb://localhost:27017" },
                     connectionIdleTimeoutMs: 1000,
                 },
             });

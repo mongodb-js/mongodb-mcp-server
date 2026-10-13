@@ -2,7 +2,7 @@ import { z } from "zod";
 import { MongoDBToolBase } from "../../mongodbTool.js";
 import type { ToolArgs, ToolOutput, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType, CallToolResult, ConnectionMetadata, ToolExecutionContext } from "@mongodb-js/mcp-types";
-import { getConfiguredConnectionStrings, PRECONFIGURED_CONNECTION_ID } from "../../common/connectionRegistry.js";
+import { PRECONFIGURED_CONNECTION_ID } from "../../common/connectionRegistry.js";
 
 const ConnectOutputSchema = {
     connectionId: z.string(),
@@ -36,7 +36,7 @@ function configuredConnectionsNote(connectionIds: readonly string[]): string {
 export class ConnectTool extends MongoDBToolBase {
     static toolName = "connect";
     public override description = `Connect to a MongoDB instance and get back a connectionId to pass to the other MongoDB tools. Each call establishes a new, independent connection — multiple connections can be active at the same time.${configuredConnectionsNote(
-        Object.keys(getConfiguredConnectionStrings(this.server.config))
+        Object.keys(this.server.config.connectionStrings)
     )}`;
 
     public override argsShape(): typeof ConnectArgsShape {

@@ -16,7 +16,7 @@ import type { ConnectionMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "./common/errors.js";
 import type { ConnectionEntry, ConnectionRegistry } from "./common/connectionRegistry.js";
-import { getConfiguredConnectionStrings, PRECONFIGURED_CONNECTION_ID } from "./common/connectionRegistry.js";
+import { PRECONFIGURED_CONNECTION_ID } from "./common/connectionRegistry.js";
 import { assertNoServerSideJS, assertNoWriteStages, type WriteStageTarget } from "./helpers/mqlGuards.js";
 import { buildWriteStageConfirmationMessage } from "./helpers/writeStageConfirmation.js";
 import { EXPORT_TOOL_NAME } from "./helpers/constants.js";
@@ -33,8 +33,16 @@ export const CollOperationArgs = {
 
 /** MongoDB tool subset of server config. */
 export type IMongoDBConfig = IToolConfig & {
-    connectionString: string | undefined;
-    connectionStrings?: Record<string, string>;
+    /**
+     * Connection strings the server is configured with, keyed by the connectionId
+     * each one is exposed under.
+     */
+    connectionStrings: Record<string, string>;
+    /**
+     * @deprecated Provide the connection string as the `"preconfigured"` entry of
+     * `connectionStrings` instead.
+     */
+    connectionString?: string;
     indexCheck: boolean;
     disableServerSideJs: boolean;
     maxTimeMS: number | undefined;
@@ -261,7 +269,7 @@ export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
      * strings are configured, their names are listed in the description instead.
      */
     protected selectConnectionScopedArgsShape<T extends ZodRawShape>(variants: { preconfigured: T; plain: T }): T {
-        const connectionIds = Object.keys(getConfiguredConnectionStrings(this.server.config));
+        const connectionIds = Object.keys(this.server.config.connectionStrings);
         if (connectionIds.length === 0) {
             return variants.plain;
         }

@@ -70,7 +70,7 @@ describeWithMongoDB({
     config: {
         getUserConfig: (mdbIntegration) => ({
             ...defaultTestConfig,
-            connectionString: mdbIntegration.connectionString(),
+            connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: mdbIntegration.connectionString() },
         }),
     },
 });
@@ -179,7 +179,9 @@ describeWithMongoDB({
             // further connection attempts stay detached from the connection
             // options passed during server boot, in this case browser.
             browser: "not-a-browser",
-            connectionString: `${mdbIntegration.connectionString()}/?directConnection=true`,
+            connectionStrings: {
+                [PRECONFIGURED_CONNECTION_ID]: `${mdbIntegration.connectionString()}/?directConnection=true`,
+            },
         }),
     },
 });

@@ -14,13 +14,7 @@ import type {
     CreateConnectionEntryOptions,
     CreateConnectionOptions,
 } from "./connectionRegistry.js";
-import {
-    buildEntryName,
-    CONNECTION_NAME_PATTERN,
-    ConnectionEntry,
-    getConfiguredConnectionStrings,
-    PRECONFIGURED_CONNECTION_ID,
-} from "./connectionRegistry.js";
+import { buildEntryName, CONNECTION_NAME_PATTERN, ConnectionEntry } from "./connectionRegistry.js";
 
 /**
  * Structural subset of the embedder's configuration that the store reads: the
@@ -33,12 +27,11 @@ import {
  * the store depending on it directly.
  */
 export type ConnectionStoreConfig = ConnectionDriverConfig & {
-    connectionString?: string;
     /**
-     * Named connection strings. Each one seeds a pinned entry whose connectionId
-     * is the name, dialed on first use just like the `connectionString` one.
+     * Configured connection strings, keyed by connectionId. Each one seeds a
+     * pinned entry that is dialed on first use.
      */
-    connectionStrings?: Record<string, string>;
+    connectionStrings: Record<string, string>;
     maxActiveConnections: number;
     /**
      * Milliseconds a connection may stay unused before the idle reaper closes
@@ -118,16 +111,9 @@ export class MCPConnectionStore {
 
         this.startSweeper();
 
-        const { connectionStrings } = this.options;
-        if (connectionStrings && PRECONFIGURED_CONNECTION_ID in connectionStrings) {
-            // Validated here as well as in the CLI config schema, since embedders construct
-            // the store directly: the reserved id belongs to the connectionString option.
-            throw new Error(
-                `Invalid connection name "${PRECONFIGURED_CONNECTION_ID}": it is reserved for the connectionString option.`
-            );
-        }
-        for (const connectionId of Object.keys(getConfiguredConnectionStrings(this.options))) {
-            if (connectionId !== PRECONFIGURED_CONNECTION_ID && !CONNECTION_NAME_PATTERN.test(connectionId)) {
+        for (const connectionId of Object.keys(this.options.connectionStrings)) {
+            // Validated here as well as in the CLI config schema, since embedders construct the store directly.
+            if (!CONNECTION_NAME_PATTERN.test(connectionId)) {
                 throw new Error(
                     `Invalid connection name "${connectionId}": names may only contain letters, digits, '.', '_' and '-' (max 64 characters).`
                 );
@@ -182,7 +168,7 @@ export class MCPConnectionStore {
             serverMetadata: this.serverMetadata,
             connectionInfo: this.connectionInfo(),
             // The store options are a ConnectionDriverConfig superset;
-            // the extra store-level fields (connectionString,
+            // the extra store-level fields (connectionStrings,
             // maxActiveConnections, transport, httpHost) are not read
             // by mongosh's arg-parser, so passing the whole object is
             // equivalent to passing just the driver fields.
@@ -409,7 +395,7 @@ export class MCPConnectionStore {
                     ...this.options,
                     // Read at dial time rather than captured at seeding, like the
                     // single connection string always was.
-                    connectionSpecifier: getConfiguredConnectionStrings(this.options)[connectionId],
+                    connectionSpecifier: this.options.connectionStrings[connectionId],
                 });
                 await entry.connect(connectionInfo);
             })().finally(() => {

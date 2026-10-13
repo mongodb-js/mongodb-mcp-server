@@ -68,7 +68,6 @@ export { isNodeRuntime } from "./helpers/isNodeRuntime.js";
 export {
     PRECONFIGURED_CONNECTION_ID,
     CONNECTION_NAME_PATTERN,
-    getConfiguredConnectionStrings,
     ConnectionEntry,
     atlasClusterSlug,
     buildEntryName,

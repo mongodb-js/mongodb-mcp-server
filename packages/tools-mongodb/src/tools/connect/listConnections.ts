@@ -4,7 +4,6 @@ import type { ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType } from "@mongodb-js/mcp-types";
 import { ConnectionSummarySchema, summarizeConnection } from "../../common/connectionSummary.js";
 import { connectCapableTools } from "../../connectionErrorHandler.js";
-import { getConfiguredConnectionStrings } from "../../common/connectionRegistry.js";
 
 const ListConnectionsOutputSchema = {
     connections: z.array(ConnectionSummarySchema),
@@ -15,7 +14,7 @@ const ListConnectionsArgsShape = {};
 export class ListConnectionsTool extends MongoDBToolBase {
     static toolName = "list-connections";
     public override description =
-        Object.keys(getConfiguredConnectionStrings(this.server.config)).length > 0
+        Object.keys(this.server.config.connectionStrings).length > 0
             ? 'List the active MongoDB connections and their connectionIds. Use this to discover the connections the server was configured with ("preconfigured" or named ones) or to find a connectionId established earlier.'
             : "List the active MongoDB connections and their connectionIds. Use this to find a connectionId established earlier.";
 

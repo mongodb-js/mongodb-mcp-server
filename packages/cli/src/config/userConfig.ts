@@ -53,7 +53,7 @@ const ServerConfigSchema = z.object({
         .string()
         .optional()
         .describe(
-            "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data."
+            'MongoDB connection string for direct database connections, exposed under the connectionId "preconfigured". Optional, if not set, you\'ll need to call the connect tool before interacting with MongoDB data. Deprecated: prefer the "preconfigured" entry of connectionStrings.'
         )
         .register(configRegistry, { isSecret: true, overrideBehavior: "not-allowed" }),
     connectionStrings: z
@@ -66,10 +66,7 @@ const ServerConfigSchema = z.object({
                         .regex(
                             CONNECTION_NAME_PATTERN,
                             "Connection names may only contain letters, digits, '.', '_' and '-' (max 64 characters)"
-                        )
-                        .refine((name) => name !== PRECONFIGURED_CONNECTION_ID, {
-                            message: `"${PRECONFIGURED_CONNECTION_ID}" is reserved for the connectionString option`,
-                        }),
+                        ),
                     z.string().min(1)
                 ),
                 // Never matches: by now the preprocessor has turned any valid input into an
@@ -80,15 +77,15 @@ const ServerConfigSchema = z.object({
                 z.string().refine(() => false, { message: "Expected a JSON object" }),
             ])
         )
-        .optional()
+        .default({})
         .describe(
-            'Named MongoDB connection strings, as a JSON object (e.g. {"analytics": "mongodb://..."}). Each name becomes a connectionId that the MongoDB tools can use directly, so one server can reach several deployments. Connections are opened on first use. Environment variable or config file only.'
+            'MongoDB connection strings keyed by name, as a JSON object (e.g. {"preconfigured": "mongodb://...", "analytics": "mongodb://..."}). Each name becomes a connectionId that the MongoDB tools can use directly, so one server can reach several deployments. Connections are opened on first use. Environment variable or config file only.'
         )
         .register(configRegistry, {
             isSecret: true,
             overrideBehavior: "not-allowed",
             cliArgument: false,
-        }) as unknown as z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>, // the string arm above never parses successfully
+        }) as unknown as z.ZodDefault<z.ZodRecord<z.ZodString, z.ZodString>>, // the string arm above never parses successfully
     loggers: z
         .preprocess(
             (val: string | string[] | undefined) => commaSeparatedToArray(val),
@@ -442,10 +439,42 @@ const ServerConfigSchema = z.object({
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
 });
 
-export const UserConfigSchema = z.object({
+/**
+ * Applies the cross-field rules for the deprecated `connectionString` option: it
+ * becomes the {@link PRECONFIGURED_CONNECTION_ID} entry of `connectionStrings`,
+ * so the rest of the server only ever reads `connectionStrings`.
+ */
+export function withConnectionStringsNormalized<T extends z.ZodObject>(schema: T): T {
+    type ConnectionStringsConfig = { connectionString?: string; connectionStrings: Record<string, string> };
+    return schema
+        .refine(
+            (config) => {
+                const { connectionString, connectionStrings } = config as ConnectionStringsConfig;
+                return !connectionString || !Object.hasOwn(connectionStrings, PRECONFIGURED_CONNECTION_ID);
+            },
+            {
+                message: `connectionString and the "${PRECONFIGURED_CONNECTION_ID}" entry of connectionStrings cannot both be set`,
+                path: ["connectionStrings", PRECONFIGURED_CONNECTION_ID],
+            }
+        )
+        .overwrite((config) => {
+            const { connectionString, connectionStrings } = config as ConnectionStringsConfig;
+            if (!connectionString) {
+                return config;
+            }
+            return {
+                ...config,
+                connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: connectionString, ...connectionStrings },
+            };
+        });
+}
+
+const UserConfigObjectSchema = z.object({
     ...MongoshCliOptionsSchema.shape,
     ...ServerConfigSchema.shape,
 });
+
+export const UserConfigSchema = withConnectionStringsNormalized(UserConfigObjectSchema);
 
 export type UserConfig = z.infer<typeof UserConfigSchema>;
 

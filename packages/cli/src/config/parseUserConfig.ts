@@ -1,5 +1,11 @@
 import { type CliOptions, generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
-import { UserConfigSchema, ALL_CONFIG_KEYS, configRegistry, type UserConfig } from "./userConfig.js";
+import {
+    UserConfigSchema,
+    ALL_CONFIG_KEYS,
+    configRegistry,
+    withConnectionStringsNormalized,
+    type UserConfig,
+} from "./userConfig.js";
 import {
     defaultParserOptions as defaultArgParserOptions,
     createParseArgsWithCliOptions,
@@ -41,10 +47,12 @@ export function parseUserConfig({
     error: string | undefined;
 } {
     const schema = overrides
-        ? z.object({
-              ...UserConfigSchema.shape,
-              ...overrides,
-          })
+        ? withConnectionStringsNormalized(
+              z.object({
+                  ...UserConfigSchema.shape,
+                  ...overrides,
+              })
+          )
         : UserConfigSchema;
 
     const cliArgumentError = findDisallowedCliArgument({ args, schema, parserOptions });

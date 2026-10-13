@@ -54,6 +54,7 @@ const expectedDefaults = {
     evictionIdleGraceMS: 120000,
     externallyManagedSessions: false,
     httpHeaders: {},
+    connectionStrings: {},
     dangerousHostBinding: false,
     httpBodyLimit: TRANSPORT_PAYLOAD_LIMITS.http,
     maxDocumentsPerQuery: 100,
@@ -122,6 +123,9 @@ describe("config", () => {
                 setVariable("MDB_MCP_CONNECTION_STRING", "mongodb://user:password@host1,host2,host3/");
                 const { parsed: actual } = parseUserConfig({ args: [] });
                 expect(actual?.connectionString).toEqual("mongodb://user:password@host1,host2,host3/");
+                expect(actual?.connectionStrings).toEqual({
+                    preconfigured: "mongodb://user:password@host1,host2,host3/",
+                });
             });
         });
 
@@ -142,9 +146,42 @@ describe("config", () => {
                 });
             });
 
-            it("is undefined when not set", () => {
+            it("is empty when not set", () => {
                 const { parsed: actual } = parseUserConfig({ args: [] });
-                expect(actual?.connectionStrings).toBeUndefined();
+                expect(actual?.connectionStrings).toEqual({});
+            });
+
+            it("accepts a preconfigured entry", () => {
+                setVariable(
+                    "MDB_MCP_CONNECTION_STRINGS",
+                    JSON.stringify({ preconfigured: "mongodb://localhost", analytics: "mongodb://analytics/" })
+                );
+                const { parsed: actual, error } = parseUserConfig({ args: [] });
+                expect(error).toBeUndefined();
+                expect(actual?.connectionStrings).toEqual({
+                    preconfigured: "mongodb://localhost",
+                    analytics: "mongodb://analytics/",
+                });
+            });
+
+            it("adds MDB_MCP_CONNECTION_STRING as the preconfigured entry", () => {
+                setVariable("MDB_MCP_CONNECTION_STRING", "mongodb://localhost");
+                setVariable("MDB_MCP_CONNECTION_STRINGS", JSON.stringify({ analytics: "mongodb://analytics/" }));
+                const { parsed: actual, error } = parseUserConfig({ args: [] });
+                expect(error).toBeUndefined();
+                expect(actual?.connectionStrings).toEqual({
+                    preconfigured: "mongodb://localhost",
+                    analytics: "mongodb://analytics/",
+                });
+            });
+
+            it("rejects MDB_MCP_CONNECTION_STRING together with a preconfigured entry", () => {
+                setVariable("MDB_MCP_CONNECTION_STRING", "mongodb://user:s3cr3t@one/");
+                setVariable("MDB_MCP_CONNECTION_STRINGS", JSON.stringify({ preconfigured: "mongodb://two/" }));
+                const { parsed: actual, error } = parseUserConfig({ args: [] });
+                expect(actual).toBeUndefined();
+                expect(error).toContain("connectionStrings.preconfigured");
+                expect(error).not.toContain("s3cr3t");
             });
 
             it("rejects a value that is not JSON without echoing it", () => {
@@ -158,7 +195,6 @@ describe("config", () => {
             it.each([
                 { name: "has space", reason: "characters outside the allowed set" },
                 { name: "a".repeat(65), reason: "more than 64 characters" },
-                { name: "preconfigured", reason: "the reserved preconfigured id" },
             ])("rejects a name with $reason", ({ name }) => {
                 setVariable("MDB_MCP_CONNECTION_STRINGS", JSON.stringify({ [name]: "mongodb://localhost" }));
                 const { parsed: actual, error } = parseUserConfig({ args: [] });
@@ -312,6 +348,9 @@ describe("config", () => {
                 args: ["mongodb://host1:27017"],
             });
             expect(actual?.connectionString).toEqual("mongodb://host1:27017/?directConnection=true");
+            expect(actual?.connectionStrings).toEqual({
+                preconfigured: "mongodb://host1:27017/?directConnection=true",
+            });
         });
 
         describe("string use cases", () => {
@@ -330,7 +369,10 @@ describe("config", () => {
                 },
                 {
                     cli: ["--connectionString", "mongodb://localhost"],
-                    expected: { connectionString: "mongodb://localhost" },
+                    expected: {
+                        connectionString: "mongodb://localhost",
+                        connectionStrings: { preconfigured: "mongodb://localhost" },
+                    },
                 },
                 {
                     cli: ["--httpHost", "mongodb://localhost"],

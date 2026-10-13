@@ -2,7 +2,7 @@ import { ReactiveResource } from "@mongodb-js/mcp-core";
 import type { UserConfig, CliServer } from "@mongodb-js/mcp-cli";
 import type { TransportRequestContext } from "@mongodb-js/mcp-types";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
-import { connectCapableTools } from "@mongodb-js/mcp-tools-mongodb";
+import { connectCapableTools, PRECONFIGURED_CONNECTION_ID } from "@mongodb-js/mcp-tools-mongodb";
 
 /**
  * Removes secret material from the driver options before exposing them via the config resource.
@@ -38,11 +38,12 @@ export class ConfigResource extends ReactiveResource<UserConfig, CliServer> {
 
     toOutput(): string {
         const connectionInfo = generateConnectionInfoFromCliArgs(this.current);
-        const namedConnections = Object.keys(this.current.connectionStrings ?? {});
+        const { [PRECONFIGURED_CONNECTION_ID]: preconfigured, ...named } = this.current.connectionStrings;
+        const namedConnections = Object.keys(named);
         const result = {
             telemetry: this.current.telemetry,
             logPath: this.current.logPath,
-            connectionString: connectionInfo.connectionString
+            connectionString: preconfigured
                 ? 'set; a connection with the connectionId "preconfigured" is available — pass it as the connectionId argument to the MongoDB tools'
                 : namedConnections.length > 0
                   ? "not set; use one of the named connections listed under connectionStrings, or to reach another deployment, " +

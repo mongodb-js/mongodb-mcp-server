@@ -4,7 +4,7 @@ import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import { ApiClient, userAgentFromServerMetadata } from "@mongodb-js/mcp-atlas-api-client";
 import { UserConfigSchema, type UserConfig, type CliServer } from "@mongodb-js/mcp-cli";
-import { DeviceId, MCPConnectionStore } from "@mongodb-js/mcp-tools-mongodb";
+import { DeviceId, MCPConnectionStore, PRECONFIGURED_CONNECTION_ID } from "@mongodb-js/mcp-tools-mongodb";
 
 const defaultTestConfig: UserConfig = {
     ...UserConfigSchema.parse({}),
@@ -48,6 +48,7 @@ describe("config resource", () => {
                 config,
                 logger,
                 keychain,
+                tools: [],
                 telemetry,
                 connectionRegistry,
             } as unknown as CliServer,
@@ -57,7 +58,7 @@ describe("config resource", () => {
     it("should not leak AWS KMS credentials in connectOptions", () => {
         const config = {
             ...defaultTestConfig,
-            connectionString: "mongodb://localhost:27017",
+            connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: "mongodb://localhost:27017" },
             awsAccessKeyId: "AKIAIOSFODNN7EXAMPLE",
             awsSecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
             awsSessionToken: "FwoGZXIvYXdzEXAMPLESESSIONTOKEN",
@@ -74,7 +75,7 @@ describe("config resource", () => {
     it("should summarize autoEncryption instead of emitting it verbatim", () => {
         const config = {
             ...defaultTestConfig,
-            connectionString: "mongodb://localhost:27017",
+            connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: "mongodb://localhost:27017" },
             awsAccessKeyId: "AKIAIOSFODNN7EXAMPLE",
             awsSecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
         } as unknown as UserConfig;
@@ -88,7 +89,7 @@ describe("config resource", () => {
     it("should redact keychain-registered secrets as a backstop", () => {
         const config = {
             ...defaultTestConfig,
-            connectionString: "mongodb://localhost:27017",
+            connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: "mongodb://localhost:27017" },
         } as unknown as UserConfig;
 
         // Seed a keychain with a secret that would otherwise appear in the output (logPath).
@@ -107,6 +108,7 @@ describe("config resource", () => {
         const output = createResource(config).toOutput();
         const parsed = JSON.parse(output) as { connectionString: string; connectionStrings: string };
 
+        expect(parsed.connectionString).toMatch(/^not set; use one of the named connections/);
         expect(parsed.connectionStrings).toContain('"analytics"');
         expect(output).not.toContain("s3cr3t");
         expect(output).not.toContain("analytics.example.com");
