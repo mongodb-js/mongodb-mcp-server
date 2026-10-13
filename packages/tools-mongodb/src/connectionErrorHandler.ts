@@ -60,9 +60,14 @@ export const connectionErrorHandler: ConnectionErrorHandler = (error, { availabl
     const additionalPromptForConnectivity: { type: "text"; text: string }[] = [];
 
     if (connectionState?.tag === "connecting" && connectionState.oidcConnectionType) {
+        // Only device flow has a URL/code; auth-code opens the browser itself.
+        const { oidcLoginUrl, oidcUserCode } = connectionState;
         additionalPromptForConnectivity.push({
             type: "text",
-            text: `The user needs to finish their OIDC connection by opening '${connectionState.oidcLoginUrl}' in the browser and use the following user code: '${connectionState.oidcUserCode}'`,
+            text:
+                oidcLoginUrl && oidcUserCode
+                    ? `The user needs to finish their OIDC connection by opening '${oidcLoginUrl}' in the browser and use the following user code: '${oidcUserCode}'`
+                    : "A browser window has been opened to finish the OIDC authentication. Complete the sign-in there, then retry the request.",
         });
     } else {
         additionalPromptForConnectivity.push({

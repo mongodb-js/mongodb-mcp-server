@@ -226,6 +226,28 @@ export class ConnectionEntry {
         throw new MongoDBError(ErrorCodes.NotConnectedToMongoDB, `Connection "${this.connectionId}" is not connected.`);
     }
 
+    /**
+     * Like {@link getServiceProvider}, but waits for an in-flight OIDC
+     * auth-code flow to finish. Device flow still fails fast so the caller can
+     * surface its URL/user code. Used for the preconfigured connection only.
+     */
+    async getServiceProviderWhenReady(): Promise<NodeDriverServiceProvider> {
+        const state = this.state;
+        if (state.tag === "connecting" && state.oidcConnectionType === "oidc-auth-flow") {
+            try {
+                return await state.serviceProvider;
+            } catch (error: unknown) {
+                const message = error instanceof Error ? error.message : String(error);
+                throw new MongoDBError(
+                    ErrorCodes.NotConnectedToMongoDB,
+                    `Failed to authenticate connection "${this.connectionId}": ${message}`
+                );
+            }
+        }
+
+        return this.getServiceProvider();
+    }
+
     async isSearchSupported(logger: LoggerBase): Promise<boolean> {
         const state = this.state;
         if (state.tag === "connected") {
