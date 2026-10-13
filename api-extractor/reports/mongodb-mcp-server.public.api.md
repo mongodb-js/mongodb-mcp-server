@@ -1060,6 +1060,7 @@ export const UserConfigSchema: z.ZodObject<{
     apiClientId: z.ZodOptional<z.ZodString>;
     apiClientSecret: z.ZodOptional<z.ZodString>;
     connectionString: z.ZodOptional<z.ZodString>;
+    connectOnStartup: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
     loggers: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
         stderr: "stderr";
         disk: "disk";
