@@ -352,6 +352,24 @@ describe("ConnectionRegistry", () => {
 
             expect(entry.state.tag).toBe("disconnected");
         });
+
+        it("closes a startup dial that completes after the preconfigured entry was disconnected", async () => {
+            const store = makeStore({ options: config });
+            const manager = managers[0] as FakeConnectionManager;
+            const entry = await store.view().peek(PRECONFIGURED_CONNECTION_ID);
+            if (!entry) throw new Error("expected a preconfigured entry");
+            let release!: () => void;
+            manager.connectGate = new Promise<void>((resolve) => {
+                release = resolve;
+            });
+
+            const dialing = store.connectPreconfigured();
+            const disconnecting = store.view().disconnect(PRECONFIGURED_CONNECTION_ID);
+            release();
+            await Promise.all([dialing, disconnecting]);
+
+            expect(entry.state.tag).toBe("disconnected");
+        });
     });
 
     describe("disconnect", () => {

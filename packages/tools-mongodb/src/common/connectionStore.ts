@@ -196,6 +196,10 @@ export class MCPConnectionStore {
                 );
             }
             if (entry.source === "preconfigured") {
+                // A startup dial may still be in flight; wait for it first,
+                // otherwise this close is a no-op (the manager is still
+                // disconnected) and the dial's connection survives it.
+                await this.preconfiguredDial?.catch(() => undefined);
                 await entry.close();
                 return;
             }
