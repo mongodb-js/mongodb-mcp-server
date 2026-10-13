@@ -636,29 +636,6 @@ describe("CreateClusterTool", () => {
             );
         });
 
-        it("adds readOnlySpecs and the max storage limit when provided", async () => {
-            await exec({
-                ...BASE_ARGS,
-                databaseEdition: "INFINITE",
-                instanceSize: "M50",
-                readOnlyNodes: 2,
-                maxStorageGB: 98304,
-            });
-
-            const call = mockApiClient.createCluster!.mock.calls[0]![0] as {
-                body: {
-                    replicationSpecs: Array<{ regionConfigs: Array<Record<string, unknown>> }>;
-                };
-            };
-            const regionConfig = call.body.replicationSpecs[0]!.regionConfigs[0]!;
-            expect(regionConfig.readOnlySpecs).toEqual({ instanceSize: "M50", nodeCount: 2 });
-            expect(regionConfig.electableSpecs).toEqual({ instanceSize: "M50", nodeCount: 2 });
-            expect(regionConfig.autoScaling).toMatchObject({
-                compute: { minInstanceSize: "M50", maxInstanceSize: "M60" },
-                storageConfig: { shardSizeLimitGB: 98304 },
-            });
-        });
-
         it("clamps compute autoscaling max to M60 for Infinite clusters", async () => {
             await exec({ ...BASE_ARGS, databaseEdition: "INFINITE", instanceSize: "M50" });
 
@@ -680,13 +657,10 @@ describe("CreateClusterTool", () => {
         });
 
         it("reports databaseEdition in structuredContent", async () => {
-            const result = await exec({ ...BASE_ARGS, databaseEdition: "INFINITE", maxStorageGB: 1024 });
+            const result = await exec({ ...BASE_ARGS, databaseEdition: "INFINITE" });
 
             expect(result.isError).toBeFalsy();
-            expect(result.structuredContent).toMatchObject({
-                databaseEdition: "INFINITE",
-                maxStorageGB: 1024,
-            });
+            expect(result.structuredContent).toMatchObject({ databaseEdition: "INFINITE" });
         });
 
         it.each([
@@ -711,18 +685,6 @@ describe("CreateClusterTool", () => {
             };
             expect(call.body.databaseEdition).toBe("INFINITE");
             expect(call.body.replicationSpecs[0]!.regionConfigs[0]!.electableSpecs.instanceSize).toBe("M80");
-        });
-
-        it.each([
-            ["readOnlyNodes", { readOnlyNodes: 2 }],
-            ["maxStorageGB", { maxStorageGB: 1024 }],
-        ] as const)("returns error when %s is passed for an Atlas Core cluster", async (_case, extraArgs) => {
-            const result = await exec({ ...BASE_ARGS, ...extraArgs });
-
-            expect(result.isError).toBe(true);
-            expect((result.content[0] as { text: string }).text).toContain(
-                "only supported when databaseEdition is INFINITE"
-            );
         });
     });
 });

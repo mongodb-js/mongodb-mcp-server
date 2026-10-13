@@ -13,7 +13,6 @@ import {
     getMaxAutoScalingSize,
     getInfiniteMaxAutoScalingSize,
     databaseEditionEnum,
-    INFINITE_MAX_STORAGE_GB,
     type StandardInstanceSize,
 } from "../../helpers/cluster.js";
 
@@ -42,7 +41,6 @@ type AutoScalingConfig = {
         maxInstanceSize?: string;
     };
     diskGB: { enabled: true };
-    storageConfig?: { shardSizeLimitGB: number };
 };
 
 type ReplicationSpec = {
@@ -134,15 +132,11 @@ function buildInfiniteReplicationSpecs({
     region,
     instanceSize,
     autoScaling,
-    readOnlyNodes,
-    maxStorageGB,
 }: {
     provider: AtlasCloudProvider;
     region: string;
     instanceSize: StandardInstanceSize;
     autoScaling: AutoScalingConfig;
-    readOnlyNodes: number;
-    maxStorageGB?: number;
 }): ReplicationSpec[] {
     return [
         {
@@ -152,11 +146,7 @@ function buildInfiniteReplicationSpecs({
                     regionName: region,
                     priority: 7,
                     electableSpecs: { instanceSize, nodeCount: 2 },
-                    ...(readOnlyNodes > 0 && { readOnlySpecs: { instanceSize, nodeCount: readOnlyNodes } }),
-                    autoScaling: {
-                        ...autoScaling,
-                        ...(maxStorageGB !== undefined && { storageConfig: { shardSizeLimitGB: maxStorageGB } }),
-                    },
+                    autoScaling,
                 },
             ],
         },
@@ -189,7 +179,7 @@ function validateInfiniteCreateArgs(args: { regions: string[]; diskSizeGB?: numb
     }
     if (args.diskSizeGB !== undefined) {
         throw new CreateClusterError(
-            "Atlas Infinite clusters do not provision a disk size; storage scales automatically. Use maxStorageGB to cap the max storage limit instead."
+            "Atlas Infinite clusters do not provision a disk size; storage scales automatically. Omit diskSizeGB."
         );
     }
 }
@@ -268,26 +258,6 @@ export const CreateClusterArgsShape = {
         .describe(
             "Database edition. `CORE` is the standard Atlas dedicated cluster. `INFINITE` creates an Atlas Infinite cluster (public preview): disaggregated compute and storage, AWS only, single region, replica set, M10-M60 instance sizes, latest MongoDB version with auto upgrades, cloud backup always enabled. Defaults to `CORE`."
         ),
-
-    readOnlyNodes: z
-        .number()
-        .int()
-        .min(0)
-        .max(5)
-        .optional()
-        .describe(
-            "Number of read-only nodes (0-5), Atlas Infinite only. Read-only nodes read from the storage layer and start serving reads in minutes, without an initial sync. They use the same instance size as the electable nodes. Omit unless explicitly specified by the user."
-        ),
-
-    maxStorageGB: z
-        .number()
-        .int()
-        .min(1)
-        .max(INFINITE_MAX_STORAGE_GB)
-        .optional()
-        .describe(
-            "Max storage limit in GB (1-131072, i.e. up to 128 TB), Atlas Infinite only. Caps the logical data size of the cluster; storage otherwise scales automatically up to 128 TB. Omit unless explicitly specified by the user."
-        ),
 };
 
 const CreateClusterOutputSchema = {
@@ -303,8 +273,6 @@ const CreateClusterOutputSchema = {
     diskSizeGB: z.number().optional(),
     encryptionAtRestProvider: encryptionAtRestProviderEnum,
     databaseEdition: databaseEditionEnum,
-    readOnlyNodes: z.number().optional(),
-    maxStorageGB: z.number().optional(),
 };
 
 export class CreateClusterTool extends AtlasToolBase {
@@ -351,10 +319,6 @@ export class CreateClusterTool extends AtlasToolBase {
         const isInfinite = args.databaseEdition === "INFINITE";
         if (isInfinite) {
             validateInfiniteCreateArgs(args);
-        } else if (args.readOnlyNodes !== undefined || args.maxStorageGB !== undefined) {
-            throw new CreateClusterError(
-                "readOnlyNodes and maxStorageGB are only supported when databaseEdition is INFINITE."
-            );
         }
 
         let instanceSize: StandardInstanceSize;
@@ -388,8 +352,6 @@ export class CreateClusterTool extends AtlasToolBase {
                   region: regions[0] as string,
                   instanceSize,
                   autoScaling,
-                  readOnlyNodes: args.readOnlyNodes ?? 0,
-                  maxStorageGB: args.maxStorageGB,
               })
             : buildReplicationSpecs({
                   provider,
@@ -459,8 +421,6 @@ export class CreateClusterTool extends AtlasToolBase {
                 diskSizeGB: args.diskSizeGB,
                 encryptionAtRestProvider,
                 databaseEdition: args.databaseEdition,
-                readOnlyNodes: args.readOnlyNodes,
-                maxStorageGB: args.maxStorageGB,
             },
         };
     }

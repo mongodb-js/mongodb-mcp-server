@@ -573,8 +573,6 @@ describeWithAtlas("clusters", (integration) => {
                 expect(properties).toHaveProperty("terminationProtectionEnabled");
                 expect(properties).toHaveProperty("encryptionAtRestProvider");
                 expect(properties).toHaveProperty("databaseEdition");
-                expect(properties).toHaveProperty("readOnlyNodes");
-                expect(properties).toHaveProperty("maxStorageGB");
 
                 const required = tool.inputSchema.required as string[];
                 expect(required).toContain("projectId");

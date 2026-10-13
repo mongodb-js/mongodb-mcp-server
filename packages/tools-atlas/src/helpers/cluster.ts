@@ -22,9 +22,6 @@ export const databaseEditionEnum = z.enum(["CORE", "INFINITE"]);
 
 export type DatabaseEdition = z.infer<typeof databaseEditionEnum>;
 
-// Upper bound of the Atlas Infinite max storage limit: 128 TB of logical data.
-export const INFINITE_MAX_STORAGE_GB = 131072;
-
 // M60 and M80 extend beyond the selectable range. M140 is not supported on Azure.
 export function getMaxAutoScalingSize(size: StandardInstanceSize, provider: string): string {
     if (size === "M80") {

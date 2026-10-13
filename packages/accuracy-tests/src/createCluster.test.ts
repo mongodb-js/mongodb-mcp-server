@@ -600,33 +600,4 @@ describeAccuracyTests([
             },
         ],
     },
-    {
-        prompt: `Create an Atlas Infinite cluster named "${CLUSTER_NAME}" in project "${PROJECT_ID}" on AWS in US_EAST_1 with 2 read-only nodes and a 1 TB max storage limit`,
-        mockedTools: {
-            ...mockListProjects,
-            "atlas-create-cluster": mockCreateClusterResponse({
-                projectId: PROJECT_ID,
-                clusterName: CLUSTER_NAME,
-                provider: "AWS",
-                regions: ["US_EAST_1"],
-                databaseEdition: "INFINITE",
-            }),
-        },
-        expectedToolCalls: [
-            ...optionalListProjects,
-            {
-                toolName: "atlas-create-cluster",
-                parameters: {
-                    projectId: PROJECT_ID,
-                    clusterName: CLUSTER_NAME,
-                    provider: "AWS",
-                    regions: ["US_EAST_1"],
-                    databaseEdition: "INFINITE",
-                    readOnlyNodes: 2,
-                    maxStorageGB: 1024,
-                    clusterType: Matcher.anyOf(Matcher.undefined, Matcher.value("REPLICASET")),
-                },
-            },
-        ],
-    },
 ]);
