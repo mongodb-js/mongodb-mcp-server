@@ -242,6 +242,7 @@ jobs:
           path: |
             .sbom/sbom-prod.cyclonedx.json
             .sbom/sbom.json
+          include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 7
 
