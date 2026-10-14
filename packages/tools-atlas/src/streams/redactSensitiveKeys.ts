@@ -1,3 +1,22 @@
+import { STREAMS_PASSWORD_PROPERTIES } from "./openapiPasswordKeys.generated.js";
+
+/**
+ * Property names the Stream Processing schemas of the Atlas Admin API
+ * OpenAPI spec mark `Format: password` (see
+ * `packages/atlas-api-client/openapi.d.ts`). The spec is the source of truth
+ * for what counts as a secret on this surface, so these are redacted on top
+ * of the curated `SECRET_KEYS` list below. The set is generated from the
+ * spec by `packages/scripts/src/generatePasswordKeys.ts` as part of
+ * `packages/scripts/generate.sh`, so when the spec changes, redaction
+ * follows the regeneration (e.g. `sslKey`, marked `password` in July 2025).
+ *
+ * `redactSensitiveKeys.test.ts` re-derives the password-format names of
+ * Streams schemas from `openapi.d.ts` and fails when that file was
+ * regenerated without the key generator, or when a generated key is not
+ * redacted.
+ */
+const GENERATED_SENSITIVE_KEYS = new Set(STREAMS_PASSWORD_PROPERTIES.map((key) => key.toLowerCase()));
+
 /**
  * Secret-valued object keys that must never surface in tool output. These are
  * the keys (matched case-insensitively, recursively) whose *values* are secrets
@@ -33,7 +52,8 @@ const SECRET_KEYS = new Set([
 
 /** Whether a given object key holds a secret and must be masked. */
 function isSecretKey(key: string): boolean {
-    return SECRET_KEYS.has(key.toLowerCase());
+    const lowered = key.toLowerCase();
+    return SECRET_KEYS.has(lowered) || GENERATED_SENSITIVE_KEYS.has(lowered);
 }
 
 /**

@@ -13,6 +13,7 @@
     "generate:api": "./generate.sh",
     "generate:release-notes": "node src/generate-release-notes.ts",
     "filter:openapi": "tsx src/filter.ts",
+    "generate:streams-password-keys": "tsx src/generateStreamsPasswordKeys.ts",
     "apply:openapi": "tsx src/apply.ts",
     "create-dependency-sbom-lists": "tsx src/sbomReport/index.ts",
     "check": "tsc --noEmit --project tsconfig.json"

@@ -12,7 +12,7 @@ import {
     toStreamsAutoscaling,
 } from "../../streams/streamsArgs.js";
 import { StreamsInvalidArgumentError } from "../../streams/errors.js";
-import { redactSensitiveKeys } from "../../helpers/redactSensitiveKeys.js";
+import { redactSensitiveKeys } from "../../streams/redactSensitiveKeys.js";
 
 type StreamsProcessorWithStats = {
     name?: string;

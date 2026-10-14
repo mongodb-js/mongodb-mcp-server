@@ -12,6 +12,7 @@ curl -Lo ./packages/scripts/spec.json https://github.com/mongodb/openapi/raw/ref
 pnpm --silent --filter @mongodb-js/mcp-scripts filter:openapi < ./packages/scripts/spec.json > ./packages/scripts/filteredSpec.json
 redocly bundle --ext json --remove-unused-components ./packages/scripts/filteredSpec.json --output ./packages/scripts/bundledSpec.json
 openapi-typescript ./packages/scripts/bundledSpec.json --root-types-no-schema-prefix --root-types --output ./packages/atlas-api-client/openapi.d.ts
+pnpm --silent --filter @mongodb-js/mcp-scripts generate:streams-password-keys ../../packages/scripts/bundledSpec.json ../../packages/tools-atlas/src/streams/openapiPasswordKeys.generated.ts
 pnpm --silent --filter @mongodb-js/mcp-scripts apply:openapi --spec ../../packages/scripts/bundledSpec.json --file ../../packages/atlas-api-client/src/apiClient.ts
-prettier --write ./packages/atlas-api-client/openapi.d.ts ./packages/atlas-api-client/src/apiClient.ts
+prettier --write ./packages/atlas-api-client/openapi.d.ts ./packages/tools-atlas/src/streams/openapiPasswordKeys.generated.ts ./packages/atlas-api-client/src/apiClient.ts
 rm -rf ./packages/scripts/bundledSpec.json ./packages/scripts/filteredSpec.json ./packages/scripts/spec.json
