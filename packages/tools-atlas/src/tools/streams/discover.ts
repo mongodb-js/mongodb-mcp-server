@@ -420,7 +420,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
             tier: w.streamConfig?.tier ?? "unknown",
             maxTier: w.streamConfig?.maxTierSize ?? "unknown",
         }));
-        const workspaces = format === "concise" ? conciseWorkspaces : data.results;
+        const workspaces = format === "concise" ? conciseWorkspaces : data.results.map(redactSensitiveKeys);
 
         return {
             content: formatUntrustedData(
@@ -656,7 +656,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
             content: formatUntrustedData(
                 this.server.config,
                 "Details for the requested processor:",
-                JSON.stringify(data, null, 2)
+                JSON.stringify(redactSensitiveKeys(data), null, 2)
             ),
             ...(Object.keys(structuredContent).length > 0 && { structuredContent }),
         };

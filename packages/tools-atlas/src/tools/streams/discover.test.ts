@@ -124,6 +124,36 @@ describe("StreamsDiscoverTool", () => {
             );
         });
 
+        it("should redact secret-valued fields from the detailed workspace list output", async () => {
+            mockApiClient.listStreamWorkspaces!.mockResolvedValue({
+                results: [
+                    {
+                        name: "ws1",
+                        dataProcessRegion: { cloudProvider: "AWS", region: "VIRGINIA_USA" },
+                        connections: [
+                            {
+                                name: "kafka-in",
+                                type: "Kafka",
+                                authentication: { mechanism: "SCRAM", password: "LeakyListP4ss" },
+                                config: { "sasl.password": "LeakySaslP4ss" },
+                            },
+                        ],
+                    },
+                ],
+                totalCount: 1,
+            });
+
+            const result = await exec({ ...baseArgs, action: "list-workspaces", responseFormat: "detailed" });
+
+            const untrusted = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(untrusted).not.toContain("LeakyListP4ss");
+            expect(untrusted).toContain("<redacted>");
+            // Known gap: redaction is exact-key-name based, so a dotted
+            // secret key inside the free-form `config` map
+            // (config["sasl.password"]) passes through. Server-side
+            // strip/redact is tracked in the STREAMS spec ticket.
+        });
+
         it("should return concise workspaces in structuredContent when responseFormat is detailed", async () => {
             mockApiClient.listStreamWorkspaces!.mockResolvedValue({
                 results: [
@@ -640,6 +670,25 @@ describe("StreamsDiscoverTool", () => {
             await expect(exec({ ...baseArgs, action: "inspect-processor", workspaceName: "ws1" })).rejects.toThrow(
                 "resourceName is required"
             );
+        });
+
+        it("should redact secret-valued fields from the processor details content", async () => {
+            mockApiClient.getStreamProcessor!.mockResolvedValue({
+                name: "proc1",
+                state: "STARTED",
+                options: { sslKey: "LeakyProcKey" },
+                pipeline: [{ $source: { connectionName: "kafka-in" } }],
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "inspect-processor",
+                workspaceName: "ws1",
+                resourceName: "proc1",
+            });
+
+            const untrusted = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(untrusted).not.toContain("LeakyProcKey");
         });
     });
 
