@@ -174,11 +174,16 @@ function buildM10UpgradeBody({
 
 // Validates and resolves the autoscaling args for a Free/Flex to Atlas Infinite upgrade.
 // Explicit bounds pass through to the API (which enforces the M10-M60 preview cap);
-// defaults are derived here and clamped to sizes Infinite supports.
-function resolveInfiniteUpgradeAutoScaling(
-    autoScalingArgs: AutoScalingArgs,
-    targetSize: string
-): ResolvedM10AutoScaling {
+// the default max comes from getInfiniteMaxAutoScalingSize.
+function resolveInfiniteUpgradeAutoScaling({
+    autoScalingArgs,
+    targetSize,
+    provider,
+}: {
+    autoScalingArgs: AutoScalingArgs;
+    targetSize: StandardInstanceSize;
+    provider: string | undefined;
+}): ResolvedM10AutoScaling {
     const { minInstanceSize, maxInstanceSize } = autoScalingArgs;
 
     const enabled = autoScalingArgs.computeAutoScaling ?? true;
@@ -191,7 +196,7 @@ function resolveInfiniteUpgradeAutoScaling(
     }
 
     const min = minInstanceSize ?? targetSize;
-    const max = maxInstanceSize ?? getInfiniteMaxAutoScalingSize(targetSize);
+    const max = maxInstanceSize ?? getInfiniteMaxAutoScalingSize(targetSize, provider ?? "");
     if (isHigherInstanceSize(min, max)) {
         throw new UpgradeClusterError(`minInstanceSize "${min}" cannot be higher than maxInstanceSize "${max}".`);
     }
@@ -381,9 +386,9 @@ function validateDedicatedScaling({
 // Atlas Infinite defaults to M10 and passes other instance sizes through to
 // the API, which enforces the M10-M60 preview cap.
 function resolveNonDedicatedTarget(
-    args: { targetTier?: string; targetEdition?: DatabaseEdition },
+    args: { targetTier?: "FLEX" | StandardInstanceSize; targetEdition?: DatabaseEdition },
     instanceType: "FREE" | "FLEX"
-): { tier: string; edition: DatabaseEdition } {
+): { tier: StandardInstanceSize; edition: "INFINITE" } | { tier: "FLEX" | "M10"; edition: "CORE" } {
     if (args.targetEdition === "INFINITE") {
         if (args.targetTier === "FLEX") {
             throw new UpgradeClusterError(
@@ -546,6 +551,12 @@ export class UpgradeClusterTool extends AtlasToolBase {
                     resolvedMin = currentAutoScaling?.minInstanceSize ?? resolvedInstanceSize;
                 }
 
+                // Two tiers above the new size; Infinite clusters clamp the derived default to M60.
+                const defaultMax =
+                    clusterInfo.databaseEdition === "INFINITE"
+                        ? getInfiniteMaxAutoScalingSize(resolvedInstanceSize, clusterInfo.provider ?? "")
+                        : getMaxAutoScalingSize(resolvedInstanceSize, clusterInfo.provider ?? "");
+
                 // Autoscaling max bound.
                 let resolvedMax: string | undefined;
                 if (args.maxInstanceSize !== undefined) {
@@ -555,9 +566,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
                     // Autoscaling disabled: no max needed.
                     resolvedMax = undefined;
                 } else if (isScaling) {
-                    // Resizing without an explicit max: default to two tiers above the new size, unless the
-                    // cluster's existing max was already higher.
-                    const defaultMax = getMaxAutoScalingSize(resolvedInstanceSize, clusterInfo.provider ?? "");
+                    // Resizing without an explicit max: use the default, unless the cluster's existing max was already higher.
                     const existingMax = currentAutoScaling?.maxInstanceSize;
                     resolvedMax =
                         existingMax !== undefined && isHigherInstanceSize(existingMax, defaultMax)
@@ -565,18 +574,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
                             : defaultMax;
                 } else {
                     // Not resizing: keep the cluster's current max, falling back to the default if autoscaling wasn't already configured.
-                    resolvedMax =
-                        currentAutoScaling?.maxInstanceSize ??
-                        getMaxAutoScalingSize(resolvedInstanceSize, clusterInfo.provider ?? "");
-                }
-
-                // Atlas Infinite does not support tiers above M60 during public preview.
-                if (
-                    clusterInfo.databaseEdition === "INFINITE" &&
-                    resolvedMax !== undefined &&
-                    isHigherInstanceSize(resolvedMax, "M60")
-                ) {
-                    resolvedMax = "M60";
+                    resolvedMax = currentAutoScaling?.maxInstanceSize ?? defaultMax;
                 }
 
                 if (
@@ -625,7 +623,11 @@ export class UpgradeClusterTool extends AtlasToolBase {
 
                 const isInfiniteUpgrade = resolved.edition === "INFINITE";
                 const resolvedAutoScaling = isInfiniteUpgrade
-                    ? resolveInfiniteUpgradeAutoScaling(args, resolved.tier)
+                    ? resolveInfiniteUpgradeAutoScaling({
+                          autoScalingArgs: args,
+                          targetSize: resolved.tier,
+                          provider: clusterInfo.provider,
+                      })
                     : resolveM10AutoScaling(args, clusterInfo.provider);
 
                 // tenantUpgrade: upgrades Flex clusters to Dedicated (M10+) or Atlas Infinite
@@ -665,7 +667,11 @@ export class UpgradeClusterTool extends AtlasToolBase {
 
                 const isInfiniteUpgrade = resolved.edition === "INFINITE";
                 const resolvedAutoScaling = isInfiniteUpgrade
-                    ? resolveInfiniteUpgradeAutoScaling(args, resolved.tier)
+                    ? resolveInfiniteUpgradeAutoScaling({
+                          autoScalingArgs: args,
+                          targetSize: resolved.tier,
+                          provider: clusterInfo.provider,
+                      })
                     : resolveM10AutoScaling(args, clusterInfo.provider);
 
                 ({ id: clusterId } = await this.upgradeFreeCluster({

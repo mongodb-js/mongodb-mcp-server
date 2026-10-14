@@ -125,18 +125,20 @@ function buildBackupConfig(backups: Backup): {
 }
 
 // Atlas Infinite clusters are single-region replica sets whose HA unit is one
-// primary plus one standby node (2 electable nodes), with storage provisioned
-// by the storage layer instead of a per-node disk.
+// primary plus one standby node (2 electable nodes). diskSizeGB is forwarded
+// as-is so the API can reject it: Infinite storage has no per-node disk.
 function buildInfiniteReplicationSpecs({
     provider,
     region,
     instanceSize,
     autoScaling,
+    diskSizeGB,
 }: {
     provider: AtlasCloudProvider;
     region: string;
     instanceSize: StandardInstanceSize;
     autoScaling: AutoScalingConfig;
+    diskSizeGB?: number;
 }): ReplicationSpec[] {
     return [
         {
@@ -145,7 +147,7 @@ function buildInfiniteReplicationSpecs({
                     providerName: provider,
                     regionName: region,
                     priority: 7,
-                    electableSpecs: { instanceSize, nodeCount: 2 },
+                    electableSpecs: { instanceSize, nodeCount: 2, diskSizeGB },
                     autoScaling,
                 },
             ],
@@ -164,25 +166,6 @@ function buildVersionConfig(version: MongoDBVersion): {
 }
 
 class CreateClusterError extends ToolArgumentValidationError {}
-
-// Cross-field validation for Atlas Infinite requests. Only cases the Atlas API
-// cannot handle for us are checked: inputs the Infinite body builder would
-// silently drop or misrepresent. Preview constraints the API enforces
-// (AWS-only, replica set, M10-M60, version pinning, always-on backup) are
-// deliberately not mirrored here; the API rejects them with clear errors and
-// relaxes automatically when the preview expands.
-function validateInfiniteCreateArgs(args: { regions: string[]; diskSizeGB?: number }): void {
-    if (args.regions.length > 1) {
-        throw new CreateClusterError(
-            "Atlas Infinite clusters deploy in a single region during public preview. Provide exactly one region."
-        );
-    }
-    if (args.diskSizeGB !== undefined) {
-        throw new CreateClusterError(
-            "Atlas Infinite clusters do not provision a disk size; storage scales automatically. Omit diskSizeGB."
-        );
-    }
-}
 
 export const CreateClusterArgsShape = {
     projectId: AtlasArgs.projectId().describe(
@@ -317,8 +300,13 @@ export class CreateClusterTool extends AtlasToolBase {
         }
 
         const isInfinite = args.databaseEdition === "INFINITE";
-        if (isInfinite) {
-            validateInfiniteCreateArgs(args);
+        // The tool picks the node layout per region, and Atlas Infinite has no
+        // multi-region layout (its HA unit is a 2-node primary/standby pair), so
+        // the request builder below can only express a single region.
+        if (isInfinite && regions.length > 1) {
+            throw new CreateClusterError(
+                "Atlas Infinite clusters deploy in a single region during public preview. Provide exactly one region."
+            );
         }
 
         let instanceSize: StandardInstanceSize;
@@ -340,18 +328,18 @@ export class CreateClusterTool extends AtlasToolBase {
                   instanceSize,
                   computeEnabled: args.computeAutoScaling,
                   provider,
-                  // Derived default, clamped to M60; an explicitly oversized request is rejected by the API.
-                  maxInstanceSize: getInfiniteMaxAutoScalingSize(instanceSize),
+                  maxInstanceSize: getInfiniteMaxAutoScalingSize(instanceSize, provider),
               })
             : buildAutoScaling({ instanceSize, computeEnabled: args.computeAutoScaling, provider });
 
         const replicationSpecs = isInfinite
             ? buildInfiniteReplicationSpecs({
                   provider,
-                  // Single region, enforced by validateInfiniteCreateArgs.
+                  // Exactly one region, enforced above.
                   region: regions[0] as string,
                   instanceSize,
                   autoScaling,
+                  diskSizeGB: args.diskSizeGB,
               })
             : buildReplicationSpecs({
                   provider,
@@ -402,7 +390,7 @@ export class CreateClusterTool extends AtlasToolBase {
                 {
                     type: "text",
                     text:
-                        `Cluster "${clusterName}" is being created in project "${projectId}" (${isInfinite ? "Atlas Infinite" : `${instanceSize} ${clusterType} on ${provider}/${regions.join(", ")}`}). ` +
+                        `Cluster "${clusterName}" is being created in project "${projectId}" (${isInfinite ? "Atlas Infinite " : ""}${instanceSize} ${clusterType} on ${provider}/${regions.join(", ")}). ` +
                         `Use the atlas-inspect-cluster tool with projectId "${projectId}" and clusterName "${clusterName}" to poll for readiness. ` +
                         `The cluster is ready when its state is IDLE, connection strings are unavailable until then.`,
                 },

@@ -33,13 +33,18 @@ export function getMaxAutoScalingSize(size: StandardInstanceSize, provider: stri
     return standardInstanceSizeEnum.options[standardInstanceSizeEnum.options.indexOf(size) + 2] ?? "M80";
 }
 
-// Like getMaxAutoScalingSize, but clamped to M60: Atlas Infinite does not
-// support tiers above M60 during public preview.
-export function getInfiniteMaxAutoScalingSize(size: string): StandardInstanceSize {
+// Default compute autoscaling max for an Atlas Infinite cluster: two tiers
+// above `size`, clamped to M60, the public preview ceiling. A base size already
+// above M60 is not clamped, so min <= max still holds and the API rejects the
+// unsupported tier with its own error instead of a min/max conflict.
+export function getInfiniteMaxAutoScalingSize(size: StandardInstanceSize, provider: string): string {
     const options = standardInstanceSizeEnum.options;
-    return options[
-        Math.min(options.indexOf(size as StandardInstanceSize) + 2, options.indexOf("M60"))
-    ] as StandardInstanceSize;
+    const ceiling = options.indexOf("M60");
+    const index = options.indexOf(size);
+    if (index > ceiling) {
+        return getMaxAutoScalingSize(size, provider);
+    }
+    return options[Math.min(index + 2, ceiling)] ?? "M60";
 }
 
 type AtlasProcessId = `${string}:${number}`;

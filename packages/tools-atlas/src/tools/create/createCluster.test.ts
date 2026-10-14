@@ -593,7 +593,7 @@ describe("CreateClusterTool", () => {
     });
 
     describe("Atlas Infinite (databaseEdition INFINITE)", () => {
-        it("sends an Infinite body with 2 electable nodes and databaseEdition, and no disk size", async () => {
+        it("sends an Infinite body with 2 electable nodes and databaseEdition", async () => {
             const result = await exec({ ...BASE_ARGS, databaseEdition: "INFINITE" });
 
             expect(result.isError).toBeFalsy();
@@ -656,35 +656,64 @@ describe("CreateClusterTool", () => {
             expect(call.body.databaseEdition).toBeUndefined();
         });
 
-        it("reports databaseEdition in structuredContent", async () => {
+        it("reports databaseEdition in structuredContent and the edition, size, and region in the text", async () => {
             const result = await exec({ ...BASE_ARGS, databaseEdition: "INFINITE" });
 
             expect(result.isError).toBeFalsy();
             expect(result.structuredContent).toMatchObject({ databaseEdition: "INFINITE" });
+            expect((result.content[0] as { text: string }).text).toContain(
+                "(Atlas Infinite M10 REPLICASET on AWS/US_EAST_1)"
+            );
         });
 
-        it.each([
-            ["multiple regions", { ...BASE_ARGS, regions: ["US_EAST_1", "US_WEST_2"] }, "single region"],
-            ["a disk size", { ...BASE_ARGS, diskSizeGB: 100 }, "disk size"],
-        ] as const)("returns error when Infinite edition is combined with %s", async (_case, args, expectedText) => {
-            const result = await exec({ ...args, databaseEdition: "INFINITE" });
+        it("rejects multiple regions, since the Infinite request builder can only express one", async () => {
+            const result = await exec({
+                ...BASE_ARGS,
+                regions: ["US_EAST_1", "US_WEST_2"],
+                databaseEdition: "INFINITE",
+            });
 
             expect(result.isError).toBe(true);
-            expect((result.content[0] as { text: string }).text).toContain(expectedText);
+            expect((result.content[0] as { text: string }).text).toContain("single region");
+            expect(mockApiClient.createCluster).not.toHaveBeenCalled();
         });
 
-        it("passes preview-constraint violations (e.g. M80) through to the API instead of rejecting them client-side", async () => {
+        it("forwards diskSizeGB so the API can reject it with its own error", async () => {
+            const result = await exec({ ...BASE_ARGS, databaseEdition: "INFINITE", diskSizeGB: 100 });
+
+            expect(result.isError).toBeFalsy();
+            const call = mockApiClient.createCluster!.mock.calls[0]![0] as {
+                body: {
+                    replicationSpecs: Array<{ regionConfigs: Array<{ electableSpecs: Record<string, unknown> }> }>;
+                };
+            };
+            expect(call.body.replicationSpecs[0]!.regionConfigs[0]!.electableSpecs).toEqual({
+                instanceSize: "M10",
+                nodeCount: 2,
+                diskSizeGB: 100,
+            });
+        });
+
+        it("passes an M80 request through to the API with a self-consistent autoscaling range", async () => {
             const result = await exec({ ...BASE_ARGS, databaseEdition: "INFINITE", instanceSize: "M80" });
 
             expect(result.isError).toBeFalsy();
             const call = mockApiClient.createCluster!.mock.calls[0]![0] as {
                 body: {
                     databaseEdition?: string;
-                    replicationSpecs: Array<{ regionConfigs: Array<{ electableSpecs: { instanceSize: string } }> }>;
+                    replicationSpecs: Array<{
+                        regionConfigs: Array<{
+                            electableSpecs: { instanceSize: string };
+                            autoScaling: { compute: { minInstanceSize?: string; maxInstanceSize?: string } };
+                        }>;
+                    }>;
                 };
             };
+            const regionConfig = call.body.replicationSpecs[0]!.regionConfigs[0]!;
             expect(call.body.databaseEdition).toBe("INFINITE");
-            expect(call.body.replicationSpecs[0]!.regionConfigs[0]!.electableSpecs.instanceSize).toBe("M80");
+            expect(regionConfig.electableSpecs.instanceSize).toBe("M80");
+            // Not clamped to M60: min M80 with max M60 would surface as a min/max conflict instead of the API's tier error.
+            expect(regionConfig.autoScaling.compute).toMatchObject({ minInstanceSize: "M80", maxInstanceSize: "M200" });
         });
     });
 });

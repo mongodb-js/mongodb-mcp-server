@@ -35,7 +35,7 @@ function mockCreateClusterResponse({
             {
                 type: "text",
                 text:
-                    `Cluster "${clusterName}" is being created in project "${projectId}" (${databaseEdition === "INFINITE" ? "Atlas Infinite" : `${instanceSize} ${clusterType} on ${provider}/${regions.join(", ")}`}). ` +
+                    `Cluster "${clusterName}" is being created in project "${projectId}" (${databaseEdition === "INFINITE" ? "Atlas Infinite " : ""}${instanceSize} ${clusterType} on ${provider}/${regions.join(", ")}). ` +
                     `Use the atlas-inspect-cluster tool with projectId "${projectId}" and clusterName "${clusterName}" to poll for readiness. ` +
                     `The cluster is ready when its state is IDLE, connection strings are unavailable until then.`,
             },
