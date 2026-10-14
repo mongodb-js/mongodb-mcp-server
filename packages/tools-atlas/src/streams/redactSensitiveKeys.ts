@@ -5,6 +5,11 @@
  * `authentication.mechanism`, `bootstrapServers`, `clusterName`) which IS useful
  * to the agent and stays intact.
  *
+ * Every property the Stream Processing schemas of the Atlas Admin API
+ * OpenAPI spec mark `Format: password` must be listed here;
+ * `redactSensitiveKeys.test.ts` re-derives those names from
+ * `packages/atlas-api-client/openapi.d.ts` and fails when one is missing.
+ *
  * The set is curated because a broad `.*key$`/`.*secret$` match would clobber
  * legitimate non-secret fields (e.g. `clientId`, `publicKey`, `certificate`,
  * `ssh`).
@@ -19,6 +24,7 @@ const SECRET_KEYS = new Set([
     "secret",
     "privatekey",
     "sslclientauthenticationkey",
+    "sslkey",
     "sslkeypassword",
     "awssecretaccesskey",
     "oidcclientsecret",
