@@ -143,6 +143,12 @@ export function seedClaudeHome({
         hasCompletedOnboarding: true,
         shiftEnterKeyBindingInstalled: true,
         theme: "dark",
+        // Suppress Claude Code's auto-mode onboarding. It interposes a blocking
+        // "Make auto mode your default permission mode?" dialog (and related
+        // notices) that stalls the TUI before the composer is ready.
+        hasSeenAutoDefaultNudge: true,
+        hasSeenAutoModeEntryWarning: true,
+        hasSeenAutoDefaultNotice: true,
         // Mark the test workdir trusted so the trust gate never shows.
         projects: {
             [canonical]: { hasTrustDialogAccepted: true, allowedTools: [] },
