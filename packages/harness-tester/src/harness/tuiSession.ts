@@ -149,9 +149,15 @@ export abstract class TuiSessionBase implements AgentSession {
             };
             this.onState(state);
 
+            // A transitional banner ("Waiting for startup", ...) also renders as
+            // "not idle", but it is pre-turn chrome rather than the turn beginning:
+            // counting it would mark the turn active before the agent has started,
+            // so the next poll (idle composer, agent still booting) would return a
+            // bogus completed turn.
+            const transitional = this.isTransitional?.(viewport) ?? false;
             if (
                 state.working ||
-                !state.composerIdle ||
+                (!state.composerIdle && !transitional) ||
                 (prevDeltaLength !== undefined && delta.length > prevDeltaLength)
             ) {
                 sawTurnActivity = true;
@@ -161,7 +167,7 @@ export abstract class TuiSessionBase implements AgentSession {
             // Agent is awaiting input when not working and not idle; require that
             // state to persist a couple of polls so we do not fire mid-transition.
             if (sawTurnActivity && !state.working && !state.composerIdle) {
-                if (this.isTransitional?.(viewport)) {
+                if (transitional) {
                     confirmationPendingSinceMs = undefined;
                 } else {
                     confirmationPendingSinceMs ??= state.elapsedMs;

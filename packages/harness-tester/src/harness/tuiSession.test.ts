@@ -80,3 +80,35 @@ describe("TuiSessionBase paused-turn retention", () => {
         expect(turn.toolCalls.some((tc) => tc.name === "list-databases")).toBe(true);
     });
 });
+
+/** Session whose transitional banner mirrors codex's pre-turn "Waiting for startup". */
+class TransitionalSession extends FakeSession {
+    protected override isTransitional(text: string): boolean {
+        return text.includes("STARTUP");
+    }
+}
+
+describe("TuiSessionBase pre-turn startup banners", () => {
+    /**
+     * Codex shows "Waiting for startup" (not idle, not working) before the turn
+     * begins, then briefly renders an idle composer while it boots MCP servers.
+     * The banner must not count as the turn starting, otherwise that idle poll
+     * ends the turn before the agent has done anything.
+     */
+    it("does not treat a transitional banner as the turn starting", async () => {
+        // 1-2: startup banner, 3: idle composer while booting, 4+: the real turn.
+        const terminal = createFakeTerminal({
+            viewportAt: (call) => {
+                if (call <= 2) return "STARTUP";
+                if (call === 3) return "IDLE";
+                return call === 4 ? "WORKING" : "CONFIRM";
+            },
+        });
+        const session = new TransitionalSession({ terminal, options: { workDir: "/tmp" } });
+
+        const turn = await session.prompt("drop the database");
+
+        // Without the guard this returns an empty "completed" turn at poll 3.
+        expect(turn.state).toBe("elicitation");
+    });
+});
