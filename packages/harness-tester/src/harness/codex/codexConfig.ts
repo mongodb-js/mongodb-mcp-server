@@ -122,6 +122,10 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
     private buildMcpServerToml(options: AgentHarnessOptions, mcpServerName: string): string {
         // Codex's 10s default MCP startup timeout is too short for this server.
         const startupTimeout = "startup_timeout_sec = 60";
+        // Auto-approve MCP tool calls: codex otherwise interposes a blocking
+        // tool-approval prompt the harness cannot answer. The server's own
+        // elicitation (confirmation-required tools) is still surfaced.
+        const toolsApprovalMode = 'default_tools_approval_mode = "approve"';
         if (options.stdioServer) {
             const { command, args, env } = options.stdioServer;
             const envLines = Object.entries(env).map(([k, v]) => `${k} = ${tomlString(v)}`);
@@ -130,6 +134,7 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
                 `command = ${tomlString(command)}`,
                 `args = [${args.map((a) => tomlString(a)).join(", ")}]`,
                 startupTimeout,
+                toolsApprovalMode,
                 ...(envLines.length ? [``, `[mcp_servers.${mcpServerName}.env]`, ...envLines] : []),
             ].join("\n");
         }
@@ -137,6 +142,7 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
             `[mcp_servers.${mcpServerName}]`,
             `url = ${tomlString(options.serverUrl ?? "")}`,
             startupTimeout,
+            toolsApprovalMode,
         ];
         const headerLines = Object.entries(options.headers ?? {}).map(
             ([k, v]) => `${tomlString(k)} = ${tomlString(v)}`
