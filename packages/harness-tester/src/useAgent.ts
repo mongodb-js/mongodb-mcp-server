@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, beforeEach } from "vitest";
 import { DEFAULT_PROMPT_TIMEOUT_MS } from "./harness/shared.js";
+import { dumpSessionSnapshots, resetSessionSnapshots } from "./harness/tuiSession.js";
 import type { AgentHarness, AgentHarnessOptions } from "./harness/types.js";
 
 export interface AgentContext {
@@ -31,6 +32,11 @@ export function useAgent({ harness }: { harness: AgentHarness }): AgentContext {
         if (!isHarnessAvailable()) {
             ctx.skip(`harness '${harness.name}' not available; agent e2e suite skipped`);
         }
+        // Always surface the harness snapshot history when a test fails, debug mode or not.
+        // Hooking the test failure (not the session) also covers assertion failures after a
+        // turn the harness considered complete, and vitest's own timeout killing the test.
+        resetSessionSnapshots();
+        ctx.onTestFailed(() => dumpSessionSnapshots(`test "${ctx.task.name}" failed`));
     });
 
     afterAll(async () => {

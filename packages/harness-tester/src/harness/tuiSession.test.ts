@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import type { TuiTest } from "@microsoft/tui-test";
-import { TuiSessionBase } from "./tuiSession.js";
+import { TuiSessionBase, dumpSessionSnapshots, resetSessionSnapshots } from "./tuiSession.js";
 import { parseTuiTranscript } from "./codex/codexParseTuiTranscript.js";
 import type { AgentHarnessOptions, ToolCallRecord } from "./types.js";
 
@@ -110,5 +110,75 @@ describe("TuiSessionBase pre-turn startup banners", () => {
 
         // Without the guard this returns an empty "completed" turn at poll 3.
         expect(turn.state).toBe("elicitation");
+    });
+});
+
+/** Capture `console.log` for the duration of `fn` (the logger writes there). */
+async function captureLogs(fn: () => Promise<void>): Promise<string> {
+    const lines: string[] = [];
+    const original = console.log;
+    console.log = (...args: unknown[]): void => void lines.push(args.join(" "));
+    try {
+        await fn();
+    } finally {
+        console.log = original;
+    }
+    return lines.join("\n");
+}
+
+describe("TuiSessionBase failure snapshots", () => {
+    beforeEach(() => resetSessionSnapshots());
+
+    it("prints nothing on its own, even when a turn times out", async () => {
+        const terminal = createFakeTerminal({ viewportAt: () => "WORKING" });
+        const session = new FakeSession({ terminal, options: { workDir: "/tmp", promptTimeoutMs: 600 } });
+
+        const output = await captureLogs(async () => {
+            await session.prompt("list the databases");
+            await session.dispose();
+        });
+
+        expect(output).not.toContain("poll snapshot(s) follow");
+    });
+
+    /** The test may fail on an assertion after a turn the harness considered complete. */
+    it("keeps the history of a completed turn for a later dump", async () => {
+        const terminal = createFakeTerminal({ viewportAt: (call) => (call === 1 ? "WORKING" : "IDLE") });
+        const session = new FakeSession({ terminal, options: { workDir: "/tmp" } });
+
+        const turn = await session.prompt("list the databases");
+        await session.dispose();
+        expect(turn.state).toBe("completed");
+
+        const output = await captureLogs(async () => dumpSessionSnapshots("test failed"));
+
+        expect(output).toContain("test failed; last");
+        expect(output).toContain("=== new turn (prompt) ===");
+        expect(output).toContain("working=true");
+    });
+
+    /** A vitest-level timeout abandons the turn mid-poll, so the session never returns. */
+    it("dumps the history of an abandoned turn", async () => {
+        const terminal = createFakeTerminal({ viewportAt: () => "WORKING" });
+        const session = new FakeSession({ terminal, options: { workDir: "/tmp", promptTimeoutMs: 10_000 } });
+
+        void session.prompt("list the databases");
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        const output = await captureLogs(async () => dumpSessionSnapshots("test timed out"));
+        await session.dispose();
+
+        expect(output).toContain("test timed out; last");
+        expect(output).toContain("working=true");
+    });
+
+    it("forgets sessions from earlier tests after a reset", async () => {
+        const terminal = createFakeTerminal({ viewportAt: (call) => (call === 1 ? "WORKING" : "IDLE") });
+        const session = new FakeSession({ terminal, options: { workDir: "/tmp" } });
+        await session.prompt("list the databases");
+
+        resetSessionSnapshots();
+        const output = await captureLogs(async () => dumpSessionSnapshots("test failed"));
+
+        expect(output).toBe("");
     });
 });
