@@ -88,6 +88,14 @@ export function nextBackoffMs(currentMs: number): number {
     return Math.min(currentMs * 2, MAX_BACKOFF_MS);
 }
 
+/** Resolves when `signal` aborts, immediately if it already has. */
+function whenAborted(signal: AbortSignal): Promise<void> {
+    if (signal.aborted) {
+        return Promise.resolve();
+    }
+    return new Promise((resolve) => signal.addEventListener("abort", () => resolve(), { once: true }));
+}
+
 export class AtlasTelemetry implements ITelemetry {
     /** Resolves when the setup is complete or a timeout occurs */
     public setupPromise: Promise<[string, boolean]> | undefined;
@@ -164,10 +172,7 @@ export class AtlasTelemetry implements ITelemetry {
         // setup (so events emitted before it finished make it into the cache) and the
         // final flush share the same budget, so a hung setup cannot block shutdown.
         const signal = AbortSignal.timeout(CLOSE_TIMEOUT_MS);
-        await Promise.race([
-            this.whenReady(),
-            new Promise<void>((resolve) => signal.addEventListener("abort", () => resolve(), { once: true })),
-        ]);
+        await Promise.race([this.whenReady(), whenAborted(signal)]);
 
         this.logger.debug({
             id: LogId.telemetryClose,
@@ -175,7 +180,10 @@ export class AtlasTelemetry implements ITelemetry {
             context: "telemetry",
         });
 
-        await this.sendBatch({ signal });
+        // Drain the whole cache, not just one batch, so shutdown does not strand
+        // events beyond BATCH_SIZE. Raced against the deadline because a concurrent
+        // late drain holds the cache lock without observing this signal.
+        await Promise.race([this.drainCache(), whenAborted(signal)]);
     }
 
     /**
@@ -185,6 +193,8 @@ export class AtlasTelemetry implements ITelemetry {
      * The merge is deferred until setup has resolved `device_id` and
      * `is_container_env`. Callbacks chained on an already-settled promise run
      * in registration order, so events are cached in the order they were emitted.
+     *
+     * Events cached after {@link close} are flushed immediately, since the timer is gone.
      */
     public emitEvents(events: TelemetryBaseEvent[]): void {
         if (!this.isTelemetryEnabled()) {
@@ -192,7 +202,7 @@ export class AtlasTelemetry implements ITelemetry {
             return;
         }
         this.whenReady()
-            .then(() => {
+            .then(async () => {
                 const commonProperties = this.getCommonProperties();
                 this.eventCache.appendEvents(
                     events.map((event) => ({
@@ -200,6 +210,14 @@ export class AtlasTelemetry implements ITelemetry {
                         properties: { ...commonProperties, ...event.properties },
                     }))
                 );
+
+                // Checked after the append, not when emitEvents was called: a slow
+                // setup can defer the append past close(), which then flushed an
+                // empty cache and left the timer cancelled. The cache serializes
+                // sends, so draining here cannot double-send against close().
+                if (this.closed) {
+                    await this.drainCache();
+                }
             })
             .catch((error: unknown) => {
                 // Telemetry must never take the process down via an unhandled rejection,
@@ -311,6 +329,27 @@ export class AtlasTelemetry implements ITelemetry {
         }
 
         return SEND_INTERVAL_MS;
+    }
+
+    /**
+     * Sends the events cached at entry, a batch at a time, stopping on a failed
+     * batch. Bounded to that entry size so events appended during the drain (which
+     * trigger their own drain) cannot keep this loop running.
+     *
+     * No signal is threaded through: each batch gets its own send timeout, so a
+     * slow (but successful) batch cannot abort the batches after it.
+     */
+    private async drainCache(): Promise<void> {
+        const maxBatches = Math.ceil(this.eventCache.size / BATCH_SIZE);
+        for (let batch = 0; batch < maxBatches; batch++) {
+            if (this.eventCache.size === 0) {
+                return;
+            }
+            const result = await this.sendBatch();
+            if (result.status !== "success") {
+                return;
+            }
+        }
     }
 
     /**
