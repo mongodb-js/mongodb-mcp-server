@@ -124,6 +124,9 @@ describe("AtlasTelemetry", () => {
 
     // In-memory store backing the stateful mock EventCache
     let _cachedEvents: TelemetryBaseEvent[] = [];
+    // Serializes processOldestBatch calls, mirroring EventCache.runExclusive so
+    // concurrent sendBatch calls cannot read and send the same events twice.
+    let _cacheLock: Promise<unknown> = Promise.resolve();
 
     function createTestEvent(options?: {
         result?: TelemetryResult;
@@ -179,6 +182,7 @@ describe("AtlasTelemetry", () => {
     beforeEach(() => {
         vi.useFakeTimers();
         _cachedEvents = [];
+        _cacheLock = Promise.resolve();
         vi.clearAllMocks();
 
         mockApiClient = {
@@ -202,18 +206,26 @@ describe("AtlasTelemetry", () => {
             processOldestBatch: vi
                 .fn()
                 .mockImplementation(
-                    async <T>(
+                    <T>(
                         batchSize: number,
                         processor: (events: TelemetryBaseEvent[]) => Promise<{ removeProcessed: boolean; result: T }>
                     ): Promise<T | undefined> => {
-                        const allEvents = mockEventCache.getEvents();
-                        const batch = allEvents.slice(0, batchSize);
-                        if (batch.length === 0) return undefined;
+                        const run = async (): Promise<T | undefined> => {
+                            const allEvents = mockEventCache.getEvents();
+                            const batch = allEvents.slice(0, batchSize);
+                            if (batch.length === 0) return undefined;
 
-                        const { removeProcessed, result } = await processor(batch.map((e) => e.event));
-                        if (removeProcessed) {
-                            mockEventCache.removeEvents(batch.map((e) => e.id));
-                        }
+                            const { removeProcessed, result } = await processor(batch.map((e) => e.event));
+                            if (removeProcessed) {
+                                mockEventCache.removeEvents(batch.map((e) => e.id));
+                            }
+                            return result;
+                        };
+                        const result = _cacheLock.then(run, run);
+                        _cacheLock = result.then(
+                            () => undefined,
+                            () => undefined
+                        );
                         return result;
                     }
                 ),
@@ -718,6 +730,18 @@ describe("AtlasTelemetry", () => {
             expect(_cachedEvents).toHaveLength(0);
         });
 
+        it("should flush cached events beyond one batch on close", async () => {
+            await telemetry.setupPromise;
+            _cachedEvents.push(
+                ...Array.from({ length: BATCH_SIZE + 8 }, (_, i) => createTestEvent({ command: `cached-${i}` }))
+            );
+
+            await telemetry.close();
+
+            expect(mockApiClient.sendEvents).toHaveBeenCalledTimes(2);
+            expect(_cachedEvents).toHaveLength(0);
+        });
+
         it("should pass an AbortSignal to sendEvents during close", async () => {
             await telemetry.setupPromise;
             _cachedEvents.push(createTestEvent());
@@ -732,6 +756,203 @@ describe("AtlasTelemetry", () => {
 
             expect(receivedSignal).toBeDefined();
             expect(receivedSignal).toBeInstanceOf(AbortSignal);
+        });
+
+        /** A fire-and-forget emit can land after close; it must still be sent. */
+        it("should flush events emitted after close", async () => {
+            await telemetry.setupPromise;
+            await telemetry.close();
+            vi.clearAllMocks();
+
+            telemetry.emitEvents([createTestEvent()]);
+            await vi.advanceTimersByTimeAsync(0);
+
+            expect(mockApiClient.sendEvents).toHaveBeenCalledTimes(1);
+            expect(_cachedEvents).toHaveLength(0);
+            const sentEvents = mockApiClient.sendEvents.mock
+                .calls[0]?.[0] as TelemetryEvent<TelemetryCommonProperties>[];
+            expect(sentEvents[0]?.properties).toMatchObject({ device_id: "test-device-id" });
+        });
+
+        it("should keep a late event cached when the flush fails", async () => {
+            await telemetry.setupPromise;
+            await telemetry.close();
+            vi.clearAllMocks();
+            mockApiClient.sendEvents.mockRejectedValue(new Error("network down"));
+
+            telemetry.emitEvents([createTestEvent()]);
+            await vi.advanceTimersByTimeAsync(0);
+
+            expect(mockApiClient.sendEvents).toHaveBeenCalledTimes(1);
+            expect(_cachedEvents).toHaveLength(1);
+        });
+
+        it("should flush an event whose append is deferred past the close timeout", async () => {
+            vi.clearAllTimers();
+            let resolveDeviceId: (value: string) => void = () => {};
+            const devId = {
+                get: vi.fn().mockReturnValue(
+                    new Promise<string>((resolve) => {
+                        resolveDeviceId = resolve;
+                    })
+                ),
+                close: vi.fn(),
+            } as unknown as IDeviceId;
+            telemetry = createAtlasTelemetry({ deviceId: devId });
+
+            // Drive close()'s timeout directly (AbortSignal.timeout is not fake-timer
+            // aware), but give the later drain a fresh, un-aborted signal.
+            const realTimeout = AbortSignal.timeout.bind(AbortSignal);
+            const timeoutController = new AbortController();
+            const timeoutSpy = vi
+                .spyOn(AbortSignal, "timeout")
+                .mockReturnValueOnce(timeoutController.signal)
+                .mockImplementation((delayMs: number): AbortSignal => realTimeout(delayMs));
+            // A real client rejects an aborted signal, so the drain must not be handed one.
+            mockApiClient.sendEvents.mockImplementation((_events, options) =>
+                options?.signal?.aborted ? Promise.reject(new Error("aborted")) : Promise.resolve()
+            );
+
+            telemetry.emitEvents([createTestEvent()]);
+            const closePromise = telemetry.close();
+            // close() gives up on setup and flushes an empty cache; the append then
+            // lands after close() returned, with the timer already cancelled.
+            timeoutController.abort();
+            await closePromise;
+            vi.clearAllMocks();
+
+            resolveDeviceId("late-device-id");
+            await vi.advanceTimersByTimeAsync(0);
+
+            expect(mockApiClient.sendEvents).toHaveBeenCalledTimes(1);
+            expect(_cachedEvents).toHaveLength(0);
+            timeoutSpy.mockRestore();
+        });
+
+        it("should drain late events across more than one batch", async () => {
+            await telemetry.setupPromise;
+            await telemetry.close();
+            vi.clearAllMocks();
+
+            const lateEvents = Array.from({ length: BATCH_SIZE + 8 }, (_, i) =>
+                createTestEvent({ command: `late-${i}` })
+            );
+            telemetry.emitEvents(lateEvents);
+            await vi.advanceTimersByTimeAsync(0);
+
+            expect(mockApiClient.sendEvents).toHaveBeenCalledTimes(2);
+            expect(_cachedEvents).toHaveLength(0);
+        });
+
+        it("should stop draining and keep unsent events when a later batch fails", async () => {
+            await telemetry.setupPromise;
+            await telemetry.close();
+            vi.clearAllMocks();
+            // First batch succeeds, the second fails.
+            mockApiClient.sendEvents.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("network down"));
+
+            const lateEvents = Array.from({ length: BATCH_SIZE + 8 }, (_, i) =>
+                createTestEvent({ command: `late-${i}` })
+            );
+            telemetry.emitEvents(lateEvents);
+            await vi.advanceTimersByTimeAsync(0);
+
+            expect(mockApiClient.sendEvents).toHaveBeenCalledTimes(2);
+            expect(_cachedEvents).toHaveLength(8);
+        });
+
+        it("should give each drained batch its own send timeout", async () => {
+            await telemetry.setupPromise;
+            await telemetry.close();
+            vi.clearAllMocks();
+
+            // One controllable timeout per send. The first elapses (aborts) right
+            // after its batch succeeds, so a signal shared across batches would
+            // abort the second one.
+            const signals: AbortController[] = [];
+            const timeoutSpy = vi.spyOn(AbortSignal, "timeout").mockImplementation(() => {
+                const controller = new AbortController();
+                signals.push(controller);
+                return controller.signal;
+            });
+
+            let sendCount = 0;
+            mockApiClient.sendEvents.mockImplementation((_events, options) => {
+                sendCount++;
+                if (sendCount === 1) {
+                    signals[0]?.abort();
+                    return Promise.resolve();
+                }
+                return options?.signal?.aborted ? Promise.reject(new Error("aborted")) : Promise.resolve();
+            });
+
+            const lateEvents = Array.from({ length: BATCH_SIZE + 8 }, (_, i) =>
+                createTestEvent({ command: `late-${i}` })
+            );
+            telemetry.emitEvents(lateEvents);
+            await vi.advanceTimersByTimeAsync(0);
+
+            expect(mockApiClient.sendEvents).toHaveBeenCalledTimes(2);
+            expect(_cachedEvents).toHaveLength(0);
+            timeoutSpy.mockRestore();
+        });
+
+        it("should not let concurrent late drains hold close() past its deadline", async () => {
+            vi.clearAllTimers();
+            let resolveDeviceId: (value: string) => void = () => {};
+            const devId = {
+                get: vi.fn().mockReturnValue(
+                    new Promise<string>((resolve) => {
+                        resolveDeviceId = resolve;
+                    })
+                ),
+                close: vi.fn(),
+            } as unknown as IDeviceId;
+            telemetry = createAtlasTelemetry({ deviceId: devId });
+
+            // close()'s deadline is controllable; the drains' per-batch timeouts are real.
+            const realTimeout = AbortSignal.timeout.bind(AbortSignal);
+            const deadline = new AbortController();
+            const timeoutSpy = vi
+                .spyOn(AbortSignal, "timeout")
+                .mockReturnValueOnce(deadline.signal)
+                .mockImplementation((delayMs: number): AbortSignal => realTimeout(delayMs));
+
+            // Hold every send open so the cache lock stays taken.
+            const pendingSends: Array<() => void> = [];
+            mockApiClient.sendEvents.mockImplementation(
+                () =>
+                    new Promise<void>((resolve) => {
+                        pendingSends.push(resolve);
+                    })
+            );
+
+            telemetry.emitEvents(Array.from({ length: BATCH_SIZE }, () => createTestEvent({ command: "first" })));
+            telemetry.emitEvents(Array.from({ length: BATCH_SIZE }, () => createTestEvent({ command: "second" })));
+            const closePromise = telemetry.close();
+            let closeSettled = false;
+            void closePromise.then(() => {
+                closeSettled = true;
+            });
+
+            // Setup resolves: both deferred appends drain, taking the cache lock ahead
+            // of close()'s final flush, which queues behind them.
+            resolveDeviceId("late-device-id");
+            await vi.advanceTimersByTimeAsync(0);
+            expect(mockApiClient.sendEvents).toHaveBeenCalledTimes(1);
+
+            // The deadline fires while a drain still holds the lock.
+            deadline.abort();
+            await vi.advanceTimersByTimeAsync(0);
+            expect(closeSettled).toBe(true);
+
+            // Let the drains finish on their own per-batch timeouts.
+            while (pendingSends.length > 0) {
+                pendingSends.shift()?.();
+                await vi.advanceTimersByTimeAsync(0);
+            }
+            expect(_cachedEvents).toHaveLength(0);
+            timeoutSpy.mockRestore();
         });
     });
 
