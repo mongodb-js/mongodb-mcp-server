@@ -36,12 +36,13 @@ export class CodexTuiSession extends TuiSessionBase {
     }
 
     /**
-     * Codex renders the elicitation as a numbered list using the schema's verbatim
-     * enumNames ("Yes, I confirm"/"No, I do not confirm"), so type the label.
+     * Codex renders the elicitation as a numbered picker with the cursor on the
+     * first option, so navigate to the chosen option before submitting.
      */
     protected override async sendChoice(choice: "confirm" | "decline"): Promise<void> {
-        const label = choice === "decline" ? "No, I do not confirm" : "Yes, I confirm";
-        await this.terminal.type(label);
+        if (choice === "decline") {
+            await this.terminal.keyboard.press("Down");
+        }
         await this.terminal.keyboard.press("Enter");
     }
 
