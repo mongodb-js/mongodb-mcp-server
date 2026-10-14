@@ -47,3 +47,5 @@ minimumReleaseAgeExclude:
   - "@ai-sdk/mcp@1.0.93"
   - "@ai-sdk/openai@3.0.126"
   - ai@6.0.304
+  - "@mongodb-js/mongodb-downloader@3.0.3"
+  - "@mongodb-js/mongodb-runner@8.4.1"

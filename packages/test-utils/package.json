@@ -16,8 +16,8 @@
   "dependencies": {
     "@mongodb-js/mcp-core": "workspace:*",
     "@mongodb-js/mcp-metrics": "workspace:*",
+    "@mongodb-js/mongodb-runner": "^8.4.1",
     "mongodb": "^7.1.1",
-    "mongodb-runner": "^6.7.6",
     "testcontainers": "^12.2.0",
     "mongodb-connection-string-url": "^7.0.2",
     "vitest": "^4.1.11"
