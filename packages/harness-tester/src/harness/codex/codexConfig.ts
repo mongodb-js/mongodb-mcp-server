@@ -191,17 +191,34 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
 
     /**
      * Catalog to copy into the hermetic home with the active model's truncation
-     * limit lifted: the host's catalog when present, else codex's built-in one.
+     * limit lifted: the host's catalog when it lists the active model, else
+     * codex's built-in one. The host cache can be stale and lack newer models,
+     * in which case codex falls back to its 10k-token tool truncation.
      */
     private resolveModelCatalogPath(sessionHomeDir: string, activeModel: string): string | undefined {
         const hostCatalog = this.resolveHostModelCatalogPath();
-        const source = hostCatalog && existsSync(hostCatalog) ? hostCatalog : this.renderBuiltinCatalog(sessionHomeDir);
+        const hostHasModel =
+            hostCatalog !== undefined && existsSync(hostCatalog) && this.catalogHasModel(hostCatalog, activeModel);
+        const source =
+            (hostHasModel ? hostCatalog : undefined) ??
+            this.renderBuiltinCatalog(sessionHomeDir) ??
+            (hostCatalog !== undefined && existsSync(hostCatalog) ? hostCatalog : undefined);
         if (!source) {
             return undefined;
         }
         const dest = path.join(sessionHomeDir, "model-catalog.json");
         this.copyCatalogWithLiftedTruncation({ source, dest, activeModel });
         return dest;
+    }
+
+    /** Whether a model catalog file lists the given model slug. */
+    private catalogHasModel(catalogPath: string, model: string): boolean {
+        try {
+            const catalog = JSON.parse(fs.readFileSync(catalogPath, "utf8")) as { models?: { slug?: string }[] };
+            return (catalog.models ?? []).some((entry) => entry.slug === model);
+        } catch {
+            return false;
+        }
     }
 
     buildConfig(options: AgentHarnessOptions, sessionHomeDir: string): string {

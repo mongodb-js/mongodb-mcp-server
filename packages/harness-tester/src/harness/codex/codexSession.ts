@@ -1,6 +1,6 @@
 import type { TuiTest } from "@microsoft/tui-test";
 import { parseTuiTranscript } from "./codexParseTuiTranscript.js";
-import { isCodexComposerIdle, isCodexTransitional, isCodexWorking } from "./codexTuiMarkers.js";
+import { isCodexComposerIdle, isCodexElicitation, isCodexTransitional, isCodexWorking } from "./codexTuiMarkers.js";
 import { TuiSessionBase, type TuiState } from "../tuiSession.js";
 import type { AgentHarnessOptions, ToolCallRecord } from "../types.js";
 
@@ -33,6 +33,10 @@ export class CodexTuiSession extends TuiSessionBase {
 
     protected override isTransitional(text: string): boolean {
         return isCodexTransitional(text);
+    }
+
+    protected override isElicitation(text: string): boolean {
+        return isCodexElicitation(text);
     }
 
     /**

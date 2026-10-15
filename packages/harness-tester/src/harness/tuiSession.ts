@@ -164,6 +164,17 @@ export abstract class TuiSessionBase implements AgentSession {
      */
     protected isTransitional?(text: string): boolean;
 
+    /**
+     * Whether the viewport is a confirmation prompt the agent is waiting on.
+     * The default is permissive: any frame that is neither working nor idle
+     * counts. Harnesses whose transient frames look the same (e.g. codex's
+     * just-submitted prompt) override this with a positive marker so such a
+     * frame is not reported as an elicitation before the turn has begun.
+     */
+    protected isElicitation(text: string): boolean {
+        return !this.isWorking(text) && !this.isComposerIdle(text);
+    }
+
     protected async approveTool(): Promise<void> {
         await this.terminal.keyboard.press("Enter");
     }
@@ -227,7 +238,10 @@ export abstract class TuiSessionBase implements AgentSession {
 
             // Agent is awaiting input when not working and not idle; require that
             // state to persist a couple of polls so we do not fire mid-transition.
-            if (sawTurnActivity && !state.working && !state.composerIdle) {
+            // The positive `isElicitation` marker keeps a transient frame that only
+            // looks like input (e.g. codex's just-submitted prompt) from firing.
+            const awaitingInput = this.isElicitation(viewport) || this.isToolApproval(viewport);
+            if (sawTurnActivity && !state.working && !state.composerIdle && awaitingInput) {
                 if (transitional) {
                     confirmationPendingSinceMs = undefined;
                 } else {

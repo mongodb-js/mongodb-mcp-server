@@ -41,7 +41,9 @@ export function useAgent({ harness }: { harness: AgentHarness }): AgentContext {
 
     afterAll(async () => {
         if (workDir) {
-            await fs.rm(workDir, { recursive: true, force: true });
+            // Codex's app-server daemon can outlive the TUI and keep writing lock
+            // files into the workdir, racing the removal (ENOTEMPTY); retry briefly.
+            await fs.rm(workDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
         }
     });
 

@@ -191,6 +191,35 @@ describe("TuiSessionBase turn completion", () => {
         expect((await turnPromise).state).toBe("elicitation");
     });
 
+    it("does not treat codex's just-submitted prompt as an elicitation", async () => {
+        // After Enter codex renders the submitted prompt with neither the working
+        // marker nor the idle composer; that transient frame must not be reported
+        // as an elicitation before the turn has begun.
+        const promptEcho = '› Use "drop-database" tool to drop the "db" database.';
+        let viewportReads = 0;
+        const terminal = createFakeTerminal({
+            viewportAt: (call): string => {
+                viewportReads = call;
+                if (call <= 3) return promptEcho;
+                if (call === 4) return "• Working (1s • esc to interrupt)";
+                return "Would you like to confirm?\n› 1. Yes, I confirm\n  2. No, I do not confirm";
+            },
+        });
+        const session = new CodexTuiSession({
+            terminal,
+            options: { workDir: "/tmp", promptTimeoutMs: 10_000 },
+            onState: (): void => {},
+        });
+
+        const turnPromise = session.prompt("drop the database");
+        await vi.runAllTimersAsync();
+        const turn = await turnPromise;
+
+        expect(turn.state).toBe("elicitation");
+        expect(turn.confirmation).toContain("confirm");
+        expect(viewportReads).toBeGreaterThanOrEqual(5);
+    });
+
     it("requires uninterrupted idle polls after the last working frame", async () => {
         let viewportReads = 0;
         const terminal = createFakeTerminal({
@@ -253,7 +282,7 @@ describe("TuiSessionBase pre-turn startup banners", () => {
 });
 
 /** Capture `console.log` for the duration of `fn` (the logger writes there). */
-async function captureLogs(fn: () => Promise<void>): Promise<string> {
+async function captureLogs(fn: () => unknown): Promise<string> {
     const lines: string[] = [];
     const original = console.log;
     console.log = (...args: unknown[]): void => void lines.push(args.join(" "));
@@ -289,7 +318,7 @@ describe("TuiSessionBase failure snapshots", () => {
         await session.dispose();
         expect(turn.state).toBe("completed");
 
-        const output = await captureLogs(async () => dumpSessionSnapshots("test failed"));
+        const output = await captureLogs(() => dumpSessionSnapshots("test failed"));
 
         expect(output).toContain("test failed; last");
         expect(output).toContain("=== new turn (prompt) ===");
@@ -303,7 +332,7 @@ describe("TuiSessionBase failure snapshots", () => {
 
         void session.prompt("list the databases");
         await new Promise((resolve) => setTimeout(resolve, 1200));
-        const output = await captureLogs(async () => dumpSessionSnapshots("test timed out"));
+        const output = await captureLogs(() => dumpSessionSnapshots("test timed out"));
         await session.dispose();
 
         expect(output).toContain("test timed out; last");
@@ -316,7 +345,7 @@ describe("TuiSessionBase failure snapshots", () => {
         await session.prompt("list the databases");
 
         resetSessionSnapshots();
-        const output = await captureLogs(async () => dumpSessionSnapshots("test failed"));
+        const output = await captureLogs(() => dumpSessionSnapshots("test failed"));
 
         expect(output).toBe("");
     });
