@@ -12,7 +12,10 @@ import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/serv
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type MockToolCallback = (args: any, ctx: never) => Promise<CallToolResult>;
-type TestToolExecution = { execute: () => Promise<CallToolResult> };
+type TestToolExecution = {
+    execute: () => Promise<CallToolResult>;
+    isConfirmationDeclined: (error: unknown) => boolean;
+};
 import type { UserConfig } from "@mongodb-js/mcp-cli";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { ToolBase } from "@mongodb-js/mcp-core";
@@ -692,6 +695,28 @@ describe("ToolBase", () => {
             expect(event.properties.result).toBe("failure");
         });
 
+        it("records classified execution-time declines without an error_type", async () => {
+            const declinedError = new Error("User declined confirmation");
+            const tool = testTool as unknown as TestToolExecution;
+            vi.spyOn(tool, "execute").mockRejectedValue(declinedError);
+            const classify = vi.spyOn(tool, "isConfirmationDeclined").mockReturnValue(true);
+
+            const result = await successCallback({ param1: "value" }, {} as never);
+
+            expect(result.isError).toBe(true);
+            expect(classify).toHaveBeenCalledWith(declinedError);
+            const { values } = await mockMetrics.get("toolExecutionDuration").get();
+            const counts = values.filter((value) => value.metricName === "mcp_tool_execution_duration_seconds_count");
+            expect(counts).toHaveLength(1);
+            expect(counts[0]?.labels.status).toBe("declined");
+            expect(counts[0]?.labels.error_type).toBeUndefined();
+            expect(counts[0]?.value).toBe(1);
+
+            const event = ((mockAtlasTelemetry.emitEvents as Mock).mock.lastCall?.[0] as ToolEvent[])[0];
+            expectDefined(event);
+            expect(event.properties.result).toBe("declined");
+        });
+
         it("records toolExecutionDuration with status=error when execute() rejects", async () => {
             const result = await errorCallback({}, {} as never);
 
@@ -706,6 +731,7 @@ describe("ToolBase", () => {
                     v.labels.status === "error"
             );
             expect(count?.value).toBe(1);
+            expect(count?.labels.error_type).toBe("TypeError");
         });
     });
 

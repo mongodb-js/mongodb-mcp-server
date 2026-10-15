@@ -486,6 +486,8 @@ export abstract class ToolBase<TServer extends ToolServer = ToolServer, TMetrics
     protected handleError(error: unknown, args: z.infer<z.ZodObject<ReturnType<typeof ToolBase.argsShape>>>): Promise<CallToolResult> | CallToolResult;
     invoke(args: ToolArgs<ReturnType<typeof ToolBase.argsShape>>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
     // (undocumented)
+    protected isConfirmationDeclined(error: unknown): boolean;
+    // (undocumented)
     isEnabled(): boolean;
     // (undocumented)
     protected isFeatureEnabled(feature: PreviewFeature): boolean;

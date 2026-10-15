@@ -596,7 +596,9 @@ export abstract class ToolBase<
                     category: this.category,
                     status: declined ? "declined" : error !== undefined || result.isError ? "error" : "success",
                     operation_type: this.operationType,
-                    ...(error !== undefined ? { error_type: error instanceof Error ? error.name : "unknown" } : {}),
+                    ...(!declined && error !== undefined
+                        ? { error_type: error instanceof Error ? error.name : "unknown" }
+                        : {}),
                 },
                 (Date.now() - executionStartTime) / 1000
             );
@@ -665,7 +667,7 @@ export abstract class ToolBase<
             });
             const toolResult = await this.handleError(error, args);
 
-            recordOutcome(toolResult, { error });
+            recordOutcome(toolResult, { error, declined: this.isConfirmationDeclined(error) });
 
             return toolResult;
         }
@@ -874,6 +876,11 @@ export abstract class ToolBase<
         }
 
         return true;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    protected isConfirmationDeclined(error: unknown): boolean {
+        return false;
     }
 
     /**

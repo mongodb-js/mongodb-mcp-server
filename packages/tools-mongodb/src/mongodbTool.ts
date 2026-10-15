@@ -250,6 +250,10 @@ export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
         return this.server.config.connectionString ? variants.preconfigured : variants.plain;
     }
 
+    protected override isConfirmationDeclined(error: unknown): boolean {
+        return error instanceof MongoDBError && error.code === ErrorCodes.ConfirmationDeclined;
+    }
+
     protected async handleError(
         error: unknown,
         args: ToolArgs<ReturnType<typeof this.argsShape>>
