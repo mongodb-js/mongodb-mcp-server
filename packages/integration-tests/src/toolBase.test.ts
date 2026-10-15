@@ -152,7 +152,7 @@ describe("ToolBase", () => {
             expect(mockReadConfirmation).toHaveBeenCalledWith({ confirmation: {} });
         });
 
-        it("records the outcome of a declined confirmation", async () => {
+        it("records a declined confirmation separately from errors and successes", async () => {
             mockConfig.confirmationRequiredTools = ["test-tool"];
             mockReadConfirmation.mockReturnValue(false);
 
@@ -168,18 +168,27 @@ describe("ToolBase", () => {
                 (v) =>
                     v.metricName === "mcp_tool_execution_duration_seconds_count" &&
                     v.labels.tool_name === "test-tool" &&
-                    v.labels.status === "error"
+                    v.labels.status === "declined"
             );
             expect(count?.value).toBe(1);
+            expect(count?.labels.error_type).toBeUndefined();
+            expect(
+                values.filter(
+                    (value) =>
+                        value.metricName === "mcp_tool_execution_duration_seconds_count" &&
+                        value.labels.status !== "declined"
+                )
+            ).toHaveLength(0);
 
             const event = ((mockAtlasTelemetry.emitEvents as Mock).mock.lastCall?.[0] as ToolEvent[])[0];
             expectDefined(event);
-            expect(event.properties.result).toBe("failure");
+            expect(event.properties.result).toBe("declined");
         });
 
         it("does not run the tool when the user declines", async () => {
             mockConfig.confirmationRequiredTools = ["test-tool"];
             mockReadConfirmation.mockReturnValue(false);
+            const execute = vi.spyOn(testTool, "execute");
 
             const result = await testTool["invoke"](
                 { param1: "test" },
@@ -194,6 +203,7 @@ describe("ToolBase", () => {
                 },
             ]);
             expect(mockReadConfirmation).toHaveBeenCalledTimes(1);
+            expect(execute).not.toHaveBeenCalled();
         });
     });
 
@@ -658,6 +668,27 @@ describe("ToolBase", () => {
                     v.labels.operation_type === "delete"
             );
             expect(sum?.value).toBeGreaterThanOrEqual(0);
+        });
+
+        it("records returned error results as errors rather than declines", async () => {
+            const errorResult: CallToolResult = {
+                content: [{ type: "text", text: "Tool execution failed" }],
+                isError: true,
+            };
+            vi.spyOn(testTool, "execute").mockResolvedValue(errorResult);
+
+            const result = await successCallback({ param1: "value" }, {} as never);
+
+            expect(result).toEqual(errorResult);
+            const { values } = await mockMetrics.get("toolExecutionDuration").get();
+            const counts = values.filter((value) => value.metricName === "mcp_tool_execution_duration_seconds_count");
+            expect(counts).toHaveLength(1);
+            expect(counts[0]?.labels.status).toBe("error");
+            expect(counts[0]?.value).toBe(1);
+
+            const event = ((mockAtlasTelemetry.emitEvents as Mock).mock.lastCall?.[0] as ToolEvent[])[0];
+            expectDefined(event);
+            expect(event.properties.result).toBe("failure");
         });
 
         it("records toolExecutionDuration with status=error when execute() rejects", async () => {

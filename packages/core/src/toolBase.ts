@@ -575,18 +575,26 @@ export abstract class ToolBase<
          * observing its execution duration. `error` is passed when the call
          * failed, and its type is reported alongside the metric.
          */
-        const recordOutcome = (result: CallToolResult, error?: unknown): void => {
+        const recordOutcome = (
+            result: CallToolResult,
+            { error, declined = false }: { error?: unknown; declined?: boolean } = {}
+        ): void => {
             // Time the user spent answering an elicitation is not time the tool
             // spent working, so it counts towards neither duration below.
             const executionStartTime = startTime + (context.request.elicitationDurationMs ?? 0);
 
-            this.emitToolEvent(args, { startTime: executionStartTime, result, clientInfo: context.request.clientInfo });
+            this.emitToolEvent(args, {
+                startTime: executionStartTime,
+                result,
+                declined,
+                clientInfo: context.request.clientInfo,
+            });
 
             this.server.metrics.get("toolExecutionDuration").observe(
                 {
                     tool_name: this.name,
                     category: this.category,
-                    status: error !== undefined || result.isError ? "error" : "success",
+                    status: declined ? "declined" : error !== undefined || result.isError ? "error" : "success",
                     operation_type: this.operationType,
                     ...(error !== undefined ? { error_type: error instanceof Error ? error.name : "unknown" } : {}),
                 },
@@ -618,7 +626,7 @@ export abstract class ToolBase<
                         attributes: { ...requestIdAttr(context.request.headers) },
                     });
                     const declined: CallToolResult = { content: [{ type: "text", text }], isError: true };
-                    recordOutcome(declined);
+                    recordOutcome(declined, { declined: true });
                     return declined;
                 }
             }
@@ -657,7 +665,7 @@ export abstract class ToolBase<
             });
             const toolResult = await this.handleError(error, args);
 
-            recordOutcome(toolResult, error);
+            recordOutcome(toolResult, { error });
 
             return toolResult;
         }
@@ -956,8 +964,14 @@ export abstract class ToolBase<
         {
             startTime,
             result,
+            declined = false,
             clientInfo,
-        }: { startTime: number; result: CallToolResult; clientInfo?: { name?: string; version?: string } }
+        }: {
+            startTime: number;
+            result: CallToolResult;
+            declined?: boolean;
+            clientInfo?: { name?: string; version?: string };
+        }
     ): void {
         if (!this.server.telemetry.isTelemetryEnabled()) {
             return;
@@ -974,7 +988,7 @@ export abstract class ToolBase<
                     category: this.category,
                     component: "tool",
                     duration_ms: duration,
-                    result: result.isError ? "failure" : "success",
+                    result: declined ? "declined" : result.isError ? "failure" : "success",
                     ...clientTelemetryProperties(clientInfo),
                     ...protocolTelemetryProperties(this.server.mcpServer, this.transportRequest),
                     ...metadata,
