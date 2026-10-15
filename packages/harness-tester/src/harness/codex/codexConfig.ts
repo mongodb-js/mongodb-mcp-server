@@ -9,10 +9,10 @@ import type { AgentHarnessConfig, AgentHarnessOptions } from "../types.js";
  * Keep this on the latest model codex ships, so codex does not show its
  * "Try new model" onboarding dialog (which blocks the composer) on first run.
  */
-export const DEFAULT_CODEX_MODEL = "gpt-6-luna";
+const DEFAULT_CODEX_MODEL = "gpt-6-luna";
 
 /** Reasoning effort applied to the harness session's model. */
-export const DEFAULT_CODEX_REASONING_EFFORT = "low";
+const DEFAULT_CODEX_REASONING_EFFORT = "low";
 
 function tomlString(value: string): string {
     // TOML basic strings: escape backslash + double quote.

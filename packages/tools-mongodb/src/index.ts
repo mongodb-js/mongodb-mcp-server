@@ -21,7 +21,12 @@ export type {
     ConnectionTag,
     OIDCConnectionAuthType,
 } from "./common/connectionManager.js";
-export { MCPConnectionManager, ConnectionManager, ConnectionStateConnected } from "./common/connectionManager.js";
+export {
+    MCPConnectionManager,
+    ConnectionManager,
+    ConnectionStateConnected,
+    defaultDriverOptions,
+} from "./common/connectionManager.js";
 export type {
     ConnectionStringInfo,
     ConnectionStringAuthType,

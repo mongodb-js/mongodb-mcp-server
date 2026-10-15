@@ -6,7 +6,7 @@ import type { EvalParameters as BraintrustEvalParameters } from "braintrust";
 // │   ↘️ "Parameters" raw zod schema in Eval                                          │
 // ╰───────────────────────────────────────────────────────────────────────────────────╯
 
-export const EvalParametersSchema = z3
+const EvalParametersSchema = z3
     .object({
         connectionString: z3
             .string()
