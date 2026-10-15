@@ -737,7 +737,7 @@ export type TelemetryEvents = {
 };
 
 // @public (undocumented)
-export type TelemetryResult = "success" | "failure";
+export type TelemetryResult = "success" | "failure" | "declined";
 
 // @public (undocumented)
 export type TelemetryToolMetadata = TelemetryToolMetadata_2 | ConnectionMetadata_2 | PerfAdvisorToolMetadata_2 | GetRegionsMetadata | IndexMetadata_2 | UpgradeClusterMetadata | PauseResumeClusterMetadata | CreateClusterMetadata;
@@ -767,6 +767,8 @@ export abstract class ToolBase<TServer extends ToolServer = ToolServer, TMetrics
     }): ConnectionMetadata;
     protected handleError(error: unknown, args: z.infer<z.ZodObject<ReturnType<typeof ToolBase.argsShape>>>): Promise<CallToolResult> | CallToolResult;
     invoke(args: ToolArgs<ReturnType<typeof ToolBase.argsShape>>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
+    // (undocumented)
+    protected isConfirmationDeclined(error: unknown): boolean;
     // (undocumented)
     isEnabled(): boolean;
     // (undocumented)
