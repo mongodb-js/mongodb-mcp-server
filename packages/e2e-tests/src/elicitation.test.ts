@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { AllTools } from "mongodb-mcp-server";
 import { useMcpAgent } from "./utils/useMcpAgent.js";
 import { describeHarness } from "./utils/describeHarness.js";
 
@@ -9,7 +10,10 @@ import { describeHarness } from "./utils/describeHarness.js";
  */
 describe("elicitation", () => {
     describeHarness(({ harness }) => {
-        const { mongoClient, buildOptions } = useMcpAgent({ harness });
+        const { mongoClient, buildOptions } = useMcpAgent({
+            harness,
+            tools: AllTools.filter((tool) => tool.toolName === "drop-database"),
+        });
 
         const targetDb = `test_elicitation_db`;
         beforeEach(async () => {
@@ -20,7 +24,11 @@ describe("elicitation", () => {
             const session = await harness.start(buildOptions());
             try {
                 const turn = await session.prompt(
-                    `Use "drop-database" tool to drop the "${targetDb}" database. Do not ask questions or run any other tools, just do it.`
+                    [
+                        `Call mongo's "drop-database" for "${targetDb}" (connectionId: preconfigured). `,
+                        `Use tool search if needed. Let the tool ask for confirmation; stop if declined. `,
+                        `No shell or unrelated DB operations.`,
+                    ].join("")
                 );
                 expect(turn).toMatchObject({ state: "elicitation" });
                 expect(turn.confirmation?.toLowerCase()).toContain("confirm");
