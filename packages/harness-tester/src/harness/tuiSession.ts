@@ -13,6 +13,9 @@ const IDLE_BAIL_GRACE_MS = 30_000;
 /** How long the not-working+not-idle state must persist before we treat it as an awaited confirmation. */
 const CONFIRMATION_PENDING_GRACE_MS = 1_000;
 
+/** Codex may briefly show an idle composer between commentary and a tool call. */
+const TURN_COMPLETE_GRACE_MS = 1_000;
+
 /** How many poll snapshots to retain for the on-failure dump (~1 per 500ms). */
 const SNAPSHOT_HISTORY_LIMIT = 240;
 
@@ -253,11 +256,12 @@ export abstract class TuiSessionBase implements AgentSession {
                 confirmationPendingSinceMs = undefined;
             }
 
-            // Turn done when the in-progress marker is gone and the composer is idle.
-            if (!state.working && state.composerIdle) {
+            if (!state.working && state.composerIdle && !transitional) {
+                idleSinceMs ??= state.elapsedMs;
+                const idleDurationMs = state.elapsedMs - idleSinceMs;
                 if (
-                    sawTurnActivity ||
-                    (idleSinceMs !== undefined && state.elapsedMs - idleSinceMs >= IDLE_BAIL_GRACE_MS)
+                    (sawTurnActivity && idleDurationMs >= TURN_COMPLETE_GRACE_MS) ||
+                    idleDurationMs >= IDLE_BAIL_GRACE_MS
                 ) {
                     this.log.debug(`<<turn complete after ${state.elapsedMs}ms>>`);
                     this.onState({
@@ -266,7 +270,6 @@ export abstract class TuiSessionBase implements AgentSession {
                     });
                     return await this.buildTurn(startText);
                 }
-                idleSinceMs ??= state.elapsedMs;
             } else {
                 idleSinceMs = undefined;
             }

@@ -163,6 +163,70 @@ class TransitionalSession extends FakeSession {
     }
 }
 
+describe("TuiSessionBase turn completion", () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    it("does not finish on a brief Codex idle frame before an elicitation", async () => {
+        const terminal = createFakeTerminal({
+            viewportAt: (call): string => {
+                if (call === 1 || call === 3) {
+                    return "• Working (5s • esc to interrupt)\n› Ask Codex to do anything";
+                }
+                if (call === 2) {
+                    return "• I'll locate and run the database drop tool.\n› Ask Codex to do anything";
+                }
+                return "Field 1/1\nWould you like to confirm?\n› 1. Yes, I confirm\n  2. No, I do not confirm";
+            },
+        });
+        const session = new CodexTuiSession({
+            terminal,
+            options: { workDir: "/tmp", promptTimeoutMs: 4000 },
+            onState: (): void => {},
+        });
+
+        const turnPromise = session.prompt("drop the database");
+        await vi.runAllTimersAsync();
+
+        expect((await turnPromise).state).toBe("elicitation");
+    });
+
+    it("requires uninterrupted idle polls after the last working frame", async () => {
+        let viewportReads = 0;
+        const terminal = createFakeTerminal({
+            viewportAt: (call): string => {
+                viewportReads = call;
+                return call === 1 || call === 3 ? "WORKING" : "IDLE";
+            },
+        });
+        const session = new FakeSession({ terminal, options: { workDir: "/tmp", promptTimeoutMs: 4000 } });
+
+        const turnPromise = session.prompt("list the databases");
+        await vi.runAllTimersAsync();
+        const turn = await turnPromise;
+
+        expect(turn.text).not.toContain("ERROR:");
+        expect(turn.state).toBe("completed");
+        expect(viewportReads).toBeGreaterThanOrEqual(6);
+    });
+
+    it("does not finish while a transitional banner accompanies an idle composer", async () => {
+        const terminal = createFakeTerminal({
+            viewportAt: (call): string => {
+                if (call === 1) return "WORKING";
+                if (call <= 5) return "STARTUP\nIDLE";
+                return "CONFIRM";
+            },
+        });
+        const session = new TransitionalSession({ terminal, options: { workDir: "/tmp", promptTimeoutMs: 5000 } });
+
+        const turnPromise = session.prompt("drop the database");
+        await vi.runAllTimersAsync();
+
+        expect((await turnPromise).state).toBe("elicitation");
+    });
+});
+
 describe("TuiSessionBase pre-turn startup banners", () => {
     /**
      * Codex shows "Waiting for startup" (not idle, not working) before the turn
