@@ -317,6 +317,10 @@ With Atlas API credentials:
 }
 ```
 
+### HTTP Compatibility
+
+For custom HTTP clients and hosts, see the library guide's [HTTP compatibility requirements](https://github.com/mongodb-js/mongodb-mcp-server/blob/main/MCP_SERVER_LIBRARY.md#http-compatibility), including protocol headers, redirects, legacy sessions, and request size limits.
+
 ## 🛠️ Supported Tools
 
 ### Tool List

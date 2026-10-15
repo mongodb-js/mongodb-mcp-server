@@ -1,6 +1,6 @@
 {
   "name": "@mongodb-js/mcp-ui",
-  "version": "3.1.0-pre.1",
+  "version": "3.1.0",
   "type": "module",
   "description": "UI components and registry for MongoDB MCP server",
   "repository": {
@@ -46,7 +46,7 @@
     "react-dom": "^18.3.0",
     "tsx": "^4.23.12",
     "typescript": "^5.9.2",
-    "vite": "^8.0.8",
+    "vite": "^8.3.4",
     "vite-plugin-node-polyfills": "^0.26.0",
     "vite-plugin-singlefile": "^2.3.2",
     "vitest": "^4.1.11"

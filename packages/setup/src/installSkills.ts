@@ -20,7 +20,7 @@ export interface PromptAndInstallSkillsOptions {
 
 const SKILLS_REPO = "mongodb/agent-skills";
 const SKILLS_REPO_URL = `https://github.com/${SKILLS_REPO}`;
-export const NO_SKILLS_MESSAGE =
+const NO_SKILLS_MESSAGE =
     `We're unable to install the MongoDB Agent Skills for this tool.\n` +
     `\n` +
     `See the MongoDB Agent Skills repo for manual install instructions:\n` +

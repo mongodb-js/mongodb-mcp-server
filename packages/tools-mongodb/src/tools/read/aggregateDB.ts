@@ -25,7 +25,7 @@ const AggregateDBOutputSchema = {
     appliedLimits: z.array(CURSOR_LIMIT_KEYS).describe("The limits applied to the aggregation pipeline"),
 };
 
-export const AggregateArgs = {
+const AggregateArgs = {
     pipeline: z
         .array(AnyAggregateStage)
         .min(1)
