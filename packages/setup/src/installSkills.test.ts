@@ -4,6 +4,7 @@ import type { ChildProcess } from "node:child_process";
 
 vi.mock("node:child_process", () => ({
     spawn: vi.fn(),
+    execFile: vi.fn(),
 }));
 
 vi.mock("@inquirer/prompts", () => ({
