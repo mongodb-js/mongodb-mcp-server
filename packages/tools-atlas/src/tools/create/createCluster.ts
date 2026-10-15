@@ -10,7 +10,6 @@ import { ensureCurrentIpInAccessList, getAccessListNote } from "../../helpers/ac
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import { standardInstanceSizeEnum, getMaxAutoScalingSize, type StandardInstanceSize } from "../../helpers/cluster.js";
 
-/** @public */
 export const ATLAS_CREATE_CLUSTER_README_DESCRIPTION =
     "Create a MongoDB Atlas cluster (M10–M80, replica set or single shard). " +
     "Compute autoscaling is enabled by default: min instance size is set to the selected instance size, max is set two tiers above. " +

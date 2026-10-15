@@ -171,7 +171,7 @@ function toAccountDetailsSummary(data: Record<string, unknown>): AccountDetailsS
     } as AccountDetailsSummary;
 }
 
-export const DiscoverOutputSchema = z.object({
+const DiscoverOutputSchema = z.object({
     workspaces: z.array(WorkspaceSummarySchema).optional(),
     connections: z.array(ConnectionSummarySchema).optional(),
     processors: z.array(ProcessorSummarySchema).optional(),
@@ -189,7 +189,7 @@ export const DiscoverOutputSchema = z.object({
     accountDetails: AccountDetailsSummarySchema.optional(),
 });
 
-export type DiscoverOutput = z.infer<typeof DiscoverOutputSchema>;
+type DiscoverOutput = z.infer<typeof DiscoverOutputSchema>;
 
 function buildProcessorStructuredContent(
     proc: StreamsProcessorWithStats,

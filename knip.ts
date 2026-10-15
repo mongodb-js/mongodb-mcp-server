@@ -133,7 +133,7 @@ const config: KnipConfig = {
             ],
         },
     },
-    ignoreExportsUsedInFile: true,
+    ignoreExportsUsedInFile: false,
 };
 
 export default config;

@@ -5,13 +5,13 @@ import { canonicalPath, oauthCredentialStoreKey } from "../shared.js";
 import type { AgentHarnessConfig, AgentHarnessOptions } from "../types.js";
 
 /** Default model: grove serves the undated id; `haiku` resolves to a dated id it lacks. */
-export const DEFAULT_CLAUDE_MODEL = "claude-haiku-5-5";
+const DEFAULT_CLAUDE_MODEL = "claude-haiku-5-5";
 
 /** Minimum reasoning effort for e2e runs (mirrors the codex harness's `"low"`). */
 export const DEFAULT_CLAUDE_EFFORT_LEVEL = "low";
 
 /** Grove gateway Anthropic endpoint (no trailing /v1; claude appends it). */
-export const GROVE_ANTHROPIC_BASE_URL = "https://grove-gateway-prod.azure-api.net/grove-foundry-prod/anthropic";
+const GROVE_ANTHROPIC_BASE_URL = "https://grove-gateway-prod.azure-api.net/grove-foundry-prod/anthropic";
 
 export function resolveClaudeModel(options: AgentHarnessOptions): string {
     // Model priority: explicit `options.model` (CI override) > env override > default.
