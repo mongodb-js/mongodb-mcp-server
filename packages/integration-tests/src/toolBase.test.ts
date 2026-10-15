@@ -12,6 +12,7 @@ import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/serv
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type MockToolCallback = (args: any, ctx: never) => Promise<CallToolResult>;
+type TestToolExecution = { execute: () => Promise<CallToolResult> };
 import type { UserConfig } from "@mongodb-js/mcp-cli";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { ToolBase } from "@mongodb-js/mcp-core";
@@ -188,7 +189,7 @@ describe("ToolBase", () => {
         it("does not run the tool when the user declines", async () => {
             mockConfig.confirmationRequiredTools = ["test-tool"];
             mockReadConfirmation.mockReturnValue(false);
-            const execute = vi.spyOn(testTool, "execute");
+            const execute = vi.spyOn(testTool as unknown as TestToolExecution, "execute");
 
             const result = await testTool["invoke"](
                 { param1: "test" },
@@ -675,7 +676,7 @@ describe("ToolBase", () => {
                 content: [{ type: "text", text: "Tool execution failed" }],
                 isError: true,
             };
-            vi.spyOn(testTool, "execute").mockResolvedValue(errorResult);
+            vi.spyOn(testTool as unknown as TestToolExecution, "execute").mockResolvedValue(errorResult);
 
             const result = await successCallback({ param1: "value" }, {} as never);
 
