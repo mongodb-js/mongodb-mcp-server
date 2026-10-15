@@ -16,7 +16,6 @@ import {
     type StandardInstanceSize,
 } from "../../helpers/cluster.js";
 
-/** @public */
 export const ATLAS_CREATE_CLUSTER_README_DESCRIPTION =
     "Create a MongoDB Atlas cluster (M10–M80, replica set or single shard). " +
     "Set databaseEdition to INFINITE to create an Atlas Infinite cluster (public preview): disaggregated compute and storage, AWS only, single region, replica set, M10-M60, latest MongoDB version with auto upgrades, cloud backup always enabled. " +

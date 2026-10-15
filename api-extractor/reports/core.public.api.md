@@ -6,7 +6,6 @@
 
 import type { AtlasClusterConnectionInfo } from '@mongodb-js/mcp-types';
 import { CallToolResult } from '@modelcontextprotocol/server';
-import type { ClientCapabilities } from '@modelcontextprotocol/server';
 import type { CloseableTransport } from '@mongodb-js/mcp-types';
 import type { ConnectionMetadata } from '@mongodb-js/mcp-types';
 import type { DefaultEventMap } from '@mongodb-js/mcp-types';
@@ -36,6 +35,7 @@ import type { LogLevel } from '@mongodb-js/mcp-types';
 import type { LogPayload } from '@mongodb-js/mcp-types';
 import { McpServer } from '@modelcontextprotocol/server';
 import type { MongoLogId } from '@mongodb-js/mcp-types';
+import type { NegotiatedClientState } from '@mongodb-js/mcp-types';
 import type { OperationType } from '@mongodb-js/mcp-types';
 import type { PreviewFeature } from '@mongodb-js/mcp-types';
 import type { ReactiveResourceOptions } from '@mongodb-js/mcp-types';

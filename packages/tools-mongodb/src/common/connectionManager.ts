@@ -16,10 +16,11 @@ import {
     type ConnectionStringInfo,
     type ConnectionStringHostType,
     type ConnectionInfo,
+    type OIDCConnectionAuthType,
 } from "./connectionInfo.js";
 import type { ServerMetadata } from "@mongodb-js/mcp-types";
 
-export type { ConnectionStringInfo } from "./connectionInfo.js";
+export type { ConnectionStringInfo, OIDCConnectionAuthType } from "./connectionInfo.js";
 
 export interface ConnectionSettings extends Omit<MongoshConnectionInfo, "driverOptions"> {
     /**
@@ -47,7 +48,6 @@ export interface ConnectionSettings extends Omit<MongoshConnectionInfo, "driverO
 }
 
 export type ConnectionTag = "connected" | "connecting" | "disconnected" | "errored";
-export type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
 
 export interface ConnectionState {
     tag: ConnectionTag;
@@ -59,7 +59,6 @@ const SEARCH_PROBE_COLLECTION_NAME = "test";
 /** See https://github.com/mongodb/mongo/blob/master/src/mongo/base/error_codes.yml (SearchNotEnabled). */
 const MONGODB_SEARCH_NOT_ENABLED_ERROR_CODE = 31082;
 
-/** @public */
 export const defaultDriverOptions: MongoshConnectionInfo["driverOptions"] = {
     readConcern: {
         level: "local",

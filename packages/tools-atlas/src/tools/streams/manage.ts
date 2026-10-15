@@ -27,7 +27,7 @@ const ProcessorState = z.enum(["STARTED", "STOPPED", "CREATED", "FAILED"]);
 const ConnectionState = z.enum(["PENDING", "READY", "DELETING", "FAILED"]);
 const PeeringState = z.enum(["ACCEPTED", "REJECTED"]);
 
-export const ManageOutputSchema = z.object({
+const ManageOutputSchema = z.object({
     processorState: ProcessorState.optional().describe("Processor state after a lifecycle action"),
     connectionState: ConnectionState.optional().describe("Connection state after an update"),
     region: z.string().optional().describe("Confirmed workspace region after an update"),
