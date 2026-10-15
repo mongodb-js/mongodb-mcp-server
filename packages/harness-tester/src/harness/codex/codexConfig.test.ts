@@ -39,16 +39,18 @@ describe("CodexHarnessConfig", () => {
         expect(buildConfig(buildOptions())).not.toContain("[mcp_servers.mongo.http_headers]");
     });
 
-    it("auto-approves MCP tool calls so codex does not block on its approval prompt", () => {
-        expect(buildConfig(buildOptions())).toContain('default_tools_approval_mode = "approve"');
-        expect(
-            buildConfig(
-                buildOptions({
-                    serverUrl: undefined,
-                    stdioServer: { command: process.execPath, args: ["/path/to/cli.js"], env: {} },
-                })
-            )
-        ).toContain('default_tools_approval_mode = "approve"');
+    it("auto-approves MCP tool calls and waits for the tool catalog", () => {
+        const config = buildConfig(buildOptions());
+        expect(config).toContain('default_tools_approval_mode = "approve"');
+        expect(config).toContain('startup_readiness = "catalog"');
+        const stdioConfig = buildConfig(
+            buildOptions({
+                serverUrl: undefined,
+                stdioServer: { command: process.execPath, args: ["/path/to/cli.js"], env: {} },
+            })
+        );
+        expect(stdioConfig).toContain('default_tools_approval_mode = "approve"');
+        expect(stdioConfig).toContain('startup_readiness = "catalog"');
     });
 
     it("keeps sandbox scalars top-level, not inside a stdio env table", () => {

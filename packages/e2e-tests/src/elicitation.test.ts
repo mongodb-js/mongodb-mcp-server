@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import type { AgentTurn } from "@mongodb-js/harness-tester";
 import { useMcpAgent } from "./utils/useMcpAgent.js";
 import { describeHarness } from "./utils/describeHarness.js";
 
@@ -17,31 +16,30 @@ describe("elicitation", () => {
             await mongoClient().db(targetDb).collection("c").insertOne({ seeded: true });
         });
 
-        async function dropDatabase(choice: "confirm" | "decline"): Promise<AgentTurn> {
-            const session = await harness.start(buildOptions({ promptTimeoutMs: 30_000 }));
+        async function dropDatabase(choice: "confirm" | "decline"): Promise<void> {
+            const session = await harness.start(buildOptions());
             try {
                 const turn = await session.prompt(
                     `Use "drop-database" tool to drop the "${targetDb}" database. Do not ask questions or run any other tools, just do it.`
                 );
-                await session.chooseOption(choice);
-                return turn;
+                expect(turn).toMatchObject({ state: "elicitation" });
+                expect(turn.confirmation?.toLowerCase()).toContain("confirm");
+
+                const after = await session.chooseOption(choice);
+                expect(after).toMatchObject({ state: "completed" });
+                expect(after.text).not.toContain("ERROR:");
             } finally {
                 await session.dispose();
             }
         }
 
-        it("elicits confirmation for a confirmation-required tool", { timeout: 60_000 }, async () => {
-            const turn = await dropDatabase("decline");
-
-            expect(turn.state).toBe("elicitation");
-            expect(turn.confirmation?.toLowerCase()).toContain("confirm");
+        it("elicits confirmation for a confirmation-required tool", async () => {
+            await dropDatabase("decline");
+            expect(await mongoClient().db(targetDb).collection("c").findOne({ seeded: true })).not.toBeNull();
         });
 
-        it("runs the tool when the elicitation is confirmed", { timeout: 60_000 }, async () => {
-            const turn = await dropDatabase("confirm");
-
-            expect(turn.state).toBe("elicitation");
-            expect(turn.confirmation?.toLowerCase()).toContain("confirm");
+        it("runs the tool when the elicitation is confirmed", async () => {
+            await dropDatabase("confirm");
 
             // Confirming executes the tool: the database is dropped.
             const dbs = await mongoClient().db(targetDb).listCollections().toArray();

@@ -65,7 +65,7 @@ export class CodexTuiHarness implements AgentHarness {
     async start(options: AgentHarnessOptions): Promise<AgentSession> {
         assertRemoteServerOptions(options);
         // Per-session CODEX_HOME: developer config untouched, no state reused across sessions.
-        const config = new CodexHarnessConfig();
+        const config = new CodexHarnessConfig({ binaryPath: this.getBinaryPath() });
         const codexHome = path.join(options.workDir, `codex-home-${Math.random().toString(36).slice(2, 8)}`);
         await fs.mkdir(codexHome, { recursive: true });
         const configToml = config.buildConfig(options, codexHome);

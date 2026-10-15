@@ -136,6 +136,9 @@ export abstract class TuiSessionBase implements AgentSession {
      * completion, returning the completed {@link AgentTurn}.
      */
     async chooseOption(choice: "confirm" | "decline"): Promise<AgentTurn> {
+        if (this.currentState !== "elicitation") {
+            throw new Error(`${this.label} TUI has no pending elicitation`);
+        }
         await this.sendChoice(choice);
         return this.pollTurn(false);
     }
@@ -183,14 +186,16 @@ export abstract class TuiSessionBase implements AgentSession {
         // Keep history across turns (an assertion may fail on any of them) but mark the boundary.
         this.snapshotHistory.push(`=== new turn (${stopOnElicitation ? "prompt" : "chooseOption"}) ===`);
         let lastError = "";
-        // A turn is only "real" once we have observed it begin: the working marker,
-        // the composer leaving its idle placeholder, or the transcript growing past
-        // the prompt echo. Without this the first poll after Enter (before the agent
-        // has rendered anything) satisfies `!working && composerIdle` and returns a
-        // bogus empty turn.
-        let sawTurnActivity = false;
+        // A turn is only "real" once we have observed it begin: the working
+        // marker or the composer leaving its idle placeholder. Without this the
+        // first poll after Enter (before the agent has rendered anything)
+        // satisfies `!working && composerIdle` and returns a bogus empty turn.
+        // Transcript growth is deliberately not a signal: the prompt echo lands
+        // in the transcript before the agent starts, so it would arm the guard
+        // during the same pre-turn idle window.
+        // A choice continues an already-active turn, even if it completes before the first poll.
+        let sawTurnActivity = !stopOnElicitation;
         let confirmationPendingSinceMs: number | undefined;
-        let prevDeltaLength: number | undefined;
         let idleSinceMs: number | undefined;
 
         while (Date.now() < deadline) {
@@ -213,14 +218,9 @@ export abstract class TuiSessionBase implements AgentSession {
             // so the next poll (idle composer, agent still booting) would return a
             // bogus completed turn.
             const transitional = this.isTransitional?.(viewport) ?? false;
-            if (
-                state.working ||
-                (!state.composerIdle && !transitional) ||
-                (prevDeltaLength !== undefined && delta.length > prevDeltaLength)
-            ) {
+            if (state.working || (!state.composerIdle && !transitional)) {
                 sawTurnActivity = true;
             }
-            prevDeltaLength = delta.length;
 
             // Agent is awaiting input when not working and not idle; require that
             // state to persist a couple of polls so we do not fire mid-transition.

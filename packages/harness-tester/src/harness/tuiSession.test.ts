@@ -1,7 +1,8 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TuiTest } from "@microsoft/tui-test";
 import { TuiSessionBase, dumpSessionSnapshots, resetSessionSnapshots } from "./tuiSession.js";
 import { parseTuiTranscript } from "./codex/codexParseTuiTranscript.js";
+import { CodexTuiSession } from "./codex/codexSession.js";
 import type { AgentHarnessOptions, ToolCallRecord } from "./types.js";
 
 const BEFORE = "› Ask Codex to do anything";
@@ -67,6 +68,80 @@ describe("TuiSessionBase paused-turn retention", () => {
 
         expect(turn.state).toBe("elicitation");
         expect(turn.toolCalls.some((tc) => tc.name === "list-databases")).toBe(true);
+    });
+
+    describe("elicitation choices", () => {
+        beforeEach(() => vi.useFakeTimers());
+        afterEach(() => vi.useRealTimers());
+
+        it("rejects a choice without a pending elicitation", async () => {
+            const terminal = createFakeTerminal({ viewportAt: () => "IDLE" });
+            const press = vi.spyOn(terminal.keyboard, "press");
+            const session = new FakeSession({ terminal, options: { workDir: "/tmp" } });
+
+            await expect(session.chooseOption("confirm")).rejects.toThrow("no pending elicitation");
+            expect(press).not.toHaveBeenCalled();
+        });
+
+        it("rejects a choice after the prompt times out", async () => {
+            const terminal = createFakeTerminal({ viewportAt: () => "WORKING" });
+            const session = new FakeSession({ terminal, options: { workDir: "/tmp", promptTimeoutMs: 600 } });
+
+            const turnPromise = session.prompt("drop the database");
+            await vi.runAllTimersAsync();
+            expect((await turnPromise).text).toContain("ERROR:");
+
+            await expect(session.chooseOption("confirm")).rejects.toThrow("no pending elicitation");
+        });
+
+        it("completes a resumed turn without waiting to observe more activity", async () => {
+            let answered = false;
+            const terminal = createFakeTerminal({ viewportAt: () => (answered ? "IDLE" : "CONFIRM") });
+            const session = new FakeSession({ terminal, options: { workDir: "/tmp", promptTimeoutMs: 2000 } });
+
+            const turnPromise = session.prompt("drop the database");
+            await vi.runAllTimersAsync();
+            expect((await turnPromise).state).toBe("elicitation");
+
+            answered = true;
+            const afterPromise = session.chooseOption("confirm");
+            await vi.runAllTimersAsync();
+            const after = await afterPromise;
+            expect(after.state).toBe("completed");
+            expect(after.text).not.toContain("ERROR:");
+            expect(session.state).toBe("completed");
+            await expect(session.chooseOption("confirm")).rejects.toThrow("no pending elicitation");
+        });
+
+        it.each(["confirm", "decline"] as const)("submits the Codex %s choice once", async (choice) => {
+            let answered = false;
+            const terminal = createFakeTerminal({
+                viewportAt: (): string =>
+                    answered
+                        ? "› Ask Codex to do anything"
+                        : "Field 1/1\nWould you like to confirm?\n› 1. Yes, I confirm\n  2. No, I do not confirm",
+            });
+            const session = new CodexTuiSession({
+                terminal,
+                options: { workDir: "/tmp", promptTimeoutMs: 2000 },
+                onState: (): void => {},
+            });
+            const turnPromise = session.prompt("drop the database");
+            await vi.runAllTimersAsync();
+            expect((await turnPromise).state).toBe("elicitation");
+
+            const type = vi.spyOn(terminal, "type");
+            const press = vi.spyOn(terminal.keyboard, "press").mockImplementation((key) => {
+                if (key === "Enter") answered = true;
+                return Promise.resolve();
+            });
+            const afterPromise = session.chooseOption(choice);
+            await vi.runAllTimersAsync();
+
+            expect((await afterPromise).text).not.toContain("ERROR:");
+            expect(type).not.toHaveBeenCalled();
+            expect(press.mock.calls).toEqual(choice === "confirm" ? [["Enter"]] : [["Down"], ["Enter"]]);
+        });
     });
 
     it("keeps tool calls observed before a timeout", async () => {
