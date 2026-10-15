@@ -5,7 +5,7 @@ import { canonicalPath, oauthCredentialStoreKey } from "../shared.js";
 import type { AgentHarnessConfig, AgentHarnessOptions } from "../types.js";
 
 /** Default model: grove serves the undated id; `haiku` resolves to a dated id it lacks. */
-const DEFAULT_CLAUDE_MODEL = "claude-haiku-4-5";
+const DEFAULT_CLAUDE_MODEL = "claude-haiku-5-5";
 
 /** Minimum reasoning effort for e2e runs (mirrors the codex harness's `"low"`). */
 export const DEFAULT_CLAUDE_EFFORT_LEVEL = "low";
