@@ -39,6 +39,82 @@ describe("CodexHarnessConfig", () => {
         expect(buildConfig(buildOptions())).not.toContain("[mcp_servers.mongo.http_headers]");
     });
 
+    it("auto-approves MCP tool calls and waits for the tool catalog", () => {
+        const config = buildConfig(buildOptions());
+        expect(config).toContain('default_tools_approval_mode = "approve"');
+        expect(config).toContain('startup_readiness = "catalog"');
+        const stdioConfig = buildConfig(
+            buildOptions({
+                serverUrl: undefined,
+                stdioServer: { command: process.execPath, args: ["/path/to/cli.js"], env: {} },
+            })
+        );
+        expect(stdioConfig).toContain('default_tools_approval_mode = "approve"');
+        expect(stdioConfig).toContain('startup_readiness = "catalog"');
+    });
+
+    it("uses the host model catalog when it lists the active model", () => {
+        const hostHome = makeTmpDir();
+        fs.writeFileSync(
+            path.join(hostHome, "models_cache.json"),
+            JSON.stringify({ models: [{ slug: "gpt-6-luna", truncation_policy: { mode: "tokens", limit: 10_000 } }] })
+        );
+        const sessionHome = makeTmpDir();
+        const previousHome = process.env.CODEX_HOME;
+        process.env.CODEX_HOME = hostHome;
+        try {
+            // binaryPath points nowhere: the host catalog is used without shelling out.
+            const config = new CodexHarnessConfig({ binaryPath: "/nonexistent/codex" }).buildConfig(
+                buildOptions({ model: "gpt-6-luna" }),
+                sessionHome
+            );
+            const catalogPath = path.join(sessionHome, "model-catalog.json");
+            expect(config).toContain(`model_catalog_json = "${catalogPath}"`);
+            const catalog = JSON.parse(fs.readFileSync(catalogPath, "utf8")) as {
+                models: { truncation_policy: { limit: number } }[];
+            };
+            expect(catalog.models[0]?.truncation_policy.limit).toBe(4_000_000);
+        } finally {
+            process.env.CODEX_HOME = previousHome;
+        }
+    });
+
+    it.skipIf(process.platform === "win32")(
+        "falls back to codex's built-in catalog when the host cache lacks the active model",
+        () => {
+            const hostHome = makeTmpDir();
+            fs.writeFileSync(
+                path.join(hostHome, "models_cache.json"),
+                JSON.stringify({ models: [{ slug: "stale-model" }] })
+            );
+            const binary = path.join(makeTmpDir(), "codex");
+            fs.writeFileSync(
+                binary,
+                `#!/bin/sh\nprintf '%s' '{"models":[{"slug":"gpt-6-luna","truncation_policy":{"mode":"tokens","limit":10000}}]}'\n`
+            );
+            fs.chmodSync(binary, 0o755);
+            const sessionHome = makeTmpDir();
+            const previousHome = process.env.CODEX_HOME;
+            process.env.CODEX_HOME = hostHome;
+            try {
+                const config = new CodexHarnessConfig({ binaryPath: binary }).buildConfig(
+                    buildOptions({ model: "gpt-6-luna" }),
+                    sessionHome
+                );
+                const catalogPath = path.join(sessionHome, "model-catalog.json");
+                expect(config).toContain(`model_catalog_json = "${catalogPath}"`);
+                const catalog = JSON.parse(fs.readFileSync(catalogPath, "utf8")) as {
+                    models: { slug: string; truncation_policy: { limit: number } }[];
+                };
+                expect(catalog.models).toEqual([
+                    { slug: "gpt-6-luna", truncation_policy: { mode: "tokens", limit: 4_000_000 } },
+                ]);
+            } finally {
+                process.env.CODEX_HOME = previousHome;
+            }
+        }
+    );
+
     it("keeps sandbox scalars top-level, not inside a stdio env table", () => {
         const config = buildConfig(
             buildOptions({

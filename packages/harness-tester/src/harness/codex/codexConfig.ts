@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import fs, { existsSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -23,6 +24,12 @@ function tomlString(value: string): string {
 export class CodexHarnessConfig implements AgentHarnessConfig {
     readonly homeDirEnvVar = "CODEX_HOME";
     readonly configFileName = "config.toml";
+
+    private readonly binaryPath: string;
+
+    constructor({ binaryPath = process.env.AGENT_E2E_CODEX_BIN ?? "codex" }: { binaryPath?: string } = {}) {
+        this.binaryPath = binaryPath;
+    }
 
     /** Directory codex uses for its config/auth/caches (`CODEX_HOME` or ~/.codex). */
     getHostHomeDir(): string {
@@ -122,6 +129,14 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
     private buildMcpServerToml(options: AgentHarnessOptions, mcpServerName: string): string {
         // Codex's 10s default MCP startup timeout is too short for this server.
         const startupTimeout = "startup_timeout_sec = 60";
+        // Auto-approve MCP tool calls: codex otherwise interposes a blocking
+        // tool-approval prompt the harness cannot answer. The server's own
+        // elicitation (confirmation-required tools) is still surfaced.
+        const toolsApprovalMode = 'default_tools_approval_mode = "approve"';
+        // Wait for the tool catalog before accepting a prompt: otherwise codex
+        // shows an idle composer while the MCP servers boot, and a prompt sent
+        // in that window runs without the server's tools.
+        const startupReadiness = 'startup_readiness = "catalog"';
         if (options.stdioServer) {
             const { command, args, env } = options.stdioServer;
             const envLines = Object.entries(env).map(([k, v]) => `${k} = ${tomlString(v)}`);
@@ -130,6 +145,8 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
                 `command = ${tomlString(command)}`,
                 `args = [${args.map((a) => tomlString(a)).join(", ")}]`,
                 startupTimeout,
+                toolsApprovalMode,
+                startupReadiness,
                 ...(envLines.length ? [``, `[mcp_servers.${mcpServerName}.env]`, ...envLines] : []),
             ].join("\n");
         }
@@ -137,6 +154,8 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
             `[mcp_servers.${mcpServerName}]`,
             `url = ${tomlString(options.serverUrl ?? "")}`,
             startupTimeout,
+            toolsApprovalMode,
+            startupReadiness,
         ];
         const headerLines = Object.entries(options.headers ?? {}).map(
             ([k, v]) => `${tomlString(k)} = ${tomlString(v)}`
@@ -147,23 +166,73 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
         return lines.join("\n");
     }
 
+    /**
+     * Render codex's built-in model catalog (`codex debug models`) into the
+     * session home. Used on machines without a cached catalog (CI): without a
+     * catalog codex applies its built-in 10k-token tool truncation, which drops
+     * the server's larger tool definitions.
+     */
+    private renderBuiltinCatalog(sessionHomeDir: string): string | undefined {
+        const dest = path.join(sessionHomeDir, "builtin-model-catalog.json");
+        try {
+            const json = execFileSync(this.binaryPath, ["debug", "models"], {
+                env: { ...process.env, CODEX_HOME: sessionHomeDir },
+                encoding: "utf8",
+                timeout: 30_000,
+                stdio: ["ignore", "pipe", "ignore"],
+            });
+            JSON.parse(json);
+            fs.writeFileSync(dest, json);
+            return dest;
+        } catch {
+            return undefined;
+        }
+    }
+
+    /**
+     * Catalog to copy into the hermetic home with the active model's truncation
+     * limit lifted: the host's catalog when it lists the active model, else
+     * codex's built-in one. The host cache can be stale and lack newer models,
+     * in which case codex falls back to its 10k-token tool truncation.
+     */
+    private resolveModelCatalogPath(sessionHomeDir: string, activeModel: string): string | undefined {
+        const hostCatalog = this.resolveHostModelCatalogPath();
+        const hostHasModel =
+            hostCatalog !== undefined && existsSync(hostCatalog) && this.catalogHasModel(hostCatalog, activeModel);
+        const source =
+            (hostHasModel ? hostCatalog : undefined) ??
+            this.renderBuiltinCatalog(sessionHomeDir) ??
+            (hostCatalog !== undefined && existsSync(hostCatalog) ? hostCatalog : undefined);
+        if (!source) {
+            return undefined;
+        }
+        const dest = path.join(sessionHomeDir, "model-catalog.json");
+        this.copyCatalogWithLiftedTruncation({ source, dest, activeModel });
+        return dest;
+    }
+
+    /** Whether a model catalog file lists the given model slug. */
+    private catalogHasModel(catalogPath: string, model: string): boolean {
+        try {
+            const catalog = JSON.parse(fs.readFileSync(catalogPath, "utf8")) as { models?: { slug?: string }[] };
+            return (catalog.models ?? []).some((entry) => entry.slug === model);
+        } catch {
+            return false;
+        }
+    }
+
     buildConfig(options: AgentHarnessOptions, sessionHomeDir: string): string {
         const { mcpServerName = "mongo", model, workDir } = options;
 
         // Model: `options.model` > the model codex already uses > fallback.
         const resolvedModel = model ?? this.getHostTopLevelValue("model") ?? DEFAULT_CODEX_MODEL;
 
-        // Copy the model catalog so codex can resolve model metadata (without it the turn dies early).
+        // Copy the model catalog so codex can resolve model metadata and does not
+        // truncate the server's tool definitions from the model request.
         const catalogLines: string[] = [];
-        const catalogSource = this.resolveHostModelCatalogPath();
-        if (catalogSource && existsSync(catalogSource)) {
-            const catalogDest = path.join(sessionHomeDir, "model-catalog.json");
-            this.copyCatalogWithLiftedTruncation({
-                source: catalogSource,
-                dest: catalogDest,
-                activeModel: resolvedModel,
-            });
-            catalogLines.push(`model_catalog_json = ${tomlString(catalogDest)}`);
+        const catalogSource = this.resolveModelCatalogPath(sessionHomeDir, resolvedModel);
+        if (catalogSource) {
+            catalogLines.push(`model_catalog_json = ${tomlString(catalogSource)}`);
         }
 
         const lines = [

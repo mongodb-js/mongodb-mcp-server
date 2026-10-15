@@ -6,6 +6,7 @@ End-to-end tests that drive the **built** MongoDB MCP server through a real LLM 
 
 - `setup.test.ts` — the server boots under each harness as an MCP client; a `list-databases` read round-trips against a local mongod and the agent's reply reflects real on-disk state.
 - `toolDiscovery.test.ts` — the full MCP tool set, from two angles: a direct MCP client against the in-process server, and each harness enumerating the `mongo` server's tools.
+- `elicitation.test.ts` — confirmation and refusal against a server exposing only `drop-database`, keeping confirmation behavior separate from full-catalog discovery.
 - `remoteAtlas.test.ts` — drives the TUIs against the real **remote Atlas MCP server** through the `mongodb-atlas-mcp-remote` stdio wrapper (OAuth client-credentials). Opt-in: skips unless `AGENT_E2E_MCP_CLIENT_ID`/`AGENT_E2E_MCP_CLIENT_SECRET` are set.
 
 ## Running
@@ -39,7 +40,7 @@ Tests **skip** when a harness binary or credentials are missing (not part of the
 - `packages/e2e-tests` (this package) — MCP-side glue + suites: local mongod (`MongoDBClusterProcess`, no docker), the in-process server (`inProcessServer.ts`), and `useMcpAgent({ harness })` composing those with the agent-only hook.
 - `packages/harness-tester` — agent-only tooling with no MCP/MongoDB dependencies: codex/claude TUI harnesses, transcript parsers, and the `useAgent` hook (workdir + availability skip gate).
 - The server runs **in-process** (streamable HTTP on a random port, `AllTools` from the built package); the harness registers it by URL (e.g. `mcp_servers.mongo.url`), so nothing spawns a stdio subprocess.
-- Codex config (`CodexHarnessConfig`) is hermetic: MCP server by URL, pre-trusted workdir, `grove` provider keyed by `GROVE_API_KEY`, shell/web-search disabled, and `plugin-management` disabled to avoid a `codex_apps` connector stall.
+- Codex config (`CodexHarnessConfig`) is hermetic: MCP server by URL, pre-trusted workdir, `grove` provider keyed by `GROVE_API_KEY`, shell/web-search disabled, and `plugin-management` disabled to avoid a `codex_apps` connector stall. The harness disables the shared background server when supported, so closing the TUI also stops writes to its temporary home.
 - Claude (`ClaudeHarnessConfig`) seeds a hermetic `CLAUDE_CONFIG_DIR` that suppresses onboarding/trust dialogs and whitelists MCP tools (no bash/file/web), and registers the server via `--mcp-config --strict-mcp-config`; auth is `ANTHROPIC_AUTH_TOKEN` against grove's Anthropic endpoint.
 - `prompt()` types into the composer, waits for the idle marker (`Ask Codex to do anything` / `❯`), then captures the raw terminal content (scrollback delta + live viewport) and parses tool calls. Tests keyword-match the raw content — exact reply extraction is unreliable across TUIs.
 
