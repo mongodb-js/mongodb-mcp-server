@@ -1,4 +1,7 @@
-import type { RunEvalScorerArgs } from "./datasetTypes.js";
+import type { Evaluator } from "braintrust";
+import type { RunEvalExpected, RunEvalScorerArgs } from "./datasetTypes.js";
+
+type ErrorScoreHandler = NonNullable<Evaluator<unknown, unknown, unknown>["errorScoreHandler"]>;
 
 type ScoreResult = {
     name: string;
@@ -20,3 +23,15 @@ export function llmJudgeScore(args: RunEvalScorerArgs): ScoreResult | null {
         metadata: { explanation: judge.explanation },
     };
 }
+
+/**
+ * Scores errored cases as llm_judge=0 so they count against accuracy instead of being dropped.
+ * Braintrust's defaultErrorScoreHandler can't be used: it keys by scorer function name, not "llm_judge".
+ */
+export const llmJudgeErrorScore: ErrorScoreHandler = ({ rootSpan, data }) => {
+    const expected = ("expected" in data ? data.expected : undefined) as RunEvalExpected | undefined;
+    if (!expected?.llm_judge) return undefined;
+    const scores = { llm_judge: 0 };
+    rootSpan.log({ scores });
+    return scores;
+};
