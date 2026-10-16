@@ -54,6 +54,7 @@ export {
     ensureExtension,
     isExportExpired,
 } from "./common/exportsManager.js";
+export { NoopExportsManager } from "./common/noopExportsManager.js";
 export {
     connectionErrorHandler,
     connectCapableTools,
