@@ -35,8 +35,8 @@
     "openapi-typescript": "^7.13.0",
     "zod": "^4.4.2",
     "@mongosh/arg-parser": "^5.0.2",
-    "@ai-sdk/anthropic": "^3.0.129",
-    "ai": "^6.0.304",
+    "@ai-sdk/anthropic": "^4.0.78",
+    "ai": "^7.0.137",
     "semver": "^7.7.4",
     "@types/semver": "^7.7.0",
     "simple-git": "^4.0.2"
