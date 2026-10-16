@@ -232,15 +232,25 @@ export function applyConfigOverrides<TUserConfig extends UserConfig = UserConfig
 export class AtlasTelemetry implements ITelemetry {
     protected constructor(config: TelemetryConfig);
     // (undocumented)
+    protected readonly apiClient: ApiClient;
+    // (undocumented)
     close(): Promise<void>;
     // (undocumented)
     static create(this: typeof AtlasTelemetry, config: TelemetryConfig): AtlasTelemetry;
     protected detectContainerEnv(): Promise<boolean>;
+    // (undocumented)
+    protected readonly deviceId: IDeviceId;
     emitEvents(events: TelemetryBaseEvent[]): void;
+    // (undocumented)
+    protected readonly enabled: boolean;
     // (undocumented)
     readonly events: EventEmitter<TelemetryEvents>;
     getCommonProperties(): TelemetryCommonProperties;
     isTelemetryEnabled(): boolean;
+    // (undocumented)
+    protected readonly keychain: IKeychain;
+    // (undocumented)
+    protected readonly logger: LoggerBase;
     // (undocumented)
     protected readonly serverMetadata: ServerMetadata;
     // (undocumented)
@@ -391,7 +401,7 @@ export const connectionErrorHandler: ConnectionErrorHandler;
 
 // @public (undocumented)
 export type ConnectionErrorHandlerContext = {
-    availableTools: ToolServerTool[];
+    availableTools: readonly ToolServerTool[];
     connectionState?: AnyConnectionState;
 };
 

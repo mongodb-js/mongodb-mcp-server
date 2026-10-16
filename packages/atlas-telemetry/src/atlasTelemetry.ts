@@ -101,11 +101,10 @@ export class AtlasTelemetry implements ITelemetry {
     public setupPromise: Promise<[string, boolean]> | undefined;
     public readonly events: EventEmitter<TelemetryEvents> = new EventEmitter();
 
-    private readonly logger: LoggerBase;
-    /** Protected so subclasses can release the client they injected. */
+    protected readonly logger: LoggerBase;
     protected readonly apiClient: ApiClient;
-    private readonly keychain: IKeychain;
-    private readonly enabled: boolean;
+    protected readonly keychain: IKeychain;
+    protected readonly enabled: boolean;
     protected readonly serverMetadata: ServerMetadata;
     /**
      * device_id and is_container_env, resolved during setup. Subclass overrides
@@ -113,7 +112,6 @@ export class AtlasTelemetry implements ITelemetry {
      */
     private readonly pipelineCommonProperties: Partial<TelemetryCommonProperties>;
     private readonly eventCache: EventCache<TelemetryEvent<TelemetryCommonProperties>>;
-    /** Protected so subclasses can abort a pending lookup on close. */
     protected readonly deviceId: IDeviceId;
     private backoffMs: number = INITIAL_BACKOFF_MS;
     private readonly timer = new Timer();
