@@ -411,11 +411,11 @@ importers:
   packages/eval-tests:
     dependencies:
       '@ai-sdk/mcp':
-        specifier: ^1.0.93
-        version: 1.0.93(zod@4.6.6)
+        specifier: ^2.0.54
+        version: 2.0.55(zod@4.6.6)
       '@ai-sdk/openai':
-        specifier: ^3.0.126
-        version: 3.0.126(zod@4.6.6)
+        specifier: ^4.0.71
+        version: 4.0.72(zod@4.6.6)
       '@modelcontextprotocol/server':
         specifier: ^2.3.1
         version: 2.3.1
@@ -426,11 +426,11 @@ importers:
         specifier: workspace:*
         version: link:../core
       ai:
-        specifier: ^6.0.304
-        version: 6.0.304(zod@4.6.6)
+        specifier: ^7.0.107
+        version: 7.0.111(zod@4.6.6)
       braintrust:
         specifier: ^3.37.2
-        version: 3.37.2(@aws-sdk/credential-provider-web-identity@3.972.16)(@types/react@19.2.14)(zod@4.6.6)
+        version: 3.37.2(@aws-sdk/credential-provider-web-identity@3.972.80)(@types/react@19.2.14)(zod@4.6.6)
       bson:
         specifier: ^7.2.0
         version: 7.3.1
@@ -447,6 +447,9 @@ importers:
       '@braintrust/api':
         specifier: ^0.5.0
         version: 0.5.0
+      '@braintrust/bt':
+        specifier: ^0.22.1
+        version: 0.22.1
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
@@ -1239,6 +1242,12 @@ packages:
     peerDependencies:
       zod: ^4.6.6
 
+  '@ai-sdk/gateway@4.0.89':
+    resolution: {integrity: sha512-n0Q88UUASYQBGK3Ogs9pCe8h3ZXeTHFSuGOLBJAyH73MVGNKUv9w8EJX2f340WUF3eDWWOV305gO7YBpSCPblA==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      zod: ^4.6.6
+
   '@ai-sdk/google@3.0.131':
     resolution: {integrity: sha512-wztgK14qFScRr+xRoDU/bc1H+Q218GbSSBeiTc5pyQoxtkUOp0EdBFF8aswS/aHIs55JCQIjmlJ65Z7Bh5biNA==}
     engines: {node: '>=18'}
@@ -1251,9 +1260,21 @@ packages:
     peerDependencies:
       zod: ^4.6.6
 
+  '@ai-sdk/mcp@2.0.55':
+    resolution: {integrity: sha512-f0IWtAJzCRrnz/YJB14yz5yKso5yGODJfGSciQZKVKm+5wv8Ye9Dmcqxi6QZ80Q2FBJIdqrBdpDccl60BZN/DQ==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      zod: ^4.6.6
+
   '@ai-sdk/openai@3.0.126':
     resolution: {integrity: sha512-IHOe6MQgrC22WDUA+rQcfK/H3rUmtgHFRYh/BsnpHzXPyVQyvhymKh5r7fgxQsJ8vVyp+esPpQ7/4fr8hr6Iuw==}
     engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^4.6.6
+
+  '@ai-sdk/openai@4.0.72':
+    resolution: {integrity: sha512-X5dowqxAXPhu72FpspKX7P5nDycvl/Nt0Qi9A5VjdotV1SrJdhH4vOeWVdBootwEC6uY2hYN0SHAuL1fd4cV8Q==}
+    engines: {node: '>=22'}
     peerDependencies:
       zod: ^4.6.6
 
@@ -1263,9 +1284,19 @@ packages:
     peerDependencies:
       zod: ^4.6.6
 
+  '@ai-sdk/provider-utils@5.0.45':
+    resolution: {integrity: sha512-gLuaCups8OCIRz3eO6WWz5op7VLYNNtFzyH0sWUr0FE9v7cTxR0qxDpQdrKnGcql+9WWttobjnZsJVsuEbsPQQ==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      zod: ^4.6.6
+
   '@ai-sdk/provider@3.0.18':
     resolution: {integrity: sha512-IpefF5ssZVOZCD4Wu7zxt6PwZoGT2HLVjxpJ10Bjx6EAmRfLYJPjyrfxb0RYDlwvXnDb9nkQ7Do/oJVDuRFzew==}
     engines: {node: '>=18'}
+
+  '@ai-sdk/provider@4.0.17':
+    resolution: {integrity: sha512-VYMBxIQdcHqbIf1j+YZlI9Ati6LZ4wJe0GGd4z4a5H/KxTggjeOiyaVYTnfF7LHZK5jMQ+rofmzz4QPqf++NUw==}
+    engines: {node: '>=22'}
 
   '@anthropic-ai/mcpb@2.1.2':
     resolution: {integrity: sha512-goRbBC8ySo7SWb7tRzr+tL6FxDc4JPTRCdgfD2omba7freofvjq5rom1lBnYHZHo6Mizs1jAHJeN53aZbDoy8A==}
@@ -1545,13 +1576,29 @@ packages:
     cpu: [arm64]
     os: [darwin]
 
+  '@braintrust/bt-darwin-arm64@0.22.1':
+    resolution: {integrity: sha512-d2ywYxwEGhzk3g0fct3HtzJfKsYVxsSfyvKrF1tQ7C98SeEf7+WnrbToWgT+2mA9WNSxfQ7fdy/gYQmlapdj4g==}
+    cpu: [arm64]
+    os: [darwin]
+
   '@braintrust/bt-darwin-x64@0.12.0':
     resolution: {integrity: sha512-woyRyDv2DfCF8+von+3X9f1cddAbFnKLSfCbEkrBQVc0ZsAM60as8nehYv7DkafJF/67yKFx/sUraV65sukesQ==}
     cpu: [x64]
     os: [darwin]
 
+  '@braintrust/bt-darwin-x64@0.22.1':
+    resolution: {integrity: sha512-Z9lBFYwqV2pbbb+pAUmY5kZ6XlOM04EzySXB3AuHw+CKyfYalbkKB3rriYzX/cdq0aRXk2uQ6/xYmv+ZsakhYg==}
+    cpu: [x64]
+    os: [darwin]
+
   '@braintrust/bt-linux-arm64@0.12.0':
     resolution: {integrity: sha512-J9/7f3EIMKmFmSSQHQnAQLpUgB8YJENrOlkABjlTprBgsIYVgz7tSH7yg2P3ur+2Jem7PpGnrDxHGh/UjRfjsg==}
+    cpu: [arm64]
+    os: [linux]
+    libc: [glibc]
+
+  '@braintrust/bt-linux-arm64@0.22.1':
+    resolution: {integrity: sha512-8VDrDFqighH71roBygrx/wKK6pp/1fxLQ0O1o3ZbnuIxHump0l5Hyuv/pczlXLsjubQcP3PgocFmJfXxE/oPVg==}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
@@ -1562,8 +1609,20 @@ packages:
     os: [linux]
     libc: [musl]
 
+  '@braintrust/bt-linux-x64-musl@0.22.1':
+    resolution: {integrity: sha512-ieNVOy2v41UlZ3kuH9+tZRoBDoa9BFNQQovx3tIL4UJ66reSbx5zT+iHCN4aOZwEwYJoOR8zVMH4jcyq2++dBg==}
+    cpu: [x64]
+    os: [linux]
+    libc: [musl]
+
   '@braintrust/bt-linux-x64@0.12.0':
     resolution: {integrity: sha512-HJFbUl3HYYY1Ivw8OYBeIMcIsU9r7+fC9BzLWB5FdH7881ToKee2wbbLZssMCxFbMVeUxzEo+SzGD/1Z9Gk9CA==}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+
+  '@braintrust/bt-linux-x64@0.22.1':
+    resolution: {integrity: sha512-DM4bLRbTHEXj6xmGyj+vskJBcfjTQGRrfRbWebXXf8Oz6GmnsgOGf2n+/OKdQuefSVWA506FKxOs5vZ3v9SUMQ==}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
@@ -1573,10 +1632,24 @@ packages:
     cpu: [arm64]
     os: [win32]
 
+  '@braintrust/bt-win32-arm64@0.22.1':
+    resolution: {integrity: sha512-smP0fhJ+0ZEALSDFB6iK9YKYdFse7w12NywMVGOKfPgve+ppZvqJk8PWEH1tf1EugLAAkk+jDu/mktdfJ65Smg==}
+    cpu: [arm64]
+    os: [win32]
+
   '@braintrust/bt-win32-x64@0.12.0':
     resolution: {integrity: sha512-Q0c+pVUGm82n/7N8QJ5s6j/G/Q0GFzqOaTipHjkmElLbAOOEcfRH/uljdtIPNBiEQcrzqirS0GmOgiFkeQ3Txg==}
     cpu: [x64]
     os: [win32]
+
+  '@braintrust/bt-win32-x64@0.22.1':
+    resolution: {integrity: sha512-VS51erzL0a+/hhaIUx0+dDpodeqVbGiY3l16NTAsv832qDld7QeYCLCtcE1SvCQvNK+jcAhoLcndkkKYdCk3WA==}
+    cpu: [x64]
+    os: [win32]
+
+  '@braintrust/bt@0.22.1':
+    resolution: {integrity: sha512-uZz8I13kPpP46eDYslMij5ThPtlc9YZFuBMY9UOFDBzwfpc+cABYXcvP0RgmGUMpmFY/sqdNGxf4ylXkDWcDlQ==}
+    hasBin: true
 
   '@bramus/specificity@2.4.3':
     resolution: {integrity: sha512-0GEz8qJWokkUVYQYRukmkSHIFNoBH8QTreeHrAFbvz1XFYc3Y+puhMs8PQ5x8GNugiC2l5jvDBXKLbBIByeSBw==}
@@ -4450,6 +4523,9 @@ packages:
   '@vitest/utils@4.1.11':
     resolution: {integrity: sha512-zTCVGpyFsGWBhllOyKlTw/vnr6D9qxsfSDyfbyZmTyjHw5N/VuvzHpHoQjm2ZJzn4RJgx5w4r7V0er69CmLgPQ==}
 
+  '@workflow/serde@4.1.0':
+    resolution: {integrity: sha512-pav4F2BoirECWR7Nf1TKt+2eETcBj7jj4cBefQ8VXQCA6NPkaKeLfj/zMgi+3zYV5ZIBT4GuUiphsj0/b9hPQQ==}
+
   '@xhmikosr/decompress-tar@9.0.2':
     resolution: {integrity: sha512-8nPZ6lZ3ExhsSxi/X/PMB3K+Vtsuxk43HowxYpxw4AsCHTYqFBXwC8B3Y+M/meaUOGOVm+2tFNUAfWGRjBt+Ww==}
     engines: {node: '>=20'}
@@ -4508,6 +4584,12 @@ packages:
   ai@6.0.304:
     resolution: {integrity: sha512-xhKVjs+pEGLVZ8mIbkv1UTThsNYnlr7lQRkroKFZDPYqhlPyUHGE+ICQsbAX4wyP0ELjej5/Bhd3a2owIf+UhQ==}
     engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^4.6.6
+
+  ai@7.0.111:
+    resolution: {integrity: sha512-jd35WisL5FT7lFB6wIsZ38G0EaL4p1o+bUuRfkZGTXqO21U3SWyEZ+muV7N191QQfNeExgoyaeFoa8Jx6Uo+0A==}
+    engines: {node: '>=22'}
     peerDependencies:
       zod: ^4.6.6
 
@@ -8152,6 +8234,13 @@ snapshots:
       '@vercel/oidc': 3.2.0
       zod: 4.6.6
 
+  '@ai-sdk/gateway@4.0.89(zod@4.6.6)':
+    dependencies:
+      '@ai-sdk/provider': 4.0.17
+      '@ai-sdk/provider-utils': 5.0.45(zod@4.6.6)
+      '@vercel/oidc': 3.2.0
+      zod: 4.6.6
+
   '@ai-sdk/google@3.0.131(zod@4.6.6)':
     dependencies:
       '@ai-sdk/provider': 3.0.18
@@ -8166,10 +8255,24 @@ snapshots:
       pkce-challenge: 5.0.1
       zod: 4.6.6
 
+  '@ai-sdk/mcp@2.0.55(zod@4.6.6)':
+    dependencies:
+      '@ai-sdk/provider': 4.0.17
+      '@ai-sdk/provider-utils': 5.0.45(zod@4.6.6)
+      cross-spawn: 7.0.6
+      pkce-challenge: 5.0.1
+      zod: 4.6.6
+
   '@ai-sdk/openai@3.0.126(zod@4.6.6)':
     dependencies:
       '@ai-sdk/provider': 3.0.18
       '@ai-sdk/provider-utils': 4.0.57(zod@4.6.6)
+      zod: 4.6.6
+
+  '@ai-sdk/openai@4.0.72(zod@4.6.6)':
+    dependencies:
+      '@ai-sdk/provider': 4.0.17
+      '@ai-sdk/provider-utils': 5.0.45(zod@4.6.6)
       zod: 4.6.6
 
   '@ai-sdk/provider-utils@4.0.57(zod@4.6.6)':
@@ -8180,7 +8283,20 @@ snapshots:
       undici: 6.29.0
       zod: 4.6.6
 
+  '@ai-sdk/provider-utils@5.0.45(zod@4.6.6)':
+    dependencies:
+      '@ai-sdk/provider': 4.0.17
+      '@standard-schema/spec': 1.1.0
+      '@workflow/serde': 4.1.0
+      eventsource-parser: 3.0.8
+      undici: 7.30.0
+      zod: 4.6.6
+
   '@ai-sdk/provider@3.0.18':
+    dependencies:
+      json-schema: 0.4.0
+
+  '@ai-sdk/provider@4.0.17':
     dependencies:
       json-schema: 0.4.0
 
@@ -8825,23 +8941,54 @@ snapshots:
   '@braintrust/bt-darwin-arm64@0.12.0':
     optional: true
 
+  '@braintrust/bt-darwin-arm64@0.22.1':
+    optional: true
+
   '@braintrust/bt-darwin-x64@0.12.0':
+    optional: true
+
+  '@braintrust/bt-darwin-x64@0.22.1':
     optional: true
 
   '@braintrust/bt-linux-arm64@0.12.0':
     optional: true
 
+  '@braintrust/bt-linux-arm64@0.22.1':
+    optional: true
+
   '@braintrust/bt-linux-x64-musl@0.12.0':
+    optional: true
+
+  '@braintrust/bt-linux-x64-musl@0.22.1':
     optional: true
 
   '@braintrust/bt-linux-x64@0.12.0':
     optional: true
 
+  '@braintrust/bt-linux-x64@0.22.1':
+    optional: true
+
   '@braintrust/bt-win32-arm64@0.12.0':
+    optional: true
+
+  '@braintrust/bt-win32-arm64@0.22.1':
     optional: true
 
   '@braintrust/bt-win32-x64@0.12.0':
     optional: true
+
+  '@braintrust/bt-win32-x64@0.22.1':
+    optional: true
+
+  '@braintrust/bt@0.22.1':
+    optionalDependencies:
+      '@braintrust/bt-darwin-arm64': 0.22.1
+      '@braintrust/bt-darwin-x64': 0.22.1
+      '@braintrust/bt-linux-arm64': 0.22.1
+      '@braintrust/bt-linux-x64': 0.22.1
+      '@braintrust/bt-linux-x64-musl': 0.22.1
+      '@braintrust/bt-win32-arm64': 0.22.1
+      '@braintrust/bt-win32-x64': 0.22.1
 
   '@bramus/specificity@2.4.3':
     dependencies:
@@ -11882,9 +12029,9 @@ snapshots:
       '@typescript-eslint/types': 8.70.0
       eslint-visitor-keys: 5.0.1
 
-  '@vercel/functions@1.6.0(@aws-sdk/credential-provider-web-identity@3.972.16)':
+  '@vercel/functions@1.6.0(@aws-sdk/credential-provider-web-identity@3.972.80)':
     optionalDependencies:
-      '@aws-sdk/credential-provider-web-identity': 3.972.16
+      '@aws-sdk/credential-provider-web-identity': 3.972.80
 
   '@vercel/oidc@3.2.0': {}
 
@@ -11992,6 +12139,8 @@ snapshots:
       convert-source-map: 2.0.0
       tinyrainbow: 3.1.1
 
+  '@workflow/serde@4.1.0': {}
+
   '@xhmikosr/decompress-tar@9.0.2':
     dependencies:
       file-type: 21.3.4
@@ -12080,6 +12229,13 @@ snapshots:
       '@ai-sdk/provider': 3.0.18
       '@ai-sdk/provider-utils': 4.0.57(zod@4.6.6)
       '@opentelemetry/api': 1.9.1
+      zod: 4.6.6
+
+  ai@7.0.111(zod@4.6.6):
+    dependencies:
+      '@ai-sdk/gateway': 4.0.89(zod@4.6.6)
+      '@ai-sdk/provider': 4.0.17
+      '@ai-sdk/provider-utils': 5.0.45(zod@4.6.6)
       zod: 4.6.6
 
   ajv-draft-04@1.0.0(ajv@8.20.0):
@@ -12354,10 +12510,10 @@ snapshots:
     dependencies:
       fill-range: 7.1.1
 
-  braintrust@3.37.2(@aws-sdk/credential-provider-web-identity@3.972.16)(@types/react@19.2.14)(zod@4.6.6):
+  braintrust@3.37.2(@aws-sdk/credential-provider-web-identity@3.972.80)(@types/react@19.2.14)(zod@4.6.6):
     dependencies:
       '@next/env': 14.2.35
-      '@vercel/functions': 1.6.0(@aws-sdk/credential-provider-web-identity@3.972.16)
+      '@vercel/functions': 1.6.0(@aws-sdk/credential-provider-web-identity@3.972.80)
       acorn: 8.18.0
       acorn-import-attributes: 1.9.5(acorn@8.18.0)
       ajv: 8.20.0
@@ -15885,8 +16041,7 @@ snapshots:
 
   undici@6.29.0: {}
 
-  undici@7.30.0:
-    optional: true
+  undici@7.30.0: {}
 
   undici@8.11.2: {}
 
