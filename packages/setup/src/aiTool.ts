@@ -2,8 +2,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { applyEdits, findNodeAtLocation, modify, parseTree } from "jsonc-parser";
-import { execFile } from "child_process";
-import { promisify } from "util";
+import { exec } from "child_process";
 import type { Platform } from "./setupAiToolsUtils.js";
 import { getPlatform } from "./setupAiToolsUtils.js";
 import type { Keychain } from "@mongodb-js/mcp-core";
@@ -13,27 +12,18 @@ export type AIToolType = "cursor" | "vscode" | "windsurf" | "claudeDesktop" | "c
 // These are tools that don't have a designated editor to open the config file
 export const TOOLS_WITHOUT_EDITORS: AIToolType[] = ["claudeDesktop", "claudeCode", "opencode"];
 
-type OpenConfigCommand = { command: string; args: string[] };
-
-const execFileAsync = promisify(execFile);
-
 // Mac: open path in default app, or in editor (e.g. "cursor") if supported
-const getOpenCommandMac = (configPath: string, tool: AIToolType): OpenConfigCommand =>
-    tool && !TOOLS_WITHOUT_EDITORS.includes(tool)
-        ? { command: "open", args: [`${tool}://file${configPath}`] }
-        : { command: "open", args: [configPath] };
+const getOpenCommandMac = (configPath: string, tool: AIToolType): string =>
+    tool && !TOOLS_WITHOUT_EDITORS.includes(tool) ? `open "${tool}://file${configPath}"` : `open "${configPath}"`;
 
 // Linux: open path in default app, or in editor if supported
-const getOpenCommandLinux = (configPath: string, tool: AIToolType): OpenConfigCommand =>
+const getOpenCommandLinux = (configPath: string, tool: AIToolType): string =>
     tool && !TOOLS_WITHOUT_EDITORS.includes(tool)
-        ? { command: "xdg-open", args: [`${tool}://file${configPath}`] }
-        : { command: "xdg-open", args: [configPath] };
+        ? `xdg-open "${tool}://file${configPath}"`
+        : `xdg-open "${configPath}"`;
 
 // Windows: open path in default app (for tools without a dedicated editor)
-const getOpenCommandWindowsDefault = (configPath: string): OpenConfigCommand => ({
-    command: "cmd",
-    args: ["/c", "start", "", configPath],
-});
+const getOpenCommandWindowsDefault = (configPath: string): string => `start "" "${configPath}"`;
 
 const MCP_SERVER_KEY = "mongodb-mcp-server";
 type EnvironmentKey = "env" | "environment";
@@ -272,7 +262,7 @@ export abstract class AITool {
         }
     }
 
-    // Returns the command and arguments to open the config file. Override in subclasses for editor-specific behavior.
+    // Returns the shell command to open the config file. Override in subclasses for editor-specific behavior.
     getOpenConfigCommand({
         configPath,
         platform,
@@ -281,7 +271,7 @@ export abstract class AITool {
         configPath: string;
         platform: Platform;
         editor: AIToolType;
-    }): OpenConfigCommand | null {
+    }): string | null {
         switch (platform) {
             case "mac":
                 return getOpenCommandMac(configPath, editor);
@@ -301,7 +291,15 @@ export abstract class AITool {
         }
         const cmd = this.getOpenConfigCommand({ configPath: this.configPath, platform, editor: this.toolType });
         if (cmd) {
-            await execFileAsync(cmd.command, cmd.args);
+            await new Promise((resolve, reject) => {
+                exec(cmd, (error) => {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        resolve(undefined);
+                    }
+                });
+            });
         }
     }
 
@@ -322,18 +320,12 @@ class Cursor extends AITool {
     get configPath(): string {
         return path.join(getBasePath(true), ".cursor", "mcp.json");
     }
-    override getOpenConfigCommand({
-        configPath,
-        platform,
-    }: {
-        configPath: string;
-        platform: Platform;
-    }): OpenConfigCommand | null {
+    override getOpenConfigCommand({ configPath, platform }: { configPath: string; platform: Platform }): string | null {
         switch (platform) {
             case "mac":
                 return getOpenCommandMac(configPath, "cursor");
             case "windows":
-                return { command: "cursor", args: [configPath] };
+                return `cursor "${configPath}"`;
             case "linux":
                 return getOpenCommandLinux(configPath, "cursor");
             default:
@@ -366,18 +358,12 @@ class VSCode extends AITool {
                 return "";
         }
     }
-    override getOpenConfigCommand({
-        configPath,
-        platform,
-    }: {
-        configPath: string;
-        platform: Platform;
-    }): OpenConfigCommand | null {
+    override getOpenConfigCommand({ configPath, platform }: { configPath: string; platform: Platform }): string | null {
         switch (platform) {
             case "mac":
                 return getOpenCommandMac(configPath, "vscode");
             case "windows":
-                return { command: "code", args: [configPath] };
+                return `code "${configPath}"`;
             case "linux":
                 return getOpenCommandLinux(configPath, "vscode");
             default:
@@ -397,18 +383,12 @@ class Windsurf extends AITool {
     get configPath(): string {
         return path.join(getBasePath(true), ".codeium", "windsurf", "mcp_config.json");
     }
-    override getOpenConfigCommand({
-        configPath,
-        platform,
-    }: {
-        configPath: string;
-        platform: Platform;
-    }): OpenConfigCommand | null {
+    override getOpenConfigCommand({ configPath, platform }: { configPath: string; platform: Platform }): string | null {
         switch (platform) {
             case "mac":
                 return getOpenCommandMac(configPath, "windsurf");
             case "windows":
-                return { command: "windsurf", args: [configPath] };
+                return `windsurf "${configPath}"`;
             case "linux":
                 return getOpenCommandLinux(configPath, "windsurf");
             default:
