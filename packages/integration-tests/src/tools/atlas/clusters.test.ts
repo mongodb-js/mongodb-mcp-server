@@ -23,6 +23,12 @@ function isAzureCMKTestConfigMissing(): boolean {
     );
 }
 
+// Atlas Infinite is in public preview: the backing org must have the preview
+// enabled for creation to succeed, so the end-to-end Infinite test is opt-in.
+function isAtlasInfiniteTestEnabled(): boolean {
+    return process.env.MDB_MCP_ENABLE_ATLAS_INFINITE_TESTS === "true";
+}
+
 describeWithAtlas("clusters", (integration) => {
     withProject(integration, ({ getProjectId, getIpAddress }) => {
         const clusterName = "ClusterTest-" + randomId();
@@ -551,6 +557,7 @@ describeWithAtlas("clusters", (integration) => {
                 expect(properties).toHaveProperty("backup");
                 expect(properties).toHaveProperty("terminationProtectionEnabled");
                 expect(properties).toHaveProperty("encryptionAtRestProvider");
+                expect(properties).toHaveProperty("databaseEdition");
 
                 const required = tool.inputSchema.required as string[];
                 expect(required).toContain("projectId");
@@ -598,6 +605,53 @@ describeWithAtlas("clusters", (integration) => {
                     encryptionAtRestProvider: "NONE",
                 });
             });
+
+            it("rejects multi-region Atlas Infinite creation without calling the API", async () => {
+                const projectId = getProjectId();
+
+                const response = await integration.mcpClient().callTool({
+                    name: "atlas-create-cluster",
+                    arguments: {
+                        projectId,
+                        clusterName: "ClusterInfiniteReject-" + randomId(),
+                        provider: "AWS",
+                        regions: ["US_EAST_1", "US_WEST_2"],
+                        databaseEdition: "INFINITE",
+                    },
+                });
+
+                expect(response.isError).toBe(true);
+                expect(getResponseContent(response.content)).toContain("single region");
+            });
+
+            it.skipIf(!isAtlasInfiniteTestEnabled())(
+                "creates an Atlas Infinite cluster when the preview is enabled for the project",
+                async () => {
+                    clusterName = "ClusterInfiniteTest-" + randomId();
+                    const projectId = getProjectId();
+
+                    const response = await integration.mcpClient().callTool({
+                        name: "atlas-create-cluster",
+                        arguments: {
+                            projectId,
+                            clusterName,
+                            provider: "AWS",
+                            regions: ["US_EAST_1"],
+                            instanceSize: "M10",
+                            databaseEdition: "INFINITE",
+                        },
+                    });
+
+                    expect(response.isError).toBeFalsy();
+                    expect(response.structuredContent).toMatchObject({
+                        provider: "AWS",
+                        regions: ["US_EAST_1"],
+                        instanceSize: "M10",
+                        clusterType: "REPLICASET",
+                        databaseEdition: "INFINITE",
+                    });
+                }
+            );
 
             it.skipIf(isAzureCMKTestConfigMissing())(
                 "defaults encryption at rest to Azure when the project has a valid Azure configuration",

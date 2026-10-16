@@ -8,10 +8,17 @@ import { AtlasArgs, type AtlasCloudProvider } from "../../args.js";
 import type { CreateClusterMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { ensureCurrentIpInAccessList, getAccessListNote } from "../../helpers/accessListUtils.js";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
-import { standardInstanceSizeEnum, getMaxAutoScalingSize, type StandardInstanceSize } from "../../helpers/cluster.js";
+import {
+    standardInstanceSizeEnum,
+    getMaxAutoScalingSize,
+    getInfiniteMaxAutoScalingSize,
+    databaseEditionEnum,
+    type StandardInstanceSize,
+} from "../../helpers/cluster.js";
 
 export const ATLAS_CREATE_CLUSTER_README_DESCRIPTION =
     "Create a MongoDB Atlas cluster (M10–M80, replica set or single shard). " +
+    "Set databaseEdition to INFINITE to create an Atlas Infinite cluster (public preview): disaggregated compute and storage, AWS only, single region, replica set, M10-M60, latest MongoDB version with auto upgrades, cloud backup always enabled. " +
     "Compute autoscaling is enabled by default: min instance size is set to the selected instance size, max is set two tiers above. " +
     "Disk autoscaling is always enabled. Encryption at rest with customer-managed keys (CMK) is supported, the CMK provider must already have a valid encryption at rest configuration in the project. " +
     "The tool returns immediately, use the atlas-inspect-cluster tool to poll the cluster state for readiness (state: IDLE). " +
@@ -49,17 +56,21 @@ function buildAutoScaling({
     instanceSize,
     computeEnabled,
     provider,
+    maxInstanceSize,
 }: {
     instanceSize: StandardInstanceSize;
     computeEnabled: boolean;
     provider: AtlasCloudProvider;
+    maxInstanceSize?: string;
 }): AutoScalingConfig {
     return {
         compute: {
             enabled: computeEnabled,
             scaleDownEnabled: computeEnabled,
             minInstanceSize: computeEnabled ? instanceSize : undefined,
-            maxInstanceSize: computeEnabled ? getMaxAutoScalingSize(instanceSize, provider) : undefined,
+            maxInstanceSize: computeEnabled
+                ? (maxInstanceSize ?? getMaxAutoScalingSize(instanceSize, provider))
+                : undefined,
         },
         diskGB: { enabled: true },
     };
@@ -110,6 +121,37 @@ function buildBackupConfig(backups: Backup): {
         case "CONTINUOUS":
             return { backupEnabled: true, pitEnabled: true };
     }
+}
+
+// Atlas Infinite clusters are single-region replica sets whose HA unit is one
+// primary plus one standby node (2 electable nodes). diskSizeGB is forwarded
+// as-is so the API can reject it: Infinite storage has no per-node disk.
+function buildInfiniteReplicationSpecs({
+    provider,
+    region,
+    instanceSize,
+    autoScaling,
+    diskSizeGB,
+}: {
+    provider: AtlasCloudProvider;
+    region: string;
+    instanceSize: StandardInstanceSize;
+    autoScaling: AutoScalingConfig;
+    diskSizeGB?: number;
+}): ReplicationSpec[] {
+    return [
+        {
+            regionConfigs: [
+                {
+                    providerName: provider,
+                    regionName: region,
+                    priority: 7,
+                    electableSpecs: { instanceSize, nodeCount: 2, diskSizeGB },
+                    autoScaling,
+                },
+            ],
+        },
+    ];
 }
 
 function buildVersionConfig(version: MongoDBVersion): {
@@ -192,6 +234,12 @@ export const CreateClusterArgsShape = {
         .describe(
             "Customer-managed key provider for encryption at rest. Defaults to the cluster's provider if a valid configuration exists. Use `NONE` to explicitly disable the feature. Omit unless explicitly specified by the user."
         ),
+
+    databaseEdition: databaseEditionEnum
+        .default("CORE")
+        .describe(
+            "Database edition. `CORE` is the standard Atlas dedicated cluster. `INFINITE` creates an Atlas Infinite cluster (public preview): disaggregated compute and storage, AWS only, single region, replica set, M10-M60 instance sizes, latest MongoDB version with auto upgrades, cloud backup always enabled. Defaults to `CORE`."
+        ),
 };
 
 const CreateClusterOutputSchema = {
@@ -206,6 +254,7 @@ const CreateClusterOutputSchema = {
     terminationProtectionEnabled: z.boolean(),
     diskSizeGB: z.number().optional(),
     encryptionAtRestProvider: encryptionAtRestProviderEnum,
+    databaseEdition: databaseEditionEnum,
 };
 
 export class CreateClusterTool extends AtlasToolBase {
@@ -213,6 +262,7 @@ export class CreateClusterTool extends AtlasToolBase {
     static operationType: OperationType = "create";
     public description =
         "Create a MongoDB Atlas cluster (M10–M80, replica set or single shard, single or multi-region). " +
+        "Set databaseEdition to INFINITE to create an Atlas Infinite cluster (public preview): disaggregated compute and storage, AWS only, single region, replica set, M10-M60 instance sizes, latest MongoDB version with auto upgrades, cloud backup always enabled. " +
         "Compute autoscaling is enabled by default: min instance size is set to the selected instance size, max is set two tiers above. " +
         "Disk autoscaling is always enabled. " +
         "For encryption at rest, the CMK provider must already have a valid configuration in the Atlas project. " +
@@ -248,6 +298,16 @@ export class CreateClusterTool extends AtlasToolBase {
             throw new CreateClusterError("SHARDED clusters require M30 or higher instance size.");
         }
 
+        const isInfinite = args.databaseEdition === "INFINITE";
+        // The tool picks the node layout per region, and Atlas Infinite has no
+        // multi-region layout (its HA unit is a 2-node primary/standby pair), so
+        // the request builder below can only express a single region.
+        if (isInfinite && regions.length > 1) {
+            throw new CreateClusterError(
+                "Atlas Infinite clusters deploy in a single region during public preview. Provide exactly one region."
+            );
+        }
+
         let instanceSize: StandardInstanceSize;
         if (args.instanceSize !== undefined) {
             instanceSize = args.instanceSize;
@@ -262,14 +322,31 @@ export class CreateClusterTool extends AtlasToolBase {
             instanceSize = (existing.results?.length ?? 0) < 2 ? "M10" : "M30";
         }
 
-        const autoScaling = buildAutoScaling({ instanceSize, computeEnabled: args.computeAutoScaling, provider });
-        const replicationSpecs = buildReplicationSpecs({
-            provider,
-            regions,
-            instanceSize,
-            autoScaling,
-            diskSizeGB: args.diskSizeGB,
-        });
+        const autoScaling = isInfinite
+            ? buildAutoScaling({
+                  instanceSize,
+                  computeEnabled: args.computeAutoScaling,
+                  provider,
+                  maxInstanceSize: getInfiniteMaxAutoScalingSize(instanceSize, provider),
+              })
+            : buildAutoScaling({ instanceSize, computeEnabled: args.computeAutoScaling, provider });
+
+        const replicationSpecs = isInfinite
+            ? buildInfiniteReplicationSpecs({
+                  provider,
+                  // Exactly one region, enforced above.
+                  region: regions[0] as string,
+                  instanceSize,
+                  autoScaling,
+                  diskSizeGB: args.diskSizeGB,
+              })
+            : buildReplicationSpecs({
+                  provider,
+                  regions,
+                  instanceSize,
+                  autoScaling,
+                  diskSizeGB: args.diskSizeGB,
+              });
         const backupConfig = buildBackupConfig(args.backup);
         const versionConfig = buildVersionConfig(args.mongoDBVersion);
 
@@ -287,6 +364,8 @@ export class CreateClusterTool extends AtlasToolBase {
             ...backupConfig,
             ...versionConfig,
             encryptionAtRestProvider,
+            // Only set for Infinite: Core keeps the API default and stays byte-identical to previous tool behavior.
+            ...(isInfinite && { databaseEdition: "INFINITE" as const }),
         } as unknown as ClusterDescription20240805;
 
         const ipAccessListResult = await ensureCurrentIpInAccessList({
@@ -310,7 +389,7 @@ export class CreateClusterTool extends AtlasToolBase {
                 {
                     type: "text",
                     text:
-                        `Cluster "${clusterName}" is being created in project "${projectId}" (${instanceSize} ${clusterType} on ${provider}/${regions.join(", ")}). ` +
+                        `Cluster "${clusterName}" is being created in project "${projectId}" (${isInfinite ? "Atlas Infinite " : ""}${instanceSize} ${clusterType} on ${provider}/${regions.join(", ")}). ` +
                         `Use the atlas-inspect-cluster tool with projectId "${projectId}" and clusterName "${clusterName}" to poll for readiness. ` +
                         `The cluster is ready when its state is IDLE, connection strings are unavailable until then.`,
                 },
@@ -328,6 +407,7 @@ export class CreateClusterTool extends AtlasToolBase {
                 terminationProtectionEnabled,
                 diskSizeGB: args.diskSizeGB,
                 encryptionAtRestProvider,
+                databaseEdition: args.databaseEdition,
             },
         };
     }
@@ -400,6 +480,7 @@ export class CreateClusterTool extends AtlasToolBase {
             disk_size_gb: sc?.diskSizeGB,
             mongodb_version: sc?.mongoDBVersion,
             encryption_at_rest_provider: sc?.encryptionAtRestProvider,
+            database_edition: sc?.databaseEdition,
         };
     }
 }

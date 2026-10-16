@@ -16,6 +16,10 @@ export const standardInstanceSizeEnum = z.enum(["M10", "M20", "M30", "M40", "M50
 
 export type StandardInstanceSize = z.infer<typeof standardInstanceSizeEnum>;
 
+// Atlas Infinite clusters run on a disaggregated storage architecture and are
+// selected via databaseEdition: INFINITE on the cluster description.
+export const databaseEditionEnum = z.enum(["CORE", "INFINITE"]);
+
 // M60 and M80 extend beyond the selectable range. M140 is not supported on Azure.
 export function getMaxAutoScalingSize(size: StandardInstanceSize, provider: string): string {
     if (size === "M80") {
@@ -25,6 +29,20 @@ export function getMaxAutoScalingSize(size: StandardInstanceSize, provider: stri
         return provider === "AZURE" ? "M200" : "M140";
     }
     return standardInstanceSizeEnum.options[standardInstanceSizeEnum.options.indexOf(size) + 2] ?? "M80";
+}
+
+// Default compute autoscaling max for an Atlas Infinite cluster: two tiers
+// above `size`, clamped to M60, the public preview ceiling. A base size already
+// above M60 is not clamped, so min <= max still holds and the API rejects the
+// unsupported tier with its own error instead of a min/max conflict.
+export function getInfiniteMaxAutoScalingSize(size: StandardInstanceSize, provider: string): string {
+    const options = standardInstanceSizeEnum.options;
+    const ceiling = options.indexOf("M60");
+    const index = options.indexOf(size);
+    if (index > ceiling) {
+        return getMaxAutoScalingSize(size, provider);
+    }
+    return options[Math.min(index + 2, ceiling)] ?? "M60";
 }
 
 type AtlasProcessId = `${string}:${number}`;
