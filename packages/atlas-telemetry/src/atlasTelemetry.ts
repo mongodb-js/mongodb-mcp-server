@@ -102,7 +102,8 @@ export class AtlasTelemetry implements ITelemetry {
     public readonly events: EventEmitter<TelemetryEvents> = new EventEmitter();
 
     private readonly logger: LoggerBase;
-    private readonly apiClient: ApiClient;
+    /** Protected so subclasses can release the client they injected. */
+    protected readonly apiClient: ApiClient;
     private readonly keychain: IKeychain;
     private readonly enabled: boolean;
     protected readonly serverMetadata: ServerMetadata;
@@ -112,7 +113,8 @@ export class AtlasTelemetry implements ITelemetry {
      */
     private readonly pipelineCommonProperties: Partial<TelemetryCommonProperties>;
     private readonly eventCache: EventCache<TelemetryEvent<TelemetryCommonProperties>>;
-    private readonly deviceId: IDeviceId;
+    /** Protected so subclasses can abort a pending lookup on close. */
+    protected readonly deviceId: IDeviceId;
     private backoffMs: number = INITIAL_BACKOFF_MS;
     private readonly timer = new Timer();
     private closed = false;
