@@ -104,6 +104,11 @@ export class CompositeLogger extends LoggerBase {
 // @public
 export const CONFIRMATION_INPUT_KEY = "confirmation";
 
+// @public (undocumented)
+export class ConfirmationDeclinedError extends UserFacingError {
+    constructor(message: string);
+}
+
 // @public @deprecated
 export function createDefaultSessionStore<TTransport extends CloseableTransport = CloseableTransport, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions>(params: SessionStoreConstructorArgs<TMetrics>): SessionStore<TTransport>;
 
@@ -485,8 +490,6 @@ export abstract class ToolBase<TServer extends ToolServer = ToolServer, TMetrics
     }): ConnectionMetadata;
     protected handleError(error: unknown, args: z.infer<z.ZodObject<ReturnType<typeof ToolBase.argsShape>>>): Promise<CallToolResult> | CallToolResult;
     invoke(args: ToolArgs<ReturnType<typeof ToolBase.argsShape>>, context: ToolExecutionContext): Promise<CallToolResult | InputRequiredResult>;
-    // (undocumented)
-    protected isConfirmationDeclined(error: unknown): boolean;
     // (undocumented)
     isEnabled(): boolean;
     // (undocumented)

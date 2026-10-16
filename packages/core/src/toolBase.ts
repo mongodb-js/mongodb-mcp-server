@@ -31,6 +31,7 @@ import { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
 import { getRandomUUID } from "@mongodb-js/mcp-core";
 import { requestIdAttr } from "./helpers/requestIdAttr.js";
 import { clientTelemetryProperties, protocolTelemetryProperties } from "./helpers/clientTelemetry.js";
+import { ConfirmationDeclinedError } from "./errors.js";
 
 import { LogId } from "./logId.js";
 
@@ -667,7 +668,7 @@ export abstract class ToolBase<
             });
             const toolResult = await this.handleError(error, args);
 
-            recordOutcome(toolResult, { error, declined: this.isConfirmationDeclined(error) });
+            recordOutcome(toolResult, { error, declined: error instanceof ConfirmationDeclinedError });
 
             return toolResult;
         }
@@ -878,11 +879,6 @@ export abstract class ToolBase<
         return true;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    protected isConfirmationDeclined(error: unknown): boolean {
-        return false;
-    }
-
     /**
      * Handle errors that occur during tool execution.
      *
@@ -922,7 +918,10 @@ export abstract class ToolBase<
             content: [
                 {
                     type: "text",
-                    text: `Error running ${this.name}: ${safeMessage}`,
+                    text:
+                        error instanceof ConfirmationDeclinedError
+                            ? safeMessage
+                            : `Error running ${this.name}: ${safeMessage}`,
                 },
             ],
             isError: true,

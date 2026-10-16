@@ -1,6 +1,6 @@
 import { z, type ZodRawShape } from "zod";
 import type { ToolArgs, InputRequiredResult } from "@mongodb-js/mcp-core";
-import { ToolBase } from "@mongodb-js/mcp-core";
+import { ToolBase, ConfirmationDeclinedError } from "@mongodb-js/mcp-core";
 import type {
     ToolCategory,
     OperationType,
@@ -204,8 +204,7 @@ export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
             return this.server.elicitation.confirmationRequired(message);
         }
         if (!confirmed) {
-            throw new MongoDBError(
-                ErrorCodes.ConfirmationDeclined,
+            throw new ConfirmationDeclinedError(
                 "User did not confirm the write stages of the aggregation pipeline so the aggregation was not performed."
             );
         }
@@ -248,10 +247,6 @@ export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
      */
     protected selectConnectionScopedArgsShape<T extends ZodRawShape>(variants: { preconfigured: T; plain: T }): T {
         return this.server.config.connectionString ? variants.preconfigured : variants.plain;
-    }
-
-    protected override isConfirmationDeclined(error: unknown): boolean {
-        return error instanceof MongoDBError && error.code === ErrorCodes.ConfirmationDeclined;
     }
 
     protected async handleError(

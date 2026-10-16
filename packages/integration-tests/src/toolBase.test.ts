@@ -14,7 +14,6 @@ import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/serv
 type MockToolCallback = (args: any, ctx: never) => Promise<CallToolResult>;
 type TestToolExecution = {
     execute: () => Promise<CallToolResult>;
-    isConfirmationDeclined: (error: unknown) => boolean;
 };
 import type { UserConfig } from "@mongodb-js/mcp-cli";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
@@ -34,7 +33,7 @@ import {
     ConfirmingTool,
     type TestServer,
 } from "./mocks/tools.js";
-import { Keychain } from "@mongodb-js/mcp-core";
+import { Keychain, ConfirmationDeclinedError } from "@mongodb-js/mcp-core";
 
 describe("ToolBase", () => {
     let mockServer: TestServer;
@@ -695,27 +694,40 @@ describe("ToolBase", () => {
             expect(event.properties.result).toBe("failure");
         });
 
-        it("records classified execution-time declines without an error_type", async () => {
-            const declinedError = new Error("User declined confirmation");
-            const tool = testTool as unknown as TestToolExecution;
-            vi.spyOn(tool, "execute").mockRejectedValue(declinedError);
-            const classify = vi.spyOn(tool, "isConfirmationDeclined").mockReturnValue(true);
+        it.each(["mongodb", "atlas"] as const)(
+            "records %s execution-time declines without an error_type",
+            async (category) => {
+                class DecliningTool extends TestTool {
+                    static override category = category;
+                }
+                const tool = new DecliningTool({ server: mockServer });
+                const declinedError = new ConfirmationDeclinedError("User declined confirmation");
+                vi.spyOn(tool as unknown as TestToolExecution, "execute").mockRejectedValue(declinedError);
 
-            const result = await successCallback({ param1: "value" }, {} as never);
+                const result = await tool.invoke(
+                    { param1: "value" },
+                    { request: { signal: new AbortController().signal } }
+                );
 
-            expect(result.isError).toBe(true);
-            expect(classify).toHaveBeenCalledWith(declinedError);
-            const { values } = await mockMetrics.get("toolExecutionDuration").get();
-            const counts = values.filter((value) => value.metricName === "mcp_tool_execution_duration_seconds_count");
-            expect(counts).toHaveLength(1);
-            expect(counts[0]?.labels.status).toBe("declined");
-            expect(counts[0]?.labels.error_type).toBeUndefined();
-            expect(counts[0]?.value).toBe(1);
+                expect(result).toEqual({
+                    content: [{ type: "text", text: declinedError.message }],
+                    isError: true,
+                });
+                const { values } = await mockMetrics.get("toolExecutionDuration").get();
+                const counts = values.filter(
+                    (value) => value.metricName === "mcp_tool_execution_duration_seconds_count"
+                );
+                expect(counts).toHaveLength(1);
+                expect(counts[0]?.labels.category).toBe(category);
+                expect(counts[0]?.labels.status).toBe("declined");
+                expect(counts[0]?.labels.error_type).toBeUndefined();
+                expect(counts[0]?.value).toBe(1);
 
-            const event = ((mockAtlasTelemetry.emitEvents as Mock).mock.lastCall?.[0] as ToolEvent[])[0];
-            expectDefined(event);
-            expect(event.properties.result).toBe("declined");
-        });
+                const event = ((mockAtlasTelemetry.emitEvents as Mock).mock.lastCall?.[0] as ToolEvent[])[0];
+                expectDefined(event);
+                expect(event.properties.result).toBe("declined");
+            }
+        );
 
         it("records toolExecutionDuration with status=error when execute() rejects", async () => {
             const result = await errorCallback({}, {} as never);

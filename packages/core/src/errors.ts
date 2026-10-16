@@ -10,6 +10,13 @@ export class UserFacingError extends Error {
     }
 }
 
+export class ConfirmationDeclinedError extends UserFacingError {
+    constructor(message: string) {
+        super(message);
+        this.name = "ConfirmationDeclinedError";
+    }
+}
+
 /**
  * Thrown by a tool's `execute()` when the supplied arguments fail validation
  * that the caller can fix by retrying with corrected input.
