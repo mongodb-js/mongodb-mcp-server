@@ -280,6 +280,7 @@ export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
 
                     return super.handleError(error, args);
                 }
+                // Retained for consumers that still throw the public MongoDBError code.
                 case ErrorCodes.ConfirmationDeclined:
                 case ErrorCodes.ForbiddenCollscan:
                     return {

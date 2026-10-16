@@ -276,6 +276,11 @@ export class CompositeLogger extends LoggerBase {
     setAttribute(key: string, value: string): void;
 }
 
+// @public
+export class ConfirmationDeclinedError extends UserFacingError {
+    constructor(message: string);
+}
+
 // @public (undocumented)
 export type ConnectionErrorHandled = {
     errorHandled: true;

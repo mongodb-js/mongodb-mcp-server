@@ -377,6 +377,11 @@ export class ConfigOverrideError extends UserFacingError {
 // @public (undocumented)
 export const configRegistry: z.core.$ZodRegistry<ConfigFieldMeta, z.core.$ZodType<unknown, unknown, z.core.$ZodTypeInternals<unknown, unknown>>>;
 
+// @public
+export class ConfirmationDeclinedError extends UserFacingError {
+    constructor(message: string);
+}
+
 // @public (undocumented)
 export type ConnectionErrorHandled = {
     errorHandled: true;

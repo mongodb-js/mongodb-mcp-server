@@ -660,15 +660,27 @@ export abstract class ToolBase<
             });
             return result;
         } catch (error: unknown) {
-            this.server.logger.error({
-                id: LogId.toolExecuteFailure,
-                context: "tool",
-                message: `Error executing ${this.name}: ${error as string}`,
-                attributes: { ...requestIdAttr(context.request.headers) },
-            });
-            const toolResult = await this.handleError(error, args);
+            const declined = error instanceof ConfirmationDeclinedError;
+            if (declined) {
+                this.server.logger.debug({
+                    id: LogId.toolExecute,
+                    context: "tool",
+                    message: error.message,
+                    attributes: { ...requestIdAttr(context.request.headers) },
+                });
+            } else {
+                this.server.logger.error({
+                    id: LogId.toolExecuteFailure,
+                    context: "tool",
+                    message: `Error executing ${this.name}: ${error as string}`,
+                    attributes: { ...requestIdAttr(context.request.headers) },
+                });
+            }
+            const toolResult: CallToolResult = declined
+                ? { content: [{ type: "text", text: this.server.keychain.redact(error.message) }], isError: true }
+                : await this.handleError(error, args);
 
-            recordOutcome(toolResult, { error, declined: error instanceof ConfirmationDeclinedError });
+            recordOutcome(toolResult, { error, declined });
 
             return toolResult;
         }
@@ -918,10 +930,7 @@ export abstract class ToolBase<
             content: [
                 {
                     type: "text",
-                    text:
-                        error instanceof ConfirmationDeclinedError
-                            ? safeMessage
-                            : `Error running ${this.name}: ${safeMessage}`,
+                    text: `Error running ${this.name}: ${safeMessage}`,
                 },
             ],
             isError: true,

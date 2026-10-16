@@ -10,6 +10,12 @@ export class UserFacingError extends Error {
     }
 }
 
+/**
+ * Thrown from `execute()` when the user declines confirmation or elicited input.
+ * ToolBase preserves the message and records a declined outcome without invoking
+ * subclass error handlers. Configured pre-execution confirmations are handled
+ * directly by ToolBase and do not need to throw this error.
+ */
 export class ConfirmationDeclinedError extends UserFacingError {
     constructor(message: string) {
         super(message);

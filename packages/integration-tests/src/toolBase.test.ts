@@ -33,7 +33,7 @@ import {
     ConfirmingTool,
     type TestServer,
 } from "./mocks/tools.js";
-import { Keychain, ConfirmationDeclinedError } from "@mongodb-js/mcp-core";
+import { Keychain, ConfirmationDeclinedError, LogId } from "@mongodb-js/mcp-core";
 
 describe("ToolBase", () => {
     let mockServer: TestServer;
@@ -699,10 +699,16 @@ describe("ToolBase", () => {
             async (category) => {
                 class DecliningTool extends TestTool {
                     static override category = category;
+
+                    protected override handleError(): never {
+                        throw new Error("Declines must bypass subclass error handlers");
+                    }
                 }
                 const tool = new DecliningTool({ server: mockServer });
                 const declinedError = new ConfirmationDeclinedError("User declined confirmation");
                 vi.spyOn(tool as unknown as TestToolExecution, "execute").mockRejectedValue(declinedError);
+                const errorLog = vi.spyOn(mockLogger, "error");
+                const debugLog = vi.spyOn(mockLogger, "debug");
 
                 const result = await tool.invoke(
                     { param1: "value" },
@@ -713,6 +719,10 @@ describe("ToolBase", () => {
                     content: [{ type: "text", text: declinedError.message }],
                     isError: true,
                 });
+                expect(errorLog).not.toHaveBeenCalled();
+                expect(debugLog).toHaveBeenCalledWith(
+                    expect.objectContaining({ id: LogId.toolExecute, message: declinedError.message })
+                );
                 const { values } = await mockMetrics.get("toolExecutionDuration").get();
                 const counts = values.filter(
                     (value) => value.metricName === "mcp_tool_execution_duration_seconds_count"
@@ -730,9 +740,11 @@ describe("ToolBase", () => {
         );
 
         it("records toolExecutionDuration with status=error when execute() rejects", async () => {
+            const errorLog = vi.spyOn(mockLogger, "error");
             const result = await errorCallback({}, {} as never);
 
             expect(result.isError).toBe(true);
+            expect(errorLog).toHaveBeenCalledWith(expect.objectContaining({ id: LogId.toolExecuteFailure }));
 
             const { values } = await mockMetrics.get("toolExecutionDuration").get();
             const count = values.find(

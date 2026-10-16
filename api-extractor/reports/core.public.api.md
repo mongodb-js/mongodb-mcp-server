@@ -104,7 +104,7 @@ export class CompositeLogger extends LoggerBase {
 // @public
 export const CONFIRMATION_INPUT_KEY = "confirmation";
 
-// @public (undocumented)
+// @public
 export class ConfirmationDeclinedError extends UserFacingError {
     constructor(message: string);
 }
