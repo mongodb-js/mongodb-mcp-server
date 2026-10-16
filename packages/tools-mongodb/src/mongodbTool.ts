@@ -9,7 +9,6 @@ import type {
     CallToolResult,
     ToolServices,
     ToolServer,
-    ToolServerTool,
     IToolConfig,
 } from "@mongodb-js/mcp-types";
 import type { ConnectionMetadata } from "@mongodb-js/mcp-atlas-telemetry";
@@ -20,6 +19,7 @@ import { assertNoServerSideJS, assertNoWriteStages, type WriteStageTarget } from
 import { buildWriteStageConfirmationMessage } from "./helpers/writeStageConfirmation.js";
 import { EXPORT_TOOL_NAME } from "./helpers/constants.js";
 import type { AvailableExport, CreateJSONExportParams } from "./common/exportsManager.js";
+import type { ConnectionErrorHandler } from "./connectionErrorHandler.js";
 
 export const DBOperationArgs = {
     database: z.string().describe("Database name"),
@@ -50,10 +50,7 @@ export type IMongoDBConfig = IToolConfig & {
  */
 export type MongoDBToolServices = ToolServices<IMongoDBConfig> & {
     connectionRegistry: ConnectionRegistry;
-    connectionErrorHandler(
-        error: MongoDBError,
-        context: { availableTools: readonly ToolServerTool[]; connectionState: unknown }
-    ): Promise<{ errorHandled: boolean; result: CallToolResult }>;
+    connectionErrorHandler: ConnectionErrorHandler;
     exportsManager: { createJSONExport: (params: CreateJSONExportParams) => Promise<AvailableExport> };
 };
 
