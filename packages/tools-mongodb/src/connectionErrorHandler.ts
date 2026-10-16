@@ -4,7 +4,10 @@ import type { AnyConnectionState } from "./common/connectionManager.js";
 import { DisconnectTool } from "./tools/connect/disconnect.js";
 import { ListConnectionsTool } from "./tools/connect/listConnections.js";
 
-export type ConnectionErrorHandlerContext = { availableTools: ToolServerTool[]; connectionState?: AnyConnectionState };
+export type ConnectionErrorHandlerContext = {
+    availableTools: readonly ToolServerTool[];
+    connectionState?: AnyConnectionState;
+};
 export type ConnectionErrorUnhandled = { errorHandled: false };
 export type ConnectionErrorHandled = { errorHandled: true; result: CallToolResult };
 
