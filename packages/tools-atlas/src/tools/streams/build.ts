@@ -9,6 +9,7 @@ import type {
     ElicitRequestSchema,
 } from "@mongodb-js/mcp-types";
 import type { ToolArgs, InputRequiredResult } from "@mongodb-js/mcp-core";
+import { ConfirmationDeclinedError } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
 import {
     ConnectionConfig,
@@ -38,6 +39,12 @@ interface FieldSchema {
 }
 
 type MissingField = FieldSchema & { key: string };
+
+type MissingFieldsParams = {
+    connectionType: string;
+    missingFields: MissingField[];
+    additionalNote?: string;
+};
 
 const KAFKA_FIELDS = {
     bootstrapServers: {
@@ -728,7 +735,9 @@ export class StreamsBuildTool extends StreamsToolBase {
                 return null;
             }
 
-            return StreamsBuildTool.missingFieldsResponse({ connectionType, missingFields, additionalNote });
+            throw new ConfirmationDeclinedError(
+                StreamsBuildTool.missingFieldsMessage({ connectionType, missingFields, additionalNote })
+            );
         }
 
         // First entry: ask for the missing fields.
@@ -761,24 +770,25 @@ export class StreamsBuildTool extends StreamsToolBase {
         };
     }
 
-    private static missingFieldsResponse({
+    private static missingFieldsMessage({
         connectionType,
         missingFields,
         additionalNote,
-    }: {
-        connectionType: string;
-        missingFields: MissingField[];
-        additionalNote?: string;
-    }): CallToolResult {
+    }: MissingFieldsParams): string {
         const list = missingFields.map((f) => `  - ${f.title}: ${f.description}`).join("\n");
         const note = additionalNote ? `\n\n${additionalNote}` : "";
+        return (
+            `Cannot create ${connectionType} connection — the following required information is missing:\n${list}\n\n` +
+            `Please ask the user to provide these values and retry.${note}`
+        );
+    }
+
+    private static missingFieldsResponse(params: MissingFieldsParams): CallToolResult {
         return {
             content: [
                 {
                     type: "text",
-                    text:
-                        `Cannot create ${connectionType} connection — the following required information is missing:\n${list}\n\n` +
-                        `Please ask the user to provide these values and retry.${note}`,
+                    text: StreamsBuildTool.missingFieldsMessage(params),
                 },
             ],
             isError: true,

@@ -276,6 +276,11 @@ export class CompositeLogger extends LoggerBase {
     setAttribute(key: string, value: string): void;
 }
 
+// @public
+export class ConfirmationDeclinedError extends UserFacingError {
+    constructor(message: string);
+}
+
 // @public (undocumented)
 export type ConnectionErrorHandled = {
     errorHandled: true;
@@ -737,7 +742,7 @@ export type TelemetryEvents = {
 };
 
 // @public (undocumented)
-export type TelemetryResult = "success" | "failure";
+export type TelemetryResult = "success" | "failure" | "declined";
 
 // @public (undocumented)
 export type TelemetryToolMetadata = TelemetryToolMetadata_2 | ConnectionMetadata_2 | PerfAdvisorToolMetadata_2 | GetRegionsMetadata | IndexMetadata_2 | UpgradeClusterMetadata | PauseResumeClusterMetadata | CreateClusterMetadata;

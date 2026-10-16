@@ -104,6 +104,11 @@ export class CompositeLogger extends LoggerBase {
 // @public
 export const CONFIRMATION_INPUT_KEY = "confirmation";
 
+// @public
+export class ConfirmationDeclinedError extends UserFacingError {
+    constructor(message: string);
+}
+
 // @public @deprecated
 export function createDefaultSessionStore<TTransport extends CloseableTransport = CloseableTransport, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions>(params: SessionStoreConstructorArgs<TMetrics>): SessionStore<TTransport>;
 
