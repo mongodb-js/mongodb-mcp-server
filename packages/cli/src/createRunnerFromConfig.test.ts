@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Keychain, NoopLogger, type CompositeLogger } from "@mongodb-js/mcp-core";
 import { StdioRunner } from "@mongodb-js/mcp-core";
 import type * as McpCore from "@mongodb-js/mcp-core";
-import type { ConnectionRegistry } from "@mongodb-js/mcp-tools-mongodb";
+import { MCPConnectionStore, type ConnectionRegistry } from "@mongodb-js/mcp-tools-mongodb";
 import type * as McpToolsMongodb from "@mongodb-js/mcp-tools-mongodb";
 import { StreamableHttpRunner } from "@mongodb-js/mcp-http-runners";
 import type { TransportRequestContext } from "@mongodb-js/mcp-types";
@@ -307,6 +307,47 @@ describe("createRunnerFromConfig", () => {
         });
 
         expect(runner).toBeInstanceOf(StreamableHttpRunner);
+    });
+
+    it("dials the preconfigured connection on startup when connectOnStartup is true", async () => {
+        const config = UserConfigSchema.parse({
+            transport: "stdio",
+            telemetry: "disabled",
+            connectOnStartup: true,
+        });
+        const spy = vi.spyOn(MCPConnectionStore.prototype, "connectPreconfigured").mockResolvedValue();
+
+        await createRunnerFromConfig({
+            config,
+            serverMetadata,
+            tools: [],
+            resources: [],
+            logger,
+            keychain: new Keychain(),
+        });
+
+        expect(spy).toHaveBeenCalledOnce();
+        spy.mockRestore();
+    });
+
+    it("does not dial the preconfigured connection on startup by default", async () => {
+        const config = UserConfigSchema.parse({
+            transport: "stdio",
+            telemetry: "disabled",
+        });
+        const spy = vi.spyOn(MCPConnectionStore.prototype, "connectPreconfigured").mockResolvedValue();
+
+        await createRunnerFromConfig({
+            config,
+            serverMetadata,
+            tools: [],
+            resources: [],
+            logger,
+            keychain: new Keychain(),
+        });
+
+        expect(spy).not.toHaveBeenCalled();
+        spy.mockRestore();
     });
 });
 

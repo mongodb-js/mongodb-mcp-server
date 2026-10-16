@@ -595,6 +595,9 @@ export class MCPConnectionManager extends ConnectionManager {
             this.changeState("connection-request", {
                 ...this.currentConnectionState,
                 tag: "connecting",
+                // The plugin can fall back to device flow even when auth-code
+                // was inferred; keep the state in sync so callers don't wait.
+                oidcConnectionType: "oidc-device-flow",
                 connectionStringInfo: {
                     ...this.currentConnectionState.connectionStringInfo,
                     authType: "oidc-device-flow",

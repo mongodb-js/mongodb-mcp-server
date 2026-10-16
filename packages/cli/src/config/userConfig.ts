@@ -53,6 +53,13 @@ const ServerConfigSchema = z.object({
             "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data."
         )
         .register(configRegistry, { isSecret: true, overrideBehavior: "not-allowed" }),
+    connectOnStartup: z
+        .preprocess(parseBoolean, z.boolean())
+        .default(false)
+        .describe(
+            "When true, the server dials the configured connectionString as soon as it starts, instead of waiting for the first tool call. This gives interactive authentication flows (for example OIDC browser sign-in) a head start. Only applies when a connectionString is configured; failures are logged and retried on the next tool call."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
     loggers: z
         .preprocess(
             (val: string | string[] | undefined) => commaSeparatedToArray(val),
