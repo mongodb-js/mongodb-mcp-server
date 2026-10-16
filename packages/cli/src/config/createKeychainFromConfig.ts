@@ -42,7 +42,12 @@ export function createKeychainFromConfig({
     if (userConfig.tlsCertificateKeyFilePassword) secrets[userConfig.tlsCertificateKeyFilePassword] = "password";
     if (userConfig.username) secrets[userConfig.username] = "user";
     if (userConfig.voyageApiKey) secrets[userConfig.voyageApiKey] = "password";
+    // The deprecated connectionString is folded into connectionStrings by the config
+    // schema; it is still registered for configs assembled without that schema.
     if (userConfig.connectionString) secrets[userConfig.connectionString] = "mongodb uri";
+    for (const connectionString of Object.values(userConfig.connectionStrings ?? {})) {
+        secrets[connectionString] = "mongodb uri";
+    }
 
     return new Keychain(secrets);
 }

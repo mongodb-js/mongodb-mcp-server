@@ -267,12 +267,13 @@ export function validateAutoConnectBehavior({
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
                 store["entries"].delete(PRECONFIGURED_CONNECTION_ID);
             }
-            integration.mcpServer().userConfig.connectionString = undefined;
+            delete integration.mcpServer().userConfig.connectionStrings[PRECONFIGURED_CONNECTION_ID];
         });
 
         it(`connects lazily when the "${PRECONFIGURED_CONNECTION_ID}" connectionId is used and a connection string is configured`, async () => {
             const store = integration.connectionStore();
-            integration.mcpServer().userConfig.connectionString = integration.connectionString();
+            integration.mcpServer().userConfig.connectionStrings[PRECONFIGURED_CONNECTION_ID] =
+                integration.connectionString();
             // Seed the preconfigured entry the same way the store constructor does when the
             // server is started with a configured connection string. The entry is not dialed
             // here - resolving it during the tool call is what dials it.
