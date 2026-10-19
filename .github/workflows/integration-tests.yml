@@ -40,7 +40,7 @@ jobs:
           MDB_VOYAGE_API_KEY: ${{ secrets.TEST_MDB_MCP_VOYAGE_API_KEY }}
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: integration-test-results
           path: coverage/lcov.info
@@ -78,7 +78,7 @@ jobs:
           MDB_MCP_AZURE_CMK_KEY_IDENTIFIER: ${{ secrets.TEST_MDB_MCP_AZURE_CMK_KEY_IDENTIFIER }}
         run: pnpm exec vitest --project integration-atlas --run
       - name: Upload test results
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
           name: atlas-test-results
@@ -110,7 +110,7 @@ jobs:
           MDB_MCP_API_BASE_URL: ${{ vars.TEST_ATLAS_BASE_URL }}
         run: pnpm exec vitest --project=streams-tests --run packages/integration-tests/src/tools/atlas/streams
       - name: Upload test results
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
           name: atlas-streams-test-results
@@ -149,7 +149,7 @@ jobs:
           MDB_MCP_API_BASE_URL: ${{ vars.TEST_ATLAS_BASE_URL }}
         run: pnpm exec vitest --project=clusters-tests --run packages/integration-tests/src/tools/atlas
       - name: Upload test results
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
           name: atlas-clusters-test-results
@@ -181,7 +181,7 @@ jobs:
       - name: Run tests
         run: pnpm exec vitest --project integration-atlas-local --run
       - name: Upload test results
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
           name: atlas-local-test-results
