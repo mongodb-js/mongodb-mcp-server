@@ -65,10 +65,17 @@ const DbSeedEntrySchema = z
     ])
     .describe("A collection to seed, optionally with index setup.");
 
-/** Eval `input`: the user prompt plus optional database seeding. */
+/** Eval `input`: the user prompt plus optional scripted follow-ups and database seeding. */
 export const RunEvalInputSchema = z
     .object({
         prompt: z.string().describe("The natural-language task sent to the agent for this case."),
+        follow_up_prompts: z
+            .array(z.string().min(1))
+            .max(9)
+            .optional()
+            .describe(
+                "Up to nine scripted user replies, sent in order after the agent completes each preceding turn. Omit or leave empty for a single-turn case."
+            ),
         db_seed: z
             .array(DbSeedEntrySchema)
             .optional()
