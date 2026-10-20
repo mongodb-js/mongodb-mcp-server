@@ -17,7 +17,6 @@ const NON_UNIT_PACKAGES = [
     "packages/accuracy-tests/**",
     "packages/browser-tests/**",
     "packages/e2e-tests/**",
-    "packages/eval-tests/**",
     "packages/integration-tests/**",
     "packages/scripts/**",
     "packages/ui/**",

@@ -94,6 +94,7 @@ ${hooks.expected.reference_answer}
                     systemContext: resolved.systemContext,
                     tools,
                     prompt,
+                    followUpPrompts: resolved.validateReferenceAnswer ? undefined : input.follow_up_prompts,
                     tempDbName: dbName,
                     stepLimit: AGENT_STEP_LIMIT,
                 });
