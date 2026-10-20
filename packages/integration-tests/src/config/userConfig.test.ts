@@ -47,7 +47,6 @@ const expectedDefaults = {
     loggers: ["disk", "mcp"],
     maxActiveConnections: 10,
     connectionIdleTimeoutMs: 600000,
-    connectOnStartup: false,
     connectionScope: "session",
     maxSessions: 1000,
     idleTimeoutMs: 600000,

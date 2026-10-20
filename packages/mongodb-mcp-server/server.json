@@ -66,13 +66,6 @@
           "isSecret": false
         },
         {
-          "name": "MDB_MCP_CONNECT_ON_STARTUP",
-          "description": "When true, the server dials the configured connectionString as soon as it starts, instead of waiting for the first tool call. This gives interactive authentication flows (for example OIDC browser sign-in) a head start. Only applies when a connectionString is configured; failures are logged and retried on the next tool call.",
-          "isRequired": false,
-          "format": "boolean",
-          "isSecret": false
-        },
-        {
           "name": "MDB_MCP_CONNECTION_IDLE_TIMEOUT_MS",
           "description": "Milliseconds a MongoDB connection may stay unused (no tool call touching it) before it is closed to release the underlying connection pool and its server-side state. Applied per connection regardless of its connection scope; the preconfigured connection is excluded, and the reaper runs on this cadence. Set to 0 to disable reaping; must not be negative.",
           "isRequired": false,
@@ -405,13 +398,6 @@
           "name": "--confirmationRequiredTools",
           "description": "Comma separated values of tool names that require user confirmation before execution. Requires the client to support elicitation.",
           "isRequired": false
-        },
-        {
-          "type": "named",
-          "name": "--connectOnStartup",
-          "description": "When true, the server dials the configured connectionString as soon as it starts, instead of waiting for the first tool call. This gives interactive authentication flows (for example OIDC browser sign-in) a head start. Only applies when a connectionString is configured; failures are logged and retried on the next tool call.",
-          "isRequired": false,
-          "format": "boolean"
         },
         {
           "type": "named",
@@ -742,13 +728,6 @@
           "isSecret": false
         },
         {
-          "name": "MDB_MCP_CONNECT_ON_STARTUP",
-          "description": "When true, the server dials the configured connectionString as soon as it starts, instead of waiting for the first tool call. This gives interactive authentication flows (for example OIDC browser sign-in) a head start. Only applies when a connectionString is configured; failures are logged and retried on the next tool call.",
-          "isRequired": false,
-          "format": "boolean",
-          "isSecret": false
-        },
-        {
           "name": "MDB_MCP_CONNECTION_IDLE_TIMEOUT_MS",
           "description": "Milliseconds a MongoDB connection may stay unused (no tool call touching it) before it is closed to release the underlying connection pool and its server-side state. Applied per connection regardless of its connection scope; the preconfigured connection is excluded, and the reaper runs on this cadence. Set to 0 to disable reaping; must not be negative.",
           "isRequired": false,
@@ -1081,13 +1060,6 @@
           "name": "--confirmationRequiredTools",
           "description": "Comma separated values of tool names that require user confirmation before execution. Requires the client to support elicitation.",
           "isRequired": false
-        },
-        {
-          "type": "named",
-          "name": "--connectOnStartup",
-          "description": "When true, the server dials the configured connectionString as soon as it starts, instead of waiting for the first tool call. This gives interactive authentication flows (for example OIDC browser sign-in) a head start. Only applies when a connectionString is configured; failures are logged and retried on the next tool call.",
-          "isRequired": false,
-          "format": "boolean"
         },
         {
           "type": "named",

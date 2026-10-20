@@ -309,11 +309,10 @@ describe("createRunnerFromConfig", () => {
         expect(runner).toBeInstanceOf(StreamableHttpRunner);
     });
 
-    it("dials the preconfigured connection on startup when connectOnStartup is true", async () => {
+    it("dials the preconfigured connection on startup", async () => {
         const config = UserConfigSchema.parse({
             transport: "stdio",
             telemetry: "disabled",
-            connectOnStartup: true,
         });
         const spy = vi.spyOn(MCPConnectionStore.prototype, "connectPreconfigured").mockResolvedValue();
 
@@ -327,26 +326,6 @@ describe("createRunnerFromConfig", () => {
         });
 
         expect(spy).toHaveBeenCalledOnce();
-        spy.mockRestore();
-    });
-
-    it("does not dial the preconfigured connection on startup by default", async () => {
-        const config = UserConfigSchema.parse({
-            transport: "stdio",
-            telemetry: "disabled",
-        });
-        const spy = vi.spyOn(MCPConnectionStore.prototype, "connectPreconfigured").mockResolvedValue();
-
-        await createRunnerFromConfig({
-            config,
-            serverMetadata,
-            tools: [],
-            resources: [],
-            logger,
-            keychain: new Keychain(),
-        });
-
-        expect(spy).not.toHaveBeenCalled();
         spy.mockRestore();
     });
 });
