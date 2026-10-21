@@ -117,14 +117,27 @@ jobs:
       - name: Output atlas-mcp-remote deployment info
         run: echo "::notice title=atlas-mcp-remote Deployment Info::Deploying version ${{ steps.get-remote-version.outputs.ATLAS_MCP_REMOTE_GIT_TAG_VERSION }} to channel ${{ steps.remote-npm-tag.outputs.ATLAS_MCP_REMOTE_RELEASE_CHANNEL }}"
 
+  # Single approval gate for the whole release. The `Production` environment holds no
+  # secrets, so it exists only to require a maintainer sign-off; keeping it on one job
+  # means one approval per release instead of one per downstream job.
+  approve-release:
+    runs-on: ubuntu-latest
+    permissions: {}
+    needs: [check]
+    if: needs.check.outputs.VERSION_EXISTS == 'false' || needs.check.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS == 'false'
+    environment: Production
+    steps:
+      - name: Confirm release
+        run: echo "Approved ${{ needs.check.outputs.GIT_TAG_VERSION }} (channel ${{ needs.check.outputs.RELEASE_CHANNEL }})"
+
   publish:
     runs-on: ubuntu-latest
-    environment: Production
     permissions:
       contents: write
       id-token: write
     needs:
       - check
+      - approve-release
     if: needs.check.outputs.VERSION_EXISTS == 'false'
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1
@@ -180,7 +193,6 @@ jobs:
 
   upload-release-sbom:
     runs-on: ubuntu-latest
-    environment: Production
     needs: [check, publish]
     if: needs.check.outputs.VERSION_EXISTS == 'false' && needs.check.outputs.RELEASE_CHANNEL == 'latest'
     permissions:
@@ -347,12 +359,12 @@ jobs:
 
   publish-atlas-mcp-remote:
     runs-on: ubuntu-latest
-    environment: Production
     permissions:
       contents: write
       id-token: write
     needs:
       - check
+      - approve-release
     # The `!= '0.0.0'` guard skips creating github release forthe placeholder version. `private: true` already makes the npm
     # publish a no-op. Both can be dropped after the first manual release, see https://jira.mongodb.org/browse/MCP-493
     if: needs.check.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION != '0.0.0'
