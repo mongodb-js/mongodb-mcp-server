@@ -40,7 +40,7 @@ helpful for validating judge criteria against the reference answer.`
         ),
 };
 
-export const EvalParametersSchema = z.object(fields).strict();
+const EvalParametersSchema = z.object(fields).strict();
 
 // ╭───────────────────────────────────────────────────────────────────────────────────╮
 // │   ↘️ Default Parameter Overrides through BT_EVAL_PARAMS_JSON environment variable │
