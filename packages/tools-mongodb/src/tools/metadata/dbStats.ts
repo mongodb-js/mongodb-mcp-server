@@ -35,7 +35,6 @@ export class DbStatsTool extends MongoDBToolBase {
             {
                 dbStats: 1,
                 scale: 1,
-                ...(this.server.config.maxTimeMS !== undefined && { maxTimeMS: this.server.config.maxTimeMS }),
             },
             { signal: request.signal }
         );
@@ -43,7 +42,11 @@ export class DbStatsTool extends MongoDBToolBase {
         const stats = bsonToJson(result);
 
         return {
-            content: formatUntrustedData("Statistics for database:", JSON.stringify({ database, stats })),
+            content: formatUntrustedData(
+                this.server.config,
+                "Statistics for database:",
+                JSON.stringify({ database, stats })
+            ),
             structuredContent: {
                 stats,
             },

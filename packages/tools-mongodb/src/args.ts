@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { EJSON } from "bson";
 
-export function deserializeEJSON<T extends object | undefined>(value: T): T {
+function deserializeEJSON<T extends object | undefined>(value: T): T {
     if (!value) {
         return value;
     }

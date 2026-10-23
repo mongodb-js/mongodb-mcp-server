@@ -66,6 +66,7 @@ describe("InspectClusterTool", () => {
         } as unknown as CompositeLogger;
 
         const mockSession = {
+            config: {},
             logger: mockLogger,
             apiClient: { ...mockApiClient, logger: mockLogger } as unknown as ApiClient,
         } as unknown as AtlasToolServer;

@@ -43,6 +43,7 @@ describe("ListProjectsTool", () => {
         } as unknown as CompositeLogger;
 
         const mockSession = {
+            config: {},
             logger: mockLogger,
             apiClient: mockApiClient as unknown as ApiClient,
         } as unknown as AtlasToolServer;

@@ -77,13 +77,14 @@ export class FindTool extends MongoDBToolBase {
             sort,
             responseBytesLimit,
         }: ToolArgs<ReturnType<typeof this.argsShape>>,
-        { request }: ToolExecutionContext<IMongoDBConfig>
+        context: ToolExecutionContext<IMongoDBConfig>
     ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
+        const { request } = context;
         let findCursor: FindCursor<unknown> | undefined = undefined;
         try {
             const provider = await this.resolveConnection(connectionId);
 
-            this.assertMqlIsAllowed(this.server.config, filter, projection);
+            this.assertMqlIsAllowed(this.resolveConfig(context), filter, projection);
 
             // Check if find operation uses an index if enabled
             if (this.server.config.indexCheck) {
@@ -122,10 +123,7 @@ export class FindTool extends MongoDBToolBase {
                             // query would have yielded which is why we don't
                             // use `limitOnFindCursor` calculated above, and
                             // we don't use the limit provided to the tool either.
-                            maxTimeMS:
-                                this.server.config.maxTimeMS !== undefined
-                                    ? Math.min(this.server.config.maxTimeMS, this.server.config.queryCountMaxTimeMsCap)
-                                    : this.server.config.queryCountMaxTimeMsCap,
+                            ...this.getCountPhaseTimeoutOptions(provider, this.server.config.queryCountTimeoutMs),
                             signal: request.signal,
                         }),
                     undefined
@@ -145,6 +143,7 @@ export class FindTool extends MongoDBToolBase {
 
             return {
                 content: formatUntrustedData(
+                    this.server.config,
                     this.generateMessage({
                         collection,
                         queryResultsCount,

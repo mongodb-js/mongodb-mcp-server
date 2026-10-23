@@ -117,14 +117,27 @@ jobs:
       - name: Output atlas-mcp-remote deployment info
         run: echo "::notice title=atlas-mcp-remote Deployment Info::Deploying version ${{ steps.get-remote-version.outputs.ATLAS_MCP_REMOTE_GIT_TAG_VERSION }} to channel ${{ steps.remote-npm-tag.outputs.ATLAS_MCP_REMOTE_RELEASE_CHANNEL }}"
 
+  # Single approval gate for the whole release. The `Production` environment holds no
+  # secrets, so it exists only to require a maintainer sign-off; keeping it on one job
+  # means one approval per release instead of one per downstream job.
+  approve-release:
+    runs-on: ubuntu-latest
+    permissions: {}
+    needs: [check]
+    if: needs.check.outputs.VERSION_EXISTS == 'false' || needs.check.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS == 'false'
+    environment: Production
+    steps:
+      - name: Confirm release
+        run: echo "Approved ${{ needs.check.outputs.GIT_TAG_VERSION }} (channel ${{ needs.check.outputs.RELEASE_CHANNEL }})"
+
   publish:
     runs-on: ubuntu-latest
-    environment: Production
     permissions:
       contents: write
       id-token: write
     needs:
       - check
+      - approve-release
     if: needs.check.outputs.VERSION_EXISTS == 'false'
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1
@@ -156,7 +169,7 @@ jobs:
         env:
           GROVE_API_KEY: ${{ secrets.GROVE_API_KEY }}
           GH_TOKEN: ${{ github.token }}
-        run: pnpm run generate:release-notes -- --newVersion ${{ needs.check.outputs.GIT_TAG_VERSION }} --commitSha ${{ github.sha }}
+        run: pnpm run generate:release-notes --newVersion ${{ needs.check.outputs.GIT_TAG_VERSION }} --commitSha ${{ github.sha }}
 
       - name: Publish github release
         env:
@@ -177,6 +190,109 @@ jobs:
         with:
           package-name: mongodb-mcp-server
           package-version: ${{ needs.check.outputs.NPM_VERSION }}
+
+  upload-release-sbom:
+    runs-on: ubuntu-latest
+    needs: [check, publish]
+    if: needs.check.outputs.VERSION_EXISTS == 'false' && needs.check.outputs.RELEASE_CHANNEL == 'latest'
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout release commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate release dependency SBOM
+        run: pnpm run create-dependency-sbom-lists
+
+      - name: Configure AWS credentials for DevProd Platforms ECR
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ secrets.DEVPROD_PLATFORMS_ECR_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Upload release SBOM to Kondukto via SilkBomb
+        env:
+          KONDUKTO_BRANCH: ${{ github.ref_name }}
+          KONDUKTO_TOKEN: ${{ secrets.KONDUKTO_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          ECR_HOST=901841024863.dkr.ecr.us-east-1.amazonaws.com
+          SILKBOMB_IMAGE="${ECR_HOST}/release-infrastructure/silkbomb:2.0"
+
+          aws ecr get-login-password --region us-east-1 \
+            | docker login --username AWS --password-stdin "${ECR_HOST}"
+
+          docker pull "${SILKBOMB_IMAGE}"
+
+          docker run --rm \
+            -e KONDUKTO_TOKEN \
+            -v "$PWD":/pwd \
+            "${SILKBOMB_IMAGE}" \
+            augment \
+            --repo "$GITHUB_REPOSITORY" \
+            --branch "$KONDUKTO_BRANCH" \
+            --sbom-in /pwd/.sbom/sbom-prod.cyclonedx.json \
+            --sbom-out /pwd/.sbom/sbom.json
+
+      - name: Upload release SBOM artifacts
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-sbom-${{ needs.check.outputs.GIT_TAG_VERSION }}
+          path: |
+            .sbom/sbom-prod.cyclonedx.json
+            .sbom/sbom.json
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 7
+
+  handle-sbom-failure:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    needs: [check, upload-release-sbom]
+    if: ${{ failure() && needs.upload-release-sbom.result == 'failure' }}
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1
+      - name: Check out code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: mongodb-js/devtools-shared/actions/setup-bot-token@d9b3431b50a916345471259794a44bd4533fcc58 # main
+        id: app-token
+        with:
+          app-id: ${{ vars.DEVTOOLS_BOT_APP_ID }}
+          private-key: ${{ secrets.DEVTOOLS_BOT_PRIVATE_KEY }}
+      - name: Create SBOM failure issue
+        uses: imjohnbo/issue-bot@3188c6ce06249206709d3b1f274d0d4c5a521601
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          title: Release SBOM upload failed for ${{ needs.check.outputs.GIT_TAG_VERSION }}
+          body: |
+            The release SBOM job failed after publication. Kondukto may still reflect an older release.
+
+            - Version: ${{ needs.check.outputs.GIT_TAG_VERSION }}
+            - Channel: ${{ needs.check.outputs.RELEASE_CHANNEL }}
+            - Commit: ${{ github.sha }}
+            - SBOM job result: ${{ needs.upload-release-sbom.result }}
+
+            Investigate the failed step and rerun the failed jobs to upload the release SBOM.
+
+            See https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          labels: "release_failure"
 
   docker-push:
     needs: [check, publish]
@@ -243,12 +359,12 @@ jobs:
 
   publish-atlas-mcp-remote:
     runs-on: ubuntu-latest
-    environment: Production
     permissions:
       contents: write
       id-token: write
     needs:
       - check
+      - approve-release
     # The `!= '0.0.0'` guard skips creating github release forthe placeholder version. `private: true` already makes the npm
     # publish a no-op. Both can be dropped after the first manual release, see https://jira.mongodb.org/browse/MCP-493
     if: needs.check.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION != '0.0.0'

@@ -1,6 +1,6 @@
 {
   "name": "@mongodb-js/mcp-cli",
-  "version": "3.0.4",
+  "version": "3.2.0",
   "type": "module",
   "description": "Generic CLI helpers for building MCP servers",
   "license": "Apache-2.0",
@@ -29,8 +29,8 @@
     "check": "tsc --noEmit --project tsconfig.json"
   },
   "dependencies": {
-    "@modelcontextprotocol/core": "^2.0.0",
-    "@modelcontextprotocol/server": "^2.0.0",
+    "@modelcontextprotocol/core": "^2.3.1",
+    "@modelcontextprotocol/server": "^2.3.1",
     "@mongodb-js/mcp-fetch": "workspace:*",
     "@mongodb-js/mcp-core": "workspace:*",
     "@mongodb-js/mcp-http-runners": "workspace:*",

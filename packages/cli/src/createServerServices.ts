@@ -220,7 +220,7 @@ const MAX_SESSION_ID_LENGTH = 512;
  * unguessable when server-issued, self-asserted otherwise — so possession of it
  * is what grants access to the scope's connections.
  */
-export function connectionScopeBySessionId(request: TransportRequestContext): string | undefined {
+function connectionScopeBySessionId(request: TransportRequestContext): string | undefined {
     const header = request.headers?.[SESSION_ID_HEADER];
     if (typeof header !== "string") {
         return undefined;
@@ -252,7 +252,7 @@ export function connectionScopeFromConfig(config: UserConfig): ConnectionScopePo
         // has no session machinery, so share the global scope so anonymous
         // clients can still persist connections. The legacy sessionful path
         // always has a server-issued session; leave it ephemeral (undefined).
-        return id ?? (request.protocol === "2026-07-28" ? GLOBAL_CONNECTION_SCOPE : undefined);
+        return id ?? (request.mcp_client_protocol === "2026-07-28" ? GLOBAL_CONNECTION_SCOPE : undefined);
     };
 }
 

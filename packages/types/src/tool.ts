@@ -163,14 +163,25 @@ export type ToolRequest<TConfig extends IToolConfig = IToolConfig> = {
 /**
  * Request-scoped context provided during tool execution. The request object
  * ({@link ToolRequest}) holds everything derived from the individual request
- * — the request-scoped `server` (which carries the effective config), the
- * original `raw` request, signal, request id, client identity, elicitation
- * state — and is built fresh per call by `toToolExecutionContext`. Tools
- * receive it as the `request` argument.
+ * — the original `raw` request, signal, request id, client identity,
+ * elicitation state — and is built fresh per call by
+ * `toToolExecutionContext`. Tools receive it as the `request` argument.
  */
 export type ToolExecutionContext<TConfig extends IToolConfig = IToolConfig> = {
     /** The request object this execution is built around. */
     request: ToolRequest<TConfig>;
+    /**
+     * Optional per-call config override, layered over the server's config for
+     * the duration of this execution. Unset fields fall back to
+     * `this.server.config`.
+     *
+     * @deprecated Prefer a request-scoped server whose config already carries
+     * any override. This escape hatch exists only for callers that must vary
+     * config per call against a shared server — it will be removed together
+     * with the legacy (2025-era sessionful) handler that makes such a shared
+     * server necessary.
+     */
+    config?: Partial<TConfig>;
 };
 
 export type ToolClass<TParams extends unknown[] = unknown[]> = {

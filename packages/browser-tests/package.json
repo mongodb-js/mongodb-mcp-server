@@ -1,6 +1,6 @@
 {
   "name": "@mongodb-js/mcp-browser-tests",
-  "version": "3.0.4",
+  "version": "3.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,7 +13,7 @@
     "@mongodb-js/mcp-atlas-api-client": "workspace:*",
     "@mongodb-js/mcp-core": "workspace:*",
     "@mongodb-js/mcp-tools-mongodb": "workspace:*",
-    "@modelcontextprotocol/client": "^2.0.0",
+    "@modelcontextprotocol/client": "^2.3.1",
     "@mongodb-js/mcp-atlas-telemetry": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
     "@types/node": "^25.6.0",
@@ -24,11 +24,11 @@
     "evp_bytestokey": "^1.0.3",
     "path-browserify": "^1.0.1",
     "os-browserify": "^0.3.0",
-    "playwright": "^1.60.0",
+    "playwright": "^1.63.0",
     "readable-stream": "^4.7.0",
     "typescript": "^5.9.2",
     "util": "^0.12.5",
-    "vite": "^8.0.16",
+    "vite": "^8.3.4",
     "vitest": "^4.1.11"
   }
 }

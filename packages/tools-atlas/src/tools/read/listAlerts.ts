@@ -106,6 +106,7 @@ export class ListAlertsTool extends AtlasToolBase {
 
         return {
             content: formatUntrustedData(
+                this.server.config,
                 `Found ${alerts.length} alerts with status "${status}" in project ${projectId}${totalText}${paginationText}`,
                 JSON.stringify(alerts)
             ),

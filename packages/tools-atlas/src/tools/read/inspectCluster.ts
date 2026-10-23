@@ -62,7 +62,7 @@ export class InspectClusterTool extends AtlasToolBase {
         };
 
         return {
-            content: formatUntrustedData("Cluster details:", JSON.stringify(structuredContent)),
+            content: formatUntrustedData(this.server.config, "Cluster details:", JSON.stringify(structuredContent)),
             structuredContent,
         };
     }

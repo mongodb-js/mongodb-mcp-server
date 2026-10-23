@@ -1,4 +1,3 @@
-import type { ClientCapabilities, Implementation } from "@modelcontextprotocol/server";
 import type {
     ILogger,
     ICompositeLogger,
@@ -7,24 +6,13 @@ import type {
     SessionCloseReason,
     DefaultMetricDefinitions,
     ISessionStore,
+    NegotiatedClientState,
     SessionStoreConstructorArgs,
 } from "@mongodb-js/mcp-types";
 import { LogId } from "./logId.js";
 import { setManagedTimeout, type ManagedTimeout } from "./managedTimeout.js";
 
 export type { ISessionStore, SessionStoreConstructorArgs };
-
-/**
- * The client state negotiated during MCP initialization. Stores that persist
- * it durably allow an implicitly re-initialized session (one restored on a
- * pod that never saw the client's `initialize` request) to retain the
- * client's capabilities — e.g. whether it supports elicitation — instead of
- * treating the restored client as capability-less.
- */
-export type NegotiatedClientState = {
-    clientCapabilities?: ClientCapabilities;
-    clientInfo?: Implementation;
-};
 
 /**
  * Error that `ISessionStore` implementations can throw from `getSession` to

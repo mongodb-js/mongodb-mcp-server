@@ -67,7 +67,11 @@ export class InspectAccessListTool extends AtlasToolBase {
         }));
 
         return {
-            content: formatUntrustedData(`Found ${results.length} access list entries`, JSON.stringify(entries)),
+            content: formatUntrustedData(
+                this.server.config,
+                `Found ${results.length} access list entries`,
+                JSON.stringify(entries)
+            ),
             structuredContent: {
                 projectId,
                 entries,

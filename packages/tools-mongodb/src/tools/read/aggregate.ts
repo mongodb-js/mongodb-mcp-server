@@ -177,7 +177,7 @@ export class AggregateTool extends MongoDBToolBase {
         try {
             const provider = await this.resolveConnection(connectionId);
             const isSearchSupported = await this.isSearchSupported(connectionId);
-            this.assertOnlyUsesPermittedStages({ config: this.server.config, isSearchSupported, pipeline });
+            this.assertOnlyUsesPermittedStages({ config: this.resolveConfig(context), isSearchSupported, pipeline });
             if (isSearchSupported) {
                 let searchIndexes: SearchIndex[] | undefined;
                 try {
@@ -311,6 +311,7 @@ export class AggregateTool extends MongoDBToolBase {
 
             return {
                 content: formatUntrustedData(
+                    this.server.config,
                     successMessage,
                     ...(documents.length > 0 ? [JSON.stringify(documents)] : [])
                 ),
@@ -383,12 +384,8 @@ export class AggregateTool extends MongoDBToolBase {
             const aggregationResults = await provider
                 .aggregate(database, collection, resultsCountAggregation, {
                     signal: abortSignal,
+                    ...this.getCountPhaseTimeoutOptions(provider, config.aggregationCountTimeoutMs),
                 })
-                .maxTimeMS(
-                    config.maxTimeMS !== undefined
-                        ? Math.min(config.maxTimeMS, config.aggregationCountMaxTimeMsCap)
-                        : config.aggregationCountMaxTimeMsCap
-                )
                 .toArray();
 
             const documentWithCount: unknown = aggregationResults.length === 1 ? aggregationResults[0] : undefined;

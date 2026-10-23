@@ -191,7 +191,11 @@ export class GetPerformanceAdvisorTool extends AtlasToolBase {
         }
 
         return {
-            content: formatUntrustedData("Performance advisor data", performanceAdvisorData.join("\n\n")),
+            content: formatUntrustedData(
+                this.server.config,
+                "Performance advisor data",
+                performanceAdvisorData.join("\n\n")
+            ),
             structuredContent,
         };
     }

@@ -13,6 +13,34 @@ const IDLE_BAIL_GRACE_MS = 30_000;
 /** How long the not-working+not-idle state must persist before we treat it as an awaited confirmation. */
 const CONFIRMATION_PENDING_GRACE_MS = 1_000;
 
+/** Codex may briefly show an idle composer between commentary and a tool call. */
+const TURN_COMPLETE_GRACE_MS = 1_000;
+
+/** How many poll snapshots to retain for the on-failure dump (~1 per 500ms). */
+const SNAPSHOT_HISTORY_LIMIT = 240;
+
+/** Viewport characters kept per retained snapshot, so the dump stays readable. */
+const SNAPSHOT_VIEWPORT_CHARS = 600;
+
+/** Sessions created since the last {@link resetSessionSnapshots}, in creation order. */
+const trackedSessions: TuiSessionBase[] = [];
+
+/** Forget previously tracked sessions; call at the start of each test. */
+export function resetSessionSnapshots(): void {
+    trackedSessions.length = 0;
+}
+
+/**
+ * Print the poll snapshot history of every session tracked since the last
+ * reset. Always visible (not gated on `AGENT_E2E_DEBUG`): call it when a test
+ * fails, since the failing run is usually not one debug mode was enabled for.
+ */
+export function dumpSessionSnapshots(reason: string): void {
+    for (const session of trackedSessions) {
+        session.dumpSnapshotHistory(reason);
+    }
+}
+
 /** Per-poll state shared by both agent TUI sessions. */
 export interface TuiState {
     /** True while the session's status/footer shows an in-progress turn. */
@@ -40,6 +68,8 @@ export abstract class TuiSessionBase implements AgentSession {
     /** Transcript snapshot the current turn started from (so chooseOption can continue it). */
     private currentTurnStartText = "";
     private currentState: AgentTurnState = "completed";
+    /** Recent poll snapshots across all turns, kept so a failure can be diagnosed without `AGENT_E2E_DEBUG`. */
+    private readonly snapshotHistory: string[] = [];
 
     get state(): AgentTurnState {
         return this.currentState;
@@ -57,6 +87,34 @@ export abstract class TuiSessionBase implements AgentSession {
         this.terminal = terminal;
         this.options = options;
         this.onState = onState ?? ((state): void => this.printState(state));
+        trackedSessions.push(this);
+    }
+
+    /** Record one poll snapshot, evicting the oldest past {@link SNAPSHOT_HISTORY_LIMIT}. */
+    private recordSnapshot(state: TuiState): void {
+        const viewport = state.viewport.slice(-SNAPSHOT_VIEWPORT_CHARS);
+        this.snapshotHistory.push(
+            `t=${(state.elapsedMs / 1000).toFixed(1)}s working=${state.working} idle=${state.composerIdle}\n${viewport}`
+        );
+        if (this.snapshotHistory.length > SNAPSHOT_HISTORY_LIMIT) {
+            this.snapshotHistory.shift();
+        }
+    }
+
+    /**
+     * Print the retained snapshots. Unlike the per-poll debug stream this is
+     * always visible: a failed test (assertion, harness abort, or vitest's own
+     * timeout) is undiagnosable without the state history.
+     */
+    dumpSnapshotHistory(reason: string): void {
+        if (this.snapshotHistory.length === 0) {
+            return;
+        }
+        this.log.info(
+            `${reason}; last ${this.snapshotHistory.length} poll snapshot(s) follow` +
+                ` (set AGENT_E2E_DEBUG=1 for the full transcript stream):\n` +
+                this.snapshotHistory.join("\n---\n")
+        );
     }
 
     /** Agent label used in debug/error output (e.g. "codex"). */
@@ -81,6 +139,9 @@ export abstract class TuiSessionBase implements AgentSession {
      * completion, returning the completed {@link AgentTurn}.
      */
     async chooseOption(choice: "confirm" | "decline"): Promise<AgentTurn> {
+        if (this.currentState !== "elicitation") {
+            throw new Error(`${this.label} TUI has no pending elicitation`);
+        }
         await this.sendChoice(choice);
         return this.pollTurn(false);
     }
@@ -94,6 +155,24 @@ export abstract class TuiSessionBase implements AgentSession {
     /** Codex interposes its own tool-approval prompt before the server's elicitation. */
     protected isToolApproval(text: string): boolean {
         return /Allow the .* MCP server to run tool/.test(text);
+    }
+
+    /**
+     * Whether the viewport shows a transient banner (startup, reconnect, ...)
+     * that renders as "neither working nor idle" but is not real input. Such
+     * states must not be mistaken for an elicitation. Harnesses opt in.
+     */
+    protected isTransitional?(text: string): boolean;
+
+    /**
+     * Whether the viewport is a confirmation prompt the agent is waiting on.
+     * The default is permissive: any frame that is neither working nor idle
+     * counts. Harnesses whose transient frames look the same (e.g. codex's
+     * just-submitted prompt) override this with a positive marker so such a
+     * frame is not reported as an elicitation before the turn has begun.
+     */
+    protected isElicitation(text: string): boolean {
+        return !this.isWorking(text) && !this.isComposerIdle(text);
     }
 
     protected async approveTool(): Promise<void> {
@@ -118,15 +197,19 @@ export abstract class TuiSessionBase implements AgentSession {
         const timeoutMs = this.options.promptTimeoutMs ?? DEFAULT_PROMPT_TIMEOUT_MS;
         const deadline = Date.now() + timeoutMs;
         const startedAt = Date.now();
+        // Keep history across turns (an assertion may fail on any of them) but mark the boundary.
+        this.snapshotHistory.push(`=== new turn (${stopOnElicitation ? "prompt" : "chooseOption"}) ===`);
         let lastError = "";
-        // A turn is only "real" once we have observed it begin: the working marker,
-        // the composer leaving its idle placeholder, or the transcript growing past
-        // the prompt echo. Without this the first poll after Enter (before the agent
-        // has rendered anything) satisfies `!working && composerIdle` and returns a
-        // bogus empty turn.
-        let sawTurnActivity = false;
+        // A turn is only "real" once we have observed it begin: the working
+        // marker or the composer leaving its idle placeholder. Without this the
+        // first poll after Enter (before the agent has rendered anything)
+        // satisfies `!working && composerIdle` and returns a bogus empty turn.
+        // Transcript growth is deliberately not a signal: the prompt echo lands
+        // in the transcript before the agent starts, so it would arm the guard
+        // during the same pre-turn idle window.
+        // A choice continues an already-active turn, even if it completes before the first poll.
+        let sawTurnActivity = !stopOnElicitation;
         let confirmationPendingSinceMs: number | undefined;
-        let prevDeltaLength: number | undefined;
         let idleSinceMs: number | undefined;
 
         while (Date.now() < deadline) {
@@ -141,41 +224,58 @@ export abstract class TuiSessionBase implements AgentSession {
                 elapsedMs: Date.now() - startedAt,
             };
             this.onState(state);
+            this.recordSnapshot(state);
 
-            if (
-                state.working ||
-                !state.composerIdle ||
-                (prevDeltaLength !== undefined && delta.length > prevDeltaLength)
-            ) {
+            // A transitional banner ("Waiting for startup", ...) also renders as
+            // "not idle", but it is pre-turn chrome rather than the turn beginning:
+            // counting it would mark the turn active before the agent has started,
+            // so the next poll (idle composer, agent still booting) would return a
+            // bogus completed turn.
+            const transitional = this.isTransitional?.(viewport) ?? false;
+            if (state.working || (!state.composerIdle && !transitional)) {
                 sawTurnActivity = true;
             }
-            prevDeltaLength = delta.length;
 
             // Agent is awaiting input when not working and not idle; require that
             // state to persist a couple of polls so we do not fire mid-transition.
-            if (sawTurnActivity && !state.working && !state.composerIdle) {
-                confirmationPendingSinceMs ??= state.elapsedMs;
-                if (state.elapsedMs - confirmationPendingSinceMs >= CONFIRMATION_PENDING_GRACE_MS) {
-                    if (this.isToolApproval(viewport)) {
-                        await this.approveTool();
-                        confirmationPendingSinceMs = undefined;
-                        continue;
-                    }
-                    if (stopOnElicitation) {
-                        this.currentState = "elicitation";
-                        this.lastShownDeltaLength = delta.length;
-                        return { text: delta, toolCalls: [], state: "elicitation", confirmation: viewport };
+            // The positive `isElicitation` marker keeps a transient frame that only
+            // looks like input (e.g. codex's just-submitted prompt) from firing.
+            const awaitingInput = this.isElicitation(viewport) || this.isToolApproval(viewport);
+            if (sawTurnActivity && !state.working && !state.composerIdle && awaitingInput) {
+                if (transitional) {
+                    confirmationPendingSinceMs = undefined;
+                } else {
+                    confirmationPendingSinceMs ??= state.elapsedMs;
+                    if (state.elapsedMs - confirmationPendingSinceMs >= CONFIRMATION_PENDING_GRACE_MS) {
+                        if (this.isToolApproval(viewport)) {
+                            await this.approveTool();
+                            confirmationPendingSinceMs = undefined;
+                            continue;
+                        }
+                        if (stopOnElicitation) {
+                            this.currentState = "elicitation";
+                            this.lastShownDeltaLength = delta.length;
+                            // A real turn can call tools before eliciting, so keep what the
+                            // delta already shows instead of discarding observed calls.
+                            return {
+                                text: delta,
+                                toolCalls: this.extractToolCalls(delta),
+                                state: "elicitation",
+                                confirmation: viewport,
+                            };
+                        }
                     }
                 }
             } else {
                 confirmationPendingSinceMs = undefined;
             }
 
-            // Turn done when the in-progress marker is gone and the composer is idle.
-            if (!state.working && state.composerIdle) {
+            if (!state.working && state.composerIdle && !transitional) {
+                idleSinceMs ??= state.elapsedMs;
+                const idleDurationMs = state.elapsedMs - idleSinceMs;
                 if (
-                    sawTurnActivity ||
-                    (idleSinceMs !== undefined && state.elapsedMs - idleSinceMs >= IDLE_BAIL_GRACE_MS)
+                    (sawTurnActivity && idleDurationMs >= TURN_COMPLETE_GRACE_MS) ||
+                    idleDurationMs >= IDLE_BAIL_GRACE_MS
                 ) {
                     this.log.debug(`<<turn complete after ${state.elapsedMs}ms>>`);
                     this.onState({
@@ -184,7 +284,6 @@ export abstract class TuiSessionBase implements AgentSession {
                     });
                     return await this.buildTurn(startText);
                 }
-                idleSinceMs ??= state.elapsedMs;
             } else {
                 idleSinceMs = undefined;
             }
@@ -214,7 +313,7 @@ export abstract class TuiSessionBase implements AgentSession {
         // Fail loudly with the raw transcript attached for diagnosis.
         return {
             text: `ERROR: ${message}${text ? "\n\n--- terminal content ---\n" + text : ""}`,
-            toolCalls: [],
+            toolCalls: this.extractToolCalls(delta),
             state: "completed",
         };
     }

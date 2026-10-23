@@ -156,6 +156,14 @@ describe("ConnectionEntry with MCPConnectionManager", () => {
 
     describe("lastError", () => {
         it("should not contain the raw connection string when the connect attempt fails", async () => {
+            const connectionString = "mongodb+srv://dbadmin:Real$ecretPass9@cluster0.example.com/?authSource=admin";
+            // The driver embeds the connection string verbatim in some failures, and the
+            // runtime connection string is never registered on the (immutable) keychain,
+            // so the redaction here rests on the built-in mongodb-redact URI pattern.
+            MockNodeDriverServiceProvider.connect = vi
+                .fn()
+                .mockRejectedValue(new Error(`connect to ${connectionString} failed`));
+
             const entry = new ConnectionEntry({
                 connectionId: "preconfigured",
                 name: "preconfigured",
@@ -169,12 +177,11 @@ describe("ConnectionEntry with MCPConnectionManager", () => {
                 keychain: new Keychain(),
             });
 
-            await expect(
-                entry.connect({ connectionString: "mongodb+srv://dbadmin:Real$ecretPass9@" })
-            ).rejects.toThrow();
+            await expect(entry.connect({ connectionString })).rejects.toThrow();
 
             expect(entry.lastError).toBeDefined();
             expect(entry.lastError).not.toContain("Real$ecretPass9");
+            expect(entry.lastError).not.toContain("dbadmin");
             expect(entry.lastError).toContain("<mongodb uri>");
         });
     });

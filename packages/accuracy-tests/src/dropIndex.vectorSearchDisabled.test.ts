@@ -13,6 +13,7 @@ const mockedTools = {
     "drop-index": ({ indexName, database, collection }: Record<string, unknown>): CallToolResult => {
         return {
             content: formatUntrustedData(
+                {},
                 "Successfully dropped the index from the provided namespace.",
                 JSON.stringify({
                     indexName,

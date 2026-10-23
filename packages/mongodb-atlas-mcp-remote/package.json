@@ -29,8 +29,8 @@
     "build:update-package-version": "node scripts/updatePackageVersion.ts"
   },
   "dependencies": {
-    "@modelcontextprotocol/client": "^2.0.0",
-    "@modelcontextprotocol/server": "^2.0.0",
+    "@modelcontextprotocol/client": "^2.3.1",
+    "@modelcontextprotocol/server": "^2.3.1",
     "@mongodb-js/devtools-proxy-support": "^0.7.19",
     "mongodb-log-writer": "^2.5.13",
     "mongodb-redact": "^1.4.6"

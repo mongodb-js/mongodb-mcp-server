@@ -1,12 +1,10 @@
 import type { TuiTest } from "@microsoft/tui-test";
 import { parseTuiTranscript } from "./codexParseTuiTranscript.js";
+import { isCodexComposerIdle, isCodexElicitation, isCodexTransitional, isCodexWorking } from "./codexTuiMarkers.js";
 import { TuiSessionBase, type TuiState } from "../tuiSession.js";
 import type { AgentHarnessOptions, ToolCallRecord } from "../types.js";
 
 export type CodexState = TuiState;
-
-/** Composer idle marker (turn finished). */
-const COMPOSER_IDLE_MARKER = "Ask Codex to do anything";
 
 export class CodexTuiSession extends TuiSessionBase {
     constructor({
@@ -26,20 +24,29 @@ export class CodexTuiSession extends TuiSessionBase {
     }
 
     protected isWorking(text: string): boolean {
-        return /Working \(\d+s • esc to interrupt\)/.test(text);
+        return isCodexWorking(text);
     }
 
     protected isComposerIdle(text: string): boolean {
-        return text.includes(COMPOSER_IDLE_MARKER);
+        return isCodexComposerIdle(text);
+    }
+
+    protected override isTransitional(text: string): boolean {
+        return isCodexTransitional(text);
+    }
+
+    protected override isElicitation(text: string): boolean {
+        return isCodexElicitation(text);
     }
 
     /**
-     * Codex renders the elicitation as a numbered list using the schema's verbatim
-     * enumNames ("Yes, I confirm"/"No, I do not confirm"), so type the label.
+     * Codex renders the elicitation as a numbered picker with the cursor on the
+     * first option, so navigate to the chosen option before submitting.
      */
     protected override async sendChoice(choice: "confirm" | "decline"): Promise<void> {
-        const label = choice === "decline" ? "No, I do not confirm" : "Yes, I confirm";
-        await this.terminal.type(label);
+        if (choice === "decline") {
+            await this.terminal.keyboard.press("Down");
+        }
         await this.terminal.keyboard.press("Enter");
     }
 

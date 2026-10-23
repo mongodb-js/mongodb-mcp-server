@@ -27,7 +27,7 @@ export const SearchKnowledgeToolArgs = {
         ),
 };
 
-export type SearchKnowledgeResponse = {
+type SearchKnowledgeResponse = {
     /** A list of search results */
     results: {
         /** The URL of the search result */
@@ -87,6 +87,7 @@ export class SearchKnowledgeTool extends AssistantToolBase {
 
         return {
             content: formatUntrustedData(
+                this.server.config,
                 `Found ${results.length} results in the MongoDB Assistant knowledge base.`,
                 text
             ),

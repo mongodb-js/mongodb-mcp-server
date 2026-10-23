@@ -40,6 +40,19 @@ describeWithMongoDB({
                 connectionId,
             ]);
         });
+        it("includes each connection's name in the list-connections text output", async () => {
+            await integration.mcpClient().callTool({
+                name: "connect",
+                arguments: {
+                    connectionString: integration.connectionString(),
+                    connectionName: "staging",
+                },
+            });
+
+            const response = await integration.mcpClient().callTool({ name: "list-connections", arguments: {} });
+            const text = getResponseContent(response.content);
+            expect(text).toContain('"staging-');
+        });
         it("rejects the reserved preconfigured connection name", async () => {
             const response = await integration.mcpClient().callTool({
                 name: "connect",

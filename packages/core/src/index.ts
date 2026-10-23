@@ -6,7 +6,7 @@ export { NoopLogger } from "./logging/noopLogger.js";
 export { CompositeLogger } from "./logging/compositeLogger.js";
 export { Keychain, type SecretKind } from "./keychain.js";
 export { NoopTelemetry } from "./telemetry/noopTelemetry.js";
-export { UserFacingError, ToolArgumentValidationError } from "./errors.js";
+export { UserFacingError, ToolArgumentValidationError, ConfirmationDeclinedError } from "./errors.js";
 export type { Secret } from "mongodb-redact";
 export { McpServer } from "@modelcontextprotocol/server";
 export type { InputRequiredResult, CallToolResult } from "@modelcontextprotocol/server";
@@ -41,7 +41,7 @@ export {
     type CreateSessionStoreFn,
 } from "./sessionStore.js";
 export { requestIdAttr } from "./helpers/requestIdAttr.js";
-export { clientTelemetryProperties } from "./helpers/clientTelemetry.js";
+export { clientTelemetryProperties, protocolTelemetryProperties } from "./helpers/clientTelemetry.js";
 
 // Web-friendly transports
 export { InMemoryTransport } from "./inMemoryTransport.js";

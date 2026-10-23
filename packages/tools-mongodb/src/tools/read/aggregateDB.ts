@@ -25,7 +25,7 @@ const AggregateDBOutputSchema = {
     appliedLimits: z.array(CURSOR_LIMIT_KEYS).describe("The limits applied to the aggregation pipeline"),
 };
 
-export const AggregateArgs = {
+const AggregateArgs = {
     pipeline: z
         .array(AnyAggregateStage)
         .min(1)
@@ -66,7 +66,7 @@ export class AggregateDBTool extends MongoDBToolBase {
         let aggregationCursor: AggregationCursor | undefined = undefined;
         try {
             const provider = await this.resolveConnection(connectionId);
-            this.assertOnlyUsesPermittedStages(this.server.config, pipeline);
+            this.assertOnlyUsesPermittedStages(this.resolveConfig(context), pipeline);
 
             let successMessage: string;
             let documents: unknown[];
@@ -135,6 +135,7 @@ export class AggregateDBTool extends MongoDBToolBase {
 
             return {
                 content: formatUntrustedData(
+                    this.server.config,
                     successMessage,
                     ...(documents.length > 0 ? [JSON.stringify(documents)] : [])
                 ),
@@ -194,12 +195,8 @@ export class AggregateDBTool extends MongoDBToolBase {
             const aggregationResults = await provider
                 .aggregateDb(database, resultsCountAggregation, {
                     signal: abortSignal,
+                    ...this.getCountPhaseTimeoutOptions(provider, config.aggregationCountTimeoutMs),
                 })
-                .maxTimeMS(
-                    config.maxTimeMS !== undefined
-                        ? Math.min(config.maxTimeMS, config.aggregationCountMaxTimeMsCap)
-                        : config.aggregationCountMaxTimeMsCap
-                )
                 .toArray();
 
             const documentWithCount: unknown = aggregationResults.length === 1 ? aggregationResults[0] : undefined;

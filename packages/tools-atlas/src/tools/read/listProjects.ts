@@ -116,6 +116,7 @@ export class ListProjectsTool extends AtlasToolBase {
 
         return {
             content: formatUntrustedData(
+                this.server.config,
                 `Found ${projects.length} projects.${
                     moreResultsAvailable ? " Use pagination arguments if more results are expected." : ""
                 }`,

@@ -10,6 +10,7 @@ export interface IToolConfig {
     disabledTools: string[];
     confirmationRequiredTools: string[];
     previewFeatures: PreviewFeature[];
+    disableUntrustedDataWarning?: boolean;
 }
 
 /** Server metadata for the server. */

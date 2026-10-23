@@ -2,11 +2,15 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { TuiTest, type Backend } from "@microsoft/tui-test";
-import { CodexHarnessConfig } from "./codexConfig.js";
-import { resolveBackend } from "../shared.js";
+import { CodexHarnessConfig, seedCodexOAuthCredentials } from "./codexConfig.js";
+import { assertRemoteServerOptions, resolveBackend } from "../shared.js";
 import { HarnessLogger } from "../logger.js";
 import { CodexTuiSession, type CodexState } from "./codexSession.js";
 import type { AgentHarness, AgentHarnessOptions, AgentSession } from "../types.js";
+
+export function buildCodexTuiArgs(helpText: string): string[] {
+    return /^\s*--no-daemon(?:\s|$)/m.test(helpText) ? ["--no-daemon"] : [];
+}
 
 export interface CodexTuiHarnessOptions {
     /** Override the codex binary path (default: "codex" on PATH). */
@@ -63,18 +67,26 @@ export class CodexTuiHarness implements AgentHarness {
     }
 
     async start(options: AgentHarnessOptions): Promise<AgentSession> {
+        assertRemoteServerOptions(options);
+        const binaryPath = this.getBinaryPath();
+        const helpText = execFileSync(binaryPath, ["--help"], {
+            encoding: "utf8",
+            timeout: 30_000,
+            stdio: ["ignore", "pipe", "ignore"],
+        });
         // Per-session CODEX_HOME: developer config untouched, no state reused across sessions.
-        const config = new CodexHarnessConfig();
+        const config = new CodexHarnessConfig({ binaryPath });
         const codexHome = path.join(options.workDir, `codex-home-${Math.random().toString(36).slice(2, 8)}`);
         await fs.mkdir(codexHome, { recursive: true });
         const configToml = config.buildConfig(options, codexHome);
         await fs.writeFile(path.join(codexHome, config.configFileName), configToml);
+        seedCodexOAuthCredentials({ homeDir: codexHome, options });
 
         const terminal = new TuiTest(`codex-${process.pid}-${Math.random().toString(36).slice(2, 8)}`, {
             backend: this.backend,
             timeouts: { ready: 60_000, text: 60_000, idle: 60_000 },
         });
-        await terminal.run(this.getBinaryPath(), [], {
+        await terminal.run(binaryPath, buildCodexTuiArgs(helpText), {
             cwd: options.workDir,
             cols: this.cols,
             rows: this.rows,

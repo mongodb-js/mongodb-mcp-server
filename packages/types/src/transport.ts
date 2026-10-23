@@ -39,7 +39,12 @@ export type RequestAuthInfo = {
  */
 export type ConnectionScopePolicy = (request: TransportRequestContext) => string | undefined;
 
-export type McpProtocol = "legacy" | "2026-07-28";
+/**
+ * The MCP protocol revision a client is using: the exact revision string the
+ * client named (e.g. `"2025-11-25"`, `"2026-07-28"`), or `"legacy"` when the
+ * revision could not be determined (an old client that names none).
+ */
+export type McpProtocol = string;
 
 export type TransportRequestContext = {
     headers?: Record<string, string | string[] | undefined>;
@@ -52,7 +57,8 @@ export type TransportRequestContext = {
      * self-asserted headers.
      */
     authInfo?: RequestAuthInfo;
-    protocol?: McpProtocol;
+    /** The exact MCP protocol revision this request named, or `"legacy"` when unset. */
+    mcp_client_protocol?: McpProtocol;
 };
 
 export interface ITransportRunner {

@@ -55,6 +55,7 @@ export class ListCollectionsTool extends MongoDBToolBase {
 
         return {
             content: formatUntrustedData(
+                this.server.config,
                 `Found ${collections.length} collections in the requested database.`,
                 JSON.stringify({ database, collections })
             ),

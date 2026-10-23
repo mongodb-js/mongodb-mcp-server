@@ -90,9 +90,17 @@ function makeFakeServer(): BaseServer & { connect: (t: unknown) => Promise<void>
 }
 
 class TestMCPHttpServer extends MCPHttpServer<BaseServer> {
-    constructor({ logger, sessionOptions }: { logger: InMemoryLogger; sessionOptions?: LegacySessionOptions }) {
+    constructor({
+        logger,
+        sessionOptions,
+        bodyLimit,
+    }: {
+        logger: InMemoryLogger;
+        sessionOptions?: LegacySessionOptions;
+        bodyLimit?: number;
+    }) {
         super({
-            options: { http: httpOptions },
+            options: { http: { ...httpOptions, bodyLimit } },
             logger,
             metrics: new MockMetrics(),
             sessionOptions,
@@ -122,7 +130,12 @@ describe("MCPHttpServer stateless serving", () => {
     async function post(path: string, body: string, headers: Record<string, string> = {}): Promise<Response> {
         return fetch(`${server.serverAddress}${path}`, {
             method: "POST",
-            headers: { "content-type": "application/json", "mcp-method": "tools/list", ...headers },
+            headers: {
+                "content-type": "application/json",
+                "mcp-method": "tools/list",
+                "mcp-protocol-version": "2026-07-28",
+                ...headers,
+            },
             body,
         });
     }
@@ -133,6 +146,17 @@ describe("MCPHttpServer stateless serving", () => {
         expect(res.status).toBe(200);
         const payload = (await res.json()) as { result?: { tools?: unknown[] } };
         expect(payload).toHaveProperty("result");
+    });
+
+    it("rejects modern requests without the required protocol version header", async () => {
+        await startServer();
+        const res = await fetch(`${server.serverAddress}/mcp`, {
+            method: "POST",
+            headers: { "content-type": "application/json", "mcp-method": "tools/list" },
+            body: MODERN_BODY,
+        });
+        expect(res.status).toBe(400);
+        await expect(res.json()).resolves.toMatchObject({ error: { code: -32020 } });
     });
 
     it("registers the request-scoped server for every request", async () => {
@@ -392,6 +416,39 @@ describe("MCPHttpServer stateless serving", () => {
             const text = await res.text();
             expect(text).toContain("protocolVersion");
             expect(text).toMatch(/"id":1/);
+        });
+
+        it("serves legacy requests larger than 4 MiB within the configured body limit", async () => {
+            logger = new InMemoryLogger();
+            server = new TestMCPHttpServer({ logger, bodyLimit: 8 * 1024 * 1024 });
+            await server.start();
+
+            const res = await fetch(`${server.serverAddress}/mcp`, {
+                method: "POST",
+                headers: {
+                    "content-type": "application/json",
+                    accept: "application/json, text/event-stream",
+                    "mcp-protocol-version": "2025-11-25",
+                },
+                body: JSON.stringify({
+                    jsonrpc: "2.0",
+                    method: "initialize",
+                    id: 1,
+                    params: {
+                        protocolVersion: "2025-11-25",
+                        capabilities: {},
+                        clientInfo: { name: "legacy-test", version: "1.0" },
+                        _meta: { padding: "x".repeat(4 * 1024 * 1024) },
+                    },
+                }),
+            });
+
+            expect(res.status).toBe(200);
+            expect(res.headers.get("mcp-session-id")).toBeTruthy();
+            await expect(res.json()).resolves.toMatchObject({
+                id: 1,
+                result: { protocolVersion: "2025-11-25" },
+            });
         });
 
         it("uses an overridden legacy handler / injected session store for legacy requests", async () => {
@@ -697,5 +754,100 @@ describe("MCPHttpServer dangerous-host binding guard", () => {
     it("starts on loopback without the opt-in", async () => {
         server = makeDangerousServer("127.0.0.1");
         await expect(server.start()).resolves.toBeUndefined();
+    });
+});
+
+describe("MCPHttpServer client protocol reporting", () => {
+    let server: MCPHttpServer<BaseServer> | undefined;
+    let seen: TransportRequestContext[] = [];
+
+    class ProtocolCapturingServer extends MCPHttpServer<BaseServer> {
+        constructor(sessionOptions?: LegacySessionOptions) {
+            super({
+                options: { http: httpOptions },
+                logger: new InMemoryLogger(),
+                metrics: new MockMetrics(),
+                sessionOptions,
+            });
+        }
+
+        protected override createServerForRequest(request: TransportRequestContext): Promise<BaseServer> {
+            seen.push(request);
+            return Promise.resolve(makeFakeServer());
+        }
+    }
+
+    afterEach(async () => {
+        await server?.stop();
+        server = undefined;
+        seen = [];
+    });
+
+    function postMcp(headers: Record<string, string>, body: string): Promise<Response> {
+        return fetch(`${server?.serverAddress}/mcp`, {
+            method: "POST",
+            headers: { "content-type": "application/json", accept: "application/json, text/event-stream", ...headers },
+            body,
+        });
+    }
+
+    it("reports the pinned 2026-07-28 revision for modern requests", async () => {
+        server = new ProtocolCapturingServer();
+        await server.start();
+
+        const res = await postMcp({ "mcp-method": "tools/list", "mcp-protocol-version": "2026-07-28" }, MODERN_BODY);
+        expect(res.status).toBe(200);
+        expect(seen.map((request) => request.mcp_client_protocol)).toContain("2026-07-28");
+    });
+
+    it("reports the exact MCP-Protocol-Version header on legacy requests", async () => {
+        server = new ProtocolCapturingServer();
+        await server.start();
+
+        const res = await postMcp(
+            { "mcp-protocol-version": "2025-06-18" },
+            JSON.stringify({
+                jsonrpc: "2.0",
+                method: "initialize",
+                id: 1,
+                params: { protocolVersion: "2025-11-25", capabilities: {}, clientInfo: { name: "x", version: "1" } },
+            })
+        );
+        expect(res.status).toBe(200);
+        expect(seen.map((request) => request.mcp_client_protocol)).toContain("2025-06-18");
+    });
+
+    it("falls back to the initialize body revision when the header is absent", async () => {
+        server = new ProtocolCapturingServer();
+        await server.start();
+
+        const res = await postMcp(
+            {},
+            JSON.stringify({
+                jsonrpc: "2.0",
+                method: "initialize",
+                id: 1,
+                params: { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "x", version: "1" } },
+            })
+        );
+        expect(res.status).toBe(200);
+        expect(seen.map((request) => request.mcp_client_protocol)).toContain("2024-11-05");
+    });
+
+    it("ignores a body protocolVersion on a non-initialize request during implicit session re-initialization", async () => {
+        server = new ProtocolCapturingServer({ externallyManagedSessions: true });
+        await server.start();
+
+        // No MCP-Protocol-Version header, and the body is a tools/list (not an
+        // initialize) that happens to carry a params.protocolVersion field. No
+        // handshake named a revision, so the transport must not report one.
+        await postMcp(
+            { "mcp-session-id": "external-id" },
+            JSON.stringify({ jsonrpc: "2.0", method: "tools/list", id: 1, params: { protocolVersion: "2025-06-18" } })
+        );
+
+        const reported = seen.map((request) => request.mcp_client_protocol);
+        expect(reported).toContain("legacy");
+        expect(reported).not.toContain("2025-06-18");
     });
 });

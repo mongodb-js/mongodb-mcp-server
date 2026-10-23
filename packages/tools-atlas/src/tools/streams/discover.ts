@@ -12,7 +12,7 @@ import {
     toStreamsAutoscaling,
 } from "../../streams/streamsArgs.js";
 import { StreamsInvalidArgumentError } from "../../streams/errors.js";
-import { redactSensitiveKeys } from "../../helpers/redactSensitiveKeys.js";
+import { redactSensitiveKeys } from "../../streams/redactSensitiveKeys.js";
 
 type StreamsProcessorWithStats = {
     name?: string;
@@ -171,7 +171,7 @@ function toAccountDetailsSummary(data: Record<string, unknown>): AccountDetailsS
     } as AccountDetailsSummary;
 }
 
-export const DiscoverOutputSchema = z.object({
+const DiscoverOutputSchema = z.object({
     workspaces: z.array(WorkspaceSummarySchema).optional(),
     connections: z.array(ConnectionSummarySchema).optional(),
     processors: z.array(ProcessorSummarySchema).optional(),
@@ -189,7 +189,7 @@ export const DiscoverOutputSchema = z.object({
     accountDetails: AccountDetailsSummarySchema.optional(),
 });
 
-export type DiscoverOutput = z.infer<typeof DiscoverOutputSchema>;
+type DiscoverOutput = z.infer<typeof DiscoverOutputSchema>;
 
 function buildProcessorStructuredContent(
     proc: StreamsProcessorWithStats,
@@ -424,6 +424,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
 
         return {
             content: formatUntrustedData(
+                this.server.config,
                 `Found ${data.results.length} workspace(s) (total: ${data.totalCount ?? data.results.length}):`,
                 JSON.stringify(workspaces, null, 2)
             ),
@@ -471,7 +472,11 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         const output = format === "concise" ? conciseWorkspace : redactSensitiveKeys(data);
 
         return {
-            content: formatUntrustedData("Details for the requested workspace:", JSON.stringify(output, null, 2)),
+            content: formatUntrustedData(
+                this.server.config,
+                "Details for the requested workspace:",
+                JSON.stringify(output, null, 2)
+            ),
             structuredContent: { workspace: conciseWorkspace },
         };
     }
@@ -521,6 +526,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
 
         return {
             content: formatUntrustedData(
+                this.server.config,
                 `Found ${data.results.length} connection(s) in the requested workspace:`,
                 JSON.stringify(connections, null, 2)
             ),
@@ -562,7 +568,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         const safeData = redactSensitiveKeys(data);
 
         return {
-            content: formatUntrustedData(header, JSON.stringify(safeData, null, 2)),
+            content: formatUntrustedData(this.server.config, header, JSON.stringify(safeData, null, 2)),
             ...(Object.keys(connection).length > 0 && { structuredContent: { connection } }),
         };
     }
@@ -619,6 +625,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
 
         return {
             content: formatUntrustedData(
+                this.server.config,
                 `Found ${data.results.length} processor(s) in the requested workspace:`,
                 JSON.stringify(processors, null, 2)
             ),
@@ -646,7 +653,11 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         const structuredContent = buildProcessorStructuredContent(data, { includePipeline: true });
 
         return {
-            content: formatUntrustedData("Details for the requested processor:", JSON.stringify(data, null, 2)),
+            content: formatUntrustedData(
+                this.server.config,
+                "Details for the requested processor:",
+                JSON.stringify(data, null, 2)
+            ),
             ...(Object.keys(structuredContent).length > 0 && { structuredContent }),
         };
     }
@@ -760,7 +771,11 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         }
 
         return {
-            content: formatUntrustedData("Diagnostic report for the requested processor:", sections.join("\n\n")),
+            content: formatUntrustedData(
+                this.server.config,
+                "Diagnostic report for the requested processor:",
+                sections.join("\n\n")
+            ),
             ...(Object.keys(structuredContent).length > 0 && { structuredContent }),
         };
     }
@@ -832,7 +847,7 @@ export class StreamsDiscoverTool extends StreamsToolBase {
         }
 
         return {
-            content: formatUntrustedData("Streams networking details:", sections.join("\n\n")),
+            content: formatUntrustedData(this.server.config, "Streams networking details:", sections.join("\n\n")),
             structuredContent,
         };
     }

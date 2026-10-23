@@ -232,15 +232,25 @@ export function applyConfigOverrides<TUserConfig extends UserConfig = UserConfig
 export class AtlasTelemetry implements ITelemetry {
     protected constructor(config: TelemetryConfig);
     // (undocumented)
+    protected readonly apiClient: ApiClient;
+    // (undocumented)
     close(): Promise<void>;
     // (undocumented)
     static create(this: typeof AtlasTelemetry, config: TelemetryConfig): AtlasTelemetry;
     protected detectContainerEnv(): Promise<boolean>;
+    // (undocumented)
+    protected readonly deviceId: IDeviceId;
     emitEvents(events: TelemetryBaseEvent[]): void;
+    // (undocumented)
+    protected readonly enabled: boolean;
     // (undocumented)
     readonly events: EventEmitter<TelemetryEvents>;
     getCommonProperties(): TelemetryCommonProperties;
     isTelemetryEnabled(): boolean;
+    // (undocumented)
+    protected readonly keychain: IKeychain;
+    // (undocumented)
+    protected readonly logger: LoggerBase;
     // (undocumented)
     protected readonly serverMetadata: ServerMetadata;
     // (undocumented)
@@ -377,6 +387,11 @@ export class ConfigOverrideError extends UserFacingError {
 // @public (undocumented)
 export const configRegistry: z.core.$ZodRegistry<ConfigFieldMeta, z.core.$ZodType<unknown, unknown, z.core.$ZodTypeInternals<unknown, unknown>>>;
 
+// @public
+export class ConfirmationDeclinedError extends UserFacingError {
+    constructor(message: string);
+}
+
 // @public (undocumented)
 export type ConnectionErrorHandled = {
     errorHandled: true;
@@ -391,7 +406,7 @@ export const connectionErrorHandler: ConnectionErrorHandler;
 
 // @public (undocumented)
 export type ConnectionErrorHandlerContext = {
-    availableTools: ToolServerTool[];
+    availableTools: readonly ToolServerTool[];
     connectionState?: AnyConnectionState;
 };
 
@@ -911,7 +926,7 @@ export type TelemetryCommonProperties = {
     config_connection_string?: TelemetryBoolSet;
     hosting_mode?: string;
     has_docker?: TelemetryBoolSet;
-    protocol?: McpProtocol;
+    mcp_client_protocol?: McpProtocol;
 } & TelemetryCommonStaticProperties;
 
 // @public
@@ -1010,6 +1025,7 @@ export type ToolClass<TServer extends ToolServer = ToolServer, TMetricsDefinitio
 // @public
 export type ToolExecutionContext<TConfig extends IToolConfig = IToolConfig> = {
     request: ToolRequest<TConfig>;
+    config?: Partial<TConfig>;
 };
 
 // @public
@@ -1037,7 +1053,7 @@ export type TransportRequestContext = {
     headers?: Record<string, string | string[] | undefined>;
     query?: Record<string, string | string[] | undefined>;
     authInfo?: RequestAuthInfo;
-    protocol?: McpProtocol;
+    mcp_client_protocol?: McpProtocol;
 };
 
 // @public
@@ -1063,7 +1079,7 @@ export const UserConfigSchema: z.ZodObject<{
         stderr: "stderr";
         disk: "disk";
         mcp: "mcp";
-    }>>>>;
+    }>>, string | string[] | undefined>>;
     logPath: z.ZodDefault<z.ZodString>;
     mcpClientLogLevel: z.ZodDefault<z.ZodEnum<{
         error: "error";
@@ -1075,12 +1091,13 @@ export const UserConfigSchema: z.ZodObject<{
         alert: "alert";
         emergency: "emergency";
     }>>;
-    disabledTools: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodString>>>;
-    confirmationRequiredTools: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodString>>>;
+    disabledTools: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodString>, string | string[] | undefined>>;
+    confirmationRequiredTools: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodString>, string | string[] | undefined>>;
     elicitationTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
-    readOnly: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
-    indexCheck: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
-    disableServerSideJs: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
+    readOnly: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean, unknown>>;
+    indexCheck: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean, unknown>>;
+    disableUntrustedDataWarning: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean, unknown>>;
+    disableServerSideJs: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean, unknown>>;
     telemetry: z.ZodDefault<z.ZodEnum<{
         enabled: "enabled";
         disabled: "disabled";
@@ -1092,7 +1109,7 @@ export const UserConfigSchema: z.ZodObject<{
     httpPort: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     httpHost: z.ZodDefault<z.ZodString>;
     httpHeaders: z.ZodDefault<z.ZodObject<{}, z.core.$catchall<z.ZodString>>>;
-    dangerousHostBinding: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
+    dangerousHostBinding: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean, unknown>>;
     httpBodyLimit: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxActiveConnections: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     connectionIdleTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
@@ -1107,9 +1124,12 @@ export const UserConfigSchema: z.ZodObject<{
     externallyManagedSessions: z.ZodDefault<z.ZodBoolean>;
     maxBytesPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxDocumentsPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    timeoutMs: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
     maxTimeMS: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
-    queryCountMaxTimeMsCap: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
-    aggregationCountMaxTimeMsCap: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    queryCountTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    queryCountMaxTimeMsCap: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
+    aggregationCountTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    aggregationCountMaxTimeMsCap: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
     exportsPath: z.ZodDefault<z.ZodString>;
     exportTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     exportCleanupIntervalMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
@@ -1117,8 +1137,8 @@ export const UserConfigSchema: z.ZodObject<{
     voyageApiKey: z.ZodDefault<z.ZodString>;
     previewFeatures: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
         mcpUI: "mcpUI";
-    }>>>>;
-    allowRequestOverrides: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>;
+    }>>, string | string[] | undefined>>;
+    allowRequestOverrides: z.ZodDefault<z.ZodPreprocess<z.ZodBoolean, unknown>>;
     dryRun: z.ZodDefault<z.ZodBoolean>;
     httpResponseType: z.ZodDefault<z.ZodEnum<{
         sse: "sse";
@@ -1131,7 +1151,7 @@ export const UserConfigSchema: z.ZodObject<{
     monitoringServerFeatures: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
         "health-check": "health-check";
         metrics: "metrics";
-    }>>>>;
+    }>>, string | string[] | undefined>>;
     gssapiHostName: z.ZodOptional<z.ZodString>;
     sslFIPSMode: z.ZodOptional<z.ZodBoolean>;
     ssl: z.ZodOptional<z.ZodBoolean>;

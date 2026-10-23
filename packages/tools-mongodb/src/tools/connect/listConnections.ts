@@ -37,7 +37,7 @@ export class ListConnectionsTool extends MongoDBToolBase {
                 : `Active connections:\n${connections
                       .map(
                           (connection) =>
-                              `- "${connection.connectionId}" (${connection.state ?? "unknown"}): ${connection.description}`
+                              `- "${connection.name}" (connectionId: "${connection.connectionId}", ${connection.state ?? "unknown"}): ${connection.description}`
                       )
                       .join("\n")}`;
 

@@ -11,15 +11,17 @@ function collectToolCalls(transcript: string): ToolCallRecord[] {
     const toolCalls: ToolCallRecord[] = [];
     const seen = new Set<string>();
     for (const line of transcript.split("\n")) {
-        const match = line.match(/•\s*Called\s+([^\s(]+)\s*\(/);
+        // Args are optional: codex's collapsed activity preview renders
+        // `• Called mongo.list-databases` with no `(...)`.
+        const match = line.match(/•\s*Called\s+([^\s(]+)/);
         if (!match) {
             continue;
         }
         const rawName = match[1] ?? "";
         const name = normalizeToolName(rawName);
-        const argsStart = line.indexOf("(", match.index ?? line.indexOf("(")) + 1;
+        const openParen = line.indexOf("(", match.index ?? 0);
         const argsEnd = line.lastIndexOf(")");
-        const argsText = argsEnd > argsStart ? line.slice(argsStart, argsEnd).trim() : "";
+        const argsText = openParen >= 0 && argsEnd > openParen ? line.slice(openParen + 1, argsEnd).trim() : "";
         let args: unknown;
         try {
             args = argsText ? JSON.parse(argsText) : undefined;

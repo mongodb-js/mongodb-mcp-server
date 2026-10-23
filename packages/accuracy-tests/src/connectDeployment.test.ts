@@ -32,6 +32,7 @@ describeAccuracyTests([
         mockedTools: {
             "atlas-local-list-deployments": (): CallToolResult => ({
                 content: formatUntrustedData(
+                    {},
                     "Found 1 deployments",
                     '[{"name":"local-mflix","state":"Running","mongodbVersion":"6.0"}]'
                 ),

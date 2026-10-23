@@ -45,6 +45,7 @@ export class InsertManyTool extends MongoDBToolBase {
         const result = await provider.insertMany(database, collection, documents);
         const insertedIds = Object.values(result.insertedIds);
         const content = formatUntrustedData(
+            this.server.config,
             "Documents were inserted successfully.",
             `Inserted \`${result.insertedCount}\` document(s) into ${database}.${collection}.`,
             `Inserted IDs: ${insertedIds.join(", ")}`

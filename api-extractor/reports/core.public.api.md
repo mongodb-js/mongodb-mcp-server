@@ -6,7 +6,6 @@
 
 import type { AtlasClusterConnectionInfo } from '@mongodb-js/mcp-types';
 import { CallToolResult } from '@modelcontextprotocol/server';
-import type { ClientCapabilities } from '@modelcontextprotocol/server';
 import type { CloseableTransport } from '@mongodb-js/mcp-types';
 import type { ConnectionMetadata } from '@mongodb-js/mcp-types';
 import type { DefaultEventMap } from '@mongodb-js/mcp-types';
@@ -36,6 +35,7 @@ import type { LogLevel } from '@mongodb-js/mcp-types';
 import type { LogPayload } from '@mongodb-js/mcp-types';
 import { McpServer } from '@modelcontextprotocol/server';
 import type { MongoLogId } from '@mongodb-js/mcp-types';
+import type { NegotiatedClientState } from '@mongodb-js/mcp-types';
 import type { OperationType } from '@mongodb-js/mcp-types';
 import type { PreviewFeature } from '@mongodb-js/mcp-types';
 import type { ReactiveResourceOptions } from '@mongodb-js/mcp-types';
@@ -104,6 +104,11 @@ export class CompositeLogger extends LoggerBase {
 // @public
 export const CONFIRMATION_INPUT_KEY = "confirmation";
 
+// @public
+export class ConfirmationDeclinedError extends UserFacingError {
+    constructor(message: string);
+}
+
 // @public @deprecated
 export function createDefaultSessionStore<TTransport extends CloseableTransport = CloseableTransport, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions>(params: SessionStoreConstructorArgs<TMetrics>): SessionStore<TTransport>;
 
@@ -141,8 +146,14 @@ export { ElicitedInputResult }
 
 export { ElicitRequestSchema }
 
-// @public
+// @public @deprecated
 export function formatUntrustedData(description: string, ...data: string[]): {
+    text: string;
+    type: "text";
+}[];
+
+// @public
+export function formatUntrustedData(config: Pick<IToolConfig, "disableUntrustedDataWarning">, description: string, ...data: string[]): {
     text: string;
     type: "text";
 }[];
@@ -338,6 +349,11 @@ export class NoopTelemetry implements ITelemetry {
     // (undocumented)
     isTelemetryEnabled(): boolean;
 }
+
+// @public
+export function protocolTelemetryProperties(mcpServer: McpServer | undefined, transportRequest?: TransportRequestContext): {
+    mcp_client_protocol: string;
+};
 
 // @public
 export abstract class ReactiveResource<
