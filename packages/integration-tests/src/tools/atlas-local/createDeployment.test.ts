@@ -4,6 +4,7 @@ import {
     createAtlasLocalDeployment,
     describeWithAtlasLocal,
     describeWithAtlasLocalDisabled,
+    logAtlasLocalDeploymentDiagnostics,
 } from "./atlasLocalHelpers.js";
 import type { ListDatabasesOutput } from "@mongodb-js/mcp-tools-mongodb";
 import type { ListCollectionsOutput } from "@mongodb-js/mcp-tools-mongodb";
@@ -14,7 +15,14 @@ describeWithAtlasLocal({
     name: "atlas-local-create-deployment",
     fn: (integration) => {
         let deploymentNamesToCleanup: string[] = [];
-        afterEach(async () => {
+        afterEach(async (context) => {
+            // Dump container state and logs before cleanup so stalled
+            // deployments are diagnosable from the CI log (CLOUDP-459388).
+            if (context.task.result?.state === "fail") {
+                for (const deploymentName of deploymentNamesToCleanup) {
+                    logAtlasLocalDeploymentDiagnostics(deploymentName);
+                }
+            }
             // Clean up any deployments created during the test
             for (const deploymentName of deploymentNamesToCleanup) {
                 try {
@@ -158,6 +166,12 @@ describeWithAtlasLocal({
                     deploymentName,
                     loadSampleData: true,
                 });
+                if (createResponse.isError) {
+                    const message = getResponseElements(createResponse.content)
+                        .map((element) => element.text)
+                        .join("\n");
+                    throw new Error(`atlas-local-create-deployment failed: ${message}`);
+                }
                 const createElements = getResponseElements(createResponse.content);
                 expect(createElements.length).toBeGreaterThanOrEqual(1);
                 expect(createElements[0]?.text ?? "").toContain(deploymentName);
