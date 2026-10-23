@@ -553,10 +553,10 @@ describeWithMongoDB({
             });
             afterEach(() => {
                 vi.resetAllMocks();
-                integration.mcpServer().userConfig.aggregationCountMaxTimeMsCap = constants.AGG_COUNT_MAX_TIME_MS_CAP;
+                integration.mcpServer().userConfig.aggregationCountTimeoutMs = constants.AGG_COUNT_MAX_TIME_MS_CAP;
             });
             it("should abort count operation and respond with indeterminable count", async () => {
-                integration.mcpServer().userConfig.aggregationCountMaxTimeMsCap = 0.1;
+                integration.mcpServer().userConfig.aggregationCountTimeoutMs = 0.1;
                 const connectionId = await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
                     name: "aggregate",
@@ -605,7 +605,7 @@ describeWithMongoDB({
             });
         });
         it("should still abort the count operation when the connection timeout exceeds the cap", async () => {
-            integration.mcpServer().userConfig.aggregationCountMaxTimeMsCap = 0.1;
+            integration.mcpServer().userConfig.aggregationCountTimeoutMs = 0.1;
             const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "aggregate",

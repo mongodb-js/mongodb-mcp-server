@@ -301,10 +301,10 @@ describeWithMongoDB({
             });
             afterEach(() => {
                 vi.resetAllMocks();
-                integration.mcpServer().userConfig.queryCountMaxTimeMsCap = constants.QUERY_COUNT_MAX_TIME_MS_CAP;
+                integration.mcpServer().userConfig.queryCountTimeoutMs = constants.QUERY_COUNT_MAX_TIME_MS_CAP;
             });
             it("should abort count operation and respond with indeterminable count", async () => {
-                integration.mcpServer().userConfig.queryCountMaxTimeMsCap = 0.1;
+                integration.mcpServer().userConfig.queryCountTimeoutMs = 0.1;
                 const connectionId = await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
                     name: "find",
@@ -600,7 +600,7 @@ describeWithMongoDB({
             });
         });
         it("should still abort the count operation when the connection timeout exceeds the cap", async () => {
-            integration.mcpServer().userConfig.queryCountMaxTimeMsCap = 0.1;
+            integration.mcpServer().userConfig.queryCountTimeoutMs = 0.1;
             const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "find",

@@ -18,6 +18,13 @@
       "environmentVariables": [
         {
           "name": "MDB_MCP_AGGREGATION_COUNT_MAX_TIME_MS_CAP",
+          "description": "Deprecated. Use `aggregationCountTimeoutMs` instead.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_AGGREGATION_COUNT_TIMEOUT_MS",
           "description": "The maximum time in milliseconds for the count phase of aggregation operations. This is used to limit the time spent counting documents when determining if results were capped.",
           "isRequired": false,
           "format": "number",
@@ -319,6 +326,13 @@
         },
         {
           "name": "MDB_MCP_QUERY_COUNT_MAX_TIME_MS_CAP",
+          "description": "Deprecated. Use `queryCountTimeoutMs` instead.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_QUERY_COUNT_TIMEOUT_MS",
           "description": "The maximum time in milliseconds for the count phase of find operations. This is used to limit the time spent counting documents when determining if results were capped.",
           "isRequired": false,
           "format": "number",
@@ -364,6 +378,13 @@
         {
           "type": "named",
           "name": "--aggregationCountMaxTimeMsCap",
+          "description": "Deprecated. Use `aggregationCountTimeoutMs` instead.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--aggregationCountTimeoutMs",
           "description": "The maximum time in milliseconds for the count phase of aggregation operations. This is used to limit the time spent counting documents when determining if results were capped.",
           "isRequired": false,
           "format": "number"
@@ -647,6 +668,13 @@
         {
           "type": "named",
           "name": "--queryCountMaxTimeMsCap",
+          "description": "Deprecated. Use `queryCountTimeoutMs` instead.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--queryCountTimeoutMs",
           "description": "The maximum time in milliseconds for the count phase of find operations. This is used to limit the time spent counting documents when determining if results were capped.",
           "isRequired": false,
           "format": "number"
@@ -694,6 +722,13 @@
       "environmentVariables": [
         {
           "name": "MDB_MCP_AGGREGATION_COUNT_MAX_TIME_MS_CAP",
+          "description": "Deprecated. Use `aggregationCountTimeoutMs` instead.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_AGGREGATION_COUNT_TIMEOUT_MS",
           "description": "The maximum time in milliseconds for the count phase of aggregation operations. This is used to limit the time spent counting documents when determining if results were capped.",
           "isRequired": false,
           "format": "number",
@@ -995,6 +1030,13 @@
         },
         {
           "name": "MDB_MCP_QUERY_COUNT_MAX_TIME_MS_CAP",
+          "description": "Deprecated. Use `queryCountTimeoutMs` instead.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_QUERY_COUNT_TIMEOUT_MS",
           "description": "The maximum time in milliseconds for the count phase of find operations. This is used to limit the time spent counting documents when determining if results were capped.",
           "isRequired": false,
           "format": "number",
@@ -1040,6 +1082,13 @@
         {
           "type": "named",
           "name": "--aggregationCountMaxTimeMsCap",
+          "description": "Deprecated. Use `aggregationCountTimeoutMs` instead.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--aggregationCountTimeoutMs",
           "description": "The maximum time in milliseconds for the count phase of aggregation operations. This is used to limit the time spent counting documents when determining if results were capped.",
           "isRequired": false,
           "format": "number"
@@ -1323,6 +1372,13 @@
         {
           "type": "named",
           "name": "--queryCountMaxTimeMsCap",
+          "description": "Deprecated. Use `queryCountTimeoutMs` instead.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--queryCountTimeoutMs",
           "description": "The maximum time in milliseconds for the count phase of find operations. This is used to limit the time spent counting documents when determining if results were capped.",
           "isRequired": false,
           "format": "number"

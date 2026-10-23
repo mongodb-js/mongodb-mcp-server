@@ -65,8 +65,8 @@ const expectedDefaults = {
     allowRequestOverrides: false,
     httpResponseType: "sse",
     monitoringServerFeatures: ["health-check"],
-    queryCountMaxTimeMsCap: 10000,
-    aggregationCountMaxTimeMsCap: 60000,
+    queryCountTimeoutMs: 10000,
+    aggregationCountTimeoutMs: 60000,
 };
 
 const CONFIG_FIXTURES = {
@@ -253,6 +253,33 @@ describe("config", () => {
             const { warnings, parsed } = parseUserConfig({ args: ["--timeoutMs", "30000"] });
             expect(warnings).toHaveLength(0);
             expect(parsed?.timeoutMs).toBe(30000);
+        });
+
+        it("warns when --queryCountMaxTimeMsCap is used (deprecated option) and maps it to queryCountTimeoutMs", () => {
+            const { warnings, parsed } = parseUserConfig({ args: ["--queryCountMaxTimeMsCap", "5000"] });
+            expect(warnings).toHaveLength(1);
+            expect(warnings[0]).toContain("--queryCountMaxTimeMsCap");
+            expect(warnings[0]).toContain("deprecated");
+            expect(warnings[0]).toContain("--queryCountTimeoutMs");
+            expect(parsed?.queryCountTimeoutMs).toBe(5000);
+        });
+
+        it("warns when --aggregationCountMaxTimeMsCap is used (deprecated option) and maps it to aggregationCountTimeoutMs", () => {
+            const { warnings, parsed } = parseUserConfig({ args: ["--aggregationCountMaxTimeMsCap", "5000"] });
+            expect(warnings).toHaveLength(1);
+            expect(warnings[0]).toContain("--aggregationCountMaxTimeMsCap");
+            expect(warnings[0]).toContain("deprecated");
+            expect(warnings[0]).toContain("--aggregationCountTimeoutMs");
+            expect(parsed?.aggregationCountTimeoutMs).toBe(5000);
+        });
+
+        it("does not warn when the count timeout options are used", () => {
+            const { warnings, parsed } = parseUserConfig({
+                args: ["--queryCountTimeoutMs", "5000", "--aggregationCountTimeoutMs", "6000"],
+            });
+            expect(warnings).toHaveLength(0);
+            expect(parsed?.queryCountTimeoutMs).toBe(5000);
+            expect(parsed?.aggregationCountTimeoutMs).toBe(6000);
         });
 
         it("should not try to parse a multiple-host urls", () => {

@@ -40,8 +40,8 @@ export type IMongoDBConfig = IToolConfig & {
     maxDocumentsPerQuery: number;
     maxBytesPerQuery: number;
     httpHost: string;
-    queryCountMaxTimeMsCap: number;
-    aggregationCountMaxTimeMsCap: number;
+    queryCountTimeoutMs: number;
+    aggregationCountTimeoutMs: number;
 };
 
 /**

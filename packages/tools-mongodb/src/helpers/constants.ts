@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * A cap for the maxTimeMS used for FindCursor.countDocuments when config.queryCountMaxTimeMsCap is unset.
+ * A cap for the timeout used for FindCursor.countDocuments when config.queryCountTimeoutMs is unset.
  *
  * The number is relatively smaller because we expect the count documents query
  * to be finished sooner if not by the time the batch of documents is retrieved
@@ -10,8 +10,8 @@ import { z } from "zod";
 export const QUERY_COUNT_MAX_TIME_MS_CAP: number = 10_000;
 
 /**
- * A cap for the maxTimeMS used for counting resulting documents of an
- * aggregation when config.aggregationCountMaxTimeMsCap is unset.
+ * A cap for the timeout used for counting resulting documents of an
+ * aggregation when config.aggregationCountTimeoutMs is unset.
  */
 export const AGG_COUNT_MAX_TIME_MS_CAP: number = 60_000;
 

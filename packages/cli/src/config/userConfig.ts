@@ -291,24 +291,42 @@ const ServerConfigSchema = z.object({
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" })
         .register(argMetadata, { deprecationReplacement: "timeoutMs" }),
-    queryCountMaxTimeMsCap: z.coerce
+    queryCountTimeoutMs: z.coerce
         .number()
         .int()
-        .min(0, "queryCountMaxTimeMsCap must be non-negative")
+        .min(0, "queryCountTimeoutMs must be non-negative")
         .default(QUERY_COUNT_MAX_TIME_MS_CAP)
         .describe(
             "The maximum time in milliseconds for the count phase of find operations. This is used to limit the time spent counting documents when determining if results were capped."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
-    aggregationCountMaxTimeMsCap: z.coerce
+    /** @deprecated Use `queryCountTimeoutMs` instead. */
+    queryCountMaxTimeMsCap: z.coerce
         .number()
         .int()
-        .min(0, "aggregationCountMaxTimeMsCap must be non-negative")
+        .min(0, "queryCountMaxTimeMsCap must be non-negative")
+        .optional()
+        .describe("Deprecated. Use `queryCountTimeoutMs` instead.")
+        .register(configRegistry, { overrideBehavior: "not-allowed" })
+        .register(argMetadata, { deprecationReplacement: "queryCountTimeoutMs" }),
+    aggregationCountTimeoutMs: z.coerce
+        .number()
+        .int()
+        .min(0, "aggregationCountTimeoutMs must be non-negative")
         .default(AGG_COUNT_MAX_TIME_MS_CAP)
         .describe(
             "The maximum time in milliseconds for the count phase of aggregation operations. This is used to limit the time spent counting documents when determining if results were capped."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    /** @deprecated Use `aggregationCountTimeoutMs` instead. */
+    aggregationCountMaxTimeMsCap: z.coerce
+        .number()
+        .int()
+        .min(0, "aggregationCountMaxTimeMsCap must be non-negative")
+        .optional()
+        .describe("Deprecated. Use `aggregationCountTimeoutMs` instead.")
+        .register(configRegistry, { overrideBehavior: "not-allowed" })
+        .register(argMetadata, { deprecationReplacement: "aggregationCountTimeoutMs" }),
     exportsPath: z
         .string()
         .default(getExportsPath())
