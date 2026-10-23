@@ -2,6 +2,7 @@ import { MongoClient, type MongoClient as MongoClientType } from "mongodb";
 import { MongoDBClusterProcess } from "@mongodb-js/mcp-test-utils";
 import { afterAll, beforeAll } from "vitest";
 import { useAgent, type AgentHarness, type AgentHarnessOptions } from "@mongodb-js/harness-tester";
+import type { AllTools } from "mongodb-mcp-server";
 import type { InProcessServer } from "./inProcessServer.js";
 import { startInProcessServer } from "./inProcessServer.js";
 
@@ -21,7 +22,7 @@ export interface AgentE2EContext {
  * the in-process MongoDB MCP server (`startInProcessServer`) the agent connects
  * to by URL, plus connection/db accessors.
  */
-export function useMcpAgent({ harness }: { harness: AgentHarness }): AgentE2EContext {
+export function useMcpAgent({ harness, tools }: { harness: AgentHarness; tools?: typeof AllTools }): AgentE2EContext {
     const base = useAgent({ harness });
     let cluster: MongoDBClusterProcess | undefined;
     let server: InProcessServer | undefined;
@@ -39,7 +40,7 @@ export function useMcpAgent({ harness }: { harness: AgentHarness }): AgentE2ECon
             serverArgs: [],
         });
         connectionString = cluster.connectionString();
-        server = await startInProcessServer(connectionString);
+        server = await startInProcessServer(connectionString, tools);
     }, 120_000);
 
     afterAll(async () => {

@@ -4,8 +4,12 @@ import path from "node:path";
 import { canonicalPath, oauthCredentialStoreKey } from "../shared.js";
 import type { AgentHarnessConfig, AgentHarnessOptions } from "../types.js";
 
-/** Default model: grove serves the undated id; `haiku` resolves to a dated id it lacks. */
-const DEFAULT_CLAUDE_MODEL = "claude-haiku-5-5";
+/**
+ * Default model: grove serves undated ids, while `haiku` resolves to a dated id it
+ * lacks. `claude-haiku-5-5` is catalog-only (no deployment), so pin the latest haiku
+ * grove actually deploys.
+ */
+const DEFAULT_CLAUDE_MODEL = "claude-haiku-4-5";
 
 /** Minimum reasoning effort for e2e runs (mirrors the codex harness's `"low"`). */
 export const DEFAULT_CLAUDE_EFFORT_LEVEL = "low";
@@ -143,6 +147,12 @@ export function seedClaudeHome({
         hasCompletedOnboarding: true,
         shiftEnterKeyBindingInstalled: true,
         theme: "dark",
+        // Suppress Claude Code's auto-mode onboarding. It interposes a blocking
+        // "Make auto mode your default permission mode?" dialog (and related
+        // notices) that stalls the TUI before the composer is ready.
+        hasSeenAutoDefaultNudge: true,
+        hasSeenAutoModeEntryWarning: true,
+        hasSeenAutoDefaultNotice: true,
         // Mark the test workdir trusted so the trust gate never shows.
         projects: {
             [canonical]: { hasTrustDialogAccepted: true, allowedTools: [] },
