@@ -11,6 +11,25 @@ import type { ICompositeLogger } from "@mongodb-js/mcp-types";
 export function usesIndex(explainResult: Document): boolean {
     const queryPlanner = explainResult?.queryPlanner as Document | undefined;
     const winningPlan = queryPlanner?.winningPlan as Document | undefined;
+    const queryPlan = winningPlan?.queryPlan as Document | undefined;
+    const shards = winningPlan?.shards as Document[] | undefined;
+
+    // Slot-based execution wraps the same query plan under queryPlan.
+    if (queryPlan) {
+        return usesIndex({ queryPlanner: { winningPlan: queryPlan } });
+    }
+
+    // Mongos reports a winning plan per shard, rather than an inputStage.
+    // Every accessed shard must be indexed; an empty list proves nothing.
+    if (Array.isArray(shards)) {
+        return (
+            shards.length > 0 &&
+            shards.every((shard) =>
+                usesIndex({ queryPlanner: { winningPlan: shard?.winningPlan as Document | undefined } })
+            )
+        );
+    }
+
     const stage = winningPlan?.stage as string | undefined;
     const inputStage = winningPlan?.inputStage as Document | undefined;
 
