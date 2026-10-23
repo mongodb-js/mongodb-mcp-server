@@ -23,7 +23,9 @@ const filterFieldSchema = z
             ),
     })
     .strict()
-    .describe("Definition for a field that will be used for pre-filtering results.");
+    .describe(
+        "Definition for a field that will be used for pre-filtering results. Only add fields the user asked to filter on."
+    );
 
 const vectorFieldSchema = z
     .object({
@@ -74,7 +76,7 @@ For nested fields, use dot notation to specify the path to embedded fields.\
         model: z
             .enum(modelsSupportingAutoEmbedIndexes)
             .describe(
-                "Voyage embedding model to use for automatically generating embeddings from the source text in the indexed field."
+                "Voyage embedding model to use for automatically generating embeddings from the source text in the indexed field. Always set it. voyage-4-large: most accurate; voyage-4: balanced; voyage-4-lite: cheapest and fastest; voyage-code-3: source code."
             ),
         modality: z
             .enum(["text"])
@@ -92,7 +94,15 @@ For nested fields, use dot notation to specify the path to embedded fields.\
         `\
 Definition for a field containing source text from which embeddings will be automatically generated and managed by MongoDB at indexing time. \
 Use this type when you want MongoDB to handle all embedding generation and storage internally. \
-If the user specifies a dedicated field name for storing embeddings, use 'vector' type instead.\
+If the user specifies a dedicated field name for storing embeddings, use 'vector' type instead.
+
+Auto-embedding facts (cover every point when answering):
+- Availability: every Atlas tier (M0, Flex, dedicated), coupled or decoupled architecture, on AWS, GCP and Azure; no dedicated cluster needed. Inference runs on GCP in the US, so AWS and Azure clusters pay cross-cloud transfer, even within free tokens.
+- Billing: free tokens are per Atlas Organization, shared by indexing and queries across all indexes and models; then billed per token.
+- Query rate limits (separate from the free-token pool; indexing limits are internal and unrelated): per cluster and per model, in RPM and TPM, shared by that model's indexes; not per index or project, no auto-scaling. An M0 without a payment method is Tier 0 (lowest); adding one moves it to Tier 1 (voyage-4 ~8M TPM / 2k RPM, voyage-4-lite ~16M TPM / 2k RPM). On errors: backoff and retry, check the Atlas auto-embedding dashboard, request more via a support ticket. Never suggest bring-your-own embeddings.
+- Shrinking: (1) quantization lowers precision per number: float (default, full precision, largest), scalar (smaller, some loss), binary (much smaller, rescored), binaryNoRescore (no rescoring, lower ranking quality); (2) numDimensions shortens each vector: only 256, 512, 1024 (default) or 2048; fewer means less storage and relevance; (3) both combine; test on real queries; (4) either change rebuilds the index with per-token re-embedding, though queries stay the same; (5) later changes need the user's agreement on settings and cost.
+- Atlas supports quantization and numDimensions on autoEmbed fields, but this tool and MongoDB Community reject them: never drop an index to try them; leave it and show the Atlas definition.
+- Changing the model or fields also rebuilds and re-embeds, billed per token.
 `
     );
 
@@ -108,7 +118,8 @@ const vectorSearchIndexDefinition = z
 Definitions for the vector, autoEmbed and filter fields to index, one definition per document. \
 Use 'vector' when user specifies a dedicated field that could contain vector embeddings. \
 Use 'autoEmbed' when user wants MongoDB to automatically generate and manage embeddings internally from a text field (no separate embeddings field). \
-Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoEmbed' type field definition is required.\
+Use 'filter' for additional fields to filter on. At least one 'vector' or 'autoEmbed' type field definition is required. \
+If the user asks only for semantic search without saying who produces the embeddings (MongoDB: 'autoEmbed'; they: 'vector'), don't create the index: explain both and ask. For keyword plus semantic (hybrid) setup, use 'autoEmbed' without asking.\
 `),
     })
     .describe("Definition for a Vector Search index.");

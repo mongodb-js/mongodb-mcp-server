@@ -90,7 +90,7 @@ const zAutoEmbedVectorSearchStageParams = zCommonVectorSearchStageParams.extend(
         .enum(modelsSupportingAutoEmbedIndexes)
         .optional()
         .describe(
-            "The embedding model to use for generating embeddings from the query text. If not specified, defaults to the model configured in the auto-embed index definition."
+            "The embedding model to use for generating embeddings from the query text. If not specified, defaults to the model configured in the auto-embed index definition. Voyage-4 models share one embedding space: a cheaper Voyage-4 model can query any Voyage-4 index with no rebuild or re-embedding, though query tokens are still billed. Never mix families (e.g. voyage-code-3 on a Voyage-4 index). When explaining overrides, cover: the default (index model when omitted), shared space, family restriction, no rebuild, billing, and cost/latency vs relevance."
         ),
 });
 
