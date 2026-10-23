@@ -81,7 +81,14 @@
         },
         {
           "name": "MDB_MCP_CONNECTION_STRING",
-          "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
+          "description": "MongoDB connection string for direct database connections, exposed under the connectionId \"preconfigured\". Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data. Deprecated: prefer the \"preconfigured\" entry of connectionStrings.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        },
+        {
+          "name": "MDB_MCP_CONNECTION_STRINGS",
+          "description": "MongoDB connection strings keyed by name, as a JSON object (e.g. {\"preconfigured\": \"mongodb://...\", \"analytics\": \"mongodb://...\"}). Each name becomes a connectionId that the MongoDB tools can use directly, so one server can reach several deployments. Connections are opened on first use. Environment variable or config file only.",
           "isRequired": false,
           "format": "string",
           "isSecret": true
@@ -415,7 +422,7 @@
         {
           "type": "named",
           "name": "--connectionString",
-          "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
+          "description": "MongoDB connection string for direct database connections, exposed under the connectionId \"preconfigured\". Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data. Deprecated: prefer the \"preconfigured\" entry of connectionStrings.",
           "isRequired": false
         },
         {
@@ -743,7 +750,14 @@
         },
         {
           "name": "MDB_MCP_CONNECTION_STRING",
-          "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
+          "description": "MongoDB connection string for direct database connections, exposed under the connectionId \"preconfigured\". Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data. Deprecated: prefer the \"preconfigured\" entry of connectionStrings.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        },
+        {
+          "name": "MDB_MCP_CONNECTION_STRINGS",
+          "description": "MongoDB connection strings keyed by name, as a JSON object (e.g. {\"preconfigured\": \"mongodb://...\", \"analytics\": \"mongodb://...\"}). Each name becomes a connectionId that the MongoDB tools can use directly, so one server can reach several deployments. Connections are opened on first use. Environment variable or config file only.",
           "isRequired": false,
           "format": "string",
           "isSecret": true
@@ -1077,7 +1091,7 @@
         {
           "type": "named",
           "name": "--connectionString",
-          "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
+          "description": "MongoDB connection string for direct database connections, exposed under the connectionId \"preconfigured\". Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data. Deprecated: prefer the \"preconfigured\" entry of connectionStrings.",
           "isRequired": false
         },
         {

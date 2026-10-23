@@ -10,6 +10,7 @@ import { DeviceId } from "../helpers/deviceId.js";
 import { ErrorCodes, MongoDBError } from "./errors.js";
 
 const defaultTestConfig: ConnectionStoreConfig = {
+    connectionStrings: {},
     maxActiveConnections: 10,
     connectionIdleTimeoutMs: 600_000,
     transport: "stdio",
@@ -142,7 +143,10 @@ describe("ConnectionRegistry", () => {
     });
 
     describe("preconfigured entry", () => {
-        const config = { ...defaultTestConfig, connectionString: "mongodb://localhost:27017" };
+        const config = {
+            ...defaultTestConfig,
+            connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: "mongodb://localhost:27017" },
+        };
 
         it("is seeded undialed when a connection string is configured", async () => {
             const registry = makeStore({ options: config }).view();
@@ -207,6 +211,121 @@ describe("ConnectionRegistry", () => {
         });
     });
 
+    describe("named connection strings", () => {
+        const named = {
+            analytics: "mongodb://analytics.example.com:27017",
+            "orders-replica": "mongodb://orders.example.com:27017",
+        };
+        const config = {
+            ...defaultTestConfig,
+            connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: "mongodb://default.example.com:27017", ...named },
+        };
+
+        /** The seeded managers in seeding order: preconfigured, analytics, orders-replica. */
+        function seededManagers(): FakeConnectionManager[] {
+            return [...new Set(managers)];
+        }
+
+        it("seeds one undialed pinned entry per name, with the name as its connectionId", async () => {
+            const registry = makeStore({ options: config }).view();
+            const summaries = (await registry.find(() => true)).map((entry) => summarizeConnection(entry));
+            expect(summaries.map((summary) => summary.connectionId)).toEqual([
+                PRECONFIGURED_CONNECTION_ID,
+                "analytics",
+                "orders-replica",
+            ]);
+            for (const summary of summaries) {
+                expect(summary.source).toBe("preconfigured");
+                expect(summary.state).toBe("disconnected");
+            }
+            expect(managers.every((manager) => manager.connectCalls.length === 0)).toBe(true);
+        });
+
+        it("is seeded without a default connection string", async () => {
+            const registry = makeStore({ options: { ...config, connectionStrings: named } }).view();
+            await expect(registry.peek(PRECONFIGURED_CONNECTION_ID)).resolves.toBeUndefined();
+            await expect(registry.peek("analytics")).resolves.toBeDefined();
+        });
+
+        it("dials only the used entry, with its own connection string", async () => {
+            const registry = makeStore({ options: config }).view();
+            await expect(registry.resolve("orders-replica")).resolves.toEqual({ fake: true });
+
+            const [preconfigured, analytics, orders] = seededManagers();
+            expect(preconfigured?.connectCalls).toHaveLength(0);
+            expect(analytics?.connectCalls).toHaveLength(0);
+            expect(orders?.connectCalls).toHaveLength(1);
+            expect(orders?.connectCalls[0]?.connectionString).toContain("orders.example.com");
+        });
+
+        it("dials different entries concurrently, each to its own deployment", async () => {
+            const registry = makeStore({ options: config }).view();
+            await Promise.all([
+                registry.resolve(PRECONFIGURED_CONNECTION_ID),
+                registry.resolve("analytics"),
+                registry.resolve("orders-replica"),
+            ]);
+
+            const [preconfigured, analytics, orders] = seededManagers();
+            expect(preconfigured?.connectCalls[0]?.connectionString).toContain("default.example.com");
+            expect(analytics?.connectCalls[0]?.connectionString).toContain("analytics.example.com");
+            expect(orders?.connectCalls[0]?.connectionString).toContain("orders.example.com");
+        });
+
+        it("shares one dial between concurrent resolves of the same entry", async () => {
+            const registry = makeStore({ options: config }).view();
+            await Promise.all([registry.resolve("analytics"), registry.resolve("analytics")]);
+            expect(seededManagers()[1]?.connectCalls).toHaveLength(1);
+        });
+
+        it("survives disconnect and re-dials on next use", async () => {
+            const registry = makeStore({ options: config }).view();
+            await registry.resolve("analytics");
+            await registry.disconnect("analytics");
+            expect((await registry.peek("analytics"))?.state.tag).toBe("disconnected");
+            await registry.resolve("analytics");
+            expect(seededManagers()[1]?.connectCalls).toHaveLength(2);
+        });
+
+        it("names the failing connection when its dial fails", async () => {
+            const logger = new CompositeLogger();
+            const errorSpy = vi.spyOn(logger, "error");
+            const registry = makeStore({ options: config, logger }).view();
+            (seededManagers()[1] as FakeConnectionManager).failNextConnect = new Error("bad string");
+
+            const error = await registry.resolve("analytics").catch((e: unknown) => e);
+
+            expect((error as MongoDBError).code).toBe(ErrorCodes.MisconfiguredConnectionString);
+            expect(errorSpy).toHaveBeenCalledWith(
+                expect.objectContaining({ message: expect.stringContaining('"analytics"') as string })
+            );
+        });
+
+        it.each([
+            { name: "has space", error: /may only contain/ },
+            { name: "a".repeat(65), error: /may only contain/ },
+        ])("rejects the invalid name $name when the store is constructed directly", ({ name, error }) => {
+            expect(() =>
+                makeStore({ options: { ...defaultTestConfig, connectionStrings: { [name]: "mongodb://localhost" } } })
+            ).toThrow(error);
+        });
+
+        it("are neither reaped nor counted against maxActiveConnections", async () => {
+            const store = makeStore({
+                options: { ...config, maxActiveConnections: 1, connectionIdleTimeoutMs: 1000 },
+            });
+            const registry = store.view();
+            await registry.resolve("analytics");
+            await registry.connect({ settings: { connectionString: "mongodb://explicit:27017" } });
+
+            await vi.advanceTimersByTimeAsync(120_000);
+
+            await expect(registry.peek("analytics")).resolves.toBeDefined();
+            await expect(registry.peek("orders-replica")).resolves.toBeDefined();
+            expect(seededManagers()[1]?.closed).toBe(false);
+        });
+    });
+
     describe("disconnect", () => {
         it("revokes explicit entries and runs the onRevoke callback", async () => {
             const registry = makeStore().view();
@@ -234,7 +353,7 @@ describe("ConnectionRegistry", () => {
             const registry = makeStore({
                 options: {
                     ...defaultTestConfig,
-                    connectionString: "mongodb://localhost:27017",
+                    connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: "mongodb://localhost:27017" },
                     maxActiveConnections: 2,
                 },
             }).view();
@@ -285,7 +404,10 @@ describe("ConnectionRegistry", () => {
     });
 
     describe("scoped views", () => {
-        const scopedConfig = { ...defaultTestConfig, connectionString: "mongodb://localhost:27017" };
+        const scopedConfig = {
+            ...defaultTestConfig,
+            connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: "mongodb://localhost:27017" },
+        };
 
         it("hides entries created through one view from other views", async () => {
             const store = makeStore();
@@ -383,7 +505,10 @@ describe("ConnectionRegistry", () => {
     describe("store closeAll", () => {
         it("closes and removes every entry, including the preconfigured one", async () => {
             const store = makeStore({
-                options: { ...defaultTestConfig, connectionString: "mongodb://localhost:27017" },
+                options: {
+                    ...defaultTestConfig,
+                    connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: "mongodb://localhost:27017" },
+                },
             });
             const scoped = store.view({ scope: "scope-a" });
             const unbound = store.view();
@@ -490,7 +615,7 @@ describe("ConnectionRegistry", () => {
             const store = makeStore({
                 options: {
                     ...defaultTestConfig,
-                    connectionString: "mongodb://localhost:27017",
+                    connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: "mongodb://localhost:27017" },
                     connectionIdleTimeoutMs: 1000,
                 },
             });
