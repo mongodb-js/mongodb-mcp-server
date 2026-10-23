@@ -385,11 +385,7 @@ export class AggregateTool extends MongoDBToolBase {
                 .aggregate(database, collection, resultsCountAggregation, {
                     signal: abortSignal,
                 })
-                .maxTimeMS(
-                    config.maxTimeMS !== undefined
-                        ? Math.min(config.maxTimeMS, config.aggregationCountMaxTimeMsCap)
-                        : config.aggregationCountMaxTimeMsCap
-                )
+                .maxTimeMS(this.getCountPhaseMaxTimeMs(config, config.aggregationCountMaxTimeMsCap))
                 .toArray();
 
             const documentWithCount: unknown = aggregationResults.length === 1 ? aggregationResults[0] : undefined;

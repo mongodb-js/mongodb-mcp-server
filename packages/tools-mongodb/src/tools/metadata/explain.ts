@@ -85,12 +85,6 @@ export class ExplainTool extends MongoDBToolBase {
             );
         }
 
-        // The driver rejects maxTimeMS together with timeoutMS for explain commands.
-        // Apply the configured cap as the explain call's timeout instead. CSOT derives
-        // the server-side maxTimeMS from the remaining time.
-        const explainTimeout =
-            this.server.config.maxTimeMS !== undefined ? { timeoutMS: this.server.config.maxTimeMS } : undefined;
-
         let result: Document;
         switch (method.name) {
             case "aggregate": {
@@ -102,13 +96,13 @@ export class ExplainTool extends MongoDBToolBase {
                         collection,
                         pipeline,
                         {
-                            ...(request.signal && { signal: request.signal }),
+                            ...this.getOperationOptions(request),
                         },
                         {
                             writeConcern: undefined,
                         }
                     )
-                    .explain(verbosity, explainTimeout ?? {});
+                    .explain(verbosity);
                 break;
             }
             case "find": {
@@ -117,9 +111,9 @@ export class ExplainTool extends MongoDBToolBase {
                 result = await provider
                     .find(database, collection, filter, {
                         ...rest,
-                        ...(request.signal && { signal: request.signal }),
+                        ...this.getOperationOptions(request),
                     })
-                    .explain(verbosity, explainTimeout ?? {});
+                    .explain(verbosity);
                 break;
             }
             case "count": {

@@ -591,7 +591,7 @@ describeWithMongoDB({
     },
 });
 describeWithMongoDB({
-    name: "find tool with configured maxTimeMS",
+    name: "find tool with configured timeoutMs",
     fn: (integration) => {
         beforeEach(async () => {
             await freshInsertDocuments({
@@ -599,7 +599,7 @@ describeWithMongoDB({
                 count: 5,
             });
         });
-        it("should return results when maxTimeMS is sufficient", async () => {
+        it("should return results when timeoutMs is sufficient", async () => {
             const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "find",
@@ -611,11 +611,11 @@ describeWithMongoDB({
         });
     },
     config: {
-        getUserConfig: () => ({ ...defaultTestConfig, maxTimeMS: 10000 }),
+        getUserConfig: () => ({ ...defaultTestConfig, timeoutMs: 10000 }),
     },
 });
 describeWithMongoDB({
-    name: "find tool with low maxTimeMS rejects slow queries",
+    name: "find tool with low timeoutMs rejects slow queries",
     fn: (integration) => {
         beforeEach(async () => {
             await freshInsertDocuments({
@@ -623,7 +623,7 @@ describeWithMongoDB({
                 count: 5,
             });
         });
-        it("should fail when maxTimeMS is too low for a slow query", async () => {
+        it("should fail when timeoutMs is too low for a slow query", async () => {
             const connectionId = await integration.connectMcpClient();
             const response = await integration.mcpClient().callTool({
                 name: "find",
@@ -637,12 +637,12 @@ describeWithMongoDB({
                 },
             });
             const content = getResponseContent(response);
-            expect(content).toContain("operation exceeded time limit");
+            expect(content).toMatch(/timed out|exceeded time limit/i);
             expect(response.structuredContent).toBeUndefined();
         });
     },
     config: {
-        getUserConfig: () => ({ ...defaultTestConfig, maxTimeMS: 100, disableServerSideJs: false }),
+        getUserConfig: () => ({ ...defaultTestConfig, timeoutMs: 100, disableServerSideJs: false }),
     },
 });
 describeWithMongoDB({

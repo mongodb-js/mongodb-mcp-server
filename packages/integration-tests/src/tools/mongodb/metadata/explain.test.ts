@@ -369,7 +369,7 @@ describeWithMongoDB({
     },
 });
 describeWithMongoDB({
-    name: "explain tool with configured maxTimeMS",
+    name: "explain tool with configured timeoutMs",
     fn: (integration) => {
         beforeEach(async () => {
             await integration
@@ -389,6 +389,7 @@ describeWithMongoDB({
 
         for (const testCase of testCases) {
             it(`should explain ${testCase.method} when the connection has a client-level timeoutMS`, async () => {
+                // Mirrors the MMS X.509 path, which supplies driverOptions explicitly.
                 const entry = await integration.mcpServer().connectionRegistry.connect({
                     settings: {
                         connectionString: integration.connectionString(),
@@ -419,6 +420,6 @@ describeWithMongoDB({
         }
     },
     config: {
-        getUserConfig: () => ({ ...defaultTestConfig, maxTimeMS: 10000 }),
+        getUserConfig: () => ({ ...defaultTestConfig, timeoutMs: 10000 }),
     },
 });

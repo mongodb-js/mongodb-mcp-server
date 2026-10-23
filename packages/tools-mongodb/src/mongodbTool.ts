@@ -35,7 +35,9 @@ export type IMongoDBConfig = IToolConfig & {
     connectionString: string | undefined;
     indexCheck: boolean;
     disableServerSideJs: boolean;
-    maxTimeMS: number | undefined;
+    timeoutMs: number | undefined;
+    /** @deprecated Use `timeoutMs`. Retained so directly-constructed configs keep working. */
+    maxTimeMS?: number;
     maxDocumentsPerQuery: number;
     maxBytesPerQuery: number;
     httpHost: string;
@@ -127,15 +129,25 @@ export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
     }
 
     /**
-     * Returns common operation options (signal, maxTimeMS) to pass to service provider methods.
-     * If `maxTimeMS` is configured in the request's effective config, it will be included
-     * in the returned options.
+     * Returns common operation options (signal) to pass to service provider methods.
+     *
+     * Timeouts are enforced through the connection's client-level driver
+     * `timeoutMS` (see `timeoutMs` config), not as per-operation `maxTimeMS`:
+     * the driver silently derives the server-side `maxTimeMS` from the
+     * remaining client timeout, and rejects the pair outright for explain.
      */
-    protected getOperationOptions(request: ToolRequest<IMongoDBConfig>): { signal?: AbortSignal; maxTimeMS?: number } {
+    protected getOperationOptions(request: ToolRequest<IMongoDBConfig>): { signal?: AbortSignal } {
         return {
             ...(request.signal && { signal: request.signal }),
-            ...(this.server.config.maxTimeMS !== undefined && { maxTimeMS: this.server.config.maxTimeMS }),
         };
+    }
+
+    /**
+     * Resolves the server-side cap for the internal count phase of find and
+     * aggregate, honoring the deprecated `maxTimeMS` alias.
+     */
+    protected getCountPhaseMaxTimeMs(config: IMongoDBConfig, cap: number): number {
+        return Math.min(config.timeoutMs ?? config.maxTimeMS ?? cap, cap);
     }
 
     /**

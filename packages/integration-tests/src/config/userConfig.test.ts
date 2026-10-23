@@ -227,6 +227,34 @@ describe("config", () => {
             expect(warnings).toHaveLength(0);
         });
 
+        it("warns when --maxTimeMS is used (deprecated option) and maps it to timeoutMs", () => {
+            const { warnings, parsed } = parseUserConfig({ args: ["--maxTimeMS", "30000"] });
+            expect(warnings).toHaveLength(1);
+            expect(warnings[0]).toContain("--maxTimeMS");
+            expect(warnings[0]).toContain("deprecated");
+            expect(warnings[0]).toContain("--timeoutMs");
+            expect(parsed?.timeoutMs).toBe(30000);
+        });
+
+        it("warns when MDB_MCP_MAX_TIME_M_S env var is set (deprecated option)", () => {
+            const { setVariable, clearVariables } = createEnvironment();
+            setVariable("MDB_MCP_MAX_TIME_M_S", "15000");
+            try {
+                const { warnings, parsed } = parseUserConfig({ args: [] });
+                expect(warnings).toHaveLength(1);
+                expect(warnings[0]).toContain("deprecated");
+                expect(parsed?.timeoutMs).toBe(15000);
+            } finally {
+                clearVariables();
+            }
+        });
+
+        it("does not warn when timeoutMs is used", () => {
+            const { warnings, parsed } = parseUserConfig({ args: ["--timeoutMs", "30000"] });
+            expect(warnings).toHaveLength(0);
+            expect(parsed?.timeoutMs).toBe(30000);
+        });
+
         it("should not try to parse a multiple-host urls", () => {
             const { parsed: actual } = parseUserConfig({
                 args: ["--connectionString", "mongodb://user:password@host1,host2,host3/"],

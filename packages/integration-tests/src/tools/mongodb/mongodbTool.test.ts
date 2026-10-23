@@ -513,7 +513,7 @@ describe("MongoDBTool implementations", () => {
     });
 
     describe("getOperationOptions", () => {
-        it("should return only signal when maxTimeMS is not configured", async () => {
+        it("should return the signal when provided", async () => {
             await cleanupAndStartServer();
             const tool = mcpServer?.tools.find((t) => t.name === "Random");
             expectDefined(tool);
@@ -526,39 +526,9 @@ describe("MongoDBTool implementations", () => {
             } as ToolRequest<IMongoDBConfig>);
 
             expect(options).toEqual({ signal });
-            expect(options).not.toHaveProperty("maxTimeMS");
         });
 
-        it("should return signal and maxTimeMS when maxTimeMS is configured", async () => {
-            await cleanupAndStartServer({ maxTimeMS: 30000 });
-            const tool = mcpServer?.tools.find((t) => t.name === "Random");
-            expectDefined(tool);
-            const randomTool = tool as RandomTool;
-
-            const signal = AbortSignal.timeout(5000);
-            const options = randomTool["getOperationOptions"]({
-                server: mcpServer as unknown as ToolServer,
-                signal,
-            } as ToolRequest<IMongoDBConfig>);
-
-            expect(options).toEqual({ signal, maxTimeMS: 30000 });
-        });
-
-        it("should return only maxTimeMS when signal is undefined", async () => {
-            await cleanupAndStartServer({ maxTimeMS: 15000 });
-            const tool = mcpServer?.tools.find((t) => t.name === "Random");
-            expectDefined(tool);
-            const randomTool = tool as RandomTool;
-
-            const options = randomTool["getOperationOptions"]({
-                server: mcpServer as unknown as ToolServer,
-                signal: undefined as AbortSignal | undefined,
-            } as ToolRequest<IMongoDBConfig>);
-
-            expect(options).toEqual({ maxTimeMS: 15000 });
-        });
-
-        it("should return empty object when neither signal nor maxTimeMS is provided", async () => {
+        it("should return an empty object when signal is undefined", async () => {
             await cleanupAndStartServer();
             const tool = mcpServer?.tools.find((t) => t.name === "Random");
             expectDefined(tool);
@@ -570,35 +540,6 @@ describe("MongoDBTool implementations", () => {
             } as ToolRequest<IMongoDBConfig>);
 
             expect(options).toEqual({});
-        });
-
-        it("should treat maxTimeMS of 0 as a valid value", async () => {
-            await cleanupAndStartServer({ maxTimeMS: 0 });
-            const tool = mcpServer?.tools.find((t) => t.name === "Random");
-            expectDefined(tool);
-            const randomTool = tool as RandomTool;
-
-            const signal = AbortSignal.timeout(5000);
-            const options = randomTool["getOperationOptions"]({
-                server: mcpServer as unknown as ToolServer,
-                signal,
-            } as ToolRequest<IMongoDBConfig>);
-
-            expect(options).toEqual({ signal, maxTimeMS: 0 });
-        });
-
-        it("should return maxTimeMS 0 without signal", async () => {
-            await cleanupAndStartServer({ maxTimeMS: 0 });
-            const tool = mcpServer?.tools.find((t) => t.name === "Random");
-            expectDefined(tool);
-            const randomTool = tool as RandomTool;
-
-            const options = randomTool["getOperationOptions"]({
-                server: mcpServer as unknown as ToolServer,
-                signal: undefined as AbortSignal | undefined,
-            } as ToolRequest<IMongoDBConfig>);
-
-            expect(options).toEqual({ maxTimeMS: 0 });
         });
     });
 });
