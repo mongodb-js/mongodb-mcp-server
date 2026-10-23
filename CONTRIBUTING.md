@@ -262,6 +262,29 @@ All pull requests automatically run through the "Code Health" workflow, which:
 - Verifies code style and formatting
 - Runs tests on multiple platforms (Ubuntu, macOS, Windows)
 
+#### Dependency Review
+
+Pull requests targeting `main` also run the **Dependency Review** workflow.
+It uses GitHub's dependency graph to compare dependency changes, including
+`pnpm-lock.yaml` and workspace package manifests. Newly introduced dependency
+versions with known **high** or **critical** vulnerabilities fail the check,
+across runtime, development, and unknown dependency scopes. Unchanged
+dependencies are not audited, so existing findings do not become a blanket
+gate for unrelated pull requests.
+
+Results appear in the workflow logs and job summary, not PR comments. The
+workflow only checks vulnerabilities; license policy and OpenSSF Scorecard
+checks are disabled. API or configuration errors still fail the check.
+It uses a read-only token without checking out or installing PR code, running
+package scripts, or accessing repository secrets, so fork PRs use the same
+check. GitHub's dependency graph must remain enabled for this public repository.
+
+This is a PR-time regression check, not a scheduled full dependency audit or
+an automatic fix. It is separate from the stable-release production SBOM
+upload introduced in [#1602](https://github.com/mongodb-js/mongodb-mcp-server/pull/1602);
+it never uploads an unreleased SBOM to Kondukto or changes release version,
+channel, or commit selection.
+
 ## `packages/mongodb-atlas-mcp-remote`
 
 `mongodb-atlas-mcp-remote` is a stdio proxy that forwards MCP requests to a
