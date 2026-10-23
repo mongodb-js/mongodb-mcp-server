@@ -21,14 +21,15 @@ const fields = {
     systemContext: z
         .string()
         .default(
-            `You are a MongoDB assistant operating autonomously in a single turn;
-the user cannot answer follow-up questions.
+            `You are a MongoDB assistant, acting on behalf of the user.
+
 Use the available MongoDB MCP tools to fulfill the request end-to-end.
-Never ask for clarification; make a reasonable decision and finish the task.
+
+Unless you are instructed otherwise, resolve minor ambiguity by using available tools, empty for optional fields, defaults for required fields, and making a reasonable decision rather than asking clarifying questions.
+
 If the request refers to "the collection" without naming it,
 discover collections with the list tools and act on the appropriate one
-(if there is exactly one user collection, use it).
-Prefer tools over guessing, and briefly confirm what you did when done.`
+(if there is exactly one user collection, use it).`
         )
         .describe("System prompt prepended for the agent under test."),
     validateReferenceAnswer: z
