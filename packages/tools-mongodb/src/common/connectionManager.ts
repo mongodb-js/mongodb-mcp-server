@@ -326,6 +326,12 @@ export type ConnectionManagerOptions = {
      * settings.
      */
     driverConfig?: ConnectionDriverConfig;
+    /**
+     * Client-side operation timeout (CSOT) applied as the driver `timeoutMS`
+     * on every connection, overriding the MCP default. When unset, the
+     * {@link defaultDriverOptions} value is used.
+     */
+    timeoutMs?: number;
     /** Optional event emitter shared with the OIDC plugin to receive `mongodb-oidc-plugin:auth-*` notifications. */
     bus?: EventEmitter;
 };
@@ -353,6 +359,7 @@ export class MCPConnectionManager extends ConnectionManager {
     private readonly serverMetadata: ServerMetadata;
     private readonly connectionInfo: ConnectionInfo;
     private readonly driverConfig: ConnectionDriverConfig;
+    private readonly timeoutMs: number | undefined;
     private logger: LoggerBase;
 
     /**
@@ -363,13 +370,24 @@ export class MCPConnectionManager extends ConnectionManager {
      * @param options.connectionInfo - Transport / browser hints for OIDC auth inference.
      * @param options.driverConfig - Server-configured connection settings applied to
      * connects without explicit driver options.
+     * @param options.timeoutMs - Client-side operation timeout (CSOT) applied as the
+     * driver `timeoutMS` on every connection.
      * @param options.bus - Optional event emitter shared with the OIDC plugin.
      */
-    constructor({ logger, deviceId, bus, serverMetadata, connectionInfo, driverConfig }: ConnectionManagerOptions) {
+    constructor({
+        logger,
+        deviceId,
+        bus,
+        serverMetadata,
+        connectionInfo,
+        driverConfig,
+        timeoutMs,
+    }: ConnectionManagerOptions) {
         super();
         this.serverMetadata = serverMetadata;
         this.connectionInfo = connectionInfo;
         this.driverConfig = driverConfig ?? {};
+        this.timeoutMs = timeoutMs;
         this.logger = logger;
         this.bus = bus ?? new EventEmitter();
         this.bus.on("mongodb-oidc-plugin:auth-failed", this.onOidcAuthFailed.bind(this));
@@ -453,6 +471,10 @@ export class MCPConnectionManager extends ConnectionManager {
                 productDocsLink: "https://github.com/mongodb-js/mongodb-mcp-server/",
                 productName: "MongoDB MCP",
                 ...mongoshConnectionInfo.driverOptions,
+                // Applied here rather than through the arg-parser, which drops
+                // unknown driver options (including `timeoutMS`) from the derived
+                // path. The server config wins over any caller-supplied value.
+                ...(this.timeoutMs !== undefined && { timeoutMS: this.timeoutMs }),
             };
             serviceProvider = settings.mongoClient
                 ? Promise.resolve(

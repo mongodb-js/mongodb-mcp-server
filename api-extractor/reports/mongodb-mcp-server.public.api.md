@@ -1124,9 +1124,12 @@ export const UserConfigSchema: z.ZodObject<{
     externallyManagedSessions: z.ZodDefault<z.ZodBoolean>;
     maxBytesPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxDocumentsPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    timeoutMs: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
     maxTimeMS: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
-    queryCountMaxTimeMsCap: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
-    aggregationCountMaxTimeMsCap: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    queryCountTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    queryCountMaxTimeMsCap: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
+    aggregationCountTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    aggregationCountMaxTimeMsCap: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
     exportsPath: z.ZodDefault<z.ZodString>;
     exportTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     exportCleanupIntervalMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;

@@ -36,6 +36,10 @@ export type ConnectionStoreConfig = ConnectionDriverConfig & {
     connectionIdleTimeoutMs: number;
     transport: "stdio" | "http";
     httpHost: string;
+    /** Client-side operation timeout (CSOT) applied as the driver `timeoutMS`. */
+    timeoutMs?: number;
+    /** @deprecated Use `timeoutMs`. Resolved here so directly-constructed configs keep working. */
+    maxTimeMS?: number;
 };
 
 /**
@@ -152,6 +156,7 @@ export class MCPConnectionStore {
             // by mongosh's arg-parser, so passing the whole object is
             // equivalent to passing just the driver fields.
             driverConfig: this.options,
+            timeoutMs: this.options.timeoutMs ?? this.options.maxTimeMS,
         });
     }
 
