@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { CodexHarnessConfig, seedCodexOAuthCredentials } from "./codexConfig.js";
+import { CodexHarnessConfig, seedCodexOAuthCredentials, STREAM_IDLE_TIMEOUT_MS } from "./codexConfig.js";
 import { oauthCredentialStoreKey } from "../shared.js";
 import type { AgentHarnessOptions } from "../types.js";
 
@@ -133,6 +133,13 @@ describe("CodexHarnessConfig", () => {
         expect(config).toContain("[mcp_servers.mongo.env]");
         expect(config.indexOf("sandbox_mode")).toBeLessThan(config.indexOf("["));
         expect(config.indexOf("allow_login_shell")).toBeLessThan(config.indexOf("["));
+    });
+
+    it("retries a stalled model stream within the turn budget", () => {
+        const config = buildConfig(buildOptions());
+        const provider = config.slice(config.indexOf("[model_providers.grove]"));
+        expect(provider).toContain(`stream_idle_timeout_ms = ${STREAM_IDLE_TIMEOUT_MS}`);
+        expect(STREAM_IDLE_TIMEOUT_MS).toBeLessThan(120_000);
     });
 
     it("forces the file credential store only when oauth is seeded", () => {

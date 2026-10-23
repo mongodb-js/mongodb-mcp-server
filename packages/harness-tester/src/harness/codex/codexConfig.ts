@@ -15,6 +15,12 @@ export const DEFAULT_CODEX_MODEL = "gpt-6-luna";
 /** Reasoning effort applied to the harness session's model. */
 export const DEFAULT_CODEX_REASONING_EFFORT = "low";
 
+/**
+ * Abort a model response stream after this long without a chunk, then retry.
+ * Codex's default is 5 minutes, which outlives a test's turn budget.
+ */
+export const STREAM_IDLE_TIMEOUT_MS = 30_000;
+
 function tomlString(value: string): string {
     // TOML basic strings: escape backslash + double quote.
     return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
@@ -76,6 +82,10 @@ export class CodexHarnessConfig implements AgentHarnessConfig {
             `env_key_instructions = "Set GROVE_API_KEY in your environment"`,
             `supports_websockets = false`,
             `env_http_headers = { "api-key" = "GROVE_API_KEY" }`,
+            // The default 5-minute idle timeout is longer than a test's turn budget, so a
+            // stalled response stream (seen behind CI's proxy) looks like a hang. Abort and
+            // retry much sooner so a transient stall recovers within the harness timeout.
+            `stream_idle_timeout_ms = ${STREAM_IDLE_TIMEOUT_MS}`,
         ].join("\n");
     }
 
