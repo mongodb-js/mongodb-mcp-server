@@ -6,7 +6,7 @@ export { NoopLogger } from "./logging/noopLogger.js";
 export { CompositeLogger } from "./logging/compositeLogger.js";
 export { Keychain, type SecretKind } from "./keychain.js";
 export { NoopTelemetry } from "./telemetry/noopTelemetry.js";
-export { UserFacingError, ToolArgumentValidationError } from "./errors.js";
+export { UserFacingError, ToolArgumentValidationError, ConfirmationDeclinedError } from "./errors.js";
 export type { Secret } from "mongodb-redact";
 export { McpServer } from "@modelcontextprotocol/server";
 export type { InputRequiredResult, CallToolResult } from "@modelcontextprotocol/server";

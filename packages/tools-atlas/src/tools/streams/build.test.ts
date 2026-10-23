@@ -4,6 +4,7 @@ import type { IAtlasConfig } from "@mongodb-js/mcp-tools-atlas";
 import { StreamsBuildTool } from "@mongodb-js/mcp-tools-atlas";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Elicitation } from "@mongodb-js/mcp-core";
+import { Keychain } from "@mongodb-js/mcp-core";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { CallToolResult } from "@mongodb-js/mcp-types";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
@@ -21,6 +22,7 @@ describe("StreamsBuildTool", () => {
         confirmationRequired: ReturnType<typeof vi.fn>;
     };
     let tool: StreamsBuildTool;
+    let server: AtlasToolServer;
 
     beforeEach(() => {
         mockApiClient = {
@@ -70,8 +72,9 @@ describe("StreamsBuildTool", () => {
             confirmationRequired: vi.fn(),
         };
 
-        const server: AtlasToolServer = {
+        server = {
             ...mockSession,
+            keychain: new Keychain(),
             telemetry: mockTelemetry,
             elicitation: mockElicitation as unknown as Elicitation,
             metrics: new MockMetrics(),
@@ -427,18 +430,64 @@ describe("StreamsBuildTool", () => {
         });
 
         it("should report missing fields when the user declines to answer", async () => {
-            mockElicitation.readInput.mockReturnValue({ accepted: false });
-
-            const result = await exec({
+            const args = {
                 ...baseArgs,
-                resource: "connection",
+                resource: "connection" as const,
                 connectionName: "kafka1",
-                connectionType: "Kafka",
+                connectionType: "Kafka" as const,
                 connectionConfig: {},
-            });
+            };
+            mockElicitation.supportsElicitation.mockReturnValue(false);
+            const expectedResult = await exec(args);
+            mockElicitation.supportsElicitation.mockReturnValue(true);
+            mockElicitation.readInput.mockReturnValue({ accepted: false });
+            const observe = vi.spyOn(server.metrics.get("toolExecutionDuration"), "observe");
+            const emitEvents = vi.spyOn(server.telemetry, "emitEvents");
+            const errorLog = vi.spyOn(server.logger, "error");
 
+            const result = await tool.invoke(args, { request: { signal: new AbortController().signal } });
+
+            expect(result).toEqual(expectedResult);
             expect(mockElicitation.inputRequired).not.toHaveBeenCalled();
-            expect((result.content[0] as { text: string }).text).toContain("missing");
+            expect(observe).toHaveBeenCalledExactlyOnceWith(
+                {
+                    tool_name: "atlas-streams-build",
+                    category: "atlas",
+                    status: "declined",
+                    operation_type: "create",
+                },
+                expect.any(Number)
+            );
+            await vi.waitFor(() => {
+                expect(emitEvents.mock.lastCall?.[0]).toMatchObject([
+                    { properties: { command: "atlas-streams-build", result: "declined" } },
+                ]);
+            });
+            expect(errorLog).not.toHaveBeenCalled();
+            expect(mockApiClient.createStreamConnection).not.toHaveBeenCalled();
+        });
+
+        it("records missing fields without elicitation support as a failure", async () => {
+            mockElicitation.supportsElicitation.mockReturnValue(false);
+            const observe = vi.spyOn(server.metrics.get("toolExecutionDuration"), "observe");
+            const emitEvents = vi.spyOn(server.telemetry, "emitEvents");
+
+            const result = await tool.invoke(
+                {
+                    ...baseArgs,
+                    resource: "connection",
+                    connectionName: "kafka1",
+                    connectionType: "Kafka",
+                    connectionConfig: {},
+                },
+                { request: { signal: new AbortController().signal } }
+            );
+
+            expect(result.isError).toBe(true);
+            expect(observe.mock.lastCall?.[0]).toMatchObject({ status: "error" });
+            await vi.waitFor(() => {
+                expect(emitEvents.mock.lastCall?.[0]).toMatchObject([{ properties: { result: "failure" } }]);
+            });
             expect(mockApiClient.createStreamConnection).not.toHaveBeenCalled();
         });
 

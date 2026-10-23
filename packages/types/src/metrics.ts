@@ -1,7 +1,7 @@
 /**
  * Labels type for metrics.
  */
-export type MetricLabels = Partial<Record<string, string | number>>;
+type MetricLabels = Partial<Record<string, string | number>>;
 
 /**
  * Interface for observable metrics (like histograms).

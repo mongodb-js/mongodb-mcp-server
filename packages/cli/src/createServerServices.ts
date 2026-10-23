@@ -220,7 +220,7 @@ const MAX_SESSION_ID_LENGTH = 512;
  * unguessable when server-issued, self-asserted otherwise — so possession of it
  * is what grants access to the scope's connections.
  */
-export function connectionScopeBySessionId(request: TransportRequestContext): string | undefined {
+function connectionScopeBySessionId(request: TransportRequestContext): string | undefined {
     const header = request.headers?.[SESSION_ID_HEADER];
     if (typeof header !== "string") {
         return undefined;

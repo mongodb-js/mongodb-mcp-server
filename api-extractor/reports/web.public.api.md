@@ -276,6 +276,11 @@ export class CompositeLogger extends LoggerBase {
     setAttribute(key: string, value: string): void;
 }
 
+// @public
+export class ConfirmationDeclinedError extends UserFacingError {
+    constructor(message: string);
+}
+
 // @public (undocumented)
 export type ConnectionErrorHandled = {
     errorHandled: true;
@@ -287,7 +292,7 @@ export type ConnectionErrorHandler = (error: MongoDBError<typeof ErrorCodes.NotC
 
 // @public (undocumented)
 export type ConnectionErrorHandlerContext = {
-    availableTools: ToolServerTool[];
+    availableTools: readonly ToolServerTool[];
     connectionState?: AnyConnectionState;
 };
 
@@ -660,15 +665,25 @@ export type StreamsToolMetadata = AtlasMetadata & {
 export class Telemetry implements ITelemetry {
     protected constructor(config: TelemetryConfig);
     // (undocumented)
+    protected readonly apiClient: ApiClient;
+    // (undocumented)
     close(): Promise<void>;
     // (undocumented)
     static create(this: typeof Telemetry, config: TelemetryConfig): Telemetry;
     protected detectContainerEnv(): Promise<boolean>;
+    // (undocumented)
+    protected readonly deviceId: IDeviceId;
     emitEvents(events: TelemetryBaseEvent[]): void;
+    // (undocumented)
+    protected readonly enabled: boolean;
     // (undocumented)
     readonly events: EventEmitter<TelemetryEvents>;
     getCommonProperties(): TelemetryCommonProperties;
     isTelemetryEnabled(): boolean;
+    // (undocumented)
+    protected readonly keychain: IKeychain;
+    // (undocumented)
+    protected readonly logger: LoggerBase;
     // (undocumented)
     protected readonly serverMetadata: ServerMetadata;
     // (undocumented)
@@ -737,7 +752,7 @@ export type TelemetryEvents = {
 };
 
 // @public (undocumented)
-export type TelemetryResult = "success" | "failure";
+export type TelemetryResult = "success" | "failure" | "declined";
 
 // @public (undocumented)
 export type TelemetryToolMetadata = TelemetryToolMetadata_2 | ConnectionMetadata_2 | PerfAdvisorToolMetadata_2 | GetRegionsMetadata | IndexMetadata_2 | UpgradeClusterMetadata | PauseResumeClusterMetadata | CreateClusterMetadata;

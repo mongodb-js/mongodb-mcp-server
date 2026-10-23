@@ -6,18 +6,25 @@
     "url": "https://github.com/mongodb-js/mongodb-mcp-server",
     "source": "github"
   },
-  "version": "3.1.0-pre.1",
+  "version": "3.1.1-pre.1",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "mongodb-mcp-server",
-      "version": "3.1.0-pre.1",
+      "version": "3.1.1-pre.1",
       "transport": {
         "type": "stdio"
       },
       "environmentVariables": [
         {
           "name": "MDB_MCP_AGGREGATION_COUNT_MAX_TIME_MS_CAP",
+          "description": "Deprecated. Use `aggregationCountTimeoutMs` instead.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_AGGREGATION_COUNT_TIMEOUT_MS",
           "description": "The maximum time in milliseconds for the count phase of aggregation operations. This is used to limit the time spent counting documents when determining if results were capped.",
           "isRequired": false,
           "format": "number",
@@ -270,7 +277,7 @@
         },
         {
           "name": "MDB_MCP_MAX_TIME_M_S",
-          "description": "The maximum time in milliseconds that operations are allowed to run on the MongoDB server. When set, this value is passed as the maxTimeMS option to read operations such as find, aggregate, and count.",
+          "description": "Deprecated. Use `timeoutMs` instead. The maximum time in milliseconds that operations are allowed to run on the MongoDB server.",
           "isRequired": false,
           "format": "number",
           "isSecret": false
@@ -319,6 +326,13 @@
         },
         {
           "name": "MDB_MCP_QUERY_COUNT_MAX_TIME_MS_CAP",
+          "description": "Deprecated. Use `queryCountTimeoutMs` instead.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_QUERY_COUNT_TIMEOUT_MS",
           "description": "The maximum time in milliseconds for the count phase of find operations. This is used to limit the time spent counting documents when determining if results were capped.",
           "isRequired": false,
           "format": "number",
@@ -336,6 +350,13 @@
           "description": "When set to disabled, disables telemetry collection.",
           "isRequired": false,
           "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_TIMEOUT_MS",
+          "description": "The maximum time in milliseconds that MongoDB operations are allowed to run, applied as the driver's timeoutMS (client-side operation timeout, CSOT) on each connection. It bounds the entire operation, including server selection and network round trips.",
+          "isRequired": false,
+          "format": "number",
           "isSecret": false
         },
         {
@@ -357,6 +378,13 @@
         {
           "type": "named",
           "name": "--aggregationCountMaxTimeMsCap",
+          "description": "Deprecated. Use `aggregationCountTimeoutMs` instead.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--aggregationCountTimeoutMs",
           "description": "The maximum time in milliseconds for the count phase of aggregation operations. This is used to limit the time spent counting documents when determining if results were capped.",
           "isRequired": false,
           "format": "number"
@@ -595,7 +623,7 @@
         {
           "type": "named",
           "name": "--maxTimeMS",
-          "description": "The maximum time in milliseconds that operations are allowed to run on the MongoDB server. When set, this value is passed as the maxTimeMS option to read operations such as find, aggregate, and count.",
+          "description": "Deprecated. Use `timeoutMs` instead. The maximum time in milliseconds that operations are allowed to run on the MongoDB server.",
           "isRequired": false,
           "format": "number"
         },
@@ -640,6 +668,13 @@
         {
           "type": "named",
           "name": "--queryCountMaxTimeMsCap",
+          "description": "Deprecated. Use `queryCountTimeoutMs` instead.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--queryCountTimeoutMs",
           "description": "The maximum time in milliseconds for the count phase of find operations. This is used to limit the time spent counting documents when determining if results were capped.",
           "isRequired": false,
           "format": "number"
@@ -656,6 +691,13 @@
           "name": "--telemetry",
           "description": "When set to disabled, disables telemetry collection.",
           "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--timeoutMs",
+          "description": "The maximum time in milliseconds that MongoDB operations are allowed to run, applied as the driver's timeoutMS (client-side operation timeout, CSOT) on each connection. It bounds the entire operation, including server selection and network round trips.",
+          "isRequired": false,
+          "format": "number"
         },
         {
           "type": "named",
@@ -673,13 +715,20 @@
     },
     {
       "registryType": "oci",
-      "identifier": "docker.io/mongodb/mongodb-mcp-server:3.1.0-pre.1",
+      "identifier": "docker.io/mongodb/mongodb-mcp-server:3.1.1-pre.1",
       "transport": {
         "type": "stdio"
       },
       "environmentVariables": [
         {
           "name": "MDB_MCP_AGGREGATION_COUNT_MAX_TIME_MS_CAP",
+          "description": "Deprecated. Use `aggregationCountTimeoutMs` instead.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_AGGREGATION_COUNT_TIMEOUT_MS",
           "description": "The maximum time in milliseconds for the count phase of aggregation operations. This is used to limit the time spent counting documents when determining if results were capped.",
           "isRequired": false,
           "format": "number",
@@ -932,7 +981,7 @@
         },
         {
           "name": "MDB_MCP_MAX_TIME_M_S",
-          "description": "The maximum time in milliseconds that operations are allowed to run on the MongoDB server. When set, this value is passed as the maxTimeMS option to read operations such as find, aggregate, and count.",
+          "description": "Deprecated. Use `timeoutMs` instead. The maximum time in milliseconds that operations are allowed to run on the MongoDB server.",
           "isRequired": false,
           "format": "number",
           "isSecret": false
@@ -981,6 +1030,13 @@
         },
         {
           "name": "MDB_MCP_QUERY_COUNT_MAX_TIME_MS_CAP",
+          "description": "Deprecated. Use `queryCountTimeoutMs` instead.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_QUERY_COUNT_TIMEOUT_MS",
           "description": "The maximum time in milliseconds for the count phase of find operations. This is used to limit the time spent counting documents when determining if results were capped.",
           "isRequired": false,
           "format": "number",
@@ -998,6 +1054,13 @@
           "description": "When set to disabled, disables telemetry collection.",
           "isRequired": false,
           "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_TIMEOUT_MS",
+          "description": "The maximum time in milliseconds that MongoDB operations are allowed to run, applied as the driver's timeoutMS (client-side operation timeout, CSOT) on each connection. It bounds the entire operation, including server selection and network round trips.",
+          "isRequired": false,
+          "format": "number",
           "isSecret": false
         },
         {
@@ -1019,6 +1082,13 @@
         {
           "type": "named",
           "name": "--aggregationCountMaxTimeMsCap",
+          "description": "Deprecated. Use `aggregationCountTimeoutMs` instead.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--aggregationCountTimeoutMs",
           "description": "The maximum time in milliseconds for the count phase of aggregation operations. This is used to limit the time spent counting documents when determining if results were capped.",
           "isRequired": false,
           "format": "number"
@@ -1257,7 +1327,7 @@
         {
           "type": "named",
           "name": "--maxTimeMS",
-          "description": "The maximum time in milliseconds that operations are allowed to run on the MongoDB server. When set, this value is passed as the maxTimeMS option to read operations such as find, aggregate, and count.",
+          "description": "Deprecated. Use `timeoutMs` instead. The maximum time in milliseconds that operations are allowed to run on the MongoDB server.",
           "isRequired": false,
           "format": "number"
         },
@@ -1302,6 +1372,13 @@
         {
           "type": "named",
           "name": "--queryCountMaxTimeMsCap",
+          "description": "Deprecated. Use `queryCountTimeoutMs` instead.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--queryCountTimeoutMs",
           "description": "The maximum time in milliseconds for the count phase of find operations. This is used to limit the time spent counting documents when determining if results were capped.",
           "isRequired": false,
           "format": "number"
@@ -1318,6 +1395,13 @@
           "name": "--telemetry",
           "description": "When set to disabled, disables telemetry collection.",
           "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--timeoutMs",
+          "description": "The maximum time in milliseconds that MongoDB operations are allowed to run, applied as the driver's timeoutMS (client-side operation timeout, CSOT) on each connection. It bounds the entire operation, including server selection and network round trips.",
+          "isRequired": false,
+          "format": "number"
         },
         {
           "type": "named",

@@ -271,33 +271,62 @@ const ServerConfigSchema = z.object({
             "The maximum number of documents that can be returned by a find or aggregate tool call. For the find tool, the effective limit will be the smaller of this value and the tool's limit parameter."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    timeoutMs: z.coerce
+        .number()
+        .int()
+        .min(0, "timeoutMs must be non-negative")
+        .optional()
+        .describe(
+            "The maximum time in milliseconds that MongoDB operations are allowed to run, applied as the driver's timeoutMS (client-side operation timeout, CSOT) on each connection. It bounds the entire operation, including server selection and network round trips."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    /** @deprecated Use `timeoutMs` instead. */
     maxTimeMS: z.coerce
         .number()
         .int()
         .min(0, "maxTimeMS must be non-negative")
         .optional()
         .describe(
-            "The maximum time in milliseconds that operations are allowed to run on the MongoDB server. When set, this value is passed as the maxTimeMS option to read operations such as find, aggregate, and count."
+            "Deprecated. Use `timeoutMs` instead. The maximum time in milliseconds that operations are allowed to run on the MongoDB server."
         )
-        .register(configRegistry, { overrideBehavior: "not-allowed" }),
-    queryCountMaxTimeMsCap: z.coerce
+        .register(configRegistry, { overrideBehavior: "not-allowed" })
+        .register(argMetadata, { deprecationReplacement: "timeoutMs" }),
+    queryCountTimeoutMs: z.coerce
         .number()
         .int()
-        .min(0, "queryCountMaxTimeMsCap must be non-negative")
+        .min(0, "queryCountTimeoutMs must be non-negative")
         .default(QUERY_COUNT_MAX_TIME_MS_CAP)
         .describe(
             "The maximum time in milliseconds for the count phase of find operations. This is used to limit the time spent counting documents when determining if results were capped."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
-    aggregationCountMaxTimeMsCap: z.coerce
+    /** @deprecated Use `queryCountTimeoutMs` instead. */
+    queryCountMaxTimeMsCap: z.coerce
         .number()
         .int()
-        .min(0, "aggregationCountMaxTimeMsCap must be non-negative")
+        .min(0, "queryCountMaxTimeMsCap must be non-negative")
+        .optional()
+        .describe("Deprecated. Use `queryCountTimeoutMs` instead.")
+        .register(configRegistry, { overrideBehavior: "not-allowed" })
+        .register(argMetadata, { deprecationReplacement: "queryCountTimeoutMs" }),
+    aggregationCountTimeoutMs: z.coerce
+        .number()
+        .int()
+        .min(0, "aggregationCountTimeoutMs must be non-negative")
         .default(AGG_COUNT_MAX_TIME_MS_CAP)
         .describe(
             "The maximum time in milliseconds for the count phase of aggregation operations. This is used to limit the time spent counting documents when determining if results were capped."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    /** @deprecated Use `aggregationCountTimeoutMs` instead. */
+    aggregationCountMaxTimeMsCap: z.coerce
+        .number()
+        .int()
+        .min(0, "aggregationCountMaxTimeMsCap must be non-negative")
+        .optional()
+        .describe("Deprecated. Use `aggregationCountTimeoutMs` instead.")
+        .register(configRegistry, { overrideBehavior: "not-allowed" })
+        .register(argMetadata, { deprecationReplacement: "aggregationCountTimeoutMs" }),
     exportsPath: z
         .string()
         .default(getExportsPath())

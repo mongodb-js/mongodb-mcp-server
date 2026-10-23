@@ -12,6 +12,7 @@ overrides:
   "@modelcontextprotocol/sdk@^1.0.0": "^1.31.0"
   "bn.js@^4.0.0": "^4.12.3"
   "bn.js@^5.0.0": "^5.2.3"
+  "external-editor@3.1.0>tmp": "^0.2.7"
   "fast-uri@^3.0.0": "^3.1.8"
   "fast-xml-builder@^1.0.0": "^1.1.7"
   "fflate@^0.8.0": "^0.8.3"
@@ -20,6 +21,7 @@ overrides:
   "pbkdf2@^3.0.0": "^3.1.7"
   "shell-quote@^1.0.0": "^1.11.0"
 allowBuilds:
+  "@braintrust/bt": false
   "@modelcontextprotocol/ext-apps": false
   braintrust: true
   core-js: false

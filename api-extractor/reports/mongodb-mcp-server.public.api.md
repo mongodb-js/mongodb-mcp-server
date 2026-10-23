@@ -232,15 +232,25 @@ export function applyConfigOverrides<TUserConfig extends UserConfig = UserConfig
 export class AtlasTelemetry implements ITelemetry {
     protected constructor(config: TelemetryConfig);
     // (undocumented)
+    protected readonly apiClient: ApiClient;
+    // (undocumented)
     close(): Promise<void>;
     // (undocumented)
     static create(this: typeof AtlasTelemetry, config: TelemetryConfig): AtlasTelemetry;
     protected detectContainerEnv(): Promise<boolean>;
+    // (undocumented)
+    protected readonly deviceId: IDeviceId;
     emitEvents(events: TelemetryBaseEvent[]): void;
+    // (undocumented)
+    protected readonly enabled: boolean;
     // (undocumented)
     readonly events: EventEmitter<TelemetryEvents>;
     getCommonProperties(): TelemetryCommonProperties;
     isTelemetryEnabled(): boolean;
+    // (undocumented)
+    protected readonly keychain: IKeychain;
+    // (undocumented)
+    protected readonly logger: LoggerBase;
     // (undocumented)
     protected readonly serverMetadata: ServerMetadata;
     // (undocumented)
@@ -377,6 +387,11 @@ export class ConfigOverrideError extends UserFacingError {
 // @public (undocumented)
 export const configRegistry: z.core.$ZodRegistry<ConfigFieldMeta, z.core.$ZodType<unknown, unknown, z.core.$ZodTypeInternals<unknown, unknown>>>;
 
+// @public
+export class ConfirmationDeclinedError extends UserFacingError {
+    constructor(message: string);
+}
+
 // @public (undocumented)
 export type ConnectionErrorHandled = {
     errorHandled: true;
@@ -391,7 +406,7 @@ export const connectionErrorHandler: ConnectionErrorHandler;
 
 // @public (undocumented)
 export type ConnectionErrorHandlerContext = {
-    availableTools: ToolServerTool[];
+    availableTools: readonly ToolServerTool[];
     connectionState?: AnyConnectionState;
 };
 
@@ -1109,9 +1124,12 @@ export const UserConfigSchema: z.ZodObject<{
     externallyManagedSessions: z.ZodDefault<z.ZodBoolean>;
     maxBytesPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxDocumentsPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    timeoutMs: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
     maxTimeMS: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
-    queryCountMaxTimeMsCap: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
-    aggregationCountMaxTimeMsCap: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    queryCountTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    queryCountMaxTimeMsCap: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
+    aggregationCountTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    aggregationCountMaxTimeMsCap: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
     exportsPath: z.ZodDefault<z.ZodString>;
     exportTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     exportCleanupIntervalMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
