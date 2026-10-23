@@ -384,8 +384,8 @@ export class AggregateTool extends MongoDBToolBase {
             const aggregationResults = await provider
                 .aggregate(database, collection, resultsCountAggregation, {
                     signal: abortSignal,
+                    ...this.getCountPhaseTimeoutOptions(provider, config.aggregationCountMaxTimeMsCap),
                 })
-                .maxTimeMS(this.getCountPhaseMaxTimeMs(config, config.aggregationCountMaxTimeMsCap))
                 .toArray();
 
             const documentWithCount: unknown = aggregationResults.length === 1 ? aggregationResults[0] : undefined;

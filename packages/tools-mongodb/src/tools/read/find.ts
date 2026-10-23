@@ -123,10 +123,7 @@ export class FindTool extends MongoDBToolBase {
                             // query would have yielded which is why we don't
                             // use `limitOnFindCursor` calculated above, and
                             // we don't use the limit provided to the tool either.
-                            maxTimeMS: this.getCountPhaseMaxTimeMs(
-                                this.server.config,
-                                this.server.config.queryCountMaxTimeMsCap
-                            ),
+                            ...this.getCountPhaseTimeoutOptions(provider, this.server.config.queryCountMaxTimeMsCap),
                             signal: request.signal,
                         }),
                     undefined

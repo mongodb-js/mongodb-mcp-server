@@ -591,6 +591,31 @@ describeWithMongoDB({
     },
 });
 describeWithMongoDB({
+    name: "find tool count phase with a connection timeout larger than the count cap",
+    fn: (integration) => {
+        beforeEach(async () => {
+            await freshInsertDocuments({
+                collection: integration.mongoClient().db(integration.randomDbName()).collection("foo"),
+                count: 10,
+            });
+        });
+        it("should still abort the count operation when the connection timeout exceeds the cap", async () => {
+            integration.mcpServer().userConfig.queryCountMaxTimeMsCap = 0.1;
+            const connectionId = await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "find",
+                arguments: { connectionId, database: integration.randomDbName(), collection: "foo" },
+            });
+            const content = getResponseContent(response);
+            expect(content).toContain('Query on collection "foo" resulted in indeterminable number of documents.');
+            expectFindStructuredContent(response, content, {});
+        });
+    },
+    config: {
+        getUserConfig: () => ({ ...defaultTestConfig, timeoutMs: 60000 }),
+    },
+});
+describeWithMongoDB({
     name: "find tool with configured timeoutMs",
     fn: (integration) => {
         beforeEach(async () => {

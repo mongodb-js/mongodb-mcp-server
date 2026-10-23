@@ -35,8 +35,7 @@ export type IMongoDBConfig = IToolConfig & {
     connectionString: string | undefined;
     indexCheck: boolean;
     disableServerSideJs: boolean;
-    timeoutMs: number | undefined;
-    /** @deprecated Use `timeoutMs`. Retained so directly-constructed configs keep working. */
+    /** @deprecated The connection-level `timeoutMs` config replaces this. Kept so directly-constructed configs still type-check. */
     maxTimeMS?: number;
     maxDocumentsPerQuery: number;
     maxBytesPerQuery: number;
@@ -143,11 +142,18 @@ export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
     }
 
     /**
-     * Resolves the server-side cap for the internal count phase of find and
-     * aggregate, honoring the deprecated `maxTimeMS` alias.
+     * Options bounding the internal count phase of find and aggregate. The
+     * count runs alongside the main operation, so it gets its own client
+     * timeout: the smaller of the connection's `timeoutMS` and the configured
+     * count cap. A server-side `maxTimeMS` alone would be overridden by the
+     * connection-level CSOT budget. An unset or `0` connection timeout disables
+     * CSOT, in which case the cap is used as-is.
      */
-    protected getCountPhaseMaxTimeMs(config: IMongoDBConfig, cap: number): number {
-        return Math.min(config.timeoutMs ?? config.maxTimeMS ?? cap, cap);
+    protected getCountPhaseTimeoutOptions(provider: NodeDriverServiceProvider, cap: number): { timeoutMS: number } {
+        const connectionTimeoutMs = provider.mongoClient.timeoutMS;
+        const timeoutMS =
+            connectionTimeoutMs !== undefined && connectionTimeoutMs > 0 ? Math.min(connectionTimeoutMs, cap) : cap;
+        return { timeoutMS };
     }
 
     /**
