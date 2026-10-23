@@ -69,7 +69,9 @@ describe("CodexHarnessConfig", () => {
                 sessionHome
             );
             const catalogPath = path.join(sessionHome, "model-catalog.json");
-            expect(config).toContain(`model_catalog_json = "${catalogPath}"`);
+            // `buildConfig` emits the path as a TOML basic string, which escapes
+            // backslashes (so a Windows path appears doubled in the config).
+            expect(config).toContain(`model_catalog_json = "${catalogPath.replace(/\\/g, "\\\\")}"`);
             const catalog = JSON.parse(fs.readFileSync(catalogPath, "utf8")) as {
                 models: { truncation_policy: { limit: number } }[];
             };
