@@ -243,6 +243,13 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         // session as already gone and doesn't double-count metrics.
         delete this.sessions[sessionId];
 
+        // Recorded on removal so the metrics track store membership even while
+        // transport.close() is pending, e.g. for a session evicted by addSession.
+        this.emitMetric("sessionClosed", () =>
+            this.metrics.get("sessionClosed").inc({ ...session.metricLabels, reason })
+        );
+        this.emitMetric("sessionsActive", () => this.metrics.get("sessionsActive").dec(session.metricLabels));
+
         session.abortTimeout.cancel();
         session.notificationTimeout.cancel();
 
@@ -258,12 +265,6 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
                 });
             }
         }
-
-        // Track session closed metric
-        this.emitMetric("sessionClosed", () =>
-            this.metrics.get("sessionClosed").inc({ ...session.metricLabels, reason })
-        );
-        this.emitMetric("sessionsActive", () => this.metrics.get("sessionsActive").dec(session.metricLabels));
     }
 
     /**

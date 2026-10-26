@@ -480,6 +480,39 @@ describe("SessionStore<CloseableTransport> LRU idle-eviction", () => {
         }
     });
 
+    it("keeps the active-session gauge at store size while an evicted transport is still closing", async () => {
+        vi.useFakeTimers();
+        try {
+            const metrics = new MockMetrics();
+            const store = makeStore(1, metrics);
+            const neverCloses = vi.fn(() => new Promise<void>(() => undefined));
+
+            await store.addSession({
+                sessionId: "s1",
+                transport: { close: neverCloses },
+                logger: createMockLogger(),
+                session: createMockSession(),
+            });
+            await vi.advanceTimersByTimeAsync(150_000);
+            await store.addSession({
+                sessionId: "s2",
+                transport: createMockTransport(),
+                logger: createMockLogger(),
+                session: createMockSession(),
+            });
+
+            expect(neverCloses).toHaveBeenCalledOnce();
+            expect(store.hasSession("s1")).toBe(false);
+            expect((await metrics.get("sessionsActive").get()).values[0]?.value).toBe(1);
+            const evicted = (await metrics.get("sessionClosed").get()).values.find(
+                (v) => v.labels.reason === "evicted"
+            );
+            expect(evicted?.value).toBe(1);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
     it("rejects a new session when no session is idle past the grace", async () => {
         vi.useFakeTimers();
         try {
