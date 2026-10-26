@@ -350,7 +350,13 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
 
         // Admit (check cap, evict LRU idle victim). A rejection admits nothing.
         try {
-            await this.sessions.addSession({ sessionId, transport, logger: this.logger, headers: req.headers });
+            await this.sessions.addSession({
+                sessionId,
+                transport,
+                logger: this.logger,
+                headers: req.headers,
+                metricLabels: server.metricLabels,
+            });
         } catch (error) {
             // Dispose the un-connected server we built for a rejected session.
             await server.close().catch(() => undefined);

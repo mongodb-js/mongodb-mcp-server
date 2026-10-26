@@ -310,6 +310,7 @@ export const LogId: {
     readonly assistantSearchKnowledgeError: MongoLogId;
     readonly streamsProcessorStateLookupFailure: MongoLogId;
     readonly monitoringServerMetricsFailure: MongoLogId;
+    readonly metricEmitFailure: MongoLogId;
     readonly connectionRegistryRevoked: MongoLogId;
     readonly connectionRegistryRevokeCallbackFailure: MongoLogId;
     readonly connectionRegistryDialFailure: MongoLogId;
@@ -423,7 +424,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
             logger: ICompositeLogger;
         };
         headers?: Record<string, unknown>;
-        metricLabels?: Record<string, string>;
+        metricLabels?: Readonly<Record<string, string>>;
     }): Promise<void>;
     // (undocumented)
     closeAllSessions(): Promise<void>;

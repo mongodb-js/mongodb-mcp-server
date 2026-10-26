@@ -310,6 +310,8 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
     // (undocumented)
     readonly mcpServer: McpServer;
     // (undocumented)
+    readonly metricLabels?: Readonly<Record<string, string>>;
+    // (undocumented)
     readonly metrics: IMetrics<TMetrics>;
     register(): Promise<void>;
     // (undocumented)
@@ -351,6 +353,7 @@ export interface CliServerOptions<TMetrics extends DefaultMetricDefinitions = De
     logger: CompositeLogger;
     // (undocumented)
     mcpServer: McpServer;
+    metricLabels?: Readonly<Record<string, string>>;
     // (undocumented)
     metrics: IMetrics<TMetrics>;
     readonly resources?: ResourceRegistry;

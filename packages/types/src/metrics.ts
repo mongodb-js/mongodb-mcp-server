@@ -25,7 +25,6 @@ export interface ICounter {
  */
 export interface IGauge {
     set(value: number): void;
-    set(labels: MetricLabels, value: number): void;
     inc(labels?: MetricLabels, value?: number): void;
     dec(labels?: MetricLabels, value?: number): void;
 }

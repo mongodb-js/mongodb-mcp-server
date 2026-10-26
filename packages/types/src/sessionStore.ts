@@ -58,7 +58,7 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
         logger: ILogger;
         session?: { logger: ICompositeLogger };
         headers?: Record<string, unknown>;
-        metricLabels?: Record<string, string>;
+        metricLabels?: Readonly<Record<string, string>>;
     }): Promise<void>;
     /** Returns whether a session exists, without resetting its idle timeout (unlike {@link getSession}). */
     hasSession(sessionId: string): boolean;

@@ -697,7 +697,7 @@ describe("ToolBase", () => {
             const labelledServer: TestServer = {
                 ...mockServer,
                 metrics: labelledMetrics,
-                metricLabels: { source: "vercel", tool_name: "spoofed" },
+                metricLabels: { source: "vercel", tool_name: "spoofed", error_type: "spoofed" },
                 mcpServer: {
                     registerTool: (_name: string, _config: unknown, cb: MockToolCallback) => {
                         labelledCallback = cb;
@@ -714,7 +714,31 @@ describe("ToolBase", () => {
             const { values } = await labelledMetrics.get("toolExecutionDuration").get();
             const count = values.find((v) => v.metricName === "mcp_tool_execution_duration_seconds_count");
             expect(count?.labels).toMatchObject({ tool_name: "test-tool", source: "vercel" });
+            expect(count?.labels.error_type).toBeUndefined();
             expect(count?.value).toBe(2);
+        });
+
+        it("returns the tool result and logs a warning when a server metric label is undeclared", async () => {
+            let labelledCallback: MockToolCallback | undefined;
+            const labelledServer: TestServer = {
+                ...mockServer,
+                metricLabels: { source: "vercel" },
+                mcpServer: {
+                    registerTool: (_name: string, _config: unknown, cb: MockToolCallback) => {
+                        labelledCallback = cb;
+                        return { enabled: true, disable: vi.fn(), enable: vi.fn() };
+                    },
+                } as never,
+            };
+            new TestTool({ server: labelledServer }).register();
+            expectDefined(labelledCallback);
+
+            const result = await labelledCallback({ param1: "value", param2: 1 }, {} as never);
+
+            expect(result.isError).toBeFalsy();
+            expect(mockLoggerWarning).toHaveBeenCalledWith(
+                expect.objectContaining({ id: LogId.metricEmitFailure, context: "tool" })
+            );
         });
 
         it("records returned error results as errors rather than declines", async () => {

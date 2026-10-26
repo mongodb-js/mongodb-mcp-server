@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { SessionStore, SessionLimitExceededError } from "@mongodb-js/mcp-core";
+import { LogId, SessionStore, SessionLimitExceededError } from "@mongodb-js/mcp-core";
 import { Counter, createDefaultMetrics, Gauge, PrometheusMetrics } from "@mongodb-js/mcp-metrics";
 import type { CloseableTransport, ILogger, ICompositeLogger } from "@mongodb-js/mcp-types";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
@@ -137,6 +137,29 @@ describe("SessionStore<CloseableTransport> metrics", () => {
         ).toBe(1);
         expect(await valueFor(labelledMetrics.get("sessionsActive"), { source: "vercel" })).toBe(1);
         expect(await valueFor(labelledMetrics.get("sessionsActive"), { source: "mcp" })).toBe(1);
+    });
+
+    it("keeps session operations working and logs a warning when a metric label is undeclared", async () => {
+        const warning = vi.spyOn(logger, "warning");
+        await store.addSession({
+            sessionId: "s1",
+            transport: createMockTransport(),
+            logger: createMockLogger(),
+            metricLabels: { source: "vercel" },
+        });
+        await store.addSession({
+            sessionId: "s2",
+            transport: createMockTransport(),
+            logger: createMockLogger(),
+            metricLabels: { source: "vercel" },
+        });
+        expect(store.hasSession("s1")).toBe(true);
+
+        await expect(store.closeAllSessions()).resolves.toBeUndefined();
+        expect(store.hasSession("s1")).toBe(false);
+        // Two failing metric calls per add (created, active) and per close (closed, active).
+        expect(warning).toHaveBeenCalledTimes(8);
+        expect(warning).toHaveBeenCalledWith(expect.objectContaining({ id: LogId.metricEmitFailure }));
     });
 
     it("records reason 'server_stop' when closeAllSessions is called", async () => {

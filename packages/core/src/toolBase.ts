@@ -100,6 +100,23 @@ function resolveClientInfo(
     return negotiated;
 }
 
+/** Label names `ToolBase` sets on its execution metric; server labels never override or add them. */
+const BUILT_IN_TOOL_LABELS: ReadonlySet<string> = new Set([
+    "tool_name",
+    "category",
+    "status",
+    "operation_type",
+    "error_type",
+]);
+
+/** Drops server labels whose names clash with the built-in tool labels. */
+function withoutBuiltInToolLabels(labels: Readonly<Record<string, string>> | undefined): Record<string, string> {
+    if (!labels) {
+        return {};
+    }
+    return Object.fromEntries(Object.entries(labels).filter(([name]) => !BUILT_IN_TOOL_LABELS.has(name)));
+}
+
 /** Narrow a possibly-undefined per-request envelope to a keyed object. */
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" && value !== null;
@@ -591,19 +608,32 @@ export abstract class ToolBase<
                 clientInfo: context.request.clientInfo,
             });
 
-            this.server.metrics.get("toolExecutionDuration").observe(
-                {
-                    ...this.server.metricLabels,
-                    tool_name: this.name,
-                    category: this.category,
-                    status: declined ? "declined" : error !== undefined || result.isError ? "error" : "success",
-                    operation_type: this.operationType,
-                    ...(!declined && error !== undefined
-                        ? { error_type: error instanceof Error ? error.name : "unknown" }
-                        : {}),
-                },
-                (Date.now() - executionStartTime) / 1000
-            );
+            // Never fail the call over its metric: the tool has already run, and an
+            // undeclared server label makes prom-client throw.
+            try {
+                this.server.metrics.get("toolExecutionDuration").observe(
+                    {
+                        ...withoutBuiltInToolLabels(this.server.metricLabels),
+                        tool_name: this.name,
+                        category: this.category,
+                        status: declined ? "declined" : error !== undefined || result.isError ? "error" : "success",
+                        operation_type: this.operationType,
+                        ...(!declined && error !== undefined
+                            ? { error_type: error instanceof Error ? error.name : "unknown" }
+                            : {}),
+                    },
+                    (Date.now() - executionStartTime) / 1000
+                );
+            } catch (metricError) {
+                this.server.logger.warning({
+                    id: LogId.metricEmitFailure,
+                    context: "tool",
+                    message: `Failed to record the execution metric of ${this.name}: ${
+                        metricError instanceof Error ? metricError.message : String(metricError)
+                    }`,
+                    noRedaction: true,
+                });
+            }
         };
 
         try {

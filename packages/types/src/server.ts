@@ -20,4 +20,10 @@ export type BaseServer = {
     register(): Promise<void>;
     /** The protocol-level MCP server handed to the serving entry. */
     mcpServer: McpServer;
+    /**
+     * Labels the server adds to its metrics for its lifetime. The 2025-era
+     * session path also applies them to the session metrics of the session
+     * this server serves.
+     */
+    readonly metricLabels?: Readonly<Record<string, string>>;
 };

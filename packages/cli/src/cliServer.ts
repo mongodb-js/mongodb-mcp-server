@@ -178,7 +178,8 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
         this.uiRegistry = uiRegistry;
         this.transportRequest = transportRequest;
         this.metrics = metrics;
-        this.metricLabels = metricLabels;
+        // Copied so a caller mutating its object later cannot change this server's series.
+        this.metricLabels = metricLabels ? Object.freeze({ ...metricLabels }) : undefined;
         this.serverMetadata = serverMetadata;
 
         this._mcpLogLevel = config.mcpClientLogLevel;

@@ -62,7 +62,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
             /** Epoch ms of the last activity on this session; drives LRU eviction order. */
             lastUsedAt: number;
             /** Labels added to this session's created, closed and active metrics. */
-            metricLabels: Record<string, string>;
+            metricLabels: Readonly<Record<string, string>>;
         };
     } = {};
 
@@ -166,9 +166,11 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         logger: ILogger;
         session?: { logger: ICompositeLogger };
         headers?: Record<string, unknown>;
-        metricLabels?: Record<string, string>;
+        metricLabels?: Readonly<Record<string, string>>;
     }): Promise<void> {
-        const { sessionId, transport, logger, metricLabels = {} } = params;
+        const { sessionId, transport, logger } = params;
+        // Copied so a caller mutating its object later cannot change this session's series.
+        const metricLabels = Object.freeze({ ...params.metricLabels });
         if (this.sessions[sessionId]) {
             throw new Error(`Session ${sessionId} already exists`);
         }
@@ -219,8 +221,8 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
             metricLabels,
         };
         // Track session created metric
-        this.metrics.get("sessionCreated").inc(metricLabels);
-        this.updateActiveSessions(metricLabels);
+        this.emitMetric("sessionCreated", () => this.metrics.get("sessionCreated").inc(metricLabels));
+        this.emitMetric("sessionsActive", () => this.metrics.get("sessionsActive").inc(metricLabels));
         return Promise.resolve();
     }
 
@@ -258,17 +260,26 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         }
 
         // Track session closed metric
-        this.metrics.get("sessionClosed").inc({ ...session.metricLabels, reason });
-        this.updateActiveSessions(session.metricLabels);
+        this.emitMetric("sessionClosed", () =>
+            this.metrics.get("sessionClosed").inc({ ...session.metricLabels, reason })
+        );
+        this.emitMetric("sessionsActive", () => this.metrics.get("sessionsActive").dec(session.metricLabels));
     }
 
-    /** Sets the active-session gauge for one label set to the number of sessions carrying it. */
-    private updateActiveSessions(metricLabels: Record<string, string>): void {
-        const key = metricLabelsKey(metricLabels);
-        const count = Object.values(this.sessions).filter(
-            (session) => metricLabelsKey(session.metricLabels) === key
-        ).length;
-        this.metrics.get("sessionsActive").set(metricLabels, count);
+    /**
+     * Runs a metric emission without letting it fail the session operation: an
+     * undeclared label makes prom-client throw.
+     */
+    private emitMetric(name: string, emit: () => void): void {
+        try {
+            emit();
+        } catch (error) {
+            this.logger.warning({
+                id: LogId.metricEmitFailure,
+                context: "sessionStore",
+                message: `Failed to record session metric ${name}: ${error instanceof Error ? error.message : String(error)}`,
+            });
+        }
     }
 
     async closeAllSessions(): Promise<void> {
@@ -300,10 +311,6 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         return Promise.resolve(undefined);
     }
     /* eslint-enable @typescript-eslint/no-unused-vars */
-}
-
-function metricLabelsKey(metricLabels: Record<string, string>): string {
-    return JSON.stringify(Object.entries(metricLabels).sort(([a], [b]) => a.localeCompare(b)));
 }
 
 /**
