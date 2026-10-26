@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { SessionStore, SessionLimitExceededError } from "@mongodb-js/mcp-core";
+import { Counter, createDefaultMetrics, Gauge, PrometheusMetrics } from "@mongodb-js/mcp-metrics";
 import type { CloseableTransport, ILogger, ICompositeLogger } from "@mongodb-js/mcp-types";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 
@@ -78,6 +79,64 @@ describe("SessionStore<CloseableTransport> metrics", () => {
         const { values } = await metrics.get("sessionClosed").get();
         const sample = values.find((v) => v.labels.reason === "transport_closed");
         expect(sample?.value).toBe(1);
+    });
+
+    it("labels the session metrics with the session's metric labels for its lifetime", async () => {
+        const labelledMetrics = new PrometheusMetrics({
+            definitions: {
+                ...createDefaultMetrics(),
+                sessionCreated: new Counter({
+                    name: "mcp_session_created",
+                    help: "test",
+                    labelNames: ["source"] as const,
+                    registers: [],
+                }),
+                sessionClosed: new Counter({
+                    name: "mcp_session_closed",
+                    help: "test",
+                    labelNames: ["reason", "source"] as const,
+                    registers: [],
+                }),
+                sessionsActive: new Gauge({
+                    name: "mcp_active_sessions",
+                    help: "test",
+                    labelNames: ["source"] as const,
+                    registers: [],
+                }),
+            },
+        });
+        const labelledStore = new SessionStore<CloseableTransport>({
+            options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 100 },
+            logger,
+            metrics: labelledMetrics,
+        });
+        const add = (sessionId: string, source: string): Promise<void> =>
+            labelledStore.addSession({
+                sessionId,
+                transport: createMockTransport(),
+                logger: createMockLogger(),
+                metricLabels: { source },
+            });
+        const valueFor = async (
+            metric: Counter<string> | Gauge<string>,
+            labels: Record<string, string>
+        ): Promise<number | undefined> =>
+            (await metric.get()).values.find((v) =>
+                Object.entries(labels).every(([name, value]) => v.labels[name] === value)
+            )?.value;
+
+        await add("s1", "vercel");
+        await add("s2", "vercel");
+        await add("s3", "mcp");
+        await labelledStore.closeSession({ sessionId: "s1", reason: "transport_closed" });
+
+        expect(await valueFor(labelledMetrics.get("sessionCreated"), { source: "vercel" })).toBe(2);
+        expect(await valueFor(labelledMetrics.get("sessionCreated"), { source: "mcp" })).toBe(1);
+        expect(
+            await valueFor(labelledMetrics.get("sessionClosed"), { source: "vercel", reason: "transport_closed" })
+        ).toBe(1);
+        expect(await valueFor(labelledMetrics.get("sessionsActive"), { source: "vercel" })).toBe(1);
+        expect(await valueFor(labelledMetrics.get("sessionsActive"), { source: "mcp" })).toBe(1);
     });
 
     it("records reason 'server_stop' when closeAllSessions is called", async () => {

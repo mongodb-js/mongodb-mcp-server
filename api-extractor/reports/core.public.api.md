@@ -423,6 +423,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
             logger: ICompositeLogger;
         };
         headers?: Record<string, unknown>;
+        metricLabels?: Record<string, string>;
     }): Promise<void>;
     // (undocumented)
     closeAllSessions(): Promise<void>;

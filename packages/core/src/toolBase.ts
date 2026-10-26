@@ -593,6 +593,7 @@ export abstract class ToolBase<
 
             this.server.metrics.get("toolExecutionDuration").observe(
                 {
+                    ...this.server.metricLabels,
                     tool_name: this.name,
                     category: this.category,
                     status: declined ? "declined" : error !== undefined || result.isError ? "error" : "success",

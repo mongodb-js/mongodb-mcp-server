@@ -25,6 +25,7 @@ import type { PreviewFeature, AtlasClusterConnectionInfo } from "@mongodb-js/mcp
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { TRANSPORT_PAYLOAD_LIMITS } from "@mongodb-js/mcp-cli";
 import { expectDefined, MockMetrics } from "@mongodb-js/mcp-test-utils";
+import { createDefaultMetrics, Histogram, PrometheusMetrics } from "@mongodb-js/mcp-metrics";
 import {
     TestTool,
     TestToolWithOutputSchema,
@@ -671,6 +672,49 @@ describe("ToolBase", () => {
                     v.labels.operation_type === "delete"
             );
             expect(sum?.value).toBeGreaterThanOrEqual(0);
+        });
+
+        it("adds the server's metric labels to every observation, with built-in labels taking precedence", async () => {
+            const labelledMetrics = new PrometheusMetrics({
+                definitions: {
+                    ...createDefaultMetrics(),
+                    toolExecutionDuration: new Histogram({
+                        name: "mcp_tool_execution_duration_seconds",
+                        help: "test",
+                        labelNames: [
+                            "tool_name",
+                            "category",
+                            "status",
+                            "operation_type",
+                            "error_type",
+                            "source",
+                        ] as const,
+                        registers: [],
+                    }),
+                },
+            });
+            let labelledCallback: MockToolCallback | undefined;
+            const labelledServer: TestServer = {
+                ...mockServer,
+                metrics: labelledMetrics,
+                metricLabels: { source: "vercel", tool_name: "spoofed" },
+                mcpServer: {
+                    registerTool: (_name: string, _config: unknown, cb: MockToolCallback) => {
+                        labelledCallback = cb;
+                        return { enabled: true, disable: vi.fn(), enable: vi.fn() };
+                    },
+                } as never,
+            };
+            new TestTool({ server: labelledServer }).register();
+            expectDefined(labelledCallback);
+
+            await labelledCallback({ param1: "value", param2: 1 }, {} as never);
+            await labelledCallback({ param1: "value", param2: 1 }, {} as never);
+
+            const { values } = await labelledMetrics.get("toolExecutionDuration").get();
+            const count = values.find((v) => v.metricName === "mcp_tool_execution_duration_seconds_count");
+            expect(count?.labels).toMatchObject({ tool_name: "test-tool", source: "vercel" });
+            expect(count?.value).toBe(2);
         });
 
         it("records returned error results as errors rather than declines", async () => {

@@ -61,6 +61,8 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
             notificationTimeout: ManagedTimeout;
             /** Epoch ms of the last activity on this session; drives LRU eviction order. */
             lastUsedAt: number;
+            /** Labels added to this session's created, closed and active metrics. */
+            metricLabels: Record<string, string>;
         };
     } = {};
 
@@ -164,8 +166,9 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         logger: ILogger;
         session?: { logger: ICompositeLogger };
         headers?: Record<string, unknown>;
+        metricLabels?: Record<string, string>;
     }): Promise<void> {
-        const { sessionId, transport, logger } = params;
+        const { sessionId, transport, logger, metricLabels = {} } = params;
         if (this.sessions[sessionId]) {
             throw new Error(`Session ${sessionId} already exists`);
         }
@@ -213,10 +216,11 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
             notificationTimeout,
             logger,
             lastUsedAt: Date.now(),
+            metricLabels,
         };
         // Track session created metric
-        this.metrics.get("sessionCreated").inc();
-        this.metrics.get("sessionsActive").set(Object.keys(this.sessions).length);
+        this.metrics.get("sessionCreated").inc(metricLabels);
+        this.updateActiveSessions(metricLabels);
         return Promise.resolve();
     }
 
@@ -254,8 +258,17 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         }
 
         // Track session closed metric
-        this.metrics.get("sessionClosed").inc({ reason });
-        this.metrics.get("sessionsActive").set(Object.keys(this.sessions).length);
+        this.metrics.get("sessionClosed").inc({ ...session.metricLabels, reason });
+        this.updateActiveSessions(session.metricLabels);
+    }
+
+    /** Sets the active-session gauge for one label set to the number of sessions carrying it. */
+    private updateActiveSessions(metricLabels: Record<string, string>): void {
+        const key = metricLabelsKey(metricLabels);
+        const count = Object.values(this.sessions).filter(
+            (session) => metricLabelsKey(session.metricLabels) === key
+        ).length;
+        this.metrics.get("sessionsActive").set(metricLabels, count);
     }
 
     async closeAllSessions(): Promise<void> {
@@ -287,6 +300,10 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         return Promise.resolve(undefined);
     }
     /* eslint-enable @typescript-eslint/no-unused-vars */
+}
+
+function metricLabelsKey(metricLabels: Record<string, string>): string {
+    return JSON.stringify(Object.entries(metricLabels).sort(([a], [b]) => a.localeCompare(b)));
 }
 
 /**

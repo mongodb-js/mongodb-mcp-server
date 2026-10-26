@@ -43,6 +43,13 @@ export interface CliServerOptions<TMetrics extends DefaultMetricDefinitions = De
     uiRegistry?: IUIRegistry;
     metrics: IMetrics<TMetrics>;
     /**
+     * Labels added to the tool execution metrics of every tool on this server,
+     * for the server's lifetime: one request on the 2026-07-28 path, one
+     * session on the 2025-era path (where the server is built on `initialize`).
+     * The metric definitions must declare these label names.
+     */
+    metricLabels?: Readonly<Record<string, string>>;
+    /**
      * The transport request that drove creation of this server (headers, query,
      * auth). Present for HTTP (a fresh server per request); `undefined` for
      * stdio / dry-run. Carried through to tool and resource constructors as
@@ -115,6 +122,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
     public readonly connectionErrorHandler: ConnectionErrorHandler;
     public readonly uiRegistry?: IUIRegistry;
     public readonly metrics: IMetrics<TMetrics>;
+    public readonly metricLabels?: Readonly<Record<string, string>>;
     public readonly serverMetadata: ServerMetadata;
     /** The transport request that drove server creation (undefined for stdio / dry-run). */
     public readonly transportRequest?: TransportRequestContext;
@@ -149,6 +157,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
         resources,
         uiRegistry,
         metrics,
+        metricLabels,
         serverMetadata,
         transportRequest,
     }: CliServerOptions<TMetrics>) {
@@ -169,6 +178,7 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
         this.uiRegistry = uiRegistry;
         this.transportRequest = transportRequest;
         this.metrics = metrics;
+        this.metricLabels = metricLabels;
         this.serverMetadata = serverMetadata;
 
         this._mcpLogLevel = config.mcpClientLogLevel;

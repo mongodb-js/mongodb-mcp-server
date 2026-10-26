@@ -60,6 +60,12 @@ export type ToolServer<
     readonly elicitation: IElicitation;
     /** Metrics for tracking tool execution. */
     readonly metrics: IMetrics<TMetricsDefinitions>;
+    /**
+     * Labels added to the tool execution metrics of every tool on this server,
+     * for the server's lifetime. The metric definitions must declare these
+     * label names. Built-in labels (e.g. `tool_name`, `status`) take precedence.
+     */
+    readonly metricLabels?: Readonly<Record<string, string>>;
     /** UI registry for tools that embed interactive widget content. */
     readonly uiRegistry?: IUIRegistry;
     /** The SDK McpServer this tool is registered against. */
