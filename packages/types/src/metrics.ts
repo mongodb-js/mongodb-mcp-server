@@ -4,6 +4,21 @@
 type MetricLabels = Partial<Record<string, string | number>>;
 
 /**
+ * Label names `ToolBase` sets on `toolExecutionDuration`. Server metric labels
+ * with these names are ignored.
+ */
+export const TOOL_EXECUTION_DURATION_LABEL_NAMES = [
+    "tool_name",
+    "category",
+    "status",
+    "operation_type",
+    "error_type",
+] as const;
+
+/** A label name `ToolBase` sets on `toolExecutionDuration`. */
+export type ToolExecutionDurationLabelName = (typeof TOOL_EXECUTION_DURATION_LABEL_NAMES)[number];
+
+/**
  * Interface for observable metrics (like histograms).
  * Used for recording values that can be observed over time.
  */
