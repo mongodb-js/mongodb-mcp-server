@@ -355,7 +355,6 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
                 transport,
                 logger: this.logger,
                 headers: req.headers,
-                metricLabels: server.metricLabels,
             });
         } catch (error) {
             // Dispose the un-connected server we built for a rejected session.

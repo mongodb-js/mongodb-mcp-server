@@ -48,9 +48,6 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
      * @param params.headers The headers of the request that initiated the
      * session (e.g. for tracing the x-request-id in logs and downstream
      * requests).
-     * @param params.metricLabels Labels added to the session metrics
-     * (created, closed and active) for the lifetime of the session. The
-     * metric definitions must declare these label names.
      */
     addSession(params: {
         sessionId: string;
@@ -58,7 +55,6 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
         logger: ILogger;
         session?: { logger: ICompositeLogger };
         headers?: Record<string, unknown>;
-        metricLabels?: Readonly<Record<string, string>>;
     }): Promise<void>;
     /** Returns whether a session exists, without resetting its idle timeout (unlike {@link getSession}). */
     hasSession(sessionId: string): boolean;

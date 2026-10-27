@@ -61,8 +61,6 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
             notificationTimeout: ManagedTimeout;
             /** Epoch ms of the last activity on this session; drives LRU eviction order. */
             lastUsedAt: number;
-            /** Labels added to this session's created, closed and active metrics. */
-            metricLabels: Readonly<Record<string, string>>;
         };
     } = {};
 
@@ -166,11 +164,8 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         logger: ILogger;
         session?: { logger: ICompositeLogger };
         headers?: Record<string, unknown>;
-        metricLabels?: Readonly<Record<string, string>>;
     }): Promise<void> {
         const { sessionId, transport, logger } = params;
-        // Copied so a caller mutating its object later cannot change this session's series.
-        const metricLabels = Object.freeze({ ...params.metricLabels });
         if (this.sessions[sessionId]) {
             throw new Error(`Session ${sessionId} already exists`);
         }
@@ -218,11 +213,10 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
             notificationTimeout,
             logger,
             lastUsedAt: Date.now(),
-            metricLabels,
         };
         // Track session created metric
-        this.emitMetric("sessionCreated", () => this.metrics.get("sessionCreated").inc(metricLabels));
-        this.emitMetric("sessionsActive", () => this.metrics.get("sessionsActive").inc(metricLabels));
+        this.emitMetric("sessionCreated", () => this.metrics.get("sessionCreated").inc(this.metrics.labels));
+        this.emitMetric("sessionsActive", () => this.metrics.get("sessionsActive").inc(this.metrics.labels));
         return Promise.resolve();
     }
 
@@ -246,9 +240,9 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         // Recorded on removal so the metrics track store membership even while
         // transport.close() is pending, e.g. for a session evicted by addSession.
         this.emitMetric("sessionClosed", () =>
-            this.metrics.get("sessionClosed").inc({ ...session.metricLabels, reason })
+            this.metrics.get("sessionClosed").inc({ ...this.metrics.labels, reason })
         );
-        this.emitMetric("sessionsActive", () => this.metrics.get("sessionsActive").dec(session.metricLabels));
+        this.emitMetric("sessionsActive", () => this.metrics.get("sessionsActive").dec(this.metrics.labels));
 
         session.abortTimeout.cancel();
         session.notificationTimeout.cancel();

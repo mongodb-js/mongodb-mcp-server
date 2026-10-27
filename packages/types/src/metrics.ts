@@ -64,6 +64,12 @@ export type DefaultMetricDefinitions = {
  * @template TMetricsDefinitions - The type of metric definitions this metrics instance uses
  */
 export interface IMetrics<TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
+    /**
+     * Labels applied to every metric this object records. Callers merge these
+     * with the labels of a specific observation; observation-level labels win.
+     * The metric definitions must declare these label names.
+     */
+    readonly labels: Readonly<Record<string, string>>;
     /** Get a specific metric by name */
     get<K extends keyof TMetricsDefinitions>(key: K): TMetricsDefinitions[K];
     /** Get all metrics as a formatted string (e.g., Prometheus format) */

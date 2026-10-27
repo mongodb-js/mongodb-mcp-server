@@ -674,8 +674,9 @@ describe("ToolBase", () => {
             expect(sum?.value).toBeGreaterThanOrEqual(0);
         });
 
-        it("adds the server's metric labels to every observation, with built-in labels taking precedence", async () => {
+        it("adds the metrics object's labels to every observation, with built-in labels taking precedence", async () => {
             const labelledMetrics = new PrometheusMetrics({
+                labels: { source: "vercel", tool_name: "spoofed", error_type: "spoofed" },
                 definitions: {
                     ...createDefaultMetrics(),
                     toolExecutionDuration: new Histogram({
@@ -697,7 +698,6 @@ describe("ToolBase", () => {
             const labelledServer: TestServer = {
                 ...mockServer,
                 metrics: labelledMetrics,
-                metricLabels: { source: "vercel", tool_name: "spoofed", error_type: "spoofed" },
                 mcpServer: {
                     registerTool: (_name: string, _config: unknown, cb: MockToolCallback) => {
                         labelledCallback = cb;
@@ -718,11 +718,11 @@ describe("ToolBase", () => {
             expect(count?.value).toBe(2);
         });
 
-        it("returns the tool result and logs a warning when a server metric label is undeclared", async () => {
+        it("returns the tool result and logs a warning when a metrics label is undeclared", async () => {
             let labelledCallback: MockToolCallback | undefined;
             const labelledServer: TestServer = {
                 ...mockServer,
-                metricLabels: { source: "vercel" },
+                metrics: new PrometheusMetrics({ definitions: createDefaultMetrics(), labels: { source: "vercel" } }),
                 mcpServer: {
                     registerTool: (_name: string, _config: unknown, cb: MockToolCallback) => {
                         labelledCallback = cb;

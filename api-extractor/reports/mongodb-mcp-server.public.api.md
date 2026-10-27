@@ -310,8 +310,6 @@ export class CliServer<TMetrics extends DefaultMetricDefinitions = DefaultMetric
     // (undocumented)
     readonly mcpServer: McpServer;
     // (undocumented)
-    readonly metricLabels?: Readonly<Record<string, string>>;
-    // (undocumented)
     readonly metrics: IMetrics<TMetrics>;
     register(): Promise<void>;
     // (undocumented)
@@ -353,7 +351,6 @@ export interface CliServerOptions<TMetrics extends DefaultMetricDefinitions = De
     logger: CompositeLogger;
     // (undocumented)
     mcpServer: McpServer;
-    metricLabels?: Readonly<Record<string, string>>;
     // (undocumented)
     metrics: IMetrics<TMetrics>;
     readonly resources?: ResourceRegistry;
@@ -858,10 +855,12 @@ export function parseUserConfig(input: {
 // @public (undocumented)
 export class PrometheusMetrics<TMetricsDefinitions extends DefaultMetricDefinitions> implements IMetrics<TMetricsDefinitions> {
     constructor(input: PrometheusMetricsOptions<TMetricsDefinitions>);
+    readonly definitions: TMetricsDefinitions;
     // (undocumented)
     get<K extends keyof TMetricsDefinitions>(key: K): TMetricsDefinitions[K];
     // (undocumented)
     getMetrics(): Promise<string>;
+    readonly labels: Readonly<Record<string, string>>;
     // (undocumented)
     readonly registry: Registry;
 }
@@ -870,6 +869,7 @@ export class PrometheusMetrics<TMetricsDefinitions extends DefaultMetricDefiniti
 export interface PrometheusMetricsOptions<TMetricsDefinitions extends DefaultMetricDefinitions> {
     collectProcessMetrics?: boolean;
     definitions: TMetricsDefinitions;
+    labels?: Readonly<Record<string, string>>;
     registry?: Registry;
 }
 

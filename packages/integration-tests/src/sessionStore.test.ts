@@ -81,8 +81,9 @@ describe("SessionStore<CloseableTransport> metrics", () => {
         expect(sample?.value).toBe(1);
     });
 
-    it("labels the session metrics with the session's metric labels for its lifetime", async () => {
+    it("labels the session metrics with the metrics object's labels", async () => {
         const labelledMetrics = new PrometheusMetrics({
+            labels: { source: "vercel" },
             definitions: {
                 ...createDefaultMetrics(),
                 sessionCreated: new Counter({
@@ -110,12 +111,11 @@ describe("SessionStore<CloseableTransport> metrics", () => {
             logger,
             metrics: labelledMetrics,
         });
-        const add = (sessionId: string, source: string): Promise<void> =>
+        const add = (sessionId: string): Promise<void> =>
             labelledStore.addSession({
                 sessionId,
                 transport: createMockTransport(),
                 logger: createMockLogger(),
-                metricLabels: { source },
             });
         const valueFor = async (
             metric: Counter<string> | Gauge<string>,
@@ -125,38 +125,38 @@ describe("SessionStore<CloseableTransport> metrics", () => {
                 Object.entries(labels).every(([name, value]) => v.labels[name] === value)
             )?.value;
 
-        await add("s1", "vercel");
-        await add("s2", "vercel");
-        await add("s3", "mcp");
+        await add("s1");
+        await add("s2");
         await labelledStore.closeSession({ sessionId: "s1", reason: "transport_closed" });
 
         expect(await valueFor(labelledMetrics.get("sessionCreated"), { source: "vercel" })).toBe(2);
-        expect(await valueFor(labelledMetrics.get("sessionCreated"), { source: "mcp" })).toBe(1);
         expect(
             await valueFor(labelledMetrics.get("sessionClosed"), { source: "vercel", reason: "transport_closed" })
         ).toBe(1);
         expect(await valueFor(labelledMetrics.get("sessionsActive"), { source: "vercel" })).toBe(1);
-        expect(await valueFor(labelledMetrics.get("sessionsActive"), { source: "mcp" })).toBe(1);
     });
 
     it("keeps session operations working and logs a warning when a metric label is undeclared", async () => {
         const warning = vi.spyOn(logger, "warning");
-        await store.addSession({
+        const labelledStore = new SessionStore<CloseableTransport>({
+            options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 100 },
+            logger,
+            metrics: new PrometheusMetrics({ definitions: createDefaultMetrics(), labels: { source: "vercel" } }),
+        });
+        await labelledStore.addSession({
             sessionId: "s1",
             transport: createMockTransport(),
             logger: createMockLogger(),
-            metricLabels: { source: "vercel" },
         });
-        await store.addSession({
+        await labelledStore.addSession({
             sessionId: "s2",
             transport: createMockTransport(),
             logger: createMockLogger(),
-            metricLabels: { source: "vercel" },
         });
-        expect(store.hasSession("s1")).toBe(true);
+        expect(labelledStore.hasSession("s1")).toBe(true);
 
-        await expect(store.closeAllSessions()).resolves.toBeUndefined();
-        expect(store.hasSession("s1")).toBe(false);
+        await expect(labelledStore.closeAllSessions()).resolves.toBeUndefined();
+        expect(labelledStore.hasSession("s1")).toBe(false);
         // Two failing metric calls per add (created, active) and per close (closed, active).
         expect(warning).toHaveBeenCalledTimes(8);
         expect(warning).toHaveBeenCalledWith(expect.objectContaining({ id: LogId.metricEmitFailure }));

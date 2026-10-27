@@ -616,7 +616,7 @@ export abstract class ToolBase<
                         : {}),
                 } satisfies Partial<Record<ToolExecutionDurationLabelName, string>>;
                 const labels = {
-                    ...withoutBuiltInToolLabels(this.server.metricLabels),
+                    ...withoutBuiltInToolLabels(this.server.metrics.labels),
                     ...builtInLabels,
                 };
                 this.server.metrics
