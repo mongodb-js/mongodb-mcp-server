@@ -2,7 +2,7 @@ import { ReactiveResource } from "@mongodb-js/mcp-core";
 import type { UserConfig, CliServer } from "@mongodb-js/mcp-cli";
 import type { TransportRequestContext } from "@mongodb-js/mcp-types";
 import { generateConnectionInfoFromCliArgs } from "@mongosh/arg-parser";
-import { connectCapableTools } from "@mongodb-js/mcp-tools-mongodb";
+import { connectCapableTools, PRECONFIGURED_CONNECTION_ID } from "@mongodb-js/mcp-tools-mongodb";
 
 /**
  * Removes secret material from the driver options before exposing them via the config resource.
@@ -38,12 +38,22 @@ export class ConfigResource extends ReactiveResource<UserConfig, CliServer> {
 
     toOutput(): string {
         const connectionInfo = generateConnectionInfoFromCliArgs(this.current);
+        const { [PRECONFIGURED_CONNECTION_ID]: preconfigured, ...named } = this.current.connectionStrings;
+        const namedConnections = Object.keys(named);
         const result = {
             telemetry: this.current.telemetry,
             logPath: this.current.logPath,
-            connectionString: connectionInfo.connectionString
+            connectionString: preconfigured
                 ? 'set; a connection with the connectionId "preconfigured" is available — pass it as the connectionId argument to the MongoDB tools'
-                : `not set; before using any MongoDB tool, ${this.connectToolsGuidance()}, alternatively you can setup MongoDB Atlas access, more info at 'https://github.com/mongodb-js/mongodb-mcp-server'.`,
+                : namedConnections.length > 0
+                  ? "not set; use one of the named connections listed under connectionStrings, or to reach another deployment, " +
+                    this.connectToolsGuidance()
+                  : `not set; before using any MongoDB tool, ${this.connectToolsGuidance()}, alternatively you can setup MongoDB Atlas access, more info at 'https://github.com/mongodb-js/mongodb-mcp-server'.`,
+            ...(namedConnections.length > 0 && {
+                connectionStrings: `set; connections with the connectionIds ${namedConnections
+                    .map((name) => `"${name}"`)
+                    .join(", ")} are available — pass one as the connectionId argument to the MongoDB tools`,
+            }),
             connectOptions: redactDriverOptions(connectionInfo.driverOptions),
             atlas:
                 this.current.apiClientId && this.current.apiClientSecret

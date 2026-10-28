@@ -21,13 +21,23 @@ const ConnectArgsShape = {
         ),
 };
 
+/** Points clients at the connections the server configuration already declares, listing their ids. */
+function configuredConnectionsNote(connectionIds: readonly string[]): string {
+    if (connectionIds.length === 0) {
+        return "";
+    }
+    if (connectionIds.length === 1 && connectionIds[0] === PRECONFIGURED_CONNECTION_ID) {
+        return ' A connection with the id "preconfigured" already exists for the connection string the server was configured with — there is no need to call this tool to use it.';
+    }
+    const ids = connectionIds.map((id) => `"${id}"`).join(", ");
+    return ` Connections for the connection strings the server was configured with already exist, with these connectionIds: ${ids} — there is no need to call this tool to use them.`;
+}
+
 export class ConnectTool extends MongoDBToolBase {
     static toolName = "connect";
-    public override description = `Connect to a MongoDB instance and get back a connectionId to pass to the other MongoDB tools. Each call establishes a new, independent connection — multiple connections can be active at the same time.${
-        this.server.config.connectionString
-            ? ' A connection with the id "preconfigured" already exists for the connection string the server was configured with — there is no need to call this tool to use it.'
-            : ""
-    }`;
+    public override description = `Connect to a MongoDB instance and get back a connectionId to pass to the other MongoDB tools. Each call establishes a new, independent connection — multiple connections can be active at the same time.${configuredConnectionsNote(
+        Object.keys(this.server.config.connectionStrings)
+    )}`;
 
     public override argsShape(): typeof ConnectArgsShape {
         return ConnectArgsShape;

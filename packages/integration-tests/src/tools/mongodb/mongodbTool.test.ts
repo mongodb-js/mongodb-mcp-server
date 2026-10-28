@@ -13,6 +13,7 @@ import {
     connectionErrorHandler,
     type ConnectionErrorHandler,
     type IMongoDBConfig,
+    PRECONFIGURED_CONNECTION_ID,
 } from "@mongodb-js/mcp-tools-mongodb";
 import * as MongoDbTools from "@mongodb-js/mcp-tools-mongodb";
 import type { OperationType, ToolRequest, ToolServer } from "@mongodb-js/mcp-types";
@@ -253,7 +254,9 @@ describe("MongoDBTool implementations", () => {
         describe("and comes across a MongoDB Error - MisconfiguredConnectionString", () => {
             it("should handle the error", async () => {
                 // This is a misconfigured connection string
-                await cleanupAndStartServer({ connectionString: "mongodb://localhost:1234" });
+                await cleanupAndStartServer({
+                    connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: "mongodb://localhost:1234" },
+                });
                 const toolResponse = await mcpClient?.callTool({
                     name: "Random",
                     arguments: { connectionId: "preconfigured" },
@@ -272,7 +275,10 @@ describe("MongoDBTool implementations", () => {
         describe("and comes across any other error MongoDB Error - ForbiddenCollscan", () => {
             it("should not handle the error and let the static handling take over it", async () => {
                 // This is a misconfigured connection string
-                await cleanupAndStartServer({ connectionString: mdbIntegration.connectionString(), indexCheck: true });
+                await cleanupAndStartServer({
+                    connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: mdbIntegration.connectionString() },
+                    indexCheck: true,
+                });
                 const toolResponse = await mcpClient?.callTool({
                     name: "find",
                     arguments: {
@@ -345,7 +351,7 @@ describe("MongoDBTool implementations", () => {
             it("should handle the error", async () => {
                 // This is a misconfigured connection string
                 await cleanupAndStartServer(
-                    { connectionString: "mongodb://localhost:1234" },
+                    { connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: "mongodb://localhost:1234" } },
                     [...Object.values(MongoDBTools), RandomTool],
                     injectedErrorHandler
                 );
@@ -369,7 +375,10 @@ describe("MongoDBTool implementations", () => {
             it("should not handle the error and let the static handling take over it", async () => {
                 // This is a misconfigured connection string
                 await cleanupAndStartServer(
-                    { connectionString: mdbIntegration.connectionString(), indexCheck: true },
+                    {
+                        connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: mdbIntegration.connectionString() },
+                        indexCheck: true,
+                    },
                     [...Object.values(MongoDBTools), RandomTool],
                     injectedErrorHandler
                 );
@@ -397,7 +406,10 @@ describe("MongoDBTool implementations", () => {
     describe("when a tool is not usable", () => {
         it("should not even be registered", async () => {
             await cleanupAndStartServer(
-                { connectionString: mdbIntegration.connectionString(), indexCheck: true },
+                {
+                    connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: mdbIntegration.connectionString() },
+                    indexCheck: true,
+                },
                 [RandomTool, UnusableVoyageTool],
                 injectedErrorHandler
             );
@@ -416,13 +428,40 @@ describe("MongoDBTool implementations", () => {
         }
 
         it("mentions preconfigured when a connection string is configured", async () => {
-            await cleanupAndStartServer({ connectionString: mdbIntegration.connectionString() });
+            await cleanupAndStartServer({
+                connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: mdbIntegration.connectionString() },
+            });
             expect(await connectionIdDescription()).toContain('"preconfigured"');
         });
 
         it("does not mention preconfigured without a configured connection string", async () => {
             await cleanupAndStartServer();
             expect(await connectionIdDescription()).not.toContain("preconfigured");
+        });
+
+        it("lists the configured connection names, never their connection strings", async () => {
+            await cleanupAndStartServer({
+                connectionStrings: {
+                    analytics: mdbIntegration.connectionString(),
+                    "orders-replica": mdbIntegration.connectionString(),
+                },
+            });
+            const description = await connectionIdDescription();
+            expect(description).toContain('"analytics", "orders-replica"');
+            expect(description).not.toContain("preconfigured");
+            expect(description).not.toContain(mdbIntegration.connectionString());
+        });
+
+        it("lists the configured connection names alongside preconfigured", async () => {
+            await cleanupAndStartServer({
+                connectionStrings: {
+                    [PRECONFIGURED_CONNECTION_ID]: mdbIntegration.connectionString(),
+                    analytics: mdbIntegration.connectionString(),
+                },
+            });
+            const description = await connectionIdDescription();
+            expect(description).toContain('"analytics"');
+            expect(description).toContain('"preconfigured"');
         });
     });
 
@@ -484,7 +523,9 @@ describe("MongoDBTool implementations", () => {
         });
 
         it("should return metadata with connection_auth_type and host_type when connected via connection string", async () => {
-            await cleanupAndStartServer({ connectionString: mdbIntegration.connectionString() });
+            await cleanupAndStartServer({
+                connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: mdbIntegration.connectionString() },
+            });
             // Dial the preconfigured connection to set the connection state
             await mcpClient?.callTool({
                 name: "Random",
