@@ -23,7 +23,10 @@ export class PrometheusMetrics<
         // Copied so a caller mutating its object later cannot change this instance's series.
         const frozenLabels = Object.freeze({ ...labels });
         // Checked before any registry mutation, so a rejected instance leaves none behind.
-        for (const name of Object.keys(frozenLabels)) {
+        for (const [name, value] of Object.entries(frozenLabels)) {
+            if (value === undefined) {
+                throw new Error(`Instance metric label "${name}" must have a value`);
+            }
             if (RESERVED_LABELS.has(name)) {
                 throw new Error(
                     `Instance metric label "${name}" is reserved by the metric definitions for per-observation use`

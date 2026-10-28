@@ -107,6 +107,25 @@ describe("PrometheusMetrics", () => {
             expect(() => base.withLabels({ reason: "idle_timeout" })).toThrow(/reserved/);
         });
 
+        it("rejects a label with no value", () => {
+            const definitions = {
+                ...createDefaultMetrics(),
+                toolExecutionDuration: new Histogram({
+                    name: "mcp_tool_execution_duration_seconds",
+                    help: "test",
+                    labelNames: ["tool_name", "tenant"] as const,
+                    registers: [],
+                }),
+            };
+            const base = new PrometheusMetrics<typeof definitions>({ definitions, labels: { tenant: "acme" } });
+
+            // `InstanceLabels` is optional, so the type admits an explicit `undefined`.
+            expect(
+                () => new PrometheusMetrics<typeof definitions>({ definitions, labels: { tenant: undefined } })
+            ).toThrow(/must have a value/);
+            expect(() => base.withLabels({ tenant: undefined })).toThrow(/must have a value/);
+        });
+
         it("withLabels() returns a sibling sharing definitions and registry", async () => {
             const registry = new Registry();
             const definitions = {
