@@ -27,6 +27,7 @@ import type {
     AtlasClusterConnectionInfo,
     ToolExecutionDurationLabelName,
 } from "@mongodb-js/mcp-types";
+import { TOOL_EXECUTION_DURATION_LABEL_NAMES } from "@mongodb-js/mcp-types";
 import { createUIResource, type UIResource } from "@mcp-ui/server";
 import { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
 import { getRandomUUID } from "@mongodb-js/mcp-core";
@@ -99,6 +100,22 @@ function resolveClientInfo(
         }
     }
     return negotiated;
+}
+
+const BUILT_IN_TOOL_LABELS: ReadonlySet<string> = new Set(TOOL_EXECUTION_DURATION_LABEL_NAMES);
+
+/**
+ * Drops injected labels the built-in tool labels own. `error_type` is set only
+ * when there is an error, so an inherited one would survive on success.
+ */
+function withoutBuiltInToolLabels(labels: Readonly<Partial<Record<string, string>>>): Record<string, string> {
+    const kept: Record<string, string> = {};
+    for (const [name, value] of Object.entries(labels)) {
+        if (value !== undefined && !BUILT_IN_TOOL_LABELS.has(name)) {
+            kept[name] = value;
+        }
+    }
+    return kept;
 }
 
 /** Narrow a possibly-undefined per-request envelope to a keyed object. */
@@ -602,7 +619,7 @@ export abstract class ToolBase<
                     : {}),
             } satisfies Partial<Record<ToolExecutionDurationLabelName, string>>;
             const labels = {
-                ...this.server.metrics.labels,
+                ...withoutBuiltInToolLabels(this.server.metrics.labels),
                 ...builtInLabels,
             };
             this.server.metrics.get("toolExecutionDuration").observe(labels, (Date.now() - executionStartTime) / 1000);

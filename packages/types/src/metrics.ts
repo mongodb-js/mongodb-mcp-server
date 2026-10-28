@@ -4,8 +4,8 @@
 type MetricLabels = Partial<Record<string, string | number>>;
 
 /**
- * Label names `ToolBase` sets on `toolExecutionDuration`. Server metric labels
- * with these names are ignored.
+ * Label names `ToolBase` sets on `toolExecutionDuration`. Injected labels must
+ * not reuse them: `PrometheusMetrics` rejects one and the tool merge drops it.
  */
 export const TOOL_EXECUTION_DURATION_LABEL_NAMES = [
     "tool_name",
