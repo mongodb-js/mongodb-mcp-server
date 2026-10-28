@@ -19,6 +19,14 @@ export const TOOL_EXECUTION_DURATION_LABEL_NAMES = [
 export type ToolExecutionDurationLabelName = (typeof TOOL_EXECUTION_DURATION_LABEL_NAMES)[number];
 
 /**
+ * Label names the default metric definitions set per observation: the
+ * tool-execution labels plus the session-close `reason`. An injected label must
+ * not use one of these names -- the observation-level value always wins, so the
+ * injected one would be silently ignored.
+ */
+export const RESERVED_METRIC_LABEL_NAMES = [...TOOL_EXECUTION_DURATION_LABEL_NAMES, "reason"] as const;
+
+/**
  * Interface for observable metrics (like histograms).
  * Used for recording values that can be observed over time.
  */

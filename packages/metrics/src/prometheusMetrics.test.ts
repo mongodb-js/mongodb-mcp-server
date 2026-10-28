@@ -71,6 +71,23 @@ describe("PrometheusMetrics", () => {
             expect(metrics.labels).toEqual({ tenant: "acme" });
         });
 
+        it("rejects an injected label the metric definitions set per observation", () => {
+            expect(
+                () =>
+                    new PrometheusMetrics({
+                        definitions: createDefaultMetrics(),
+                        labels: { reason: "idle_timeout" },
+                    })
+            ).toThrow(/reserved/);
+            expect(
+                () =>
+                    new PrometheusMetrics({
+                        definitions: createDefaultMetrics(),
+                        labels: { tool_name: "spoofed" },
+                    })
+            ).toThrow(/reserved/);
+        });
+
         it("withLabels() returns a sibling sharing definitions and registry", async () => {
             const registry = new Registry();
             const definitions = {
@@ -89,9 +106,7 @@ describe("PrometheusMetrics", () => {
             });
             const scoped = base.withLabels({ region: "eu" });
 
-            // Additive: the sibling keeps the labels it was derived from.
             expect(scoped.labels).toEqual({ tenant: "acme", region: "eu" });
-            expect(base.withLabels({}).labels).toEqual({ tenant: "acme" });
             expect(scoped.registry).toBe(base.registry);
             expect(scoped.get("toolExecutionDuration")).toBe(base.get("toolExecutionDuration"));
 
@@ -101,6 +116,26 @@ describe("PrometheusMetrics", () => {
             expect(output).toContain('tenant="acme"');
             expect(output).toContain('region="eu"');
             expect(output).toContain('tool_name="find"');
+        });
+
+        it("withLabels() adds and overrides labels but cannot remove them", () => {
+            const definitions = {
+                ...createDefaultMetrics(),
+                toolExecutionDuration: new Histogram({
+                    name: "mcp_tool_execution_duration_seconds",
+                    help: "test",
+                    labelNames: ["tool_name", "tenant", "region"] as const,
+                    registers: [],
+                }),
+            };
+            const base = new PrometheusMetrics<typeof definitions, "tenant" | "region">({
+                definitions,
+                labels: { tenant: "acme" },
+            });
+
+            expect(base.withLabels({ region: "eu" }).labels).toEqual({ tenant: "acme", region: "eu" });
+            expect(base.withLabels({ tenant: "other" }).labels).toEqual({ tenant: "other" });
+            expect(base.withLabels({}).labels).toEqual({ tenant: "acme" });
         });
     });
 });

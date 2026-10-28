@@ -872,6 +872,7 @@ export interface PrometheusMetricsOptions<TMetricsDefinitions extends DefaultMet
     definitions: TMetricsDefinitions;
     labels?: Readonly<Partial<Record<TInjectedLabelNames, string>>>;
     registry?: Registry;
+    reservedLabelNames?: readonly string[];
 }
 
 // @public

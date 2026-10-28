@@ -674,9 +674,9 @@ describe("ToolBase", () => {
             expect(sum?.value).toBeGreaterThanOrEqual(0);
         });
 
-        it("adds the metrics object's labels to every observation, with built-in labels taking precedence", async () => {
+        it("adds the metrics object's labels to every observation", async () => {
             const labelledMetrics = new PrometheusMetrics({
-                labels: { tenant: "acme", tool_name: "spoofed", error_type: "spoofed" },
+                labels: { tenant: "acme" },
                 definitions: {
                     ...createDefaultMetrics(),
                     toolExecutionDuration: new Histogram({
