@@ -19,14 +19,6 @@ export const TOOL_EXECUTION_DURATION_LABEL_NAMES = [
 export type ToolExecutionDurationLabelName = (typeof TOOL_EXECUTION_DURATION_LABEL_NAMES)[number];
 
 /**
- * Label names the default metric definitions set per observation: the
- * tool-execution labels plus the session-close `reason`. An injected label must
- * not use one of these names -- the observation-level value always wins, so the
- * injected one would be silently ignored.
- */
-export const RESERVED_METRIC_LABEL_NAMES = [...TOOL_EXECUTION_DURATION_LABEL_NAMES, "reason"] as const;
-
-/**
  * Interface for observable metrics (like histograms).
  * Used for recording values that can be observed over time.
  */
@@ -70,18 +62,16 @@ export type DefaultMetricDefinitions = {
 /**
  * Interface for accessing metrics.
  * @template TMetricsDefinitions - The type of metric definitions this metrics instance uses
- * @template TInjectedLabelNames - Label names a consumer adds to these metrics (e.g. an
- * ingress dimension). This package names none of them: the consumer supplies the set, and the
- * labels it passes are checked against it. Defaults to `never` (no injected labels).
+ * @template TInjectedLabelNames - Label names the consumer adds to these metrics; this
+ * package names none of them. Defaults to `never` (no injected labels).
  */
 export interface IMetrics<
     TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions,
     TInjectedLabelNames extends string = never,
 > {
     /**
-     * Labels applied to every metric this object records. Callers merge these
-     * with the labels of a specific observation; observation-level labels win.
-     * The metric definitions must declare these label names.
+     * Labels applied to every metric this object records, merged under the
+     * labels of a specific observation. The definitions must declare them.
      */
     readonly labels: Readonly<Partial<Record<TInjectedLabelNames, string>>>;
     /** Get a specific metric by name */

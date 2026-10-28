@@ -138,6 +138,42 @@ describe("SessionStore<CloseableTransport> metrics", () => {
         expect(await valueFor(baseMetrics.get("sessionsActive"), { tenant: "other" })).toBe(1);
     });
 
+    it("uses the store's own labels when a session is added without metrics", async () => {
+        const definitions = {
+            ...createDefaultMetrics(),
+            sessionCreated: new Counter({
+                name: "mcp_session_created",
+                help: "test",
+                labelNames: ["tenant"] as const,
+                registers: [],
+            }),
+            sessionsActive: new Gauge({
+                name: "mcp_active_sessions",
+                help: "test",
+                labelNames: ["tenant"] as const,
+                registers: [],
+            }),
+        };
+        const storeMetrics = new PrometheusMetrics<typeof definitions, "tenant">({
+            definitions,
+            labels: { tenant: "acme" },
+        });
+        const labelledStore = new SessionStore<CloseableTransport>({
+            options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 100 },
+            logger,
+            metrics: storeMetrics,
+        });
+
+        await labelledStore.addSession({
+            sessionId: "s1",
+            transport: createMockTransport(),
+            logger: createMockLogger(),
+        });
+
+        const { values } = await storeMetrics.get("sessionCreated").get();
+        expect(values.find((v) => v.labels.tenant === "acme")?.value).toBe(1);
+    });
+
     it("records reason 'server_stop' when closeAllSessions is called", async () => {
         await store.addSession({
             sessionId: "s1",

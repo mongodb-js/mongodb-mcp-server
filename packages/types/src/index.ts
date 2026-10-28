@@ -16,7 +16,7 @@ export type {
     IMetrics,
     ToolExecutionDurationLabelName,
 } from "./metrics.js";
-export { TOOL_EXECUTION_DURATION_LABEL_NAMES, RESERVED_METRIC_LABEL_NAMES } from "./metrics.js";
+export { TOOL_EXECUTION_DURATION_LABEL_NAMES } from "./metrics.js";
 export type * from "./ui.js";
 export type * from "./resources.js";
 export type * from "./telemetry.js";

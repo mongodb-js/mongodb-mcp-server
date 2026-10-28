@@ -17,16 +17,8 @@ export interface PrometheusMetricsOptions<
     /** Metric instances (Counter / Histogram / Gauge) keyed by logical name. */
     definitions: TMetricsDefinitions;
     /**
-     * Label names the metric definitions set per observation. An injected label
-     * using one of these names is rejected, because the observation-level value
-     * always wins and the injected one would be silently ignored. Defaults to
-     * the names the default definitions use.
-     */
-    reservedLabelNames?: readonly string[];
-    /**
      * Labels added to every metric recorded through this instance. A sibling
-     * instance sharing the same `definitions` and `registry` can carry a
-     * different set. The names are injected by the consumer, not this package.
+     * sharing the same `definitions` and `registry` can carry a different set.
      */
     labels?: Readonly<Partial<Record<TInjectedLabelNames, string>>>;
     /** Whether to collect Node.js and process metrics. */

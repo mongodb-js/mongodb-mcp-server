@@ -166,11 +166,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         logger: ILogger;
         session?: { logger: ICompositeLogger };
         headers?: Record<string, unknown>;
-        /**
-         * Records this session's lifecycle series. Defaults to the store's own
-         * instance; pass a labeled sibling (same definitions and registry) to
-         * scope this session's labels without a second registry.
-         */
+        /** Defaults to the store's own instance; a labeled sibling scopes this session's labels. */
         metrics?: IMetrics<DefaultMetricDefinitions>;
     }): Promise<void> {
         const { sessionId, transport, logger } = params;

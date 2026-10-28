@@ -48,9 +48,8 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
      * @param params.headers The headers of the request that initiated the
      * session (e.g. for tracing the x-request-id in logs and downstream
      * requests).
-     * @param params.metrics Records this session's lifecycle series. Defaults
-     * to the store's own instance; pass a labeled sibling sharing the same
-     * definitions and registry to scope this session's labels.
+     * @param params.metrics Defaults to the store's own instance; a labeled
+     * sibling scopes this session's labels.
      */
     addSession(params: {
         sessionId: string;

@@ -71,7 +71,7 @@ describe("PrometheusMetrics", () => {
             expect(metrics.labels).toEqual({ tenant: "acme" });
         });
 
-        it("rejects an injected label the metric definitions set per observation", () => {
+        it("rejects an injected label the default definitions set per observation", () => {
             expect(
                 () =>
                     new PrometheusMetrics({
@@ -86,6 +86,19 @@ describe("PrometheusMetrics", () => {
                         labels: { tool_name: "spoofed" },
                     })
             ).toThrow(/reserved/);
+
+            // `withLabels` can introduce one too, so it is checked as well.
+            const definitions = {
+                ...createDefaultMetrics(),
+                toolExecutionDuration: new Histogram({
+                    name: "mcp_tool_execution_duration_seconds",
+                    help: "test",
+                    labelNames: ["tool_name"] as const,
+                    registers: [],
+                }),
+            };
+            const base = new PrometheusMetrics<typeof definitions, "reason">({ definitions });
+            expect(() => base.withLabels({ reason: "idle_timeout" })).toThrow(/reserved/);
         });
 
         it("withLabels() returns a sibling sharing definitions and registry", async () => {
