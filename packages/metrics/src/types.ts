@@ -6,13 +6,22 @@ export type PrometheusMetricDefinitions = {
 } & DefaultMetricDefinitions;
 
 /**
+ * Labels a caller may pass. With no label names declared the set is empty, so
+ * passing any label is a type error: `{}` would skip excess-property checking
+ * and accept typos.
+ */
+export type InstanceLabels<TInstanceLabelNames extends string> = [TInstanceLabelNames] extends [never]
+    ? Record<string, never>
+    : Readonly<Partial<Record<TInstanceLabelNames, string>>>;
+
+/**
  * Options for creating a `PrometheusMetrics` instance.
  *
  * Only `definitions` is required — the rest have sensible defaults.
  */
 export interface PrometheusMetricsOptions<
     TMetricsDefinitions extends DefaultMetricDefinitions,
-    TInjectedLabelNames extends string = never,
+    TInstanceLabelNames extends string = never,
 > {
     /** Metric instances (Counter / Histogram / Gauge) keyed by logical name. */
     definitions: TMetricsDefinitions;
@@ -20,7 +29,7 @@ export interface PrometheusMetricsOptions<
      * Labels added to every metric recorded through this instance. A sibling
      * sharing the same `definitions` and `registry` can carry a different set.
      */
-    labels?: Readonly<Partial<Record<TInjectedLabelNames, string>>>;
+    labels?: InstanceLabels<TInstanceLabelNames>;
     /** Whether to collect Node.js and process metrics. */
     collectProcessMetrics?: boolean;
     /** Optional pre-existing registry; a fresh one is created when omitted. */

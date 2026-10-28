@@ -45,6 +45,11 @@ export class SessionLimitExceededError extends Error {
     }
 }
 
+/** prom-client exposes a metric's declared label names at runtime, but not in its types. */
+function declaredLabelNames(metric: unknown): readonly string[] {
+    return (metric as { labelNames?: readonly string[] }).labelNames ?? [];
+}
+
 /**
  * Default in-memory session store for the 2025-era (legacy) HTTP path.
  *
@@ -171,6 +176,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
     }): Promise<void> {
         const { sessionId, transport, logger } = params;
         const metrics = params.metrics ?? this.metrics;
+        this.assertLabelsSupplied(metrics);
         if (this.sessions[sessionId]) {
             throw new Error(`Session ${sessionId} already exists`);
         }
@@ -261,6 +267,23 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
                     context: "streamableHttpTransport",
                     message: `Error closing transport ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
                 });
+            }
+        }
+    }
+
+    /**
+     * prom-client rejects a label a metric does not declare, but not a declared
+     * label that is missing: that records a label-less series instead. Fail
+     * rather than let a session's series disappear.
+     */
+    private assertLabelsSupplied(metrics: IMetrics<DefaultMetricDefinitions>): void {
+        for (const key of ["sessionCreated", "sessionClosed", "sessionsActive"] as const) {
+            const supplied = key === "sessionClosed" ? { ...metrics.labels, reason: "" } : metrics.labels;
+            const missing = declaredLabelNames(metrics.get(key)).filter((name) => !(name in supplied));
+            if (missing.length > 0) {
+                throw new Error(
+                    `Session metric ${key} declares labels the supplied metrics does not carry: ${missing.join(", ")}`
+                );
             }
         }
     }

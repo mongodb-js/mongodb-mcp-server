@@ -174,6 +174,65 @@ describe("SessionStore<CloseableTransport> metrics", () => {
         expect(values.find((v) => v.labels.tenant === "acme")?.value).toBe(1);
     });
 
+    it("rejects the store's own metrics when it cannot supply the session metrics' declared labels", async () => {
+        const definitions = {
+            ...createDefaultMetrics(),
+            sessionCreated: new Counter({
+                name: "mcp_session_created",
+                help: "test",
+                labelNames: ["tenant"] as const,
+                registers: [],
+            }),
+        };
+        const labelledStore = new SessionStore<CloseableTransport>({
+            options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 100 },
+            logger,
+            metrics: new PrometheusMetrics({ definitions }),
+        });
+
+        await expect(
+            labelledStore.addSession({
+                sessionId: "s1",
+                transport: createMockTransport(),
+                logger: createMockLogger(),
+            })
+        ).rejects.toThrow(/sessionCreated/);
+        expect(labelledStore.hasSession("s1")).toBe(false);
+    });
+
+    it("rejects a per-session metrics instance that cannot supply the declared labels", async () => {
+        const definitions = {
+            ...createDefaultMetrics(),
+            sessionCreated: new Counter({
+                name: "mcp_session_created",
+                help: "test",
+                labelNames: ["tenant"] as const,
+                registers: [],
+            }),
+            sessionsActive: new Gauge({
+                name: "mcp_active_sessions",
+                help: "test",
+                labelNames: ["tenant"] as const,
+                registers: [],
+            }),
+        };
+        const labelledStore = new SessionStore<CloseableTransport>({
+            options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 100 },
+            logger,
+            metrics: new PrometheusMetrics<typeof definitions, "tenant">({ definitions, labels: { tenant: "acme" } }),
+        });
+
+        await expect(
+            labelledStore.addSession({
+                sessionId: "s1",
+                transport: createMockTransport(),
+                logger: createMockLogger(),
+                metrics: new PrometheusMetrics({ definitions }),
+            })
+        ).rejects.toThrow(/sessionCreated/);
+        expect(labelledStore.hasSession("s1")).toBe(false);
+    });
+
     it("records reason 'server_stop' when closeAllSessions is called", async () => {
         await store.addSession({
             sessionId: "s1",

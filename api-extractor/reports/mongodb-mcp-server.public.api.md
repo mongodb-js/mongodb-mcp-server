@@ -655,6 +655,9 @@ export function getConfigMeta(key: keyof typeof UserConfigSchema.shape): ConfigF
 
 export { Histogram }
 
+// @public
+export type InstanceLabels<TInstanceLabelNames extends string> = [TInstanceLabelNames] extends [never] ? Record<string, never> : Readonly<Partial<Record<TInstanceLabelNames, string>>>;
+
 // @public (undocumented)
 export interface ITransportRunner {
     // (undocumented)
@@ -853,24 +856,24 @@ export function parseUserConfig(input: {
 };
 
 // @public (undocumented)
-export class PrometheusMetrics<TMetricsDefinitions extends DefaultMetricDefinitions, TInjectedLabelNames extends string = never> implements IMetrics<TMetricsDefinitions, TInjectedLabelNames> {
-    constructor(input: PrometheusMetricsOptions<TMetricsDefinitions, TInjectedLabelNames>);
+export class PrometheusMetrics<TMetricsDefinitions extends DefaultMetricDefinitions, TInstanceLabelNames extends string = never> implements IMetrics<TMetricsDefinitions, TInstanceLabelNames> {
+    constructor(input: PrometheusMetricsOptions<TMetricsDefinitions, TInstanceLabelNames>);
     readonly definitions: TMetricsDefinitions;
     // (undocumented)
     get<K extends keyof TMetricsDefinitions>(key: K): TMetricsDefinitions[K];
     // (undocumented)
     getMetrics(): Promise<string>;
-    readonly labels: Readonly<Partial<Record<TInjectedLabelNames, string>>>;
+    readonly labels: Readonly<Partial<Record<TInstanceLabelNames, string>>>;
     // (undocumented)
     readonly registry: Registry;
-    withLabels(labels: Readonly<Partial<Record<TInjectedLabelNames, string>>>): PrometheusMetrics<TMetricsDefinitions, TInjectedLabelNames>;
+    withLabels(labels: InstanceLabels<TInstanceLabelNames>): PrometheusMetrics<TMetricsDefinitions, TInstanceLabelNames>;
 }
 
 // @public
-export interface PrometheusMetricsOptions<TMetricsDefinitions extends DefaultMetricDefinitions, TInjectedLabelNames extends string = never> {
+export interface PrometheusMetricsOptions<TMetricsDefinitions extends DefaultMetricDefinitions, TInstanceLabelNames extends string = never> {
     collectProcessMetrics?: boolean;
     definitions: TMetricsDefinitions;
-    labels?: Readonly<Partial<Record<TInjectedLabelNames, string>>>;
+    labels?: InstanceLabels<TInstanceLabelNames>;
     registry?: Registry;
 }
 

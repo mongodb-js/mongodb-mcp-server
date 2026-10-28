@@ -71,7 +71,7 @@ describe("PrometheusMetrics", () => {
             expect(metrics.labels).toEqual({ tenant: "acme" });
         });
 
-        it("rejects an injected label the default definitions set per observation", () => {
+        it("rejects an instance label the default definitions set per observation", () => {
             expect(
                 () =>
                     new PrometheusMetrics({
@@ -149,6 +149,16 @@ describe("PrometheusMetrics", () => {
             expect(base.withLabels({ region: "eu" }).labels).toEqual({ tenant: "acme", region: "eu" });
             expect(base.withLabels({ tenant: "other" }).labels).toEqual({ tenant: "other" });
             expect(base.withLabels({}).labels).toEqual({ tenant: "acme" });
+        });
+
+        it("rejects any label when no instance label names are declared", () => {
+            const base = new PrometheusMetrics({ definitions: createDefaultMetrics() });
+
+            // @ts-expect-error -- no instance label names are declared, so none may be passed
+            const scoped = base.withLabels({ tenant: "acme" });
+
+            // The guard is compile-time only: nothing rejects the label at runtime.
+            expect(scoped.labels).toEqual({ tenant: "acme" });
         });
     });
 });
