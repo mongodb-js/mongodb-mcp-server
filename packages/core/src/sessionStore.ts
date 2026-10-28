@@ -176,7 +176,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
     }): Promise<void> {
         const { sessionId, transport, logger } = params;
         const metrics = params.metrics ?? this.metrics;
-        this.assertLabelsSupplied(metrics);
+        this.assertLabelsMatch(metrics);
         if (this.sessions[sessionId]) {
             throw new Error(`Session ${sessionId} already exists`);
         }
@@ -249,42 +249,44 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         // session as already gone and doesn't double-count metrics.
         delete this.sessions[sessionId];
 
+        // Recorded on removal so the metrics track store membership even while
+        // transport.close() is pending, e.g. for a session evicted by addSession.
+        session.metrics.get("sessionClosed").inc({ ...session.metrics.labels, reason });
+        session.metrics.get("sessionsActive").dec(session.metrics.labels);
+
         session.abortTimeout.cancel();
         session.notificationTimeout.cancel();
 
-        try {
-            // Recorded on removal so the metrics track store membership even while
-            // transport.close() is pending, e.g. for a session evicted by addSession.
-            session.metrics.get("sessionClosed").inc({ ...session.metrics.labels, reason });
-            session.metrics.get("sessionsActive").dec(session.metrics.labels);
-        } finally {
-            // A metric failure must not leave the transport open.
-            if (reason !== "transport_closed") {
-                // Only close the transport when the server initiates the close.
-                try {
-                    await session.transport.close();
-                } catch (error) {
-                    this.logger.error({
-                        id: LogId.sessionCloseFailure,
-                        context: "streamableHttpTransport",
-                        message: `Error closing transport ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
-                    });
-                }
+        if (reason !== "transport_closed") {
+            // Only close the transport when the server initiates the close.
+            try {
+                await session.transport.close();
+            } catch (error) {
+                this.logger.error({
+                    id: LogId.sessionCloseFailure,
+                    context: "streamableHttpTransport",
+                    message: `Error closing transport ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
+                });
             }
         }
     }
 
     /**
-     * prom-client rejects an extra label but not a missing declared one, which
-     * records a label-less series instead. Fail rather than lose the series.
+     * The session metrics and the supplied metrics must agree on labels before
+     * a session is admitted. prom-client does not reject a declared label that
+     * is missing (it records a label-less series), and it throws on a supplied
+     * label the metric does not declare — both are wiring errors that should
+     * fail here, not at emission time.
      */
-    private assertLabelsSupplied(metrics: IMetrics<DefaultMetricDefinitions>): void {
+    private assertLabelsMatch(metrics: IMetrics<DefaultMetricDefinitions>): void {
         for (const key of ["sessionCreated", "sessionClosed", "sessionsActive"] as const) {
             const supplied = key === "sessionClosed" ? { ...metrics.labels, reason: "" } : metrics.labels;
-            const missing = declaredLabelNames(metrics.get(key)).filter((name) => !(name in supplied));
-            if (missing.length > 0) {
+            const declared = declaredLabelNames(metrics.get(key));
+            const missing = declared.filter((name) => !(name in supplied));
+            const undeclared = Object.keys(supplied).filter((name) => !declared.includes(name));
+            if (missing.length > 0 || undeclared.length > 0) {
                 throw new Error(
-                    `Session metric ${key} declares labels the supplied metrics does not carry: ${missing.join(", ")}`
+                    `Session metric ${key} label mismatch: missing [${missing.join(", ")}], undeclared [${undeclared.join(", ")}]`
                 );
             }
         }

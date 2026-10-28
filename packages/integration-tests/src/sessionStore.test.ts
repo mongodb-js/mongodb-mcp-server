@@ -138,6 +138,39 @@ describe("SessionStore<CloseableTransport> metrics", () => {
         expect(await valueFor(baseMetrics.get("sessionsActive"), { tenant: "other" })).toBe(1);
     });
 
+    it("rejects a metrics instance carrying a label the session metrics do not declare", async () => {
+        const definitions = {
+            ...createDefaultMetrics(),
+            sessionCreated: new Counter({
+                name: "mcp_session_created",
+                help: "test",
+                labelNames: ["tenant"] as const,
+                registers: [],
+            }),
+            sessionsActive: new Gauge({
+                name: "mcp_active_sessions",
+                help: "test",
+                labelNames: ["tenant"] as const,
+                registers: [],
+            }),
+        };
+        const labelledStore = new SessionStore<CloseableTransport>({
+            options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 100 },
+            logger,
+            metrics: new PrometheusMetrics<typeof definitions>({ definitions, labels: { tenant: "acme" } }),
+        });
+
+        // `sessionClosed` declares only `reason`, so the supplied `tenant` is undeclared there.
+        await expect(
+            labelledStore.addSession({
+                sessionId: "s1",
+                transport: createMockTransport(),
+                logger: createMockLogger(),
+            })
+        ).rejects.toThrow(/sessionClosed/);
+        expect(labelledStore.hasSession("s1")).toBe(false);
+    });
+
     it("uses the store's own labels when a session is added without metrics", async () => {
         const definitions = {
             ...createDefaultMetrics(),
