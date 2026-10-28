@@ -676,7 +676,7 @@ describe("ToolBase", () => {
 
         it("adds the metrics object's labels to every observation, with built-in labels taking precedence", async () => {
             const labelledMetrics = new PrometheusMetrics({
-                labels: { source: "vercel", tool_name: "spoofed", error_type: "spoofed" },
+                labels: { tenant: "acme", tool_name: "spoofed", error_type: "spoofed" },
                 definitions: {
                     ...createDefaultMetrics(),
                     toolExecutionDuration: new Histogram({
@@ -688,7 +688,7 @@ describe("ToolBase", () => {
                             "status",
                             "operation_type",
                             "error_type",
-                            "source",
+                            "tenant",
                         ] as const,
                         registers: [],
                     }),
@@ -713,7 +713,7 @@ describe("ToolBase", () => {
 
             const { values } = await labelledMetrics.get("toolExecutionDuration").get();
             const count = values.find((v) => v.metricName === "mcp_tool_execution_duration_seconds_count");
-            expect(count?.labels).toMatchObject({ tool_name: "test-tool", source: "vercel" });
+            expect(count?.labels).toMatchObject({ tool_name: "test-tool", tenant: "acme" });
             expect(count?.labels.error_type).toBeUndefined();
             expect(count?.value).toBe(2);
         });
@@ -722,7 +722,7 @@ describe("ToolBase", () => {
             let labelledCallback: MockToolCallback | undefined;
             const labelledServer: TestServer = {
                 ...mockServer,
-                metrics: new PrometheusMetrics({ definitions: createDefaultMetrics(), labels: { source: "vercel" } }),
+                metrics: new PrometheusMetrics({ definitions: createDefaultMetrics(), labels: { tenant: "acme" } }),
                 mcpServer: {
                     registerTool: (_name: string, _config: unknown, cb: MockToolCallback) => {
                         labelledCallback = cb;

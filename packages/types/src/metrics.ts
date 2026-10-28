@@ -62,14 +62,20 @@ export type DefaultMetricDefinitions = {
 /**
  * Interface for accessing metrics.
  * @template TMetricsDefinitions - The type of metric definitions this metrics instance uses
+ * @template TInjectedLabelNames - Label names a consumer adds to these metrics (e.g. an
+ * ingress dimension). This package names none of them: the consumer supplies the set, and the
+ * labels it passes are checked against it. Defaults to `never` (no injected labels).
  */
-export interface IMetrics<TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
+export interface IMetrics<
+    TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions,
+    TInjectedLabelNames extends string = never,
+> {
     /**
      * Labels applied to every metric this object records. Callers merge these
      * with the labels of a specific observation; observation-level labels win.
      * The metric definitions must declare these label names.
      */
-    readonly labels: Readonly<Record<string, string>>;
+    readonly labels: Readonly<Partial<Record<TInjectedLabelNames, string>>>;
     /** Get a specific metric by name */
     get<K extends keyof TMetricsDefinitions>(key: K): TMetricsDefinitions[K];
     /** Get all metrics as a formatted string (e.g., Prometheus format) */

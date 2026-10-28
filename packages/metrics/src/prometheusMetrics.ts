@@ -4,19 +4,20 @@ import type { PrometheusMetricsOptions } from "./types.js";
 
 export class PrometheusMetrics<
     TMetricsDefinitions extends DefaultMetricDefinitions,
-> implements IMetrics<TMetricsDefinitions> {
+    TInjectedLabelNames extends string = never,
+> implements IMetrics<TMetricsDefinitions, TInjectedLabelNames> {
     public readonly registry: Registry;
     /** The metric instances keyed by logical name, shared by every labeled sibling. */
     public readonly definitions: TMetricsDefinitions;
     /** Labels added to every metric recorded through this instance. */
-    public readonly labels: Readonly<Record<string, string>>;
+    public readonly labels: Readonly<Partial<Record<TInjectedLabelNames, string>>>;
 
     constructor({
         definitions,
         registry,
         collectProcessMetrics = false,
         labels,
-    }: PrometheusMetricsOptions<TMetricsDefinitions>) {
+    }: PrometheusMetricsOptions<TMetricsDefinitions, TInjectedLabelNames>) {
         this.registry = registry ?? new Registry();
         if (collectProcessMetrics) {
             collectDefaultMetrics({ register: this.registry });
@@ -29,6 +30,17 @@ export class PrometheusMetrics<
             const metric = this.definitions[key];
             this.registry.registerMetric(metric as Metric);
         }
+    }
+
+    /**
+     * A sibling sharing this instance's `definitions` and `registry` but
+     * carrying `labels` instead, so a per-request or per-session label value
+     * lands in the same series space rather than a second registry.
+     */
+    withLabels(
+        labels: Readonly<Partial<Record<TInjectedLabelNames, string>>>
+    ): PrometheusMetrics<TMetricsDefinitions, TInjectedLabelNames> {
+        return new PrometheusMetrics({ definitions: this.definitions, registry: this.registry, labels });
     }
 
     get<K extends keyof TMetricsDefinitions>(key: K): TMetricsDefinitions[K] {

@@ -853,23 +853,24 @@ export function parseUserConfig(input: {
 };
 
 // @public (undocumented)
-export class PrometheusMetrics<TMetricsDefinitions extends DefaultMetricDefinitions> implements IMetrics<TMetricsDefinitions> {
-    constructor(input: PrometheusMetricsOptions<TMetricsDefinitions>);
+export class PrometheusMetrics<TMetricsDefinitions extends DefaultMetricDefinitions, TInjectedLabelNames extends string = never> implements IMetrics<TMetricsDefinitions, TInjectedLabelNames> {
+    constructor(input: PrometheusMetricsOptions<TMetricsDefinitions, TInjectedLabelNames>);
     readonly definitions: TMetricsDefinitions;
     // (undocumented)
     get<K extends keyof TMetricsDefinitions>(key: K): TMetricsDefinitions[K];
     // (undocumented)
     getMetrics(): Promise<string>;
-    readonly labels: Readonly<Record<string, string>>;
+    readonly labels: Readonly<Partial<Record<TInjectedLabelNames, string>>>;
     // (undocumented)
     readonly registry: Registry;
+    withLabels(labels: Readonly<Partial<Record<TInjectedLabelNames, string>>>): PrometheusMetrics<TMetricsDefinitions, TInjectedLabelNames>;
 }
 
 // @public
-export interface PrometheusMetricsOptions<TMetricsDefinitions extends DefaultMetricDefinitions> {
+export interface PrometheusMetricsOptions<TMetricsDefinitions extends DefaultMetricDefinitions, TInjectedLabelNames extends string = never> {
     collectProcessMetrics?: boolean;
     definitions: TMetricsDefinitions;
-    labels?: Readonly<Record<string, string>>;
+    labels?: Readonly<Partial<Record<TInjectedLabelNames, string>>>;
     registry?: Registry;
 }
 

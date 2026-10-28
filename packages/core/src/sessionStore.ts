@@ -61,6 +61,8 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
             notificationTimeout: ManagedTimeout;
             /** Epoch ms of the last activity on this session; drives LRU eviction order. */
             lastUsedAt: number;
+            /** Metrics this session's lifecycle series are recorded through. */
+            metrics: IMetrics<DefaultMetricDefinitions>;
         };
     } = {};
 
@@ -164,8 +166,15 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         logger: ILogger;
         session?: { logger: ICompositeLogger };
         headers?: Record<string, unknown>;
+        /**
+         * Records this session's lifecycle series. Defaults to the store's own
+         * instance; pass a labeled sibling (same definitions and registry) to
+         * scope this session's labels without a second registry.
+         */
+        metrics?: IMetrics<DefaultMetricDefinitions>;
     }): Promise<void> {
         const { sessionId, transport, logger } = params;
+        const metrics = params.metrics ?? this.metrics;
         if (this.sessions[sessionId]) {
             throw new Error(`Session ${sessionId} already exists`);
         }
@@ -213,10 +222,11 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
             notificationTimeout,
             logger,
             lastUsedAt: Date.now(),
+            metrics,
         };
         // Track session created metric
-        this.emitMetric("sessionCreated", () => this.metrics.get("sessionCreated").inc(this.metrics.labels));
-        this.emitMetric("sessionsActive", () => this.metrics.get("sessionsActive").inc(this.metrics.labels));
+        this.emitMetric("sessionCreated", () => metrics.get("sessionCreated").inc(metrics.labels));
+        this.emitMetric("sessionsActive", () => metrics.get("sessionsActive").inc(metrics.labels));
         return Promise.resolve();
     }
 
@@ -240,9 +250,9 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         // Recorded on removal so the metrics track store membership even while
         // transport.close() is pending, e.g. for a session evicted by addSession.
         this.emitMetric("sessionClosed", () =>
-            this.metrics.get("sessionClosed").inc({ ...this.metrics.labels, reason })
+            session.metrics.get("sessionClosed").inc({ ...session.metrics.labels, reason })
         );
-        this.emitMetric("sessionsActive", () => this.metrics.get("sessionsActive").dec(this.metrics.labels));
+        this.emitMetric("sessionsActive", () => session.metrics.get("sessionsActive").dec(session.metrics.labels));
 
         session.abortTimeout.cancel();
         session.notificationTimeout.cancel();

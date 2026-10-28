@@ -426,6 +426,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
             logger: ICompositeLogger;
         };
         headers?: Record<string, unknown>;
+        metrics?: IMetrics<DefaultMetricDefinitions>;
     }): Promise<void>;
     // (undocumented)
     closeAllSessions(): Promise<void>;

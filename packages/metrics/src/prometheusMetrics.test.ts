@@ -65,34 +65,34 @@ describe("PrometheusMetrics", () => {
         it("exposes the labels passed at construction", () => {
             const metrics = new PrometheusMetrics({
                 definitions: createDefaultMetrics(),
-                labels: { source: "vercel" },
+                labels: { tenant: "acme" },
             });
 
-            expect(metrics.labels).toEqual({ source: "vercel" });
+            expect(metrics.labels).toEqual({ tenant: "acme" });
         });
 
-        it("shares definitions and registry with a differently-labeled sibling", async () => {
+        it("withLabels() returns a sibling sharing definitions and registry", async () => {
             const registry = new Registry();
             const definitions = {
                 ...createDefaultMetrics(),
                 toolExecutionDuration: new Histogram({
                     name: "mcp_tool_execution_duration_seconds",
                     help: "test",
-                    labelNames: ["tool_name", "source"] as const,
+                    labelNames: ["tool_name", "tenant"] as const,
                     registers: [],
                 }),
             };
-            const base = new PrometheusMetrics({ definitions, registry });
-            const vercel = new PrometheusMetrics({
-                definitions: base.definitions,
-                registry: base.registry,
-                labels: { source: "vercel" },
-            });
+            const base = new PrometheusMetrics<typeof definitions, "tenant">({ definitions, registry });
+            const scoped = base.withLabels({ tenant: "acme" });
 
-            vercel.get("toolExecutionDuration").observe({ ...vercel.labels, tool_name: "find" }, 0.1);
+            expect(scoped.labels).toEqual({ tenant: "acme" });
+            expect(scoped.registry).toBe(base.registry);
+            expect(scoped.get("toolExecutionDuration")).toBe(base.get("toolExecutionDuration"));
+
+            scoped.get("toolExecutionDuration").observe({ ...scoped.labels, tool_name: "find" }, 0.1);
 
             const output = await registry.metrics();
-            expect(output).toContain('source="vercel"');
+            expect(output).toContain('tenant="acme"');
             expect(output).toContain('tool_name="find"');
         });
     });

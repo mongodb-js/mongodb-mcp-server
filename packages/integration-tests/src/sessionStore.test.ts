@@ -81,41 +81,40 @@ describe("SessionStore<CloseableTransport> metrics", () => {
         expect(sample?.value).toBe(1);
     });
 
-    it("labels the session metrics with the metrics object's labels", async () => {
-        const labelledMetrics = new PrometheusMetrics({
-            labels: { source: "vercel" },
-            definitions: {
-                ...createDefaultMetrics(),
-                sessionCreated: new Counter({
-                    name: "mcp_session_created",
-                    help: "test",
-                    labelNames: ["source"] as const,
-                    registers: [],
-                }),
-                sessionClosed: new Counter({
-                    name: "mcp_session_closed",
-                    help: "test",
-                    labelNames: ["reason", "source"] as const,
-                    registers: [],
-                }),
-                sessionsActive: new Gauge({
-                    name: "mcp_active_sessions",
-                    help: "test",
-                    labelNames: ["source"] as const,
-                    registers: [],
-                }),
-            },
-        });
+    it("labels each session's metrics with the labels of the metrics passed to addSession", async () => {
+        const definitions = {
+            ...createDefaultMetrics(),
+            sessionCreated: new Counter({
+                name: "mcp_session_created",
+                help: "test",
+                labelNames: ["tenant"] as const,
+                registers: [],
+            }),
+            sessionClosed: new Counter({
+                name: "mcp_session_closed",
+                help: "test",
+                labelNames: ["reason", "tenant"] as const,
+                registers: [],
+            }),
+            sessionsActive: new Gauge({
+                name: "mcp_active_sessions",
+                help: "test",
+                labelNames: ["tenant"] as const,
+                registers: [],
+            }),
+        };
+        const baseMetrics = new PrometheusMetrics<typeof definitions, "tenant">({ definitions });
         const labelledStore = new SessionStore<CloseableTransport>({
             options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 100 },
             logger,
-            metrics: labelledMetrics,
+            metrics: baseMetrics,
         });
-        const add = (sessionId: string): Promise<void> =>
+        const add = (sessionId: string, tenant: string): Promise<void> =>
             labelledStore.addSession({
                 sessionId,
                 transport: createMockTransport(),
                 logger: createMockLogger(),
+                metrics: baseMetrics.withLabels({ tenant }),
             });
         const valueFor = async (
             metric: Counter<string> | Gauge<string>,
@@ -125,15 +124,18 @@ describe("SessionStore<CloseableTransport> metrics", () => {
                 Object.entries(labels).every(([name, value]) => v.labels[name] === value)
             )?.value;
 
-        await add("s1");
-        await add("s2");
+        await add("s1", "acme");
+        await add("s2", "acme");
+        await add("s3", "other");
         await labelledStore.closeSession({ sessionId: "s1", reason: "transport_closed" });
 
-        expect(await valueFor(labelledMetrics.get("sessionCreated"), { source: "vercel" })).toBe(2);
-        expect(
-            await valueFor(labelledMetrics.get("sessionClosed"), { source: "vercel", reason: "transport_closed" })
-        ).toBe(1);
-        expect(await valueFor(labelledMetrics.get("sessionsActive"), { source: "vercel" })).toBe(1);
+        expect(await valueFor(baseMetrics.get("sessionCreated"), { tenant: "acme" })).toBe(2);
+        expect(await valueFor(baseMetrics.get("sessionCreated"), { tenant: "other" })).toBe(1);
+        expect(await valueFor(baseMetrics.get("sessionClosed"), { tenant: "acme", reason: "transport_closed" })).toBe(
+            1
+        );
+        expect(await valueFor(baseMetrics.get("sessionsActive"), { tenant: "acme" })).toBe(1);
+        expect(await valueFor(baseMetrics.get("sessionsActive"), { tenant: "other" })).toBe(1);
     });
 
     it("keeps session operations working and logs a warning when a metric label is undeclared", async () => {
@@ -141,7 +143,7 @@ describe("SessionStore<CloseableTransport> metrics", () => {
         const labelledStore = new SessionStore<CloseableTransport>({
             options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 100 },
             logger,
-            metrics: new PrometheusMetrics({ definitions: createDefaultMetrics(), labels: { source: "vercel" } }),
+            metrics: new PrometheusMetrics({ definitions: createDefaultMetrics(), labels: { tenant: "acme" } }),
         });
         await labelledStore.addSession({
             sessionId: "s1",
