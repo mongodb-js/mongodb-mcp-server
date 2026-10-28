@@ -1,12 +1,4 @@
-import { createServer } from "node:http";
-import type { AddressInfo } from "node:net";
-
-import {
-    AtlasTelemetry,
-    type TelemetryCommonProperties,
-    type TelemetryEvent,
-    type TelemetryToolMetadata,
-} from "@mongodb-js/mcp-atlas-telemetry";
+import { AtlasTelemetry, type TelemetryToolMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { CompositeLogger, Keychain, ToolBase } from "@mongodb-js/mcp-core";
 import type { DefaultPrometheusMetricDefinitions } from "@mongodb-js/mcp-metrics";
 import type {
@@ -21,63 +13,11 @@ import { MockMetrics } from "@mongodb-js/mcp-test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createTestApiClient } from "./integrationHelpers.js";
-import { TestTool, type TestServer } from "./mocks/tools.js";
+import { useMockTelemetry } from "./helpers/useMockTelemetry.js";
+import { type TestServer } from "./mocks/tools.js";
 
 const SERVER_METADATA = { mcpServerName: "telemetry-delivery-test", version: "1.0.0" };
-const UNAUTH_TELEMETRY_PATH = "/api/private/unauth/telemetry/events";
 const EVENT_TIMEOUT_MS = 10_000;
-
-type ReceivedEvent = TelemetryEvent<TelemetryCommonProperties>;
-
-/**
- * Fake telemetry ingestion endpoint. An unauthenticated `ApiClient` posts event
- * batches to `<baseUrl>/api/private/unauth/telemetry/events`, so the server only
- * has to accept that path and record the parsed batch.
- */
-async function startFakeTelemetryServer(): Promise<{
-    baseUrl: string;
-    received: ReceivedEvent[];
-    waitForEvent: (predicate: (event: ReceivedEvent) => boolean) => Promise<ReceivedEvent>;
-    close: () => Promise<void>;
-}> {
-    const received: ReceivedEvent[] = [];
-    const server = createServer((req, res) => {
-        if (req.method !== "POST" || req.url !== UNAUTH_TELEMETRY_PATH) {
-            res.writeHead(404).end();
-            return;
-        }
-        const chunks: Buffer[] = [];
-        req.on("data", (chunk: Buffer) => chunks.push(chunk));
-        req.on("end", () => {
-            received.push(...(JSON.parse(Buffer.concat(chunks).toString("utf8")) as ReceivedEvent[]));
-            res.writeHead(200, { "Content-Type": "application/json" });
-            res.end("{}");
-        });
-    });
-
-    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-    const { port } = server.address() as AddressInfo;
-
-    return {
-        baseUrl: `http://127.0.0.1:${port}/`,
-        received,
-        waitForEvent: async (predicate): Promise<ReceivedEvent> => {
-            const deadline = Date.now() + EVENT_TIMEOUT_MS;
-            while (Date.now() < deadline) {
-                const match = received.find(predicate);
-                if (match) {
-                    return match;
-                }
-                await new Promise((resolve) => setTimeout(resolve, 25));
-            }
-            throw new Error(
-                `Timed out waiting for a telemetry event. Received ${received.length}: ${JSON.stringify(received)}`
-            );
-        },
-        close: () =>
-            new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve()))),
-    };
-}
 
 function createTelemetry(baseUrl: string): AtlasTelemetry {
     const logger = new CompositeLogger({ loggers: [] });
@@ -139,6 +79,8 @@ class DeferredMetadataTool extends ToolBase<TestServer, DefaultPrometheusMetricD
 }
 
 describe("tool telemetry delivery", () => {
+    const telemetryServer = useMockTelemetry();
+
     beforeEach(() => {
         metadataGate = new Promise<void>((resolve) => {
             releaseMetadata = resolve;
@@ -149,36 +91,13 @@ describe("tool telemetry delivery", () => {
         releaseMetadata();
     });
 
-    it("delivers a tool event to the telemetry endpoint", async () => {
-        const fake = await startFakeTelemetryServer();
-        const telemetry = createTelemetry(fake.baseUrl);
-        try {
-            await telemetry.setupPromise;
-            const tool = new TestTool({ server: createToolServer(telemetry) });
-
-            await tool.invoke({ param1: "x" }, { request: { signal: AbortSignal.timeout(EVENT_TIMEOUT_MS) } });
-            await telemetry.close();
-
-            const event = await fake.waitForEvent((e) => e.properties.command === "test-tool");
-            expect(event.properties).toMatchObject({
-                component: "tool",
-                result: "success",
-                mcp_server_name: SERVER_METADATA.mcpServerName,
-            });
-        } finally {
-            await telemetry.close().catch(() => undefined);
-            await fake.close();
-        }
-    });
-
     /**
      * Regression: a request-scoped pipeline is closed on teardown while a tool's
      * async metadata resolution is still in flight, so the event lands after
      * close() already flushed. It must still reach the telemetry endpoint.
      */
     it("delivers a tool event whose metadata resolves after the pipeline closed", async () => {
-        const fake = await startFakeTelemetryServer();
-        const telemetry = createTelemetry(fake.baseUrl);
+        const telemetry = createTelemetry(telemetryServer.baseUrl);
         try {
             await telemetry.setupPromise;
             const transportRequest: TransportRequestContext = { headers: {}, mcp_client_protocol: "2026-07-28" };
@@ -188,7 +107,10 @@ describe("tool telemetry delivery", () => {
             await telemetry.close();
             releaseMetadata();
 
-            const event = await fake.waitForEvent((e) => e.properties.command === "deferred-metadata-tool");
+            const event = await telemetryServer.waitForEvent(
+                (e) => e.properties.command === "deferred-metadata-tool",
+                EVENT_TIMEOUT_MS
+            );
             expect(event.properties).toMatchObject({
                 component: "tool",
                 result: "success",
@@ -196,7 +118,6 @@ describe("tool telemetry delivery", () => {
             });
         } finally {
             await telemetry.close().catch(() => undefined);
-            await fake.close();
         }
     });
 });
