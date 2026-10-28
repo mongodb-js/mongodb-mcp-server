@@ -25,7 +25,9 @@ import type {
     SupportedConnectionState,
     TransportRequestContext,
     AtlasClusterConnectionInfo,
+    ToolExecutionDurationLabelName,
 } from "@mongodb-js/mcp-types";
+import { TOOL_EXECUTION_DURATION_LABEL_NAMES } from "@mongodb-js/mcp-types";
 import { createUIResource, type UIResource } from "@mcp-ui/server";
 import { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
 import { getRandomUUID } from "@mongodb-js/mcp-core";
@@ -98,6 +100,19 @@ function resolveClientInfo(
         }
     }
     return negotiated;
+}
+
+const BUILT_IN_TOOL_LABELS: ReadonlySet<string> = new Set(TOOL_EXECUTION_DURATION_LABEL_NAMES);
+
+/**
+ * The built-in labels describe the call, not the server: a metrics instance
+ * supplying one would shadow the call's own value.
+ */
+function assertNoBuiltInToolLabels(labels: Readonly<Record<string, string>>): void {
+    const supplied = Object.keys(labels).find((name) => BUILT_IN_TOOL_LABELS.has(name));
+    if (supplied !== undefined) {
+        throw new Error(`Metrics instance supplies the built-in tool label "${supplied}"`);
+    }
 }
 
 /** Narrow a possibly-undefined per-request envelope to a keyed object. */
@@ -591,18 +606,20 @@ export abstract class ToolBase<
                 clientInfo: context.request.clientInfo,
             });
 
-            this.server.metrics.get("toolExecutionDuration").observe(
-                {
-                    tool_name: this.name,
-                    category: this.category,
-                    status: declined ? "declined" : error !== undefined || result.isError ? "error" : "success",
-                    operation_type: this.operationType,
-                    ...(!declined && error !== undefined
-                        ? { error_type: error instanceof Error ? error.name : "unknown" }
-                        : {}),
-                },
-                (Date.now() - executionStartTime) / 1000
-            );
+            const builtInLabels = {
+                tool_name: this.name,
+                category: this.category,
+                status: declined ? "declined" : error !== undefined || result.isError ? "error" : "success",
+                operation_type: this.operationType,
+                ...(!declined && error !== undefined
+                    ? { error_type: error instanceof Error ? error.name : "unknown" }
+                    : {}),
+            } satisfies Partial<Record<ToolExecutionDurationLabelName, string>>;
+            const labels = {
+                ...this.server.metrics.labels,
+                ...builtInLabels,
+            };
+            this.server.metrics.get("toolExecutionDuration").observe(labels, (Date.now() - executionStartTime) / 1000);
         };
 
         try {
@@ -755,6 +772,7 @@ export abstract class ToolBase<
     }
 
     constructor({ server, transportRequest }: ToolServerParam<TServer>) {
+        assertNoBuiltInToolLabels(server.metrics.labels);
         this.server = server;
         this.transportRequest = transportRequest;
         const { toolName, category, operationType } = this.constructor as ToolClass<TServer, TMetricsDefinitions>;

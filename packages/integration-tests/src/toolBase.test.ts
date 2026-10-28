@@ -25,6 +25,7 @@ import type { PreviewFeature, AtlasClusterConnectionInfo } from "@mongodb-js/mcp
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { TRANSPORT_PAYLOAD_LIMITS } from "@mongodb-js/mcp-cli";
 import { expectDefined, MockMetrics } from "@mongodb-js/mcp-test-utils";
+import { createDefaultMetrics, Histogram, PrometheusMetrics } from "@mongodb-js/mcp-metrics";
 import {
     TestTool,
     TestToolWithOutputSchema,
@@ -671,6 +672,63 @@ describe("ToolBase", () => {
                     v.labels.operation_type === "delete"
             );
             expect(sum?.value).toBeGreaterThanOrEqual(0);
+        });
+
+        it("rejects a metrics instance that supplies a built-in tool label", () => {
+            const server: TestServer = {
+                ...mockServer,
+                metrics: {
+                    labels: { tool_name: "spoofed" },
+                    get: () => ({ inc: vi.fn(), dec: vi.fn(), set: vi.fn(), observe: vi.fn() }),
+                    getMetrics: () => Promise.resolve(""),
+                },
+            };
+
+            expect(() => new TestTool({ server })).toThrow(/built-in tool label/);
+        });
+
+        it("adds the metrics object's labels to every observation", async () => {
+            const labelledMetrics = new PrometheusMetrics({
+                labels: { tenant: "acme" },
+                definitions: {
+                    ...createDefaultMetrics(),
+                    toolExecutionDuration: new Histogram({
+                        name: "mcp_tool_execution_duration_seconds",
+                        help: "test",
+                        labelNames: [
+                            "tool_name",
+                            "category",
+                            "status",
+                            "operation_type",
+                            "error_type",
+                            "tenant",
+                        ] as const,
+                        registers: [],
+                    }),
+                },
+            });
+            let labelledCallback: MockToolCallback | undefined;
+            const labelledServer: TestServer = {
+                ...mockServer,
+                metrics: labelledMetrics,
+                mcpServer: {
+                    registerTool: (_name: string, _config: unknown, cb: MockToolCallback) => {
+                        labelledCallback = cb;
+                        return { enabled: true, disable: vi.fn(), enable: vi.fn() };
+                    },
+                } as never,
+            };
+            new TestTool({ server: labelledServer }).register();
+            expectDefined(labelledCallback);
+
+            await labelledCallback({ param1: "value", param2: 1 }, {} as never);
+            await labelledCallback({ param1: "value", param2: 1 }, {} as never);
+
+            const { values } = await labelledMetrics.get("toolExecutionDuration").get();
+            const count = values.find((v) => v.metricName === "mcp_tool_execution_duration_seconds_count");
+            expect(count?.labels).toMatchObject({ tool_name: "test-tool", tenant: "acme" });
+            expect(count?.labels.error_type).toBeUndefined();
+            expect(count?.value).toBe(2);
         });
 
         it("records returned error results as errors rather than declines", async () => {

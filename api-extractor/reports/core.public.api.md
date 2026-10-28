@@ -338,6 +338,8 @@ export class NoopLogger extends LoggerBase {
 export class NoopMetrics implements IMetrics<DefaultMetricDefinitions> {
     get<K extends keyof DefaultMetricDefinitions>(_key: K): DefaultMetricDefinitions[K];
     getMetrics(): Promise<string>;
+    // (undocumented)
+    readonly labels: Readonly<Record<string, string>>;
 }
 
 // @public (undocumented)
@@ -423,6 +425,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
             logger: ICompositeLogger;
         };
         headers?: Record<string, unknown>;
+        metrics?: IMetrics<DefaultMetricDefinitions>;
     }): Promise<void>;
     // (undocumented)
     closeAllSessions(): Promise<void>;
