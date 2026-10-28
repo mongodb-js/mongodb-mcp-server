@@ -78,14 +78,20 @@ describe("PrometheusMetrics", () => {
                 toolExecutionDuration: new Histogram({
                     name: "mcp_tool_execution_duration_seconds",
                     help: "test",
-                    labelNames: ["tool_name", "tenant"] as const,
+                    labelNames: ["tool_name", "tenant", "region"] as const,
                     registers: [],
                 }),
             };
-            const base = new PrometheusMetrics<typeof definitions, "tenant">({ definitions, registry });
-            const scoped = base.withLabels({ tenant: "acme" });
+            const base = new PrometheusMetrics<typeof definitions, "tenant" | "region">({
+                definitions,
+                registry,
+                labels: { tenant: "acme" },
+            });
+            const scoped = base.withLabels({ region: "eu" });
 
-            expect(scoped.labels).toEqual({ tenant: "acme" });
+            // Additive: the sibling keeps the labels it was derived from.
+            expect(scoped.labels).toEqual({ tenant: "acme", region: "eu" });
+            expect(base.withLabels({}).labels).toEqual({ tenant: "acme" });
             expect(scoped.registry).toBe(base.registry);
             expect(scoped.get("toolExecutionDuration")).toBe(base.get("toolExecutionDuration"));
 
@@ -93,6 +99,7 @@ describe("PrometheusMetrics", () => {
 
             const output = await registry.metrics();
             expect(output).toContain('tenant="acme"');
+            expect(output).toContain('region="eu"');
             expect(output).toContain('tool_name="find"');
         });
     });

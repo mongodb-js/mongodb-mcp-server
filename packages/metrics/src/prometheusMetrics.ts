@@ -33,14 +33,19 @@ export class PrometheusMetrics<
     }
 
     /**
-     * A sibling sharing this instance's `definitions` and `registry` but
-     * carrying `labels` instead, so a per-request or per-session label value
-     * lands in the same series space rather than a second registry.
+     * A sibling sharing this instance's `definitions` and `registry`, with
+     * `labels` merged on top of this instance's own, so a per-request or
+     * per-session label value lands in the same series space rather than a
+     * second registry. Additive only: labels already set cannot be removed.
      */
     withLabels(
         labels: Readonly<Partial<Record<TInjectedLabelNames, string>>>
     ): PrometheusMetrics<TMetricsDefinitions, TInjectedLabelNames> {
-        return new PrometheusMetrics({ definitions: this.definitions, registry: this.registry, labels });
+        return new PrometheusMetrics({
+            definitions: this.definitions,
+            registry: this.registry,
+            labels: { ...this.labels, ...labels },
+        });
     }
 
     get<K extends keyof TMetricsDefinitions>(key: K): TMetricsDefinitions[K] {
