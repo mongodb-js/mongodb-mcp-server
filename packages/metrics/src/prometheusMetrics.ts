@@ -7,27 +7,26 @@ const RESERVED_LABELS: ReadonlySet<string> = new Set(RESERVED_METRIC_LABEL_NAMES
 
 export class PrometheusMetrics<
     TMetricsDefinitions extends DefaultMetricDefinitions,
-    TInstanceLabelNames extends string = never,
-> implements IMetrics<TMetricsDefinitions, TInstanceLabelNames> {
+> implements IMetrics<TMetricsDefinitions> {
     public readonly registry: Registry;
     /** The metric instances keyed by logical name, shared by every labeled sibling. */
     public readonly definitions: TMetricsDefinitions;
     /** Labels added to every metric recorded through this instance. */
-    public readonly labels: Readonly<Partial<Record<TInstanceLabelNames, string>>>;
+    public readonly labels: Readonly<Record<string, string>>;
 
     constructor({
         definitions,
         registry,
         collectProcessMetrics = false,
         labels,
-    }: PrometheusMetricsOptions<TMetricsDefinitions, TInstanceLabelNames>) {
+    }: PrometheusMetricsOptions<TMetricsDefinitions>) {
         // Copied so a caller mutating its object later cannot change this instance's series.
         const frozenLabels = Object.freeze({ ...labels });
         // Checked before any registry mutation, so a rejected instance leaves none behind.
         for (const name of Object.keys(frozenLabels)) {
             if (RESERVED_LABELS.has(name)) {
                 throw new Error(
-                    `Injected metric label "${name}" is reserved by the metric definitions for per-observation use`
+                    `Instance metric label "${name}" is reserved by the metric definitions for per-observation use`
                 );
             }
         }
@@ -49,9 +48,7 @@ export class PrometheusMetrics<
      * A sibling sharing this instance's `definitions` and `registry`. `labels`
      * merge onto this instance's own: added or overridden, never removed.
      */
-    withLabels(
-        labels: InstanceLabels<TInstanceLabelNames>
-    ): PrometheusMetrics<TMetricsDefinitions, TInstanceLabelNames> {
+    withLabels(labels: InstanceLabels<TMetricsDefinitions>): PrometheusMetrics<TMetricsDefinitions> {
         return new PrometheusMetrics({
             definitions: this.definitions,
             registry: this.registry,

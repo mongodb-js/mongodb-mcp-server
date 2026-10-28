@@ -103,7 +103,7 @@ describe("SessionStore<CloseableTransport> metrics", () => {
                 registers: [],
             }),
         };
-        const baseMetrics = new PrometheusMetrics<typeof definitions, "tenant">({ definitions });
+        const baseMetrics = new PrometheusMetrics<typeof definitions>({ definitions });
         const labelledStore = new SessionStore<CloseableTransport>({
             options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 100 },
             logger,
@@ -154,7 +154,7 @@ describe("SessionStore<CloseableTransport> metrics", () => {
                 registers: [],
             }),
         };
-        const storeMetrics = new PrometheusMetrics<typeof definitions, "tenant">({
+        const storeMetrics = new PrometheusMetrics<typeof definitions>({
             definitions,
             labels: { tenant: "acme" },
         });
@@ -219,7 +219,7 @@ describe("SessionStore<CloseableTransport> metrics", () => {
         const labelledStore = new SessionStore<CloseableTransport>({
             options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 100 },
             logger,
-            metrics: new PrometheusMetrics<typeof definitions, "tenant">({ definitions, labels: { tenant: "acme" } }),
+            metrics: new PrometheusMetrics<typeof definitions>({ definitions, labels: { tenant: "acme" } }),
         });
 
         await expect(

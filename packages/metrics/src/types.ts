@@ -6,30 +6,50 @@ export type PrometheusMetricDefinitions = {
 } & DefaultMetricDefinitions;
 
 /**
- * Labels a caller may pass. With no label names declared the set is empty, so
- * passing any label is a type error: `{}` would skip excess-property checking
- * and accept typos.
+ * Label names a metric declares. prom-client types them as a phantom generic,
+ * defaulting to `string` for a metric declared without `labelNames`, so a
+ * `string` here means "no declared labels".
  */
-export type InstanceLabels<TInstanceLabelNames extends string> = [TInstanceLabelNames] extends [never]
+type DeclaredLabelNames<TMetric> =
+    TMetric extends Counter<infer TLabelNames>
+        ? string extends TLabelNames
+            ? never
+            : TLabelNames
+        : TMetric extends Gauge<infer TLabelNames>
+          ? string extends TLabelNames
+              ? never
+              : TLabelNames
+          : TMetric extends Histogram<infer TLabelNames>
+            ? string extends TLabelNames
+                ? never
+                : TLabelNames
+            : never;
+
+/**
+ * Labels a caller may pass to a `PrometheusMetrics` built on these definitions:
+ * the names any of them declares. With none declared the set is empty, so
+ * passing any label is a type error rather than silently unchecked (`{}` would
+ * skip excess-property checking and accept typos).
+ */
+export type InstanceLabels<TMetricsDefinitions extends DefaultMetricDefinitions> = [
+    DeclaredLabelNames<TMetricsDefinitions[keyof TMetricsDefinitions]>,
+] extends [never]
     ? Record<string, never>
-    : Readonly<Partial<Record<TInstanceLabelNames, string>>>;
+    : Readonly<Partial<Record<DeclaredLabelNames<TMetricsDefinitions[keyof TMetricsDefinitions]>, string>>>;
 
 /**
  * Options for creating a `PrometheusMetrics` instance.
  *
  * Only `definitions` is required — the rest have sensible defaults.
  */
-export interface PrometheusMetricsOptions<
-    TMetricsDefinitions extends DefaultMetricDefinitions,
-    TInstanceLabelNames extends string = never,
-> {
+export interface PrometheusMetricsOptions<TMetricsDefinitions extends DefaultMetricDefinitions> {
     /** Metric instances (Counter / Histogram / Gauge) keyed by logical name. */
     definitions: TMetricsDefinitions;
     /**
      * Labels added to every metric recorded through this instance. A sibling
      * sharing the same `definitions` and `registry` can carry a different set.
      */
-    labels?: InstanceLabels<TInstanceLabelNames>;
+    labels?: InstanceLabels<TMetricsDefinitions>;
     /** Whether to collect Node.js and process metrics. */
     collectProcessMetrics?: boolean;
     /** Optional pre-existing registry; a fresh one is created when omitted. */

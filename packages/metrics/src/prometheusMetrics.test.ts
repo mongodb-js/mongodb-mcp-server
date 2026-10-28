@@ -63,10 +63,16 @@ describe("PrometheusMetrics", () => {
         });
 
         it("exposes the labels passed at construction", () => {
-            const metrics = new PrometheusMetrics({
-                definitions: createDefaultMetrics(),
-                labels: { tenant: "acme" },
-            });
+            const definitions = {
+                ...createDefaultMetrics(),
+                toolExecutionDuration: new Histogram({
+                    name: "mcp_tool_execution_duration_seconds",
+                    help: "test",
+                    labelNames: ["tool_name", "tenant"] as const,
+                    registers: [],
+                }),
+            };
+            const metrics = new PrometheusMetrics({ definitions, labels: { tenant: "acme" } });
 
             expect(metrics.labels).toEqual({ tenant: "acme" });
         });
@@ -97,7 +103,7 @@ describe("PrometheusMetrics", () => {
                     registers: [],
                 }),
             };
-            const base = new PrometheusMetrics<typeof definitions, "reason">({ definitions });
+            const base = new PrometheusMetrics<typeof definitions>({ definitions });
             expect(() => base.withLabels({ reason: "idle_timeout" })).toThrow(/reserved/);
         });
 
@@ -112,7 +118,7 @@ describe("PrometheusMetrics", () => {
                     registers: [],
                 }),
             };
-            const base = new PrometheusMetrics<typeof definitions, "tenant" | "region">({
+            const base = new PrometheusMetrics<typeof definitions>({
                 definitions,
                 registry,
                 labels: { tenant: "acme" },
@@ -141,7 +147,7 @@ describe("PrometheusMetrics", () => {
                     registers: [],
                 }),
             };
-            const base = new PrometheusMetrics<typeof definitions, "tenant" | "region">({
+            const base = new PrometheusMetrics<typeof definitions>({
                 definitions,
                 labels: { tenant: "acme" },
             });
@@ -151,10 +157,10 @@ describe("PrometheusMetrics", () => {
             expect(base.withLabels({}).labels).toEqual({ tenant: "acme" });
         });
 
-        it("rejects any label when no instance label names are declared", () => {
+        it("rejects a label no definition declares", () => {
             const base = new PrometheusMetrics({ definitions: createDefaultMetrics() });
 
-            // @ts-expect-error -- no instance label names are declared, so none may be passed
+            // @ts-expect-error -- no definition declares `tenant`
             const scoped = base.withLabels({ tenant: "acme" });
 
             // The guard is compile-time only: nothing rejects the label at runtime.
