@@ -674,6 +674,19 @@ describe("ToolBase", () => {
             expect(sum?.value).toBeGreaterThanOrEqual(0);
         });
 
+        it("rejects a metrics instance that supplies a built-in tool label", () => {
+            const server: TestServer = {
+                ...mockServer,
+                metrics: {
+                    labels: { tool_name: "spoofed" },
+                    get: () => ({ inc: vi.fn(), dec: vi.fn(), set: vi.fn(), observe: vi.fn() }),
+                    getMetrics: () => Promise.resolve(""),
+                },
+            };
+
+            expect(() => new TestTool({ server })).toThrow(/built-in tool label/);
+        });
+
         it("adds the metrics object's labels to every observation", async () => {
             const labelledMetrics = new PrometheusMetrics({
                 labels: { tenant: "acme" },

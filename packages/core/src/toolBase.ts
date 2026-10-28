@@ -105,17 +105,14 @@ function resolveClientInfo(
 const BUILT_IN_TOOL_LABELS: ReadonlySet<string> = new Set(TOOL_EXECUTION_DURATION_LABEL_NAMES);
 
 /**
- * Drops injected labels the built-in tool labels own. `error_type` is set only
- * when there is an error, so an inherited one would survive on success.
+ * The built-in labels describe the call, not the server: a metrics instance
+ * supplying one would shadow the call's own value.
  */
-function withoutBuiltInToolLabels(labels: Readonly<Partial<Record<string, string>>>): Record<string, string> {
-    const kept: Record<string, string> = {};
-    for (const [name, value] of Object.entries(labels)) {
-        if (value !== undefined && !BUILT_IN_TOOL_LABELS.has(name)) {
-            kept[name] = value;
-        }
+function assertNoBuiltInToolLabels(labels: Readonly<Record<string, string>>): void {
+    const supplied = Object.keys(labels).find((name) => BUILT_IN_TOOL_LABELS.has(name));
+    if (supplied !== undefined) {
+        throw new Error(`Metrics instance supplies the built-in tool label "${supplied}"`);
     }
-    return kept;
 }
 
 /** Narrow a possibly-undefined per-request envelope to a keyed object. */
@@ -619,7 +616,7 @@ export abstract class ToolBase<
                     : {}),
             } satisfies Partial<Record<ToolExecutionDurationLabelName, string>>;
             const labels = {
-                ...withoutBuiltInToolLabels(this.server.metrics.labels),
+                ...this.server.metrics.labels,
                 ...builtInLabels,
             };
             this.server.metrics.get("toolExecutionDuration").observe(labels, (Date.now() - executionStartTime) / 1000);
@@ -775,6 +772,7 @@ export abstract class ToolBase<
     }
 
     constructor({ server, transportRequest }: ToolServerParam<TServer>) {
+        assertNoBuiltInToolLabels(server.metrics.labels);
         this.server = server;
         this.transportRequest = transportRequest;
         const { toolName, category, operationType } = this.constructor as ToolClass<TServer, TMetricsDefinitions>;
