@@ -145,19 +145,40 @@ jobs:
       - name: Build atlas-mcp-remote
         if: needs.check.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION != '0.0.0'
         run: pnpm --filter 'mongodb-atlas-mcp-remote' run compile
+      # Both publication steps are idempotent: re-running this job (e.g. after a later
+      # server step failed) reuses the stale `check` outputs and would otherwise fail on
+      # an already-published version or an already-created release.
       - name: Publish atlas-mcp-remote to NPM
         if: needs.check.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION != '0.0.0'
-        run: pnpm --filter 'mongodb-atlas-mcp-remote' publish --tag ${{ needs.check.outputs.ATLAS_MCP_REMOTE_RELEASE_CHANNEL }} --no-git-checks
-      - name: Publish atlas-mcp-remote GitHub release
-        if: needs.check.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION != '0.0.0'
         env:
-          GH_TOKEN: ${{ secrets.APIX_BOT_PAT || github.token }}
+          NPM_VERSION: ${{ needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION }}
+          RELEASE_CHANNEL: ${{ needs.check.outputs.ATLAS_MCP_REMOTE_RELEASE_CHANNEL }}
         shell: bash
         run: |
           set -e
 
-          gh release create ${{ needs.check.outputs.ATLAS_MCP_REMOTE_GIT_TAG_VERSION }} \
-            --title "${{ needs.check.outputs.ATLAS_MCP_REMOTE_GIT_TAG_VERSION }}" \
+          if npm view "mongodb-atlas-mcp-remote@${NPM_VERSION}" version >/dev/null 2>&1; then
+            echo "mongodb-atlas-mcp-remote@${NPM_VERSION} is already published, skipping"
+            exit 0
+          fi
+
+          pnpm --filter 'mongodb-atlas-mcp-remote' publish --tag "${RELEASE_CHANNEL}" --no-git-checks
+      - name: Publish atlas-mcp-remote GitHub release
+        if: needs.check.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION != '0.0.0'
+        env:
+          GH_TOKEN: ${{ secrets.APIX_BOT_PAT || github.token }}
+          TAG: ${{ needs.check.outputs.ATLAS_MCP_REMOTE_GIT_TAG_VERSION }}
+        shell: bash
+        run: |
+          set -e
+
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            echo "Release ${TAG} already exists, skipping"
+            exit 0
+          fi
+
+          gh release create "${TAG}" \
+            --title "${TAG}" \
             --generate-notes \
             --target ${{ github.sha }} \
             ${{ (needs.check.outputs.ATLAS_MCP_REMOTE_RELEASE_CHANNEL != 'latest' && '--prerelease') || ''}}
