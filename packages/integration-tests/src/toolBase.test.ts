@@ -718,29 +718,6 @@ describe("ToolBase", () => {
             expect(count?.value).toBe(2);
         });
 
-        it("returns the tool result and logs a warning when a metrics label is undeclared", async () => {
-            let labelledCallback: MockToolCallback | undefined;
-            const labelledServer: TestServer = {
-                ...mockServer,
-                metrics: new PrometheusMetrics({ definitions: createDefaultMetrics(), labels: { tenant: "acme" } }),
-                mcpServer: {
-                    registerTool: (_name: string, _config: unknown, cb: MockToolCallback) => {
-                        labelledCallback = cb;
-                        return { enabled: true, disable: vi.fn(), enable: vi.fn() };
-                    },
-                } as never,
-            };
-            new TestTool({ server: labelledServer }).register();
-            expectDefined(labelledCallback);
-
-            const result = await labelledCallback({ param1: "value", param2: 1 }, {} as never);
-
-            expect(result.isError).toBeFalsy();
-            expect(mockLoggerWarning).toHaveBeenCalledWith(
-                expect.objectContaining({ id: LogId.metricEmitFailure, context: "tool" })
-            );
-        });
-
         it("records returned error results as errors rather than declines", async () => {
             const errorResult: CallToolResult = {
                 content: [{ type: "text", text: "Tool execution failed" }],

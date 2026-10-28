@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { LogId, SessionStore, SessionLimitExceededError } from "@mongodb-js/mcp-core";
+import { SessionStore, SessionLimitExceededError } from "@mongodb-js/mcp-core";
 import { Counter, createDefaultMetrics, Gauge, PrometheusMetrics } from "@mongodb-js/mcp-metrics";
 import type { CloseableTransport, ILogger, ICompositeLogger } from "@mongodb-js/mcp-types";
 import { MockMetrics } from "@mongodb-js/mcp-test-utils";
@@ -136,32 +136,6 @@ describe("SessionStore<CloseableTransport> metrics", () => {
         );
         expect(await valueFor(baseMetrics.get("sessionsActive"), { tenant: "acme" })).toBe(1);
         expect(await valueFor(baseMetrics.get("sessionsActive"), { tenant: "other" })).toBe(1);
-    });
-
-    it("keeps session operations working and logs a warning when a metric label is undeclared", async () => {
-        const warning = vi.spyOn(logger, "warning");
-        const labelledStore = new SessionStore<CloseableTransport>({
-            options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 100 },
-            logger,
-            metrics: new PrometheusMetrics({ definitions: createDefaultMetrics(), labels: { tenant: "acme" } }),
-        });
-        await labelledStore.addSession({
-            sessionId: "s1",
-            transport: createMockTransport(),
-            logger: createMockLogger(),
-        });
-        await labelledStore.addSession({
-            sessionId: "s2",
-            transport: createMockTransport(),
-            logger: createMockLogger(),
-        });
-        expect(labelledStore.hasSession("s1")).toBe(true);
-
-        await expect(labelledStore.closeAllSessions()).resolves.toBeUndefined();
-        expect(labelledStore.hasSession("s1")).toBe(false);
-        // Two failing metric calls per add (created, active) and per close (closed, active).
-        expect(warning).toHaveBeenCalledTimes(8);
-        expect(warning).toHaveBeenCalledWith(expect.objectContaining({ id: LogId.metricEmitFailure }));
     });
 
     it("records reason 'server_stop' when closeAllSessions is called", async () => {

@@ -310,7 +310,6 @@ export const LogId: {
     readonly assistantSearchKnowledgeError: MongoLogId;
     readonly streamsProcessorStateLookupFailure: MongoLogId;
     readonly monitoringServerMetricsFailure: MongoLogId;
-    readonly metricEmitFailure: MongoLogId;
     readonly connectionRegistryRevoked: MongoLogId;
     readonly connectionRegistryRevokeCallbackFailure: MongoLogId;
     readonly connectionRegistryDialFailure: MongoLogId;

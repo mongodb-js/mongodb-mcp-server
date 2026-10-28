@@ -225,8 +225,8 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
             metrics,
         };
         // Track session created metric
-        this.emitMetric("sessionCreated", () => metrics.get("sessionCreated").inc(metrics.labels));
-        this.emitMetric("sessionsActive", () => metrics.get("sessionsActive").inc(metrics.labels));
+        metrics.get("sessionCreated").inc(metrics.labels);
+        metrics.get("sessionsActive").inc(metrics.labels);
         return Promise.resolve();
     }
 
@@ -249,10 +249,8 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
 
         // Recorded on removal so the metrics track store membership even while
         // transport.close() is pending, e.g. for a session evicted by addSession.
-        this.emitMetric("sessionClosed", () =>
-            session.metrics.get("sessionClosed").inc({ ...session.metrics.labels, reason })
-        );
-        this.emitMetric("sessionsActive", () => session.metrics.get("sessionsActive").dec(session.metrics.labels));
+        session.metrics.get("sessionClosed").inc({ ...session.metrics.labels, reason });
+        session.metrics.get("sessionsActive").dec(session.metrics.labels);
 
         session.abortTimeout.cancel();
         session.notificationTimeout.cancel();
@@ -268,22 +266,6 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
                     message: `Error closing transport ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
                 });
             }
-        }
-    }
-
-    /**
-     * Runs a metric emission without letting it fail the session operation: an
-     * undeclared label makes prom-client throw.
-     */
-    private emitMetric(name: string, emit: () => void): void {
-        try {
-            emit();
-        } catch (error) {
-            this.logger.warning({
-                id: LogId.metricEmitFailure,
-                context: "sessionStore",
-                message: `Failed to record session metric ${name}: ${error instanceof Error ? error.message : String(error)}`,
-            });
         }
     }
 

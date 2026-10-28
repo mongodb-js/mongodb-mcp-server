@@ -603,35 +603,20 @@ export abstract class ToolBase<
                 clientInfo: context.request.clientInfo,
             });
 
-            // Never fail the call over its metric: the tool has already run, and an
-            // undeclared server label makes prom-client throw.
-            try {
-                const builtInLabels = {
-                    tool_name: this.name,
-                    category: this.category,
-                    status: declined ? "declined" : error !== undefined || result.isError ? "error" : "success",
-                    operation_type: this.operationType,
-                    ...(!declined && error !== undefined
-                        ? { error_type: error instanceof Error ? error.name : "unknown" }
-                        : {}),
-                } satisfies Partial<Record<ToolExecutionDurationLabelName, string>>;
-                const labels = {
-                    ...withoutBuiltInToolLabels(this.server.metrics.labels),
-                    ...builtInLabels,
-                };
-                this.server.metrics
-                    .get("toolExecutionDuration")
-                    .observe(labels, (Date.now() - executionStartTime) / 1000);
-            } catch (metricError) {
-                this.server.logger.warning({
-                    id: LogId.metricEmitFailure,
-                    context: "tool",
-                    message: `Failed to record the execution metric of ${this.name}: ${
-                        metricError instanceof Error ? metricError.message : String(metricError)
-                    }`,
-                    noRedaction: true,
-                });
-            }
+            const builtInLabels = {
+                tool_name: this.name,
+                category: this.category,
+                status: declined ? "declined" : error !== undefined || result.isError ? "error" : "success",
+                operation_type: this.operationType,
+                ...(!declined && error !== undefined
+                    ? { error_type: error instanceof Error ? error.name : "unknown" }
+                    : {}),
+            } satisfies Partial<Record<ToolExecutionDurationLabelName, string>>;
+            const labels = {
+                ...withoutBuiltInToolLabels(this.server.metrics.labels),
+                ...builtInLabels,
+            };
+            this.server.metrics.get("toolExecutionDuration").observe(labels, (Date.now() - executionStartTime) / 1000);
         };
 
         try {
