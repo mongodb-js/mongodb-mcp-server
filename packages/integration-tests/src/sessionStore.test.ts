@@ -147,6 +147,12 @@ describe("SessionStore<CloseableTransport> metrics", () => {
                 labelNames: ["tenant"] as const,
                 registers: [],
             }),
+            sessionClosed: new Counter({
+                name: "mcp_session_closed",
+                help: "test",
+                labelNames: ["reason", "tenant"] as const,
+                registers: [],
+            }),
             sessionsActive: new Gauge({
                 name: "mcp_active_sessions",
                 help: "test",
@@ -169,9 +175,12 @@ describe("SessionStore<CloseableTransport> metrics", () => {
             transport: createMockTransport(),
             logger: createMockLogger(),
         });
+        await labelledStore.closeSession({ sessionId: "s1", reason: "transport_closed" });
 
-        const { values } = await storeMetrics.get("sessionCreated").get();
-        expect(values.find((v) => v.labels.tenant === "acme")?.value).toBe(1);
+        const { values: created } = await storeMetrics.get("sessionCreated").get();
+        expect(created.find((v) => v.labels.tenant === "acme")?.value).toBe(1);
+        const { values: closed } = await storeMetrics.get("sessionClosed").get();
+        expect(closed.find((v) => v.labels.tenant === "acme" && v.labels.reason === "transport_closed")?.value).toBe(1);
     });
 
     it("rejects the store's own metrics when it cannot supply the session metrics' declared labels", async () => {

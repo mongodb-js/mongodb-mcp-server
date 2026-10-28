@@ -249,24 +249,27 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         // session as already gone and doesn't double-count metrics.
         delete this.sessions[sessionId];
 
-        // Recorded on removal so the metrics track store membership even while
-        // transport.close() is pending, e.g. for a session evicted by addSession.
-        session.metrics.get("sessionClosed").inc({ ...session.metrics.labels, reason });
-        session.metrics.get("sessionsActive").dec(session.metrics.labels);
-
         session.abortTimeout.cancel();
         session.notificationTimeout.cancel();
 
-        if (reason !== "transport_closed") {
-            // Only close the transport when the server initiates the close.
-            try {
-                await session.transport.close();
-            } catch (error) {
-                this.logger.error({
-                    id: LogId.sessionCloseFailure,
-                    context: "streamableHttpTransport",
-                    message: `Error closing transport ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
-                });
+        try {
+            // Recorded on removal so the metrics track store membership even while
+            // transport.close() is pending, e.g. for a session evicted by addSession.
+            session.metrics.get("sessionClosed").inc({ ...session.metrics.labels, reason });
+            session.metrics.get("sessionsActive").dec(session.metrics.labels);
+        } finally {
+            // A metric failure must not leave the transport open.
+            if (reason !== "transport_closed") {
+                // Only close the transport when the server initiates the close.
+                try {
+                    await session.transport.close();
+                } catch (error) {
+                    this.logger.error({
+                        id: LogId.sessionCloseFailure,
+                        context: "streamableHttpTransport",
+                        message: `Error closing transport ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
+                    });
+                }
             }
         }
     }
