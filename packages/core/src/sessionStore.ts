@@ -272,9 +272,8 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
     }
 
     /**
-     * prom-client rejects a label a metric does not declare, but not a declared
-     * label that is missing: that records a label-less series instead. Fail
-     * rather than let a session's series disappear.
+     * prom-client rejects an extra label but not a missing declared one, which
+     * records a label-less series instead. Fail rather than lose the series.
      */
     private assertLabelsSupplied(metrics: IMetrics<DefaultMetricDefinitions>): void {
         for (const key of ["sessionCreated", "sessionClosed", "sessionsActive"] as const) {

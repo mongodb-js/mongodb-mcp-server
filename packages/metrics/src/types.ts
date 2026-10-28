@@ -6,9 +6,8 @@ export type PrometheusMetricDefinitions = {
 } & DefaultMetricDefinitions;
 
 /**
- * Label names a metric declares. prom-client types them as a phantom generic,
- * defaulting to `string` for a metric declared without `labelNames`, so a
- * `string` here means "no declared labels".
+ * Label names a metric declares. prom-client defaults the phantom generic to
+ * `string` for a metric declared without `labelNames`, so `string` means none.
  */
 type DeclaredLabelNames<TMetric> =
     TMetric extends Counter<infer TLabelNames>
@@ -26,10 +25,8 @@ type DeclaredLabelNames<TMetric> =
             : never;
 
 /**
- * Labels a caller may pass to a `PrometheusMetrics` built on these definitions:
- * the names any of them declares. With none declared the set is empty, so
- * passing any label is a type error rather than silently unchecked (`{}` would
- * skip excess-property checking and accept typos).
+ * Labels a caller may pass to a `PrometheusMetrics` built on these definitions.
+ * With none declared the set is empty, since `{}` skips excess-property checking.
  */
 export type InstanceLabels<TMetricsDefinitions extends DefaultMetricDefinitions> = [
     DeclaredLabelNames<TMetricsDefinitions[keyof TMetricsDefinitions]>,
