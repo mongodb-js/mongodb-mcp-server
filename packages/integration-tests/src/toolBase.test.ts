@@ -686,7 +686,10 @@ describe("ToolBase", () => {
             };
             const server: TestServer = {
                 ...mockServer,
-                metrics: new PrometheusMetrics<typeof definitions>({ definitions, labels: { tenant: "acme" } }),
+                metrics: new PrometheusMetrics({ definitions }).withLabels(
+                    { tenant: "acme" },
+                    { scope: ["sessionCreated"] }
+                ),
             };
 
             // `sessionCreated` declares `tenant`, but the tool metric would reject it at emission.
@@ -708,7 +711,6 @@ describe("ToolBase", () => {
 
         it("adds the metrics object's labels to every observation", async () => {
             const labelledMetrics = new PrometheusMetrics({
-                labels: { tenant: "acme" },
                 definitions: {
                     ...createDefaultMetrics(),
                     toolExecutionDuration: new Histogram({
@@ -725,7 +727,7 @@ describe("ToolBase", () => {
                         registers: [],
                     }),
                 },
-            });
+            }).withLabels({ tenant: "acme" }, { scope: ["toolExecutionDuration"] });
             let labelledCallback: MockToolCallback | undefined;
             const labelledServer: TestServer = {
                 ...mockServer,
