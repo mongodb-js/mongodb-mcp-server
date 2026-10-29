@@ -25,7 +25,7 @@ import type { PreviewFeature, AtlasClusterConnectionInfo } from "@mongodb-js/mcp
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { TRANSPORT_PAYLOAD_LIMITS } from "@mongodb-js/mcp-cli";
 import { expectDefined, MockMetrics } from "@mongodb-js/mcp-test-utils";
-import { createDefaultMetrics, Histogram, PrometheusMetrics } from "@mongodb-js/mcp-metrics";
+import { Counter, createDefaultMetrics, Histogram, PrometheusMetrics } from "@mongodb-js/mcp-metrics";
 import {
     TestTool,
     TestToolWithOutputSchema,
@@ -674,6 +674,28 @@ describe("ToolBase", () => {
             expect(sum?.value).toBeGreaterThanOrEqual(0);
         });
 
+        it("rejects a metrics instance carrying a label toolExecutionDuration does not declare", () => {
+            const definitions = {
+                ...createDefaultMetrics(),
+                sessionCreated: new Counter({
+                    name: "mcp_session_created",
+                    help: "test",
+                    labelNames: ["tenant"] as const,
+                    registers: [],
+                }),
+            };
+            const server: TestServer = {
+                ...mockServer,
+                metrics: new PrometheusMetrics({ definitions }).withLabels(
+                    { tenant: "acme" },
+                    { scope: ["sessionCreated"] }
+                ),
+            };
+
+            // `sessionCreated` declares `tenant`, but the tool metric would reject it at emission.
+            expect(() => new TestTool({ server })).toThrow(/does not declare/);
+        });
+
         it("rejects a metrics instance that supplies a built-in tool label", () => {
             const server: TestServer = {
                 ...mockServer,
@@ -689,7 +711,6 @@ describe("ToolBase", () => {
 
         it("adds the metrics object's labels to every observation", async () => {
             const labelledMetrics = new PrometheusMetrics({
-                labels: { tenant: "acme" },
                 definitions: {
                     ...createDefaultMetrics(),
                     toolExecutionDuration: new Histogram({
@@ -706,7 +727,7 @@ describe("ToolBase", () => {
                         registers: [],
                     }),
                 },
-            });
+            }).withLabels({ tenant: "acme" }, { scope: ["toolExecutionDuration"] });
             let labelledCallback: MockToolCallback | undefined;
             const labelledServer: TestServer = {
                 ...mockServer,
