@@ -76,10 +76,25 @@ function toConnectionSummary(c: unknown): ConnectionSummary {
     } as ConnectionSummary;
 }
 
+const PublicPrivateNetworkingSummarySchema = z.object({
+    access: z
+        .object({
+            type: z.string().optional(),
+            connectionId: z.string().optional(),
+        })
+        .optional(),
+});
+
 const ConnectionInspectSchema = ConnectionSummarySchema.omit({ name: true }).extend({
     region: z.string().optional(),
     clusterName: z.string().optional(),
     bootstrapServers: z.union([z.string(), z.array(z.string())]).optional(),
+    gcp: z
+        .object({
+            serviceAccountId: z.string().optional(),
+        })
+        .optional(),
+    publicPrivateNetworking: PublicPrivateNetworkingSummarySchema.optional(),
 });
 
 type ConnectionInspect = z.infer<typeof ConnectionInspectSchema>;
@@ -92,6 +107,10 @@ function toConnectionInspect(data: Record<string, unknown>): ConnectionInspect {
         ...(data.region !== undefined && { region: data.region }),
         ...(data.clusterName !== undefined && { clusterName: data.clusterName }),
         ...(data.bootstrapServers !== undefined && { bootstrapServers: data.bootstrapServers }),
+        ...(data.gcp !== undefined && { gcp: data.gcp }),
+        ...(data.publicPrivateNetworking !== undefined && {
+            publicPrivateNetworking: data.publicPrivateNetworking,
+        }),
     } as ConnectionInspect;
 }
 
@@ -125,6 +144,8 @@ const PrivateLinkSummarySchema = z.object({
     region: z.string().optional(),
     state: z.string().optional(),
     vendor: z.string().optional(),
+    dnsDomain: z.string().optional(),
+    serviceEndpointId: z.string().optional(),
 });
 
 const AccountDetailsSummarySchema = z.object({
@@ -146,6 +167,8 @@ function toPrivateLinkSummary(pl: {
     region?: string;
     state?: string;
     vendor?: string;
+    dnsDomain?: string;
+    serviceEndpointId?: string;
 }): PrivateLinkSummary | undefined {
     if (!pl._id) {
         return undefined;
@@ -156,6 +179,8 @@ function toPrivateLinkSummary(pl: {
         region: pl.region,
         state: pl.state,
         vendor: pl.vendor,
+        ...(pl.dnsDomain !== undefined && { dnsDomain: pl.dnsDomain }),
+        ...(pl.serviceEndpointId !== undefined && { serviceEndpointId: pl.serviceEndpointId }),
     };
 }
 
@@ -838,6 +863,8 @@ export class StreamsDiscoverTool extends StreamsToolBase {
                 region: pl.region,
                 state: pl.state,
                 vendor: pl.vendor,
+                ...(pl.dnsDomain && { dnsDomain: pl.dnsDomain }),
+                ...(pl.serviceEndpointId && { serviceEndpointId: pl.serviceEndpointId }),
                 ...(pl.errorMessage && { errorMessage: pl.errorMessage }),
             }));
 

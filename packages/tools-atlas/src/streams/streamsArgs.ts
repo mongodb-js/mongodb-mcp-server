@@ -66,6 +66,20 @@ export const ConnectionConfig = z
             .passthrough()
             .optional()
             .describe("AWS config for S3, Kinesis, and Lambda connections."),
+        // GCP (Pub/Sub)
+        gcp: z
+            .object({
+                serviceAccountId: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "Email address of the GCP service account that Atlas Streams uses to access Pub/Sub. " +
+                            "Must be registered in this Atlas project via Cloud Provider Access."
+                    ),
+            })
+            .passthrough()
+            .optional()
+            .describe("GCP config for Pub/Sub connections."),
         // Https
         url: z.string().optional().describe("Webhook URL for Https connections."),
         headers: z.record(z.string(), z.string()).optional().describe("HTTP headers for Https connections."),
@@ -106,7 +120,27 @@ export const ConnectionConfig = z
             })
             .passthrough()
             .optional()
-            .describe("Private networking config (PrivateLink or VPC peering). Kafka only."),
+            .describe(
+                "Private networking config (PrivateLink or VPC peering) for Kafka, S3, and Kinesis connections. " +
+                    "For GCPPubSub, AzureBlobStorage, and AWSLambda connections use publicPrivateNetworking."
+            ),
+        // Public/PrivateLink networking (AWSLambda, GCPPubSub, AzureBlobStorage)
+        publicPrivateNetworking: z
+            .object({
+                access: z
+                    .object({
+                        type: z.enum(["PUBLIC", "PRIVATE_LINK"]).optional(),
+                        connectionId: z.string().optional(),
+                    })
+                    .passthrough()
+                    .optional(),
+            })
+            .passthrough()
+            .optional()
+            .describe(
+                "Public or PrivateLink networking for GCPPubSub, AzureBlobStorage, and AWSLambda connections. " +
+                    "For private networking set access.type='PRIVATE_LINK' and access.connectionId to a PrivateLink endpoint ID."
+            ),
     })
     .passthrough();
 
@@ -126,7 +160,7 @@ export const PrivateLinkConfig = z
             .string()
             .optional()
             .describe(
-                "PrivateLink vendor. If the user does not specify a vendor, ask them which vendor to use before proceeding. If they decline or say none, omit this field — the Atlas API will default to GENERIC. Valid values — AWS: 'CONFLUENT', 'MSK', 'KINESIS', 'S3'. Azure: 'EVENTHUB', 'CONFLUENT'. GCP: 'CONFLUENT'."
+                "PrivateLink vendor. If the user does not specify a vendor, ask them which vendor to use before proceeding. If they decline or say none, omit this field — the Atlas API will default to GENERIC. Valid values — AWS: 'CONFLUENT', 'MSK', 'KINESIS', 'S3'. Azure: 'EVENTHUB', 'CONFLUENT', 'AZURE_BLOB_STORAGE'. GCP: 'CONFLUENT', 'PUBSUB'."
             ),
         arn: z.string().optional().describe("Amazon Resource Name (ARN). Required for AWS MSK vendor."),
         authenticationScheme: z

@@ -30,6 +30,7 @@ const ConnectionType = z.enum([
     "AWSKinesisDataStreams",
     "AWSLambda",
     "SchemaRegistry",
+    "GCPPubSub",
     "Sample",
 ]);
 
@@ -113,6 +114,21 @@ const HTTPS_FIELDS = {
     },
 } as const satisfies Record<string, FieldSchema>;
 
+const GCP_FIELDS = {
+    serviceAccountId: {
+        title: "GCP Service Account Email",
+        description:
+            "Email address of the GCP service account Atlas uses to access Pub/Sub. " +
+            "Find it in Atlas UI → Project Settings → Cloud Provider Access (GCP).",
+    },
+    connectionId: {
+        title: "PrivateLink Connection ID",
+        description:
+            "ID of a GCP PUBSUB PrivateLink endpoint in this project. " +
+            "Use `atlas-streams-discover` with action 'get-networking' to list endpoints.",
+    },
+} as const satisfies Record<string, FieldSchema>;
+
 const BuildOutputSchema = {
     resource: BuildResource.describe("Which build step completed"),
 };
@@ -164,6 +180,7 @@ const StreamsBuildArgsShape = {
             "AWSKinesisDataStreams: needs aws.roleArn (must be registered via Atlas Cloud Provider Access). " +
             "AWSLambda: needs aws.roleArn (must be registered via Atlas Cloud Provider Access). " +
             "SchemaRegistry: needs provider, schemaRegistryUrls, and authentication config. " +
+            "GCPPubSub: needs gcp.serviceAccountId (registered via Atlas Cloud Provider Access). " +
             "Sample: provides sample data for testing (no config needed)."
     ),
     connectionConfig: ConnectionConfig.optional().describe(
@@ -185,7 +202,9 @@ const StreamsBuildArgsShape = {
                 "Use $merge to write to Atlas cluster collections: {$merge: {into: {connectionName, db, coll}}}. " +
                 "Use $iceberg to write to Apache Iceberg tables on an S3 connection (must be the last stage): {$iceberg: {connectionName, bucket, databaseName, tableName, path}}. " +
                 "path is required and must not end with '/'. Requires tier SP10 or higher. On non-AWS workspaces also specify region. " +
-                "Use $emit to write to Kafka or Kinesis sinks: {$emit: {connectionName, topic}}. $emit only works with Kafka/Kinesis connections — do NOT use $emit with Https connections. " +
+                "Use $emit to write to Kafka, Kinesis, S3, or GCP Pub/Sub sinks. Kafka/Kinesis: {$emit: {connectionName, topic}}. " +
+                "S3: {$emit: {connectionName, bucket, path}}. GCP Pub/Sub: {$emit: {connectionName, topic, projectId, region}}. " +
+                "$emit does not work with Https connections — use $https instead. " +
                 "Use $https to POST data to an Https connection: {$https: {connectionName}}. " +
                 "Use $externalFunction for Lambda: {$externalFunction: {connectionName, functionName, execution: 'async', as: 'result'}}. Lambda does NOT use $emit — use $externalFunction with execution='async' as a sink stage or execution='sync' for mid-pipeline enrichment. " +
                 "By default $https.onError is 'dlq', which requires a DLQ (see dlq parameter). Set {$https: {connectionName, onError: 'ignore'}} to skip DLQ. " +
@@ -351,7 +370,7 @@ export class StreamsBuildTool extends StreamsToolBase {
         }
         if (!args.connectionType) {
             throw new StreamsInvalidArgumentError(
-                "connectionType is required. Choose from: Kafka, Cluster, S3, Https, AWSKinesisDataStreams, AWSLambda, SchemaRegistry, Sample."
+                "connectionType is required. Choose from: Kafka, Cluster, S3, Https, AWSKinesisDataStreams, AWSLambda, SchemaRegistry, GCPPubSub, Sample."
             );
         }
 
@@ -380,10 +399,13 @@ export class StreamsBuildTool extends StreamsToolBase {
             request
         );
 
-        const privateLinkWarning =
-            config?.networking?.access?.type === "PRIVATE_LINK"
-                ? `\n\nNote: This connection uses PrivateLink and will start in PENDING state. It may take a few minutes to provision. Use \`atlas-streams-discover\` with action 'inspect-connection' to check when it becomes READY.`
-                : "";
+        const networking = config.networking as { access?: { type?: string } } | undefined;
+        const publicPrivateNetworking = config.publicPrivateNetworking as { access?: { type?: string } } | undefined;
+        const usesPrivateLink =
+            networking?.access?.type === "PRIVATE_LINK" || publicPrivateNetworking?.access?.type === "PRIVATE_LINK";
+        const privateLinkWarning = usesPrivateLink
+            ? `\n\nNote: This connection uses PrivateLink and will start in PENDING state. It may take a few minutes to provision. Use \`atlas-streams-discover\` with action 'inspect-connection' to check when it becomes READY.`
+            : "";
 
         return {
             content: [
@@ -429,6 +451,8 @@ export class StreamsBuildTool extends StreamsToolBase {
                 return this.validateSchemaRegistryConfig(config, request);
             case "Https":
                 return this.validateHttpsConfig(config, request);
+            case "GCPPubSub":
+                return this.validateGcpPubSubConfig(config, request);
             default:
                 return null;
         }
@@ -652,6 +676,56 @@ export class StreamsBuildTool extends StreamsToolBase {
                 if (fields.username) authObj.username = fields.username;
                 if (fields.password) authObj.password = fields.password;
             },
+        });
+    }
+
+    private validateGcpPubSubConfig(
+        config: Record<string, unknown>,
+        request: ToolRequest<IAtlasConfig>
+    ): CallToolResult | InputRequiredResult | null {
+        const gcp = config.gcp as Record<string, unknown> | undefined;
+        const access = (config.publicPrivateNetworking as Record<string, unknown> | undefined)?.access as
+            | Record<string, unknown>
+            | undefined;
+        const usesPrivateLink = access?.type === "PRIVATE_LINK";
+
+        const missingFields = StreamsBuildTool.collectMissingFields([
+            {
+                key: "serviceAccountId",
+                present: !!gcp?.serviceAccountId,
+                schema: GCP_FIELDS.serviceAccountId,
+            },
+            {
+                key: "connectionId",
+                present: !usesPrivateLink || !!access?.connectionId,
+                schema: GCP_FIELDS.connectionId,
+            },
+        ]);
+
+        if (missingFields.length === 0) {
+            return null;
+        }
+
+        return this.elicitOrReportMissing({
+            connectionType: "GCPPubSub",
+            config,
+            missingFields,
+            request,
+            applyFields: (fields, cfg) => {
+                if (fields.serviceAccountId) {
+                    if (!cfg.gcp) cfg.gcp = {};
+                    (cfg.gcp as Record<string, unknown>).serviceAccountId = fields.serviceAccountId;
+                }
+                if (fields.connectionId) {
+                    if (!cfg.publicPrivateNetworking) cfg.publicPrivateNetworking = {};
+                    const networking = cfg.publicPrivateNetworking as Record<string, unknown>;
+                    if (!networking.access) networking.access = {};
+                    (networking.access as Record<string, unknown>).connectionId = fields.connectionId;
+                }
+            },
+            additionalNote:
+                "The GCP service account must first be registered in the Atlas project via Cloud Provider Access.\n" +
+                "For PrivateLink, create the GCP PUBSUB endpoint first with resource='privatelink'.",
         });
     }
 
@@ -989,7 +1063,8 @@ export class StreamsBuildTool extends StreamsToolBase {
                     "  AWS KINESIS: {provider, vendor:'KINESIS', region, serviceEndpointId}\n" +
                     "  AZURE EVENTHUB: {provider, vendor:'EVENTHUB', region, dnsDomain, serviceEndpointId (full Azure Resource ID)}\n" +
                     "  AZURE CONFLUENT: {provider, vendor:'CONFLUENT', region, dnsDomain, azureResourceIds}\n" +
-                    "  GCP CONFLUENT: {provider, vendor:'CONFLUENT', region, dnsDomain, gcpServiceAttachmentUris}"
+                    "  GCP CONFLUENT: {provider, vendor:'CONFLUENT', region, dnsDomain, gcpServiceAttachmentUris}\n" +
+                    "  GCP PUBSUB: {provider, vendor:'PUBSUB', region} (dnsDomain is computed by the API — omit it)"
             );
         }
         if (!args.privateLinkConfig.provider) {

@@ -496,6 +496,34 @@ describe("StreamsDiscoverTool", () => {
             });
         });
 
+        it("should expose GCP Pub/Sub config and PrivateLink access in the structured summary", async () => {
+            mockApiClient.getStreamConnection!.mockResolvedValue({
+                name: "pubsub-out",
+                type: "GCPPubSub",
+                gcp: { serviceAccountId: "atlas-streams@my-project.iam.gserviceaccount.com" },
+                publicPrivateNetworking: {
+                    access: { type: "PRIVATE_LINK", connectionId: "64b7e9f1a2c3d4e5f6a7b8c9" },
+                },
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "inspect-connection",
+                workspaceName: "ws1",
+                resourceName: "pubsub-out",
+            });
+
+            expect(result.structuredContent).toEqual({
+                connection: {
+                    type: "GCPPubSub",
+                    gcp: { serviceAccountId: "atlas-streams@my-project.iam.gserviceaccount.com" },
+                    publicPrivateNetworking: {
+                        access: { type: "PRIVATE_LINK", connectionId: "64b7e9f1a2c3d4e5f6a7b8c9" },
+                    },
+                },
+            });
+        });
+
         it("masks secret-valued authentication fields from the returned content", async () => {
             mockApiClient.getStreamConnection!.mockResolvedValue({
                 name: "kafka-in",
@@ -660,6 +688,41 @@ describe("StreamsDiscoverTool", () => {
             expect(result.structuredContent).toEqual({
                 privateLinks: [{ id: "pl-1", provider: "AWS", region: "us-east-1", state: "AVAILABLE", vendor: "AWS" }],
             });
+        });
+
+        it("should include the GCP PUBSUB endpoint DNS domain", async () => {
+            mockApiClient.listPrivateLinkConnections!.mockResolvedValue({
+                results: [
+                    {
+                        _id: "pl-pubsub",
+                        provider: "GCP",
+                        region: "us-central1",
+                        state: "AVAILABLE",
+                        vendor: "PUBSUB",
+                        dnsDomain: "pubsub-abc123.us-central1.p.iam.gserviceaccount.com",
+                    },
+                ],
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "get-networking",
+            });
+
+            expect(result.structuredContent).toEqual({
+                privateLinks: [
+                    {
+                        id: "pl-pubsub",
+                        provider: "GCP",
+                        region: "us-central1",
+                        state: "AVAILABLE",
+                        vendor: "PUBSUB",
+                        dnsDomain: "pubsub-abc123.us-central1.p.iam.gserviceaccount.com",
+                    },
+                ],
+            });
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).toContain("pubsub-abc123.us-central1.p.iam.gserviceaccount.com");
         });
 
         it("should include errorMessage when present", async () => {

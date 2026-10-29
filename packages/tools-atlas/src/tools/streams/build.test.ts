@@ -826,6 +826,92 @@ describe("StreamsBuildTool", () => {
         });
     });
 
+    describe("createConnection - GCPPubSub", () => {
+        it("should create a GCP Pub/Sub connection with serviceAccountId", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "pubsub-out",
+                connectionType: "GCPPubSub",
+                connectionConfig: {
+                    gcp: { serviceAccountId: "atlas-streams@my-project.iam.gserviceaccount.com" },
+                },
+            });
+
+            expect(mockApiClient.createStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        name: "pubsub-out",
+                        type: "GCPPubSub",
+                        gcp: { serviceAccountId: "atlas-streams@my-project.iam.gserviceaccount.com" },
+                    }),
+                }),
+                expect.anything()
+            );
+        });
+
+        it("should create a GCP Pub/Sub connection with PrivateLink networking", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "pubsub-out",
+                connectionType: "GCPPubSub",
+                connectionConfig: {
+                    gcp: { serviceAccountId: "atlas-streams@my-project.iam.gserviceaccount.com" },
+                    publicPrivateNetworking: {
+                        access: { type: "PRIVATE_LINK", connectionId: "64b7e9f1a2c3d4e5f6a7b8c9" },
+                    },
+                },
+            });
+
+            expect(mockApiClient.createStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        type: "GCPPubSub",
+                        publicPrivateNetworking: {
+                            access: { type: "PRIVATE_LINK", connectionId: "64b7e9f1a2c3d4e5f6a7b8c9" },
+                        },
+                    }),
+                }),
+                expect.anything()
+            );
+
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("PENDING");
+        });
+
+        it("should trigger elicitation when serviceAccountId is missing", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "pubsub-out",
+                connectionType: "GCPPubSub",
+                connectionConfig: {},
+            });
+
+            const request = mockElicitation.inputRequired.mock.calls[0]![0] as { schema: { required: string[] } };
+            expect(result.resultType).toBe("input_required");
+            expect(request.schema.required).toEqual(["serviceAccountId"]);
+        });
+
+        it("should require connectionId when access type is PRIVATE_LINK", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "pubsub-out",
+                connectionType: "GCPPubSub",
+                connectionConfig: {
+                    gcp: { serviceAccountId: "atlas-streams@my-project.iam.gserviceaccount.com" },
+                    publicPrivateNetworking: { access: { type: "PRIVATE_LINK" } },
+                },
+            });
+
+            const request = mockElicitation.inputRequired.mock.calls[0]![0] as { schema: { required: string[] } };
+            expect(result.resultType).toBe("input_required");
+            expect(request.schema.required).toEqual(["connectionId"]);
+        });
+    });
+
     describe("pipeline structural validation", () => {
         it("should return error when first stage is not $source", async () => {
             const result = await exec({
@@ -1276,6 +1362,30 @@ describe("StreamsBuildTool", () => {
                         region: "us-central1",
                         dnsDomain: "pkc-abc123.us-central1.gcp.confluent.cloud",
                         gcpServiceAttachmentUris: ["projects/p1/regions/us-central1/serviceAttachments/att-1"],
+                    },
+                },
+                expect.anything()
+            );
+        });
+
+        it("should create a GCP PUBSUB PrivateLink", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "privatelink",
+                privateLinkConfig: {
+                    provider: "GCP",
+                    vendor: "PUBSUB",
+                    region: "us-central1",
+                },
+            });
+
+            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1" } },
+                    body: {
+                        provider: "GCP",
+                        vendor: "PUBSUB",
+                        region: "us-central1",
                     },
                 },
                 expect.anything()

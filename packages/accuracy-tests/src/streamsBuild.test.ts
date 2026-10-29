@@ -334,6 +334,30 @@ describeAccuracyTests(
             mockedTools,
         },
         {
+            prompt: [
+                `Add a GCP Pub/Sub connection named 'pubsub-out' to workspace '${workspaceName}'`,
+                "Use GCP service account atlas-streams@my-project.iam.gserviceaccount.com",
+            ],
+            systemPrompt: projectContext,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-build",
+                    parameters: {
+                        projectId,
+                        resource: "connection",
+                        workspaceName,
+                        connectionName: "pubsub-out",
+                        connectionType: "GCPPubSub",
+                        connectionConfig: {
+                            gcp: { serviceAccountId: "atlas-streams@my-project.iam.gserviceaccount.com" },
+                        },
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
             prompt: `Add a Confluent Schema Registry connection named 'registry' with URL https://schema-registry.example.com to workspace '${workspaceName}'`,
             systemPrompt: projectContext,
             expectedToolCalls: [
@@ -539,6 +563,27 @@ describeAccuracyTests(
                             vendor: Matcher.value("CONFLUENT"),
                             region: Matcher.value("us-central1"),
                             gcpServiceAttachmentUris: Matcher.anyValue,
+                        },
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: "Set up a GCP Pub/Sub Private Service Connect endpoint in us-central1 for my streams project",
+            systemPrompt: projectContext,
+            expectedToolCalls: [
+                ...optionalProjectDiscovery,
+                {
+                    toolName: "atlas-streams-build",
+                    parameters: {
+                        projectId: Matcher.anyOf(Matcher.value(projectId), Matcher.anyValue),
+                        resource: Matcher.value("privatelink"),
+                        workspaceName: Matcher.undefined,
+                        privateLinkConfig: {
+                            provider: Matcher.value("GCP"),
+                            vendor: Matcher.value("PUBSUB"),
+                            region: Matcher.value("us-central1"),
                         },
                     },
                 },
