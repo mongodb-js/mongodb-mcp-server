@@ -29,7 +29,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/server": "^2.3.1",
-    "mongodb-redact": "^1.4.6"
+    "@mongodb-js/mongodb-redact": "^1.4.19"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

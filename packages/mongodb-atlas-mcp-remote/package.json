@@ -32,8 +32,8 @@
     "@modelcontextprotocol/client": "^2.3.1",
     "@modelcontextprotocol/server": "^2.3.1",
     "@mongodb-js/devtools-proxy-support": "^0.7.19",
-    "mongodb-log-writer": "^2.5.13",
-    "mongodb-redact": "^1.4.6"
+    "@mongodb-js/mongodb-redact": "^1.4.19",
+    "mongodb-log-writer": "^2.5.13"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
