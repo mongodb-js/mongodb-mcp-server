@@ -657,8 +657,8 @@ export { Histogram }
 
 // @public
 export type InstanceLabels<TMetricsDefinitions extends DefaultMetricDefinitions> = [
-DeclaredLabelNames<TMetricsDefinitions[keyof TMetricsDefinitions]>
-] extends [never] ? Record<string, never> : Readonly<Partial<Record<DeclaredLabelNames<TMetricsDefinitions[keyof TMetricsDefinitions]>, string>>>;
+InstanceLabelNames<TMetricsDefinitions>
+] extends [never] ? Record<string, never> : Readonly<Partial<Record<InstanceLabelNames<TMetricsDefinitions>, string>>>;
 
 // @public (undocumented)
 export interface ITransportRunner {

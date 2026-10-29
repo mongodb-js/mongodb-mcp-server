@@ -1,5 +1,6 @@
 import type { Counter, Histogram, Gauge, Registry } from "prom-client";
 import type { DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
+import type { ReservedMetricLabelName } from "./reservedLabels.js";
 
 export type PrometheusMetricDefinitions = {
     [key: string]: Histogram | Counter | Gauge;
@@ -24,15 +25,22 @@ type DeclaredLabelNames<TMetric> =
                 : TLabelNames
             : never;
 
+/** Declared label names the definitions do not set per observation. */
+type InstanceLabelNames<TMetricsDefinitions extends DefaultMetricDefinitions> = Exclude<
+    DeclaredLabelNames<TMetricsDefinitions[keyof TMetricsDefinitions]>,
+    ReservedMetricLabelName
+>;
+
 /**
- * Labels a caller may pass to a `PrometheusMetrics` built on these definitions.
- * With none declared the set is empty, since `{}` skips excess-property checking.
+ * Labels a caller may pass to a `PrometheusMetrics` built on these definitions:
+ * the declared names minus the ones the definitions set per observation. With
+ * none left the set is empty, since `{}` skips excess-property checking.
  */
 export type InstanceLabels<TMetricsDefinitions extends DefaultMetricDefinitions> = [
-    DeclaredLabelNames<TMetricsDefinitions[keyof TMetricsDefinitions]>,
+    InstanceLabelNames<TMetricsDefinitions>,
 ] extends [never]
     ? Record<string, never>
-    : Readonly<Partial<Record<DeclaredLabelNames<TMetricsDefinitions[keyof TMetricsDefinitions]>, string>>>;
+    : Readonly<Partial<Record<InstanceLabelNames<TMetricsDefinitions>, string>>>;
 
 /**
  * Options for creating a `PrometheusMetrics` instance.

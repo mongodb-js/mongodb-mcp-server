@@ -77,34 +77,29 @@ describe("PrometheusMetrics", () => {
             expect(metrics.labels).toEqual({ tenant: "acme" });
         });
 
-        it("rejects an instance label the default definitions set per observation", () => {
-            expect(
-                () =>
-                    new PrometheusMetrics({
-                        definitions: createDefaultMetrics(),
-                        labels: { reason: "idle_timeout" },
-                    })
-            ).toThrow(/reserved/);
-            expect(
-                () =>
-                    new PrometheusMetrics({
-                        definitions: createDefaultMetrics(),
-                        labels: { tool_name: "spoofed" },
-                    })
-            ).toThrow(/reserved/);
-
-            // `withLabels` can introduce one too, so it is checked as well.
+        it("does not accept a label the definitions set per observation", () => {
             const definitions = {
                 ...createDefaultMetrics(),
                 toolExecutionDuration: new Histogram({
                     name: "mcp_tool_execution_duration_seconds",
                     help: "test",
-                    labelNames: ["tool_name"] as const,
+                    labelNames: ["tool_name", "tenant"] as const,
                     registers: [],
                 }),
             };
-            const base = new PrometheusMetrics<typeof definitions>({ definitions });
-            expect(() => base.withLabels({ reason: "idle_timeout" })).toThrow(/reserved/);
+            const base = new PrometheusMetrics<typeof definitions>({ definitions, labels: { tenant: "acme" } });
+
+            // `tenant` is the only declared label these definitions do not set per observation.
+            expect(base.labels).toEqual({ tenant: "acme" });
+            // @ts-expect-error `tool_name` is set per observation, so it is not an instance label
+            expect(() => base.withLabels({ tool_name: "spoofed" })).toThrow(/reserved/);
+        });
+
+        it("still rejects a reserved label at runtime", () => {
+            const definitions = createDefaultMetrics();
+
+            // @ts-expect-error `reason` is set per observation, so the type rejects it
+            expect(() => new PrometheusMetrics({ definitions, labels: { reason: "x" } })).toThrow(/reserved/);
         });
 
         it("rejects a label with no value", () => {

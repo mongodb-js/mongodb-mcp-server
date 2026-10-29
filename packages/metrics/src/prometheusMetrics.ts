@@ -1,6 +1,6 @@
 import { Registry, type Metric, collectDefaultMetrics } from "prom-client";
 import type { IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
-import { RESERVED_METRIC_LABEL_NAMES } from "./metricDefinitions.js";
+import { RESERVED_METRIC_LABEL_NAMES } from "./reservedLabels.js";
 import type { InstanceLabels, PrometheusMetricsOptions } from "./types.js";
 
 const RESERVED_LABELS: ReadonlySet<string> = new Set(RESERVED_METRIC_LABEL_NAMES);
