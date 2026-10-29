@@ -23,6 +23,8 @@ overrides:
   js-yaml@^4.0.0: ^4.3.2
   pbkdf2@^3.0.0: ^3.1.7
   shell-quote@^1.0.0: ^1.11.0
+  react: ^18.3.1
+  react-dom: ^18.3.1
 
 importers:
 
@@ -348,7 +350,7 @@ importers:
     dependencies:
       '@mcp-ui/server':
         specifier: ^6.1.0
-        version: 6.1.0(@cfworker/json-schema@4.1.1)(react-dom@18.3.1(react@19.3.0))(react@19.3.0)(zod@4.6.6)
+        version: 6.1.0(@cfworker/json-schema@4.1.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.6.6)
       '@modelcontextprotocol/server':
         specifier: ^2.3.1
         version: 2.3.1
@@ -771,7 +773,7 @@ importers:
         version: 7.59.0(@types/node@25.6.0)
       '@modelcontextprotocol/inspector':
         specifier: ^2.11.0
-        version: 2.11.0(@types/node@25.6.0)(@types/react@19.2.14)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@18.3.1(react@19.3.0))(tsx@4.23.12)
+        version: 2.11.0(@types/node@25.6.0)(@types/react@19.2.14)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@18.3.1(react@18.3.1))(tsx@4.23.12)
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
@@ -1189,10 +1191,10 @@ importers:
         specifier: ^20.9.0
         version: 20.9.0
       react:
-        specifier: ^18.3.0
+        specifier: ^18.3.1
         version: 18.3.1
       react-dom:
-        specifier: ^18.3.0
+        specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
       tsx:
         specifier: ^4.23.12
@@ -1722,7 +1724,7 @@ packages:
     resolution: {integrity: sha512-O000MLDBDdk/EohJPFUqvnp4qnHeYkVP5B0xEG0D/L7cOKP9kefu2DXn8dj74cQfsEzUqh+sr1RzFqiL1o+PpA==}
     peerDependencies:
       '@types/react': '*'
-      react: '>=16.8.0'
+      react: ^18.3.1
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -1747,7 +1749,7 @@ packages:
   '@emotion/use-insertion-effect-with-fallbacks@1.2.0':
     resolution: {integrity: sha512-yJMtVdH59sxi/aVJBpk9FQq+OR8ll5GT8oWd57UpeaKEVGab41JWaCFA7FRLoMLloOZF/c/wsPoe+bfGmRKgDg==}
     peerDependencies:
-      react: '>=16.8.0'
+      react: ^18.3.1
 
   '@emotion/utils@1.4.2':
     resolution: {integrity: sha512-3vLclRofFziIa3J2wDh9jjbkUz9qk5Vi3IZ/FSTKViB0k+ef0fPV7dYrUIugbgupYDx7v9ud/SjrtEP8Y4xLoA==}
@@ -2412,7 +2414,7 @@ packages:
   '@leafygreen-ui/lib@15.7.1':
     resolution: {integrity: sha512-BUTecsvMA0sSsOPWFlQ8+uf9Fy/0Pr3hFY1AJOJ8k/51wsKlvA96y3Hz4qIFMUhhurZmxxTK+ddiNfdE+MoxDQ==}
     peerDependencies:
-      react: ^17.0.0 || ^18.0.0
+      react: ^18.3.1
 
   '@leafygreen-ui/palette@5.0.3':
     resolution: {integrity: sha512-7xA4FetYcJSgElQSvvSvRDUnhsgCN7i7kx5EVqu4oy5rHXaD8WuMdR4GFac5d7ea0F5f1KC8v9UpuV2CGBxYoA==}
@@ -2525,8 +2527,8 @@ packages:
     resolution: {integrity: sha512-h8sN3QIBLqMsRXjKL76M5VmBQf3N0I1G1DiDiSYAgtdynYQctHqCs79WEo1d5wClyZVYBWXdRcxgiR/WBfSOqw==}
     peerDependencies:
       '@modelcontextprotocol/sdk': ^1.31.0
-      react: ^17.0.0 || ^18.0.0 || ^19.0.0
-      react-dom: ^17.0.0 || ^18.0.0 || ^19.0.0
+      react: ^18.3.1
+      react-dom: ^18.3.1
       zod: ^4.6.6
     peerDependenciesMeta:
       react:
@@ -2538,8 +2540,8 @@ packages:
     resolution: {integrity: sha512-Iivz2KwWK8xlRbiWwFB/C4NXqE8VJBoRCbBkJCN98ST2UbQvA6kfyebcLsypiqylJS467XOOaBcI9DeQ3t+zqA==}
     peerDependencies:
       '@modelcontextprotocol/sdk': ^1.31.0
-      react: ^17.0.0 || ^18.0.0 || ^19.0.0
-      react-dom: ^17.0.0 || ^18.0.0 || ^19.0.0
+      react: ^18.3.1
+      react-dom: ^18.3.1
       zod: ^4.6.6
     peerDependenciesMeta:
       react:
@@ -2554,8 +2556,8 @@ packages:
       '@modelcontextprotocol/client': ^2.0.0
       '@modelcontextprotocol/core': ^2.0.0
       '@modelcontextprotocol/server': ^2.0.0
-      react: ^17.0.0 || ^18.0.0 || ^19.0.0
-      react-dom: ^17.0.0 || ^18.0.0 || ^19.0.0
+      react: ^18.3.1
+      react-dom: ^18.3.1
       zod: ^4.6.6
     peerDependenciesMeta:
       '@modelcontextprotocol/server':
@@ -3800,14 +3802,14 @@ packages:
     resolution: {integrity: sha512-5nNMTSETP4ykGegmVkhjcS8tTLW6Vl4axfEGQN3v0zdHYbK4UfoqfPChclTrJ4EoK9QynqAu9oUf8VEmrpZ5Ww==}
     engines: {node: '>=12'}
     peerDependencies:
-      react: '>=16.8'
-      react-dom: '>=16.8'
+      react: ^18.3.1
+      react-dom: ^18.3.1
 
   '@tanstack/react-virtual@3.13.12':
     resolution: {integrity: sha512-Gd13QdxPSukP8ZrkbgS2RwoZseTTbQPLnQEn7HY/rqtM+8Zt95f7xKC7N0EsKs7aoz0WzZ+fditZux+F8EzYxA==}
     peerDependencies:
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
-      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+      react: ^18.3.1
+      react-dom: ^18.3.1
 
   '@tanstack/table-core@8.21.3':
     resolution: {integrity: sha512-ldZXEhOBb8Is7xLs01fR3YEc3DERiz5silj8tnGkFZytt1abEvl/GhUmCE0PMLaMPTa3Jk4HbKmRlHmu+gCftg==}
@@ -3841,8 +3843,8 @@ packages:
       '@testing-library/dom': ^10.0.0
       '@types/react': ^18.0.0 || ^19.0.0
       '@types/react-dom': ^18.0.0 || ^19.0.0
-      react: ^18.0.0 || ^19.0.0
-      react-dom: ^18.0.0 || ^19.0.0
+      react: ^18.3.1
+      react-dom: ^18.3.1
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -5635,7 +5637,7 @@ packages:
     engines: {node: '>=20'}
     peerDependencies:
       '@types/react': '>=19.0.0'
-      react: '>=19.0.0'
+      react: ^18.3.1
       react-devtools-core: '>=6.1.2'
     peerDependenciesMeta:
       '@types/react':
@@ -6724,7 +6726,7 @@ packages:
   react-intersection-observer@8.34.0:
     resolution: {integrity: sha512-TYKh52Zc0Uptp5/b4N91XydfSGKubEhgZRtcg1rhTKABXijc4Sdr1uTp5lJ8TN27jwUsdXxjHXtHa0kPj704sw==}
     peerDependencies:
-      react: ^15.0.0 || ^16.0.0 || ^17.0.0|| ^18.0.0
+      react: ^18.3.1
 
   react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
@@ -6736,20 +6738,16 @@ packages:
     resolution: {integrity: sha512-KetWRytFv1epdpJc3J4G75I4WrplZE5jOL7Yq0p34+OVOKF4Se7WrdIdVC45XsSSmUTlht2FM/fM1FZb1mfQeA==}
     engines: {node: '>=0.10.0'}
     peerDependencies:
-      react: ^19.2.0
+      react: ^18.3.1
 
   react-transition-group@4.4.5:
     resolution: {integrity: sha512-pZcd1MCJoiKiBR2NRxeCRg13uCXbydPnmB4EOeRrY7480qNWO8IIgQG6zlDkm6uRMsURXPuKq0GWtiM59a5Q6g==}
     peerDependencies:
-      react: '>=16.6.0'
-      react-dom: '>=16.6.0'
+      react: ^18.3.1
+      react-dom: ^18.3.1
 
   react@18.3.1:
     resolution: {integrity: sha512-wS+hAgJShR0KhEvPJArfuPVN1+Hz1t0Y6n5jLrGQbkb4urgPE/0Rve+1kMB1v/oWgHgm4WIcV+i7F2pTVj+2iQ==}
-    engines: {node: '>=0.10.0'}
-
-  react@19.3.0:
-    resolution: {integrity: sha512-E8LUcbtBWt20bbl2YoHfx4ZDBdxVTfOKtCZn9cDSJ4l6/nuoApcpIBcj47t2wZoVX8g2ZHuMHbiShgCR1T5Sog==}
     engines: {node: '>=0.10.0'}
 
   readable-stream@1.0.34:
@@ -7455,10 +7453,6 @@ packages:
   undici@6.29.1:
     resolution: {integrity: sha512-EvRlUt/QqAEvXdQeRMYUfwOQsfzpDztykrG2owGEE/rBOBoYv9uF39ZzsNDh4lTFHhTr2XOZjKkYgueD12ZmGA==}
     engines: {node: '>=18.17'}
-
-  undici@7.30.0:
-    resolution: {integrity: sha512-dkrQXeHSaoamnItlYbmzG0wFYrM0ZwDxCIg0A7aKjTyyhh9svRzCNFEzV+Vm05/yehjCzjDZ31KXfGEjYSztDQ==}
-    engines: {node: '>=20.18.1'}
 
   undici@7.30.1:
     resolution: {integrity: sha512-03KrMbjIFDWQR5RNPrSw3bd1r12JpyFQl9/yxjUbJtqkjmllqC5lFjZh6ujeuJCKr8EOQvRW872Oy/az+nLYxg==}
@@ -9467,9 +9461,9 @@ snapshots:
       - supports-color
       - zod
 
-  '@mcp-ui/server@6.1.0(@cfworker/json-schema@4.1.1)(react-dom@18.3.1(react@19.3.0))(react@19.3.0)(zod@4.6.6)':
+  '@mcp-ui/server@6.1.0(@cfworker/json-schema@4.1.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.6.6)':
     dependencies:
-      '@modelcontextprotocol/ext-apps': 0.3.1(@modelcontextprotocol/sdk@1.32.1(@cfworker/json-schema@4.1.1)(zod@4.6.6))(react-dom@18.3.1(react@19.3.0))(react@19.3.0)(zod@4.6.6)
+      '@modelcontextprotocol/ext-apps': 0.3.1(@modelcontextprotocol/sdk@1.32.1(@cfworker/json-schema@4.1.1)(zod@4.6.6))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.6.6)
       '@modelcontextprotocol/sdk': 1.32.1(@cfworker/json-schema@4.1.1)(zod@4.6.6)
     transitivePeerDependencies:
       - '@cfworker/json-schema'
@@ -9583,7 +9577,7 @@ snapshots:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
-  '@modelcontextprotocol/ext-apps@0.3.1(@modelcontextprotocol/sdk@1.32.1(@cfworker/json-schema@4.1.1)(zod@4.6.6))(react-dom@18.3.1(react@19.3.0))(react@19.3.0)(zod@4.6.6)':
+  '@modelcontextprotocol/ext-apps@0.3.1(@modelcontextprotocol/sdk@1.32.1(@cfworker/json-schema@4.1.1)(zod@4.6.6))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.6.6)':
     dependencies:
       '@modelcontextprotocol/sdk': 1.32.1(@cfworker/json-schema@4.1.1)(zod@4.6.6)
       zod: 4.6.6
@@ -9605,10 +9599,10 @@ snapshots:
       '@rollup/rollup-linux-x64-gnu': 4.60.3
       '@rollup/rollup-win32-arm64-msvc': 4.60.3
       '@rollup/rollup-win32-x64-msvc': 4.60.3
-      react: 19.3.0
-      react-dom: 18.3.1(react@19.3.0)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
 
-  '@modelcontextprotocol/ext-apps@2.0.3(@modelcontextprotocol/client@2.3.1)(@modelcontextprotocol/core@2.3.1)(@modelcontextprotocol/server@2.3.1)(react-dom@18.3.1(react@19.3.0))(react@19.3.0)(zod@4.6.7)':
+  '@modelcontextprotocol/ext-apps@2.0.3(@modelcontextprotocol/client@2.3.1)(@modelcontextprotocol/core@2.3.1)(@modelcontextprotocol/server@2.3.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.6.7)':
     dependencies:
       '@modelcontextprotocol/client': 2.3.1
       '@modelcontextprotocol/core': 2.3.1
@@ -9616,8 +9610,8 @@ snapshots:
       zod: 4.6.7
     optionalDependencies:
       '@modelcontextprotocol/server': 2.3.1
-      react: 19.3.0
-      react-dom: 18.3.1(react@19.3.0)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
 
   '@modelcontextprotocol/ext-tasks@0.2.2(@modelcontextprotocol/client@2.3.1)':
     dependencies:
@@ -9625,12 +9619,12 @@ snapshots:
     optionalDependencies:
       '@modelcontextprotocol/client': 2.3.1
 
-  '@modelcontextprotocol/inspector@2.11.0(@types/node@25.6.0)(@types/react@19.2.14)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@18.3.1(react@19.3.0))(tsx@4.23.12)':
+  '@modelcontextprotocol/inspector@2.11.0(@types/node@25.6.0)(@types/react@19.2.14)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@18.3.1(react@18.3.1))(tsx@4.23.12)':
     dependencies:
       '@hono/node-server': 2.1.5(hono@4.13.13)
       '@modelcontextprotocol/client': 2.3.1
       '@modelcontextprotocol/core': 2.3.1
-      '@modelcontextprotocol/ext-apps': 2.0.3(@modelcontextprotocol/client@2.3.1)(@modelcontextprotocol/core@2.3.1)(@modelcontextprotocol/server@2.3.1)(react-dom@18.3.1(react@19.3.0))(react@19.3.0)(zod@4.6.7)
+      '@modelcontextprotocol/ext-apps': 2.0.3(@modelcontextprotocol/client@2.3.1)(@modelcontextprotocol/core@2.3.1)(@modelcontextprotocol/server@2.3.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.6.7)
       '@modelcontextprotocol/ext-tasks': 0.2.2(@modelcontextprotocol/client@2.3.1)
       '@modelcontextprotocol/server': 2.3.1
       '@napi-rs/keyring': 2.1.1
@@ -9640,11 +9634,11 @@ snapshots:
       chokidar: 4.0.3
       commander: 15.0.0
       hono: 4.13.13
-      ink: 6.8.0(@types/react@19.2.14)(react@19.3.0)
+      ink: 6.8.0(@types/react@19.2.14)(react@18.3.1)
       open: 10.2.0
       pino: 9.14.0
       proper-lockfile: 4.1.2
-      react: 19.3.0
+      react: 18.3.1
       undici: 8.12.1
       vite: 8.3.4(@types/node@25.6.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.1)
       yaml: 2.9.1
@@ -13175,7 +13169,7 @@ snapshots:
   ini@1.3.8:
     optional: true
 
-  ink@6.8.0(@types/react@19.2.14)(react@19.3.0):
+  ink@6.8.0(@types/react@19.2.14)(react@18.3.1):
     dependencies:
       '@alcalzone/ansi-tokenize': 0.2.5
       ansi-escapes: 7.3.0
@@ -13190,8 +13184,8 @@ snapshots:
       indent-string: 5.0.0
       is-in-ci: 2.0.0
       patch-console: 2.0.0
-      react: 19.3.0
-      react-reconciler: 0.33.0(react@19.3.0)
+      react: 18.3.1
+      react-reconciler: 0.33.0(react@18.3.1)
       scheduler: 0.27.0
       signal-exit: 3.0.7
       slice-ansi: 8.0.0
@@ -13445,7 +13439,7 @@ snapshots:
       saxes: 6.0.0
       symbol-tree: 3.2.4
       tough-cookie: 6.0.2
-      undici: 7.30.0
+      undici: 7.30.1
       w3c-xmlserializer: 5.0.0
       webidl-conversions: 8.0.1
       whatwg-mimetype: 5.0.0
@@ -14332,13 +14326,6 @@ snapshots:
       react: 18.3.1
       scheduler: 0.23.2
 
-  react-dom@18.3.1(react@19.3.0):
-    dependencies:
-      loose-envify: 1.4.0
-      react: 19.3.0
-      scheduler: 0.23.2
-    optional: true
-
   react-fast-compare@3.2.2: {}
 
   react-intersection-observer@8.34.0(react@18.3.1):
@@ -14349,9 +14336,9 @@ snapshots:
 
   react-is@17.0.2: {}
 
-  react-reconciler@0.33.0(react@19.3.0):
+  react-reconciler@0.33.0(react@18.3.1):
     dependencies:
-      react: 19.3.0
+      react: 18.3.1
       scheduler: 0.27.0
 
   react-transition-group@4.4.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
@@ -14366,8 +14353,6 @@ snapshots:
   react@18.3.1:
     dependencies:
       loose-envify: 1.4.0
-
-  react@19.3.0: {}
 
   readable-stream@1.0.34:
     dependencies:
@@ -15290,9 +15275,6 @@ snapshots:
   undici-types@7.19.2: {}
 
   undici@6.29.1: {}
-
-  undici@7.30.0:
-    optional: true
 
   undici@7.30.1: {}
 
