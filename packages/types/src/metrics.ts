@@ -69,6 +69,12 @@ export interface IMetrics<TMetricsDefinitions extends DefaultMetricDefinitions =
      * labels of a specific observation. The definitions must declare them.
      */
     readonly labels: Readonly<Record<string, string>>;
+    /**
+     * A sibling sharing this instance's definitions and registry, carrying these labels merged
+     * onto its own: added or overridden, never removed. `PrometheusMetrics` narrows the parameter
+     * to the label names its definitions declare.
+     */
+    withLabels(labels: Readonly<Partial<Record<string, string>>>): IMetrics<TMetricsDefinitions>;
     /** Get a specific metric by name */
     get<K extends keyof TMetricsDefinitions>(key: K): TMetricsDefinitions[K];
     /** Get all metrics as a formatted string (e.g., Prometheus format) */

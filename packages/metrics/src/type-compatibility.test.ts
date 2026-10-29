@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { ICounter, IObservable, IMetrics, DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
-import { PrometheusMetrics, createDefaultMetrics, Counter } from "./index.js";
+import { PrometheusMetrics, createDefaultMetrics, Counter, Histogram } from "./index.js";
 
 /**
  * Type compatibility test for metrics interfaces.
@@ -29,6 +29,24 @@ describe("metrics type compatibility", () => {
         const _observable: IObservable = defaultMetrics.toolExecutionDuration;
         expect(_observable).toBeDefined();
         expect(typeof _observable.observe).toBe("function");
+    });
+
+    it("should be able to scope labels through the abstract interface", () => {
+        const definitions = {
+            ...createDefaultMetrics(),
+            toolExecutionDuration: new Histogram({
+                name: "mcp_tool_execution_duration_seconds",
+                help: "test",
+                labelNames: ["tool_name", "source"] as const,
+                registers: [],
+            }),
+        };
+        const metrics: IMetrics<DefaultMetricDefinitions> = new PrometheusMetrics({ definitions });
+
+        const scoped = metrics.withLabels({ source: "vercel" });
+
+        expect(scoped.labels).toEqual({ source: "vercel" });
+        expect(scoped.get("toolExecutionDuration")).toBe(metrics.get("toolExecutionDuration"));
     });
 
     it("should be able to use metrics through the abstract interface", () => {
