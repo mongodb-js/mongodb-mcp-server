@@ -12,7 +12,7 @@ export class PrometheusMetrics<
     /** The metric instances keyed by logical name, shared by every labeled sibling. */
     public readonly definitions: TMetricsDefinitions;
     /** Labels added to every metric recorded through this instance. */
-    public readonly labels: Readonly<Record<string, string>>;
+    public readonly labels: InstanceLabels<TMetricsDefinitions>;
 
     constructor({
         definitions,

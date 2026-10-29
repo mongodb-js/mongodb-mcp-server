@@ -91,6 +91,9 @@ describe("PrometheusMetrics", () => {
 
             // `tenant` is the only declared label these definitions do not set per observation.
             expect(base.labels).toEqual({ tenant: "acme" });
+            // @ts-expect-error the instance labels are derived from the definitions
+            const undeclared = base.labels.undeclared as string | undefined;
+            expect(undeclared).toBeUndefined();
             // @ts-expect-error `tool_name` is set per observation, so it is not an instance label
             expect(() => base.withLabels({ tool_name: "spoofed" })).toThrow(/reserved/);
         });

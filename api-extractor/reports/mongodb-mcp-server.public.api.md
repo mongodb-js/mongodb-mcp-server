@@ -865,7 +865,7 @@ export class PrometheusMetrics<TMetricsDefinitions extends DefaultMetricDefiniti
     get<K extends keyof TMetricsDefinitions>(key: K): TMetricsDefinitions[K];
     // (undocumented)
     getMetrics(): Promise<string>;
-    readonly labels: Readonly<Record<string, string>>;
+    readonly labels: InstanceLabels<TMetricsDefinitions>;
     // (undocumented)
     readonly registry: Registry;
     withLabels(labels: InstanceLabels<TMetricsDefinitions>): PrometheusMetrics<TMetricsDefinitions>;

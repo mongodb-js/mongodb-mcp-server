@@ -45,6 +45,15 @@ export interface IGauge {
 }
 
 /**
+ * Label names a metric declares at runtime. prom-client exposes them, but not
+ * in its types, so a metric that carries none — or a custom `IMetrics`
+ * implementation — reports an empty set.
+ */
+export function declaredLabelNames(metric: unknown): readonly string[] {
+    return (metric as { labelNames?: readonly string[] }).labelNames ?? [];
+}
+
+/**
  * Default metric definitions for MCP servers.
  * These are the standard metrics used across the MCP packages.
  */
@@ -68,7 +77,7 @@ export interface IMetrics<TMetricsDefinitions extends DefaultMetricDefinitions =
      * Labels applied to every metric this object records, merged under the
      * labels of a specific observation. The definitions must declare them.
      */
-    readonly labels: Readonly<Record<string, string>>;
+    readonly labels: Readonly<Record<string, string | undefined>>;
     /** Get a specific metric by name */
     get<K extends keyof TMetricsDefinitions>(key: K): TMetricsDefinitions[K];
     /** Get all metrics as a formatted string (e.g., Prometheus format) */
