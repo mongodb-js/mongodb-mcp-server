@@ -88,7 +88,7 @@ if (turn.state === "elicitation") {
 | `GROVE_API_KEY`          | Provider key for the grove gateway (required).                        |
 | `AGENT_E2E_MODEL`        | Shared model override (overridden by the per-harness vars).           |
 | `AGENT_E2E_CODEX_MODEL`  | Codex model override (default: host config model, else `gpt-6-luna`). |
-| `AGENT_E2E_CLAUDE_MODEL` | Claude model override (default: `claude-haiku-5-5`).                  |
+| `AGENT_E2E_CLAUDE_MODEL` | Claude model override (default: `claude-haiku-4-5`).                  |
 | `AGENT_E2E_CODEX_BIN`    | Codex binary path (default: `codex`).                                 |
 | `AGENT_E2E_CLAUDE_BIN`   | Claude binary path (default: `claude`).                               |
 | `AGENT_E2E_TUI_BACKEND`  | tui-test backend: `alacritty` (default), `ghostty`, `rio`.            |

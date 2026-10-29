@@ -1,15 +1,15 @@
 The following third-party software is used by and included in **MongoDB MCP Server**.
-This document was automatically generated on Thu Oct 15 2026.
+This document was automatically generated on Wed Oct 28 2026.
 
 ## List of dependencies
 
 Package|Version|License
 -------|-------|-------
-**[@ai-sdk/gateway](#f9e8fd4592a2fc96f2a0cb91fd0fde93bdbbc9be9685ece1b427fac6287dad89)**|3.0.212|Apache-2.0
-**[@ai-sdk/mcp](#e139368329ccbd99d83470d92899fec055f7174bdaae6bf045dba8c4099a411f)**|1.0.93|Apache-2.0
-**[@ai-sdk/openai](#803da4583240e1e426d2220da39a9faa890eb802fccb5d7a59b84bf94577c524)**|3.0.126|Apache-2.0
-**[@ai-sdk/provider-utils](#8694b0856c2b95058bad56172c3a6f6a81200381770f59e117fe2218349b2c3b)**|4.0.57|Apache-2.0
-**[@ai-sdk/provider](#2db01653095d250465ef73de1ba3ec2b7a1603911bb16bbaebdb207c17f10b6d)**|3.0.18|Apache-2.0
+**[@ai-sdk/gateway](#047c83369ce9e6657e8b138abf5857e04eec846c7c5103433fa380222d80e4bb)**|4.0.89|Apache-2.0
+**[@ai-sdk/mcp](#aefb011ea1a37e5d6a4ce714438e71baa9c67f13ef7379093776d7cebb5f812e)**|2.0.55|Apache-2.0
+**[@ai-sdk/openai](#cd4dcbf7ed4786402b0c0aa3e1e1020cff3da0d80dd9390ca99fb14c69ca1159)**|4.0.72|Apache-2.0
+**[@ai-sdk/provider-utils](#48c266294b4c7ff2dbd5b544a4e340c4599206612f72974701e9674a28cd77f7)**|5.0.45|Apache-2.0
+**[@ai-sdk/provider](#187551be475f9e56a5af002169d3c7577f195d8a537831ba4fac277ae5bf24c2)**|4.0.17|Apache-2.0
 **[@asamuzakjp/css-color](#8135dae48a359d6bf14ace3f2abdadc96d302727f35349a4b1919451f76a9756)**|5.1.11|MIT
 **[@asamuzakjp/dom-selector](#99e723b4e2244a5f5b6df0b92c608a81efdc946398d82f8e4530adc6f8697442)**|7.1.1|MIT
 **[@asamuzakjp/generational-cache](#fed6e287d625e08b13864e3eb6514fc696bc7932b33216c34b98a8044c3374c0)**|1.0.1|MIT
@@ -21,7 +21,6 @@ Package|Version|License
 **[@aws-sdk/checksums](#fe26e7edf49d3b208c873583c62291a1c35ffa47f809ef113cd54a832a13f7fa)**|3.1001.3|Apache-2.0
 **[@aws-sdk/client-cognito-identity](#a3b5489b135bafcf9a2659dc2aa444803a20ff6a81eb8ed663a9590fb89ba444)**|3.1003.0|Apache-2.0
 **[@aws-sdk/client-s3](#f3c75320f141fe8b5454de9010da56e7e46407767b270474f7b35baadc8c16e8)**|3.1150.0|Apache-2.0
-**[@aws-sdk/core](#6cfba30acab4140832e4da65fe8d992ab989f52416d8e55106442e5ab2ba7f43)**|3.973.18|Apache-2.0
 **[@aws-sdk/core](#39dd3e1b2350b4fe66dc7f06f97d662034ffe0c6cd90cdfbd1c3e6daa16e7c6e)**|3.978.3|Apache-2.0
 **[@aws-sdk/credential-provider-cognito-identity](#79dc573f5ba5cac9c6beab3f58816deb1321a3cf4dfa7cd9a6267562695e56d5)**|3.972.9|Apache-2.0
 **[@aws-sdk/credential-provider-env](#1c952684e2ac3f54dbd95141637983af7c5ef8c01bfc528eec7860fec0588b6e)**|3.972.16|Apache-2.0
@@ -58,7 +57,6 @@ Package|Version|License
 **[@aws-sdk/util-locate-window](#91f3bf88610ba96fa890a69353f920b6352c634661541fb73874df6d1b881dd5)**|3.965.5|Apache-2.0
 **[@aws-sdk/util-user-agent-browser](#aaad4140e346ff76166c1b98d605beacc6032203f73e9af7578cf5b1acf3b2fc)**|3.972.7|Apache-2.0
 **[@aws-sdk/util-user-agent-node](#e452369a5d8392d9612d876ab089456ba44dcea7c24cf19ea01162921315fe98)**|3.973.3|Apache-2.0
-**[@aws-sdk/xml-builder](#7980386ce74f578f4d3f6dd79e19247ad66dc8bead61a7b3c39881a58d18dcb2)**|3.972.10|Apache-2.0
 **[@aws-sdk/xml-builder](#68b0310a94ab13c749de3c1ce0dd52888a033def43f21ca1f9bd56497a476807)**|3.972.41|Apache-2.0
 **[@aws/lambda-invoke-store](#f0217fef00757a17949bb59dc7aae6a8fbf564432ad8e440e62c82822bbd4eba)**|0.2.3|Apache-2.0
 **[@aws/lambda-invoke-store](#99f22e6b9259cdb551e825b4c521ed7465afd757e399edd9482a817c8d376576)**|0.3.0|Apache-2.0
@@ -166,7 +164,6 @@ Package|Version|License
 **[@smithy/querystring-parser](#0eecff072d5131c6dec5fe3ffa3f04bc45303d6fafe8337ea66da0b81f25b584)**|4.2.11|Apache-2.0
 **[@smithy/service-error-classification](#7f5128deb78da7a8ee17182870d4abf4bab8796849ea3bd1316a3d8305fb0f3d)**|4.2.11|Apache-2.0
 **[@smithy/shared-ini-file-loader](#d9d98fb2178678724ac8b290e3a1517f06f0086d0217a590d9da80026213e4e4)**|4.4.6|Apache-2.0
-**[@smithy/signature-v4](#d648c0f7cd527af9085ee2e7355c7e3d81cfd4b2f4148b265265f16c167418ee)**|5.3.11|Apache-2.0
 **[@smithy/signature-v4](#7069adc153dfa3d3880f289cf607f29339d9a8ac353ef761615472fe4ca81dec)**|5.7.4|Apache-2.0
 **[@smithy/smithy-client](#0e0637597702f6375f8fc0a65ecc39df0117fe2d44f12850e3ca4439f2c80745)**|4.12.3|Apache-2.0
 **[@smithy/types](#32640c6d1cee59a08e72d561e61a3c62c8cefc6333d3e1608e0e8ee855c7306c)**|4.13.0|Apache-2.0
@@ -220,6 +217,7 @@ Package|Version|License
 **[@vitest/snapshot](#f1ff1cd0895c6e9ccfb1e4bb3f50dc29fe34b38cfddf4333c81d58e394601e0c)**|4.1.11|MIT
 **[@vitest/spy](#350cb731ee05fdc9d0b878a62fa2da1c7fd67a22d1e17589228064526b05d501)**|4.1.11|MIT
 **[@vitest/utils](#8cbca9c2c0a666c836f753d097071269e55eee90b3fd04c7f78b2e982e142058)**|4.1.11|MIT
+**[@workflow/serde](#f9424ad8b5171bb9aca2d72f59b994e2eb94341b5805bfc2b168ada73e84d438)**|4.1.0|Apache-2.0
 **[@xhmikosr/decompress-tar](#66ebe429f6838d3f4619e335e50fc0abfe9c32e03b4e6643e57a2d88ba2fc7da)**|9.0.2|MIT
 **[@xhmikosr/decompress-tarbz2](#46f21fc8b7019310484286cc494c28867d0eb0dcecbc86000edccfa418424955)**|9.0.2|MIT
 **[@xhmikosr/decompress-targz](#765cbfb1f3a4a124c8613f76c36bfa4057d66bdd8aa279ffa5b07dd086414772)**|9.0.1|MIT
@@ -230,7 +228,7 @@ Package|Version|License
 **[acorn-import-attributes](#ee442de5fb8b2507d4b8a8aaba46bf37bc8a499c75e28e22f074f6f51ccc971a)**|1.9.5|MIT
 **[acorn](#c7901d4af178944446ba78e3ec42e4009291516798f065b915a97e73cd86eb7f)**|8.18.0|MIT
 **[agent-base](#428ab87654bdb212ef10d3199dc9c630af633c944b1995f64f0b556b3f15612d)**|7.1.4|MIT
-**[ai](#224001302c3bad395acec74ae7a1869a9c8dab2496b03de4cc18f36d1a09a51e)**|6.0.304|Apache-2.0
+**[ai](#1752ecd67a3d298522995d938696d1d89ad50cfd5f34277fef6552529d9bc811)**|7.0.111|Apache-2.0
 **[ajv-formats](#3081140538322aaf684c239fd5c532b47691d82b42e6cc4a5e60df5eaaab538a)**|3.0.1|MIT
 **[ajv](#9c728cf87aba8556fa4bad7cee40316e8e2393a5caa8e21ea76d5ad2e870594d)**|8.20.0|MIT
 **[ansi-regex](#7fa0e28daa6f9c697017b06f32a9e31a57ccfb4f138a8daded68a5d002231e29)**|5.0.1|MIT
@@ -383,8 +381,6 @@ Package|Version|License
 **[fast-string-width](#36dc062e688bc5c607abb9b31b565e5aaaa2c7c7163c141851b91fc763dfe9c0)**|3.0.2|MIT
 **[fast-uri](#3c53381d9fa38c390aba117e7fd4a41d42f54ac5af7fa361bc3493a96c260305)**|3.1.8|BSD-3-Clause
 **[fast-wrap-ansi](#10b1f6bb563d6119b5c272f0f6486c343383ef1c7b58aaa49c937e7a7b8fdaba)**|0.2.0|MIT
-**[fast-xml-builder](#398504df69b728f02b2a05aef6295a8900910a8944d5752730569930d117ee6a)**|1.3.1|MIT
-**[fast-xml-parser](#d5b3f2086cdaaf493f979b61856ccb64b10e9cc1662a8061a3981f2f4790e070)**|5.4.1|MIT
 **[fdir](#0e7b031c61139b98da0e86d1322814eebabeb8b9d2982923d45a1267a24d093e)**|6.5.0|MIT
 **[fetch-blob](#9a40c73e2482c1cc651991133722a6fedd12dc752d2858a21da24395e6fc8461)**|3.2.0|MIT
 **[file-type](#defade41b43da025c9eb385c9f91891e2b4ee311b069936c12724b73e39bd6d9)**|21.3.4|MIT
@@ -565,7 +561,6 @@ Package|Version|License
 **[package-json-from-dist](#45184b2933ad20ea8c0ff532dd25b22384855a3ff2a9bf83a45ecd8696f1e0f5)**|1.0.1|BlueOak-1.0.0
 **[parse5](#e18dc8ba2437a39cb227439d0aeee3e7459c775ce9350d6e0fb818ac9c5cd543)**|8.0.1|MIT
 **[parseurl](#c3fdd1b6fb725cb30e8fed82cf929953b46129d347d8404a4a51b633389fbae8)**|1.3.3|MIT
-**[path-expression-matcher](#be3871a10cfeb99eb9d97120c66b03b499379a0c01c2877c9f75a1e793b5861b)**|1.6.2|MIT
 **[path-key](#e1a2a032096ace66b422351e00b11b0229e42e4b49c2146f439f8fe442218451)**|3.1.1|MIT
 **[path-scurry](#60e55f26f68d8b7ffa53946bf561724136d60efc618cebcbb3cade905aff759b)**|1.11.1|BlueOak-1.0.0
 **[path-to-regexp](#815c8b96310baa514797933e7743b0bdd46815906d71d246af97fbf96bb1d572)**|8.4.2|MIT
@@ -673,7 +668,6 @@ Package|Version|License
 **[strip-ansi](#c04be5885def178aaa83cb8dc066589cf02e899a8a12c6b94d90c69f23516478)**|7.2.0|MIT
 **[strip-dirs](#df2e7d1bcce74971dbe99219156694dd8278ba2fc4c78b792cbae3b0186627e8)**|3.0.0|ISC
 **[strip-json-comments](#30c033ea06e2fc5831069ae3348fedc44cf44d65ec1ca8e7a0afd01789f5bb05)**|2.0.1|MIT
-**[strnum](#8106759d0f300ac77ca14f32b6abb8888badb5111f6738cbafa912225a7e064e)**|2.2.3|MIT
 **[strtok3](#5a897388ffa9a74e4fc46e3d8ebf9e3995035135d785c15ac62f22f29e9dc9fd)**|10.4.1|MIT
 **[supports-color](#21a5f319b81ce9138bc9ffa317b6538bbb480265afa24c53b64570ad12086378)**|10.2.2|MIT
 **[supports-color](#b97a30572cac0a03b8cf442bc01621a041d5714550984f25cb71fac2587edbd6)**|7.2.0|MIT
@@ -722,9 +716,8 @@ Package|Version|License
 **[unbzip2-stream](#8624e2dceaa1f8ccf8652c8c7f13ca7a609584520166d44758fdf0d1d96d17db)**|1.4.3|MIT
 **[undici-types](#bd50bc60a9b5c2ca9c8085450b1ba8acf312e451bccdca5d2399e268338d9a63)**|5.26.5|MIT
 **[undici-types](#b0d2c11cf977876b41bc2854498debbc94808c37e6b3c3eb5d00c3b84f2e17ed)**|7.19.2|MIT
-**[undici](#62254fe82cbddfe93d67b756e07fa8dc8c144f6d7de5fe0576d1e201d461347e)**|6.29.0|MIT
-**[undici](#ca15f790cc031f5d8adc10d49681b1ac3e69a3ec25890f5642853cb4bb169965)**|7.30.0|MIT
-**[undici](#28d1b4358ceaeea87ff2d835f2225b8304d0956a6a4c1b533781dc4f17a9049c)**|8.11.2|MIT
+**[undici](#64523895703301074550177aa8fe4740db2cdaaa67aec624028852ad285b676d)**|7.30.1|MIT
+**[undici](#f04755c84e18977a59ecfacb0d592cee9c9ecf5b2275d0f09b23f175c0780c1c)**|8.12.3|MIT
 **[unpipe](#3a555405bd00c7e7e52b07a5600248bdaa683db613d7c286e425511cee8ed14a)**|1.0.0|MIT
 **[unplugin](#c3ae9c0ff2de2ae7f7f568e3f8266119a5088cd96b8cff02db75345c3a10ab66)**|2.3.11|MIT
 **[util-deprecate](#a1bd80d6a50b36e34032c402c5204d6276747d8212b68b164a9e3f895b90c2d6)**|1.0.2|MIT
@@ -756,7 +749,6 @@ Package|Version|License
 **[ws](#d250ffc75a805ad5e5d7e50955ea16766b67b14eb081d4f82756fee8cf0bc2ee)**|8.21.3|MIT
 **[wsl-utils](#3c6cb23f48b28398188bbe0a6b73ab9fa96d0ba5322f8f68b056cfc22a3f1f7a)**|0.1.0|MIT
 **[xml-name-validator](#541078ab5ff15f1c4aa95bd8edddf29ab671cd89bc0d15378c76310e0443781a)**|5.0.0|Apache-2.0
-**[xml-naming](#0447a2a1fcf2973c0aae838d6e7b2c16f105b77c39cdfe8a4add8a14b310597f)**|0.3.0|MIT
 **[xmlchars](#214e9e8e22cdb064b0a1ab0de8fd0a1a61b615e6f0c94f1e39a9c7bc02019cb4)**|2.2.0|MIT
 **[y18n](#1dd471a41f77455fc624d6d6ba14ef1b741362d6c36295d66fa1474d3fc2e27d)**|5.0.8|ISC
 **[yallist](#4a8b5707001b2845384e2d4c2f14242ec0753d95d7c347a294bace7a9784891d)**|5.0.0|BlueOak-1.0.0
@@ -773,28 +765,28 @@ Package|Version|License
 
 ## Package details
 
-<a id="f9e8fd4592a2fc96f2a0cb91fd0fde93bdbbc9be9685ece1b427fac6287dad89"></a>
-### [@ai-sdk/gateway](https://www.npmjs.com/package/@ai-sdk/gateway) (version 3.0.212)
+<a id="047c83369ce9e6657e8b138abf5857e04eec846c7c5103433fa380222d80e4bb"></a>
+### [@ai-sdk/gateway](https://www.npmjs.com/package/@ai-sdk/gateway) (version 4.0.89)
 License tags: Apache-2.0
 
 
-<a id="e139368329ccbd99d83470d92899fec055f7174bdaae6bf045dba8c4099a411f"></a>
-### [@ai-sdk/mcp](https://www.npmjs.com/package/@ai-sdk/mcp) (version 1.0.93)
+<a id="aefb011ea1a37e5d6a4ce714438e71baa9c67f13ef7379093776d7cebb5f812e"></a>
+### [@ai-sdk/mcp](https://www.npmjs.com/package/@ai-sdk/mcp) (version 2.0.55)
 License tags: Apache-2.0
 
 
-<a id="803da4583240e1e426d2220da39a9faa890eb802fccb5d7a59b84bf94577c524"></a>
-### [@ai-sdk/openai](https://www.npmjs.com/package/@ai-sdk/openai) (version 3.0.126)
+<a id="cd4dcbf7ed4786402b0c0aa3e1e1020cff3da0d80dd9390ca99fb14c69ca1159"></a>
+### [@ai-sdk/openai](https://www.npmjs.com/package/@ai-sdk/openai) (version 4.0.72)
 License tags: Apache-2.0
 
 
-<a id="8694b0856c2b95058bad56172c3a6f6a81200381770f59e117fe2218349b2c3b"></a>
-### [@ai-sdk/provider-utils](https://www.npmjs.com/package/@ai-sdk/provider-utils) (version 4.0.57)
+<a id="48c266294b4c7ff2dbd5b544a4e340c4599206612f72974701e9674a28cd77f7"></a>
+### [@ai-sdk/provider-utils](https://www.npmjs.com/package/@ai-sdk/provider-utils) (version 5.0.45)
 License tags: Apache-2.0
 
 
-<a id="2db01653095d250465ef73de1ba3ec2b7a1603911bb16bbaebdb207c17f10b6d"></a>
-### [@ai-sdk/provider](https://www.npmjs.com/package/@ai-sdk/provider) (version 3.0.18)
+<a id="187551be475f9e56a5af002169d3c7577f195d8a537831ba4fac277ae5bf24c2"></a>
+### [@ai-sdk/provider](https://www.npmjs.com/package/@ai-sdk/provider) (version 4.0.17)
 License tags: Apache-2.0
 
 
@@ -850,11 +842,6 @@ License tags: Apache-2.0
 
 <a id="f3c75320f141fe8b5454de9010da56e7e46407767b270474f7b35baadc8c16e8"></a>
 ### [@aws-sdk/client-s3](https://www.npmjs.com/package/@aws-sdk/client-s3) (version 3.1150.0)
-License tags: Apache-2.0
-
-
-<a id="6cfba30acab4140832e4da65fe8d992ab989f52416d8e55106442e5ab2ba7f43"></a>
-### [@aws-sdk/core](https://www.npmjs.com/package/@aws-sdk/core) (version 3.973.18)
 License tags: Apache-2.0
 
 
@@ -1035,11 +1022,6 @@ License tags: Apache-2.0
 
 <a id="e452369a5d8392d9612d876ab089456ba44dcea7c24cf19ea01162921315fe98"></a>
 ### [@aws-sdk/util-user-agent-node](https://www.npmjs.com/package/@aws-sdk/util-user-agent-node) (version 3.973.3)
-License tags: Apache-2.0
-
-
-<a id="7980386ce74f578f4d3f6dd79e19247ad66dc8bead61a7b3c39881a58d18dcb2"></a>
-### [@aws-sdk/xml-builder](https://www.npmjs.com/package/@aws-sdk/xml-builder) (version 3.972.10)
 License tags: Apache-2.0
 
 
@@ -1578,11 +1560,6 @@ License tags: Apache-2.0
 License tags: Apache-2.0
 
 
-<a id="d648c0f7cd527af9085ee2e7355c7e3d81cfd4b2f4148b265265f16c167418ee"></a>
-### [@smithy/signature-v4](https://www.npmjs.com/package/@smithy/signature-v4) (version 5.3.11)
-License tags: Apache-2.0
-
-
 <a id="7069adc153dfa3d3880f289cf607f29339d9a8ac353ef761615472fe4ca81dec"></a>
 ### [@smithy/signature-v4](https://www.npmjs.com/package/@smithy/signature-v4) (version 5.7.4)
 License tags: Apache-2.0
@@ -1900,6 +1877,11 @@ License tags: MIT
 License tags: MIT
 
 
+<a id="f9424ad8b5171bb9aca2d72f59b994e2eb94341b5805bfc2b168ada73e84d438"></a>
+### [@workflow/serde](https://www.npmjs.com/package/@workflow/serde) (version 4.1.0)
+License tags: Apache-2.0
+
+
 <a id="66ebe429f6838d3f4619e335e50fc0abfe9c32e03b4e6643e57a2d88ba2fc7da"></a>
 ### [@xhmikosr/decompress-tar](https://www.npmjs.com/package/@xhmikosr/decompress-tar) (version 9.0.2)
 License tags: MIT
@@ -1950,8 +1932,8 @@ License tags: MIT
 License tags: MIT
 
 
-<a id="224001302c3bad395acec74ae7a1869a9c8dab2496b03de4cc18f36d1a09a51e"></a>
-### [ai](https://www.npmjs.com/package/ai) (version 6.0.304)
+<a id="1752ecd67a3d298522995d938696d1d89ad50cfd5f34277fef6552529d9bc811"></a>
+### [ai](https://www.npmjs.com/package/ai) (version 7.0.111)
 License tags: Apache-2.0
 
 License files:
@@ -2729,16 +2711,6 @@ License tags: BSD-3-Clause
 
 <a id="10b1f6bb563d6119b5c272f0f6486c343383ef1c7b58aaa49c937e7a7b8fdaba"></a>
 ### [fast-wrap-ansi](https://www.npmjs.com/package/fast-wrap-ansi) (version 0.2.0)
-License tags: MIT
-
-
-<a id="398504df69b728f02b2a05aef6295a8900910a8944d5752730569930d117ee6a"></a>
-### [fast-xml-builder](https://www.npmjs.com/package/fast-xml-builder) (version 1.3.1)
-License tags: MIT
-
-
-<a id="d5b3f2086cdaaf493f979b61856ccb64b10e9cc1662a8061a3981f2f4790e070"></a>
-### [fast-xml-parser](https://www.npmjs.com/package/fast-xml-parser) (version 5.4.1)
 License tags: MIT
 
 
@@ -3642,11 +3614,6 @@ License tags: MIT
 License tags: MIT
 
 
-<a id="be3871a10cfeb99eb9d97120c66b03b499379a0c01c2877c9f75a1e793b5861b"></a>
-### [path-expression-matcher](https://www.npmjs.com/package/path-expression-matcher) (version 1.6.2)
-License tags: MIT
-
-
 <a id="e1a2a032096ace66b422351e00b11b0229e42e4b49c2146f439f8fe442218451"></a>
 ### [path-key](https://www.npmjs.com/package/path-key) (version 3.1.1)
 License tags: MIT
@@ -4202,11 +4169,6 @@ License tags: ISC
 License tags: MIT
 
 
-<a id="8106759d0f300ac77ca14f32b6abb8888badb5111f6738cbafa912225a7e064e"></a>
-### [strnum](https://www.npmjs.com/package/strnum) (version 2.2.3)
-License tags: MIT
-
-
 <a id="5a897388ffa9a74e4fc46e3d8ebf9e3995035135d785c15ac62f22f29e9dc9fd"></a>
 ### [strtok3](https://www.npmjs.com/package/strtok3) (version 10.4.1)
 License tags: MIT
@@ -4472,18 +4434,13 @@ License tags: MIT
 License tags: MIT
 
 
-<a id="62254fe82cbddfe93d67b756e07fa8dc8c144f6d7de5fe0576d1e201d461347e"></a>
-### [undici](https://www.npmjs.com/package/undici) (version 6.29.0)
+<a id="64523895703301074550177aa8fe4740db2cdaaa67aec624028852ad285b676d"></a>
+### [undici](https://www.npmjs.com/package/undici) (version 7.30.1)
 License tags: MIT
 
 
-<a id="ca15f790cc031f5d8adc10d49681b1ac3e69a3ec25890f5642853cb4bb169965"></a>
-### [undici](https://www.npmjs.com/package/undici) (version 7.30.0)
-License tags: MIT
-
-
-<a id="28d1b4358ceaeea87ff2d835f2225b8304d0956a6a4c1b533781dc4f17a9049c"></a>
-### [undici](https://www.npmjs.com/package/undici) (version 8.11.2)
+<a id="f04755c84e18977a59ecfacb0d592cee9c9ecf5b2275d0f09b23f175c0780c1c"></a>
+### [undici](https://www.npmjs.com/package/undici) (version 8.12.3)
 License tags: MIT
 
 
@@ -6910,11 +6867,6 @@ License tags: MIT
 <a id="541078ab5ff15f1c4aa95bd8edddf29ab671cd89bc0d15378c76310e0443781a"></a>
 ### [xml-name-validator](https://www.npmjs.com/package/xml-name-validator) (version 5.0.0)
 License tags: Apache-2.0
-
-
-<a id="0447a2a1fcf2973c0aae838d6e7b2c16f105b77c39cdfe8a4add8a14b310597f"></a>
-### [xml-naming](https://www.npmjs.com/package/xml-naming) (version 0.3.0)
-License tags: MIT
 
 
 <a id="214e9e8e22cdb064b0a1ab0de8fd0a1a61b615e6f0c94f1e39a9c7bc02019cb4"></a>

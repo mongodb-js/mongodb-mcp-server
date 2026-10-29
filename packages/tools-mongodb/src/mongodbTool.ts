@@ -35,12 +35,13 @@ export type IMongoDBConfig = IToolConfig & {
     connectionString: string | undefined;
     indexCheck: boolean;
     disableServerSideJs: boolean;
-    maxTimeMS: number | undefined;
+    /** @deprecated The connection-level `timeoutMs` config replaces this. Kept so directly-constructed configs still type-check. */
+    maxTimeMS?: number;
     maxDocumentsPerQuery: number;
     maxBytesPerQuery: number;
     httpHost: string;
-    queryCountMaxTimeMsCap: number;
-    aggregationCountMaxTimeMsCap: number;
+    queryCountTimeoutMs: number;
+    aggregationCountTimeoutMs: number;
 };
 
 /**
@@ -127,15 +128,32 @@ export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
     }
 
     /**
-     * Returns common operation options (signal, maxTimeMS) to pass to service provider methods.
-     * If `maxTimeMS` is configured in the request's effective config, it will be included
-     * in the returned options.
+     * Returns common operation options (signal) to pass to service provider methods.
+     *
+     * Timeouts are enforced through the connection's client-level driver
+     * `timeoutMS` (see `timeoutMs` config), not as per-operation `maxTimeMS`:
+     * the driver silently derives the server-side `maxTimeMS` from the
+     * remaining client timeout, and rejects the pair outright for explain.
      */
-    protected getOperationOptions(request: ToolRequest<IMongoDBConfig>): { signal?: AbortSignal; maxTimeMS?: number } {
+    protected getOperationOptions(request: ToolRequest<IMongoDBConfig>): { signal?: AbortSignal } {
         return {
             ...(request.signal && { signal: request.signal }),
-            ...(this.server.config.maxTimeMS !== undefined && { maxTimeMS: this.server.config.maxTimeMS }),
         };
+    }
+
+    /**
+     * Options bounding the internal count phase of find and aggregate. The
+     * count runs alongside the main operation, so it gets its own client
+     * timeout: the smaller of the connection's `timeoutMS` and the configured
+     * count cap. A server-side `maxTimeMS` alone would be overridden by the
+     * connection-level CSOT budget. An unset or `0` connection timeout disables
+     * CSOT, in which case the cap is used as-is.
+     */
+    protected getCountPhaseTimeoutOptions(provider: NodeDriverServiceProvider, cap: number): { timeoutMS: number } {
+        const connectionTimeoutMs = provider.mongoClient.timeoutMS;
+        const timeoutMS =
+            connectionTimeoutMs !== undefined && connectionTimeoutMs > 0 ? Math.min(connectionTimeoutMs, cap) : cap;
+        return { timeoutMS };
     }
 
     /**

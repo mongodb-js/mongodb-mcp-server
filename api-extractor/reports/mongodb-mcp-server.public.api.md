@@ -655,6 +655,11 @@ export function getConfigMeta(key: keyof typeof UserConfigSchema.shape): ConfigF
 
 export { Histogram }
 
+// @public
+export type InstanceLabels<TMetricsDefinitions extends DefaultMetricDefinitions> = [
+DeclaredLabelNames<TMetricsDefinitions[keyof TMetricsDefinitions]>
+] extends [never] ? Record<string, never> : Readonly<Partial<Record<DeclaredLabelNames<TMetricsDefinitions[keyof TMetricsDefinitions]>, string>>>;
+
 // @public (undocumented)
 export interface ITransportRunner {
     // (undocumented)
@@ -855,18 +860,22 @@ export function parseUserConfig(input: {
 // @public (undocumented)
 export class PrometheusMetrics<TMetricsDefinitions extends DefaultMetricDefinitions> implements IMetrics<TMetricsDefinitions> {
     constructor(input: PrometheusMetricsOptions<TMetricsDefinitions>);
+    readonly definitions: TMetricsDefinitions;
     // (undocumented)
     get<K extends keyof TMetricsDefinitions>(key: K): TMetricsDefinitions[K];
     // (undocumented)
     getMetrics(): Promise<string>;
+    readonly labels: Readonly<Record<string, string>>;
     // (undocumented)
     readonly registry: Registry;
+    withLabels(labels: InstanceLabels<TMetricsDefinitions>): PrometheusMetrics<TMetricsDefinitions>;
 }
 
 // @public
 export interface PrometheusMetricsOptions<TMetricsDefinitions extends DefaultMetricDefinitions> {
     collectProcessMetrics?: boolean;
     definitions: TMetricsDefinitions;
+    labels?: InstanceLabels<TMetricsDefinitions>;
     registry?: Registry;
 }
 
@@ -1124,9 +1133,12 @@ export const UserConfigSchema: z.ZodObject<{
     externallyManagedSessions: z.ZodDefault<z.ZodBoolean>;
     maxBytesPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxDocumentsPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    timeoutMs: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
     maxTimeMS: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
-    queryCountMaxTimeMsCap: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
-    aggregationCountMaxTimeMsCap: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    queryCountTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    queryCountMaxTimeMsCap: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
+    aggregationCountTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    aggregationCountMaxTimeMsCap: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
     exportsPath: z.ZodDefault<z.ZodString>;
     exportTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     exportCleanupIntervalMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;

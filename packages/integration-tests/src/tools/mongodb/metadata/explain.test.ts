@@ -1,5 +1,6 @@
 import {
     databaseCollectionParameters,
+    defaultTestConfig,
     validateToolMetadata,
     validateThrowsForInvalidArguments,
     getResponseElements,
@@ -365,5 +366,60 @@ describeWithMongoDB({
                 );
             });
         }
+    },
+});
+describeWithMongoDB({
+    name: "explain tool with configured timeoutMs",
+    fn: (integration) => {
+        beforeEach(async () => {
+            await integration
+                .mongoClient()
+                .db(integration.randomDbName())
+                .collection("people")
+                .insertMany([
+                    { name: "Peter", age: 5 },
+                    { name: "Laura", age: 10 },
+                ]);
+        });
+
+        const testCases = [
+            { method: "aggregate", arguments: { pipeline: [{ $match: { name: "Peter" } }] } },
+            { method: "find", arguments: { filter: { name: "Peter" } } },
+        ];
+
+        for (const testCase of testCases) {
+            it(`should explain ${testCase.method} when the connection has a client-level timeoutMS`, async () => {
+                // Mirrors the MMS X.509 path, which supplies driverOptions explicitly.
+                const entry = await integration.mcpServer().connectionRegistry.connect({
+                    settings: {
+                        connectionString: integration.connectionString(),
+                        driverOptions: { timeoutMS: 30_000 },
+                    },
+                });
+
+                const response = await integration.mcpClient().callTool({
+                    name: "explain",
+                    arguments: {
+                        connectionId: entry.connectionId,
+                        database: integration.randomDbName(),
+                        collection: "people",
+                        method: [
+                            {
+                                name: testCase.method,
+                                arguments: testCase.arguments,
+                            },
+                        ],
+                    },
+                });
+
+                expect(response.isError).toBeFalsy();
+                const structuredContent = response.structuredContent as ExplainOutput;
+                expect(structuredContent.method).toBe(testCase.method);
+                expect(structuredContent.explainResult).toHaveProperty("queryPlanner");
+            });
+        }
+    },
+    config: {
+        getUserConfig: () => ({ ...defaultTestConfig, timeoutMs: 10000 }),
     },
 });
