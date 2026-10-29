@@ -30,6 +30,7 @@ import { createUIResource, type UIResource } from "@mcp-ui/server";
 import { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
 import { getRandomUUID } from "@mongodb-js/mcp-core";
 import { requestIdAttr } from "./helpers/requestIdAttr.js";
+import { withPortableJsonSchema } from "./helpers/portableJsonSchema.js";
 import { clientTelemetryProperties, protocolTelemetryProperties } from "./helpers/clientTelemetry.js";
 import { ConfirmationDeclinedError } from "./errors.js";
 
@@ -812,12 +813,13 @@ export abstract class ToolBase<
         return true;
     }
 
-    // Caches so that we always pass the same instances to the MCP SDK
+    // Caches so that we always pass the same instances to the MCP SDK. The JSON Schema advertised in
+    // `tools/list` uses portable spellings (see `toPortableJsonSchema`).
     private static inputSchemaCache = new WeakMap<ZodRawShape, z.ZodObject<ZodRawShape>>();
     private static outputSchemaCache = new WeakMap<ZodRawShape, z.ZodObject<ZodRawShape>>();
     private static cachedInputSchema(inputShape: ZodRawShape): z.ZodObject<ZodRawShape> {
         if (!this.inputSchemaCache.has(inputShape)) {
-            this.inputSchemaCache.set(inputShape, z.object(inputShape).strict());
+            this.inputSchemaCache.set(inputShape, withPortableJsonSchema(z.object(inputShape).strict()));
         }
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         return this.inputSchemaCache.get(inputShape)!;
@@ -828,7 +830,7 @@ export abstract class ToolBase<
             return undefined;
         }
         if (!this.outputSchemaCache.has(outputShape)) {
-            this.outputSchemaCache.set(outputShape, z.object(outputShape).strict());
+            this.outputSchemaCache.set(outputShape, withPortableJsonSchema(z.object(outputShape).strict()));
         }
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         return this.outputSchemaCache.get(outputShape)!;

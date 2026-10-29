@@ -143,7 +143,7 @@ const atlasSearchIndexDefinition = z
                     .record(
                         z.string().describe("The field name"),
                         z
-                            .unknown()
+                            .union([z.object({}).passthrough(), z.array(z.object({}).passthrough())])
                             .describe(
                                 "The field index definition. It must contain the field type (e.g. `{ type: 'string' }`), as well as any additional options for that field type (e.g. `analyzer`). Field types include `autocomplete`, `boolean`, `date`, `dateFacet`, `document`, `embeddedDocuments`, `geo`, `number`, `numberFacet`, `objectId`, `string`, `stringFacet`, `token`, `uuid`. Provide an array of field definitions instead of a single object to index the same field as multiple types, e.g. `[{ type: 'string' }, { type: 'autocomplete' }]`."
                             )
