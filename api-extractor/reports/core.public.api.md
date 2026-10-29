@@ -41,7 +41,7 @@ import type { PreviewFeature } from '@mongodb-js/mcp-types';
 import type { ReactiveResourceOptions } from '@mongodb-js/mcp-types';
 import type { ResourceConfiguration } from '@mongodb-js/mcp-types';
 import type { ResourceMetadata } from '@modelcontextprotocol/server';
-import { Secret } from 'mongodb-redact';
+import { Secret } from '@mongodb-js/mongodb-redact';
 import { ServerContext } from '@modelcontextprotocol/server';
 import type { SessionCloseReason } from '@mongodb-js/mcp-types';
 import type { SessionStoreConstructorArgs } from '@mongodb-js/mcp-types';
