@@ -70,9 +70,8 @@ export interface IMetrics<TMetricsDefinitions extends DefaultMetricDefinitions =
      */
     readonly labels: Readonly<Record<string, string>>;
     /**
-     * A sibling sharing this instance's definitions and registry, carrying these labels merged
-     * onto its own: added or overridden, never removed. `PrometheusMetrics` narrows the parameter
-     * to the label names its definitions declare.
+     * A labelled sibling: these labels merge onto this instance's own, added or overridden, never
+     * removed. `PrometheusMetrics` narrows the parameter to the label names its definitions declare.
      */
     withLabels(labels: Readonly<Partial<Record<string, string>>>): IMetrics<TMetricsDefinitions>;
     /** Get a specific metric by name */
