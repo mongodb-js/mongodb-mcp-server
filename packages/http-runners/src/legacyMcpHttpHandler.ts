@@ -1,5 +1,6 @@
 import { isInitializeRequest, type ClientCapabilities, type Implementation } from "@modelcontextprotocol/server";
 import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
+import type { SessionTransport } from "./sessionTransport.js";
 import type express from "express";
 import type {
     ILogger,
@@ -65,7 +66,7 @@ export type LegacyMcpHttpHandlerOptions = {
     logger: ILogger;
     http: HttpServerOptions;
     /** Session store backing the legacy sessionful path (auth-aware or durable). */
-    sessionStore: ISessionStore<NodeStreamableHTTPServerTransport>;
+    sessionStore: ISessionStore<SessionTransport>;
     /**
      * When true, accept a client-supplied `mcp-session-id` on `initialize` and
      * restore negotiated client state for implicitly re-initialized sessions.

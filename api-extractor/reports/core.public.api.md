@@ -340,6 +340,7 @@ export class NoopMetrics implements IMetrics<DefaultMetricDefinitions> {
     getMetrics(): Promise<string>;
     // (undocumented)
     readonly labels: Readonly<Record<string, string>>;
+    withLabels(): NoopMetrics;
 }
 
 // @public (undocumented)
