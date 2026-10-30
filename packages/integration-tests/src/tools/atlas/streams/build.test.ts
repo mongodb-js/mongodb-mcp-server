@@ -170,6 +170,7 @@ describeWithStreams("atlas-streams-build", (integration) => {
         // - AWSKinesisDataStreams connection creation (requires AWS IAM role ARN)
         // - AWSLambda connection creation (requires AWS IAM role ARN)
         // - GCPPubSub connection creation (requires GCP service account via Cloud Provider Access)
+        // - AzureBlobStorage connection creation (requires Azure service principal via Cloud Provider Access)
         // - PrivateLink creation (requires provider-specific infrastructure)
     });
 });
