@@ -201,6 +201,10 @@ export class MCPConnectionStore {
                 );
             }
             if (entry.source === "preconfigured") {
+                // A startup dial may still be in flight; wait for it first,
+                // otherwise this close is a no-op (the manager is still
+                // disconnected) and the dial's connection survives it.
+                await this.preconfiguredDial?.catch(() => undefined);
                 await entry.close();
                 return;
             }
@@ -249,11 +253,13 @@ export class MCPConnectionStore {
                     );
                 }
 
-                if (
-                    entry.source === "preconfigured" &&
-                    (entry.state.tag === "disconnected" || entry.state.tag === "errored")
-                ) {
-                    await this.dialPreconfigured(entry);
+                if (entry.source === "preconfigured") {
+                    if (entry.state.tag === "disconnected" || entry.state.tag === "errored") {
+                        await this.dialPreconfigured(entry);
+                    }
+                    // Preconfigured waits for OIDC auth so the first tool call
+                    // succeeds; explicit connections fail fast (caller can retry).
+                    return entry.getServiceProviderWhenReady();
                 }
 
                 return entry.getServiceProvider();
@@ -271,6 +277,25 @@ export class MCPConnectionStore {
                 await Promise.allSettled(reachable.map((stored) => disconnect(stored.entry.connectionId)));
             },
         };
+    }
+
+    /**
+     * Dials the preconfigured connection ahead of the first tool call so
+     * interactive auth flows get a head start. No-op without a configured
+     * connection string or when already dialing; failures are logged, not
+     * thrown, so startup is never blocked (the lazy path retries).
+     */
+    async connectPreconfigured(): Promise<void> {
+        const entry = this.entries.get(PRECONFIGURED_CONNECTION_ID)?.entry;
+        if (!entry || entry.state.tag === "connected" || entry.state.tag === "connecting") {
+            return;
+        }
+
+        try {
+            await this.dialPreconfigured(entry);
+        } catch {
+            // dialPreconfigured already logged the failure; a later resolve retries.
+        }
     }
 
     /** Closes and removes every entry, including the preconfigured one. For process/runner shutdown. */
@@ -377,6 +402,12 @@ export class MCPConnectionStore {
                 connectionSpecifier: this.options.connectionString,
             });
             await entry.connect(connectionInfo);
+            // The store may have been closed while the dial was in flight, in
+            // which case the entry is no longer reachable — close the provider
+            // we just created instead of leaking it.
+            if (this.entries.get(PRECONFIGURED_CONNECTION_ID)?.entry !== entry) {
+                await entry.close().catch(() => undefined);
+            }
         })().finally(() => {
             this.preconfiguredDial = undefined;
         });
