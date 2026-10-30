@@ -138,31 +138,7 @@ describeWithStreams("atlas-streams-build", (integration) => {
             // fail). This requires a real, reachable Confluent Schema Registry to succeed, so it
             // can't run against the test environment. The connection-creation logic is covered by
             // unit tests in packages/tools-atlas/src/tools/streams/build.test.ts.
-            it.skip("creates a SchemaRegistry connection with dummy creds", async () => {
-                const response = await integration.mcpClient().callTool({
-                    name: "atlas-streams-build",
-                    arguments: {
-                        projectId: getProjectId(),
-                        resource: "connection",
-                        workspaceName: getWorkspaceName(),
-                        connectionName: srConnName,
-                        connectionType: "SchemaRegistry",
-                        connectionConfig: {
-                            schemaRegistryUrls: ["https://httpbin.org/"],
-                            provider: "CONFLUENT",
-                            schemaRegistryAuthentication: {
-                                type: "USER_INFO",
-                                username: "dummy-user",
-                                password: "dummy-pass",
-                            },
-                        },
-                    },
-                });
-                const content = getResponseContent(response.content);
-                expect(response.isError, `Unexpected error: ${content}`).toBeFalsy();
-                expect(content).toContain(srConnName);
-                expect(content).toContain("SchemaRegistry");
-            });
+            it.todo("creates a SchemaRegistry connection with dummy creds");
         });
 
         // TODO: Add integration tests requiring external infrastructure:

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { formatCluster, formatFlexCluster, inspectCluster } from "./cluster.js";
+import { formatCluster, formatFlexCluster, getInfiniteMaxAutoScalingSize, inspectCluster } from "./cluster.js";
 import type {
     ApiClient,
     ClusterDescription20240805,
@@ -47,6 +47,53 @@ describe("formatCluster", () => {
         void _id;
 
         expect(formatCluster(withoutId).clusterId).toBeUndefined();
+    });
+
+    it("reports databaseEdition INFINITE from effectiveDatabaseEdition", () => {
+        const infiniteCluster = {
+            ...dedicatedClusterDescription,
+            effectiveDatabaseEdition: "INFINITE",
+        } as ClusterDescription20240805;
+
+        expect(formatCluster(infiniteCluster).databaseEdition).toBe("INFINITE");
+    });
+
+    it("reports databaseEdition INFINITE from the storageSystem fallback when the edition field is absent", () => {
+        const legacyInfiniteCluster = {
+            ...dedicatedClusterDescription,
+            storageSystem: "DISAGGREGATED_STORAGE",
+        } as ClusterDescription20240805;
+
+        expect(formatCluster(legacyInfiniteCluster).databaseEdition).toBe("INFINITE");
+    });
+
+    it("reports databaseEdition CORE from effectiveDatabaseEdition", () => {
+        const coreCluster = {
+            ...dedicatedClusterDescription,
+            effectiveDatabaseEdition: "CORE",
+        } as ClusterDescription20240805;
+
+        expect(formatCluster(coreCluster).databaseEdition).toBe("CORE");
+    });
+
+    it("leaves databaseEdition undefined when the API response carries no edition fields", () => {
+        expect(formatCluster(dedicatedClusterDescription).databaseEdition).toBeUndefined();
+    });
+});
+
+describe("getInfiniteMaxAutoScalingSize", () => {
+    it.each([
+        ["M10", "M30"],
+        ["M30", "M50"],
+        ["M40", "M60"],
+        ["M50", "M60"],
+        ["M60", "M60"],
+    ] as const)("defaults %s to %s, two tiers up clamped to M60", (size, expected) => {
+        expect(getInfiniteMaxAutoScalingSize(size, "AWS")).toBe(expected);
+    });
+
+    it("does not clamp a base size above M60, so min never exceeds max", () => {
+        expect(getInfiniteMaxAutoScalingSize("M80", "AWS")).toBe("M200");
     });
 });
 
