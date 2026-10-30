@@ -390,7 +390,11 @@ export class StreamsBuildTool extends StreamsToolBase {
             );
         }
 
-        const config = { ...ConnectionConfig.parse(args.connectionConfig ?? {}) };
+        let config = { ...ConnectionConfig.parse(args.connectionConfig ?? {}) };
+        const networkingField = StreamsBuildTool.networkingFieldForConnectionType(args.connectionType);
+        if (networkingField) {
+            config = StreamsBuildTool.normalizeNetworkingField(config, networkingField);
+        }
 
         const missingInfo = this.normalizeAndValidateConnectionConfig({
             config,
@@ -478,7 +482,6 @@ export class StreamsBuildTool extends StreamsToolBase {
         config: Record<string, unknown>,
         request: ToolRequest<IAtlasConfig>
     ): CallToolResult | InputRequiredResult | null {
-        StreamsBuildTool.normalizeNetworkingField(config, "networking");
         const auth = config.authentication as Record<string, unknown> | undefined;
         const security = config.security as Record<string, unknown> | undefined;
 
@@ -586,8 +589,6 @@ export class StreamsBuildTool extends StreamsToolBase {
         connectionType: string;
         request: ToolRequest<IAtlasConfig>;
     }): CallToolResult | InputRequiredResult | null {
-        const networkingField = connectionType === "AWSLambda" ? "publicPrivateNetworking" : "networking";
-        StreamsBuildTool.normalizeNetworkingField(config, networkingField);
         const aws = config.aws as Record<string, unknown> | undefined;
         const access =
             connectionType === "AWSLambda"
@@ -724,7 +725,6 @@ export class StreamsBuildTool extends StreamsToolBase {
         config: Record<string, unknown>,
         request: ToolRequest<IAtlasConfig>
     ): CallToolResult | InputRequiredResult | null {
-        StreamsBuildTool.normalizeNetworkingField(config, "publicPrivateNetworking");
         const gcp = config.gcp as Record<string, unknown> | undefined;
         const access = (config.publicPrivateNetworking as Record<string, unknown> | undefined)?.access as
             | Record<string, unknown>
@@ -926,50 +926,95 @@ export class StreamsBuildTool extends StreamsToolBase {
      * connectionId is supplied without an access type, since the API would
      * otherwise default to PUBLIC and reject the connectionId.
      */
+    private static networkingFieldForConnectionType(
+        connectionType: string
+    ): "networking" | "publicPrivateNetworking" | undefined {
+        switch (connectionType) {
+            case "Kafka":
+            case "S3":
+            case "AWSKinesisDataStreams":
+                return "networking";
+            case "AWSLambda":
+            case "GCPPubSub":
+            case "AzureBlobStorage":
+                return "publicPrivateNetworking";
+            default:
+                return undefined;
+        }
+    }
+
+    /** Access values that determine whether two networking blocks conflict. */
+    private static effectiveNetworkingAccess(networking: unknown): { type: string; connectionId?: string } {
+        const access =
+            typeof networking === "object" && networking !== null
+                ? (networking as Record<string, unknown>).access
+                : undefined;
+        const accessRecord =
+            typeof access === "object" && access !== null ? (access as Record<string, unknown>) : undefined;
+        const connectionId = typeof accessRecord?.connectionId === "string" ? accessRecord.connectionId : undefined;
+        const type =
+            typeof accessRecord?.type === "string"
+                ? accessRecord.type
+                : connectionId !== undefined
+                  ? "PRIVATE_LINK"
+                  : "PUBLIC";
+        return { type, connectionId };
+    }
+
+    private static networkingAccessEqual(left: unknown, right: unknown): boolean {
+        const a = StreamsBuildTool.effectiveNetworkingAccess(left);
+        const b = StreamsBuildTool.effectiveNetworkingAccess(right);
+        return a.type === b.type && a.connectionId === b.connectionId;
+    }
+
     private static normalizeNetworkingField(
         config: Record<string, unknown>,
         field: "networking" | "publicPrivateNetworking"
-    ): void {
+    ): Record<string, unknown> {
+        const normalized = { ...config };
         const otherField = field === "networking" ? "publicPrivateNetworking" : "networking";
         const isEmpty = (value: unknown): boolean =>
             value === undefined || value === null || (typeof value === "object" && Object.keys(value).length === 0);
 
-        if (isEmpty(config[field])) {
-            if (config[otherField] !== undefined) {
-                config[field] = config[otherField];
+        if (isEmpty(normalized[field])) {
+            if (normalized[otherField] !== undefined) {
+                normalized[field] = normalized[otherField];
             }
         } else if (
-            !isEmpty(config[otherField]) &&
-            JSON.stringify(config[field]) !== JSON.stringify(config[otherField])
+            !isEmpty(normalized[otherField]) &&
+            !StreamsBuildTool.networkingAccessEqual(normalized[field], normalized[otherField])
         ) {
             throw new StreamsInvalidArgumentError(
                 `Conflicting networking configuration: use only '${field}' for this connection type.`
             );
         }
-        delete config[otherField];
+        delete normalized[otherField];
 
-        const networking = config[field];
+        const networking = normalized[field];
         if (typeof networking !== "object" || networking === null) {
-            return;
+            return normalized;
         }
-        const access = (networking as Record<string, unknown>).access;
-        if (typeof access !== "object" || access === null) {
-            return;
+        const networkingRecord = { ...(networking as Record<string, unknown>) };
+        const access = networkingRecord.access;
+        if (typeof access === "object" && access !== null) {
+            const accessRecord = { ...(access as Record<string, unknown>) };
+            if (accessRecord.type === undefined && accessRecord.connectionId !== undefined) {
+                accessRecord.type = "PRIVATE_LINK";
+            }
+            if (
+                field === "publicPrivateNetworking" &&
+                accessRecord.type !== undefined &&
+                !StreamsPrivateLinkAccessType.safeParse(accessRecord.type).success
+            ) {
+                throw new StreamsInvalidArgumentError(
+                    `networking.access.type ${JSON.stringify(accessRecord.type)} is not valid for this connection type. ` +
+                        `Use ${StreamsPrivateLinkAccessType.options.map((type) => `'${type}'`).join(" or ")}.`
+                );
+            }
+            networkingRecord.access = accessRecord;
         }
-        const accessRecord = access as Record<string, unknown>;
-        if (accessRecord.type === undefined && accessRecord.connectionId !== undefined) {
-            accessRecord.type = "PRIVATE_LINK";
-        }
-        if (
-            field === "publicPrivateNetworking" &&
-            accessRecord.type !== undefined &&
-            !StreamsPrivateLinkAccessType.safeParse(accessRecord.type).success
-        ) {
-            throw new StreamsInvalidArgumentError(
-                `networking.access.type ${JSON.stringify(accessRecord.type)} is not valid for this connection type. ` +
-                    `Use ${StreamsPrivateLinkAccessType.options.map((type) => `'${type}'`).join(" or ")}.`
-            );
-        }
+        normalized[field] = networkingRecord;
+        return normalized;
     }
 
     private static validatePipelineStructure(pipeline: Record<string, unknown>[]): CallToolResult | null {

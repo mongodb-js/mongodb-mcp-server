@@ -1596,6 +1596,20 @@ describe("StreamsBuildTool", () => {
             expect(mockElicitation.readInput).not.toHaveBeenCalled();
         });
 
+        it("normalizes networking without mutating the input config", () => {
+            const access = { connectionId };
+            const input = { gcp: { serviceAccountId }, networking: { access } };
+            const normalized = StreamsBuildTool["normalizeNetworkingField"](input, "publicPrivateNetworking");
+
+            expect(normalized).not.toBe(input);
+            expect(normalized.publicPrivateNetworking).toEqual({
+                access: { type: "PRIVATE_LINK", connectionId },
+            });
+            expect(normalized).not.toHaveProperty("networking");
+            expect(input).toEqual({ gcp: { serviceAccountId }, networking: { access: { connectionId } } });
+            expect(access).toEqual({ connectionId });
+        });
+
         it("elicits the GCP connectionId on the re-entry round", async () => {
             mockElicitation.readInput.mockReturnValue({ accepted: true, fields: { connectionId } });
 
@@ -1795,6 +1809,63 @@ describe("StreamsBuildTool", () => {
                     },
                 })
             ).rejects.toThrow("Conflicting networking configuration");
+        });
+
+        it("rejects networking blocks with different connection IDs", async () => {
+            await expect(
+                exec({
+                    ...baseArgs,
+                    resource: "connection",
+                    connectionName: "pubsub-out",
+                    connectionType: "GCPPubSub",
+                    connectionConfig: {
+                        gcp: { serviceAccountId },
+                        publicPrivateNetworking: { access: { type: "PRIVATE_LINK", connectionId } },
+                        networking: {
+                            access: { type: "PRIVATE_LINK", connectionId: "111111111111111111111111" },
+                        },
+                    },
+                })
+            ).rejects.toThrow("Conflicting networking configuration");
+        });
+
+        it("treats semantically equal networking blocks as equal regardless of key order", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "pubsub-out",
+                connectionType: "GCPPubSub",
+                connectionConfig: {
+                    gcp: { serviceAccountId },
+                    publicPrivateNetworking: { access: { type: "PRIVATE_LINK", connectionId } },
+                    networking: {
+                        access: { connectionId, type: "PRIVATE_LINK" },
+                        links: [{ href: "https://example.com" }],
+                    },
+                },
+            });
+
+            expect(lastConnectionBody().publicPrivateNetworking).toEqual({
+                access: { type: "PRIVATE_LINK", connectionId },
+            });
+        });
+
+        it("treats an inferred PRIVATE_LINK as equal to an explicit one", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "pubsub-out",
+                connectionType: "GCPPubSub",
+                connectionConfig: {
+                    gcp: { serviceAccountId },
+                    publicPrivateNetworking: { access: { connectionId } },
+                    networking: { access: { type: "PRIVATE_LINK", connectionId } },
+                },
+            });
+
+            expect(lastConnectionBody().publicPrivateNetworking).toEqual({
+                access: { type: "PRIVATE_LINK", connectionId },
+            });
         });
 
         it("returns the new PrivateLink endpoint ID", async () => {
