@@ -359,6 +359,33 @@ describeAccuracyTests(
         },
         {
             prompt: [
+                `Add an Azure Blob Storage connection named 'blob-out' to workspace '${workspaceName}'`,
+                "Use service principal 11111111-2222-3333-4444-555555555555 and storage account acmestorage",
+            ],
+            systemPrompt: projectContext,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-build",
+                    parameters: {
+                        projectId,
+                        resource: "connection",
+                        workspaceName,
+                        connectionName: "blob-out",
+                        connectionType: "AzureBlobStorage",
+                        connectionConfig: {
+                            azure: {
+                                servicePrincipalId: "11111111-2222-3333-4444-555555555555",
+                                storageAccountName: "acmestorage",
+                            },
+                        },
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: [
                 `Add a GCP Pub/Sub connection named 'pubsub-pl' to workspace '${workspaceName}'`,
                 "Use GCP service account atlas-streams@my-project.iam.gserviceaccount.com",
                 "and PrivateLink endpoint 64b7e9f1a2c3d4e5f6a7b8c9",
@@ -376,6 +403,37 @@ describeAccuracyTests(
                         connectionType: "GCPPubSub",
                         connectionConfig: {
                             gcp: { serviceAccountId: "atlas-streams@my-project.iam.gserviceaccount.com" },
+                            publicPrivateNetworking: {
+                                access: { type: "PRIVATE_LINK", connectionId: "64b7e9f1a2c3d4e5f6a7b8c9" },
+                            },
+                        },
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: [
+                `Add an Azure Blob Storage connection named 'blob-pl' to workspace '${workspaceName}'`,
+                "Use service principal 11111111-2222-3333-4444-555555555555 and storage account acmestorage",
+                "and PrivateLink endpoint 64b7e9f1a2c3d4e5f6a7b8c9",
+            ],
+            systemPrompt: projectContext,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-build",
+                    parameters: {
+                        projectId,
+                        resource: "connection",
+                        workspaceName,
+                        connectionName: "blob-pl",
+                        connectionType: "AzureBlobStorage",
+                        connectionConfig: {
+                            azure: {
+                                servicePrincipalId: "11111111-2222-3333-4444-555555555555",
+                                storageAccountName: "acmestorage",
+                            },
                             publicPrivateNetworking: {
                                 access: { type: "PRIVATE_LINK", connectionId: "64b7e9f1a2c3d4e5f6a7b8c9" },
                             },
@@ -612,6 +670,33 @@ describeAccuracyTests(
                             provider: Matcher.value("GCP"),
                             vendor: Matcher.value("PUBSUB"),
                             region: Matcher.value("us-central1"),
+                        },
+                    },
+                },
+            ],
+            mockedTools,
+        },
+        {
+            prompt: "Set up an Azure Blob Storage Private Link in eastus2 for storage account acmestorage in resource group rg1, subscription sub1, for my streams project",
+            systemPrompt: projectContext,
+            expectedToolCalls: [
+                ...optionalProjectDiscovery,
+                {
+                    toolName: "atlas-streams-build",
+                    parameters: {
+                        projectId: Matcher.anyOf(Matcher.value(projectId), Matcher.anyValue),
+                        resource: Matcher.value("privatelink"),
+                        workspaceName: Matcher.undefined,
+                        privateLinkConfig: {
+                            provider: Matcher.value("AZURE"),
+                            vendor: Matcher.value("AZURE_BLOB_STORAGE"),
+                            region: Matcher.value("eastus2"),
+                            dnsDomain: Matcher.value("acmestorage.blob.core.windows.net"),
+                            serviceEndpointId: Matcher.string(
+                                (value) =>
+                                    value.includes("/subscriptions/sub1/resourceGroups/rg1/") &&
+                                    value.endsWith("/storageAccounts/acmestorage")
+                            ),
                         },
                     },
                 },

@@ -86,6 +86,32 @@ export const ConnectionConfig = z
             .passthrough()
             .optional()
             .describe("GCP config for Pub/Sub connections."),
+        // Azure (Blob Storage)
+        azure: z
+            .object({
+                servicePrincipalId: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "Unique ID of the Azure service principal that has access to the storage account. " +
+                            "Must be registered in this Atlas project via Cloud Provider Access."
+                    ),
+                storageAccountName: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "Name of the Azure storage account to connect to. Must be 3-24 lowercase letters and numbers."
+                    ),
+                region: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "Deprecated. Atlas derives the region from the storage account and overwrites this value, so omit it."
+                    ),
+            })
+            .passthrough()
+            .optional()
+            .describe("Azure config for Blob Storage connections."),
         // Https
         url: z.string().optional().describe("Webhook URL for Https connections."),
         headers: z.record(z.string(), z.string()).optional().describe("HTTP headers for Https connections."),
@@ -129,9 +155,9 @@ export const ConnectionConfig = z
             .describe(
                 "Networking access for Kafka, S3, and Kinesis connections. " +
                     "Set access.type to PUBLIC, VPC, PRIVATE_LINK, or TRANSIT_GATEWAY. " +
-                    "For GCPPubSub and AWSLambda connections use publicPrivateNetworking."
+                    "For GCPPubSub, AzureBlobStorage, and AWSLambda connections use publicPrivateNetworking."
             ),
-        // publicPrivateNetworking: AWSLambda and GCPPubSub (PUBLIC | PRIVATE_LINK)
+        // publicPrivateNetworking: AWSLambda, GCPPubSub, and AzureBlobStorage (PUBLIC | PRIVATE_LINK)
         publicPrivateNetworking: z
             .object({
                 access: z
@@ -150,7 +176,7 @@ export const ConnectionConfig = z
             .passthrough()
             .optional()
             .describe(
-                "Networking access for GCPPubSub and AWSLambda connections. " +
+                "Networking access for GCPPubSub, AzureBlobStorage, and AWSLambda connections. " +
                     "Set access.type to PUBLIC or PRIVATE_LINK. " +
                     "For private networking set access.connectionId to a PrivateLink endpoint ID."
             ),
@@ -161,7 +187,9 @@ export const ConnectionConfig = z
 const StreamsPrivateLinkVendor = z
     .string()
     .transform((value) => value.toUpperCase())
-    .pipe(z.enum(["CONFLUENT", "MSK", "EVENTHUB", "GENERIC", "KINESIS", "S3", "PUBSUB", "LAMBDA"]));
+    .pipe(
+        z.enum(["CONFLUENT", "MSK", "EVENTHUB", "GENERIC", "KINESIS", "S3", "PUBSUB", "AZURE_BLOB_STORAGE", "LAMBDA"])
+    );
 
 /** Typed schema for privateLinkConfig — provider is required, all other fields optional and per-provider. */
 export const PrivateLinkConfig = z
@@ -176,7 +204,7 @@ export const PrivateLinkConfig = z
             ),
         // AWS
         vendor: StreamsPrivateLinkVendor.optional().describe(
-            "PrivateLink vendor. If the user does not specify a vendor, ask them which vendor to use before proceeding. If they decline or say none, omit this field — the Atlas API will default to GENERIC. Valid values — AWS: 'CONFLUENT', 'MSK', 'KINESIS', 'S3', 'LAMBDA'. Azure: 'EVENTHUB', 'CONFLUENT'. GCP: 'CONFLUENT', 'PUBSUB'."
+            "PrivateLink vendor. If the user does not specify a vendor, ask them which vendor to use before proceeding. If they decline or say none, omit this field — the Atlas API will default to GENERIC. Valid values — AWS: 'CONFLUENT', 'MSK', 'KINESIS', 'S3', 'LAMBDA'. Azure: 'EVENTHUB', 'CONFLUENT', 'AZURE_BLOB_STORAGE'. GCP: 'CONFLUENT', 'PUBSUB'."
         ),
         arn: z.string().optional().describe("Amazon Resource Name (ARN). Required for AWS MSK vendor."),
         authenticationScheme: z
@@ -189,7 +217,7 @@ export const PrivateLinkConfig = z
             .string()
             .optional()
             .describe(
-                "DNS domain hostname. Required for AWS CONFLUENT, AZURE EVENTHUB, AZURE CONFLUENT, and GCP CONFLUENT. For GCP PUBSUB Atlas derives it — omit it."
+                "DNS domain hostname. Required for AWS CONFLUENT, AZURE EVENTHUB, AZURE CONFLUENT, AZURE AZURE_BLOB_STORAGE ('<storageAccount>.blob.core.windows.net'), and GCP CONFLUENT. For GCP PUBSUB Atlas derives it — omit it."
             ),
         dnsSubDomain: z
             .array(z.string())
@@ -202,13 +230,13 @@ export const PrivateLinkConfig = z
             .string()
             .optional()
             .describe(
-                "Service endpoint ID. Required for AWS CONFLUENT, AWS S3, AWS KINESIS, AWS LAMBDA ('com.amazonaws.{region}.lambda'), and AZURE EVENTHUB. Do NOT provide for AZURE CONFLUENT, GCP CONFLUENT, or GCP PUBSUB."
+                "Service endpoint ID. Required for AWS CONFLUENT, AWS S3, AWS KINESIS, AWS LAMBDA ('com.amazonaws.{region}.lambda'), AZURE EVENTHUB, and AZURE AZURE_BLOB_STORAGE (Azure Resource Manager path: '/subscriptions/{subscriptionId}/resourceGroups/{resourceGroup}/providers/Microsoft.Storage/storageAccounts/{storageAccount}'). Do NOT provide for AZURE CONFLUENT, GCP CONFLUENT, or GCP PUBSUB."
             ),
         azureResourceIds: z
             .array(z.string())
             .optional()
             .describe(
-                "Azure Resource IDs. Required for AZURE CONFLUENT (instead of serviceEndpointId). Do NOT provide for AZURE EVENTHUB."
+                "Azure Resource IDs. Required for AZURE CONFLUENT (instead of serviceEndpointId). Do NOT provide for AZURE EVENTHUB or AZURE_BLOB_STORAGE."
             ),
         // GCP
         gcpServiceAttachmentUris: z
