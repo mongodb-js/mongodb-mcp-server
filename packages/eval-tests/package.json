@@ -17,12 +17,12 @@
     "eval:push": "pnpm run eval:bundle && braintrust push dist/mongodb.eval.cjs --if-exists replace"
   },
   "dependencies": {
-    "@ai-sdk/mcp": "^2.0.54",
-    "@ai-sdk/openai": "^4.0.71",
+    "@ai-sdk/mcp": "^2.0.83",
+    "@ai-sdk/openai": "^4.0.101",
     "@modelcontextprotocol/server": "^2.3.1",
     "@mongodb-js/mcp-cli": "workspace:*",
     "@mongodb-js/mcp-core": "workspace:*",
-    "ai": "^7.0.107",
+    "ai": "^7.0.152",
     "braintrust": "^3.37.2",
     "bson": "^7.2.0",
     "mongodb": "^7.1.1",
