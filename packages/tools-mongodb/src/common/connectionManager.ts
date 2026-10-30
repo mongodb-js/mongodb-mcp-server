@@ -482,6 +482,15 @@ export class MCPConnectionManager extends ConnectionManager {
 
         try {
             if (connectionStringInfo.authType.startsWith("oidc")) {
+                // The provider only settles once the OIDC flow completes, and
+                // the startup dial never awaits it. If it rejects before the
+                // plugin reports `auth-failed` (e.g. server selection fails
+                // first), observe the rejection here so it is not unhandled
+                // and the state does not stay stuck in `connecting` — an
+                // `errored` entry is re-dialed by the next resolve.
+                serviceProvider.catch((error: unknown) => {
+                    this.onPendingServiceProviderRejected(serviceProvider, error);
+                });
                 return this.changeState("connection-request", {
                     tag: "connecting",
                     serviceProvider,
@@ -556,6 +565,34 @@ export class MCPConnectionManager extends ConnectionManager {
         } finally {
             this._events.emit("close", this.currentConnectionState);
         }
+    }
+
+    /**
+     * Resets a still-`connecting` OIDC connection to `errored` when the
+     * provider it is waiting on rejects. Only the current provider is acted
+     * on, so a provider that was superseded by a reconnect or already closed
+     * by a disconnect is left alone.
+     */
+    private onPendingServiceProviderRejected(
+        serviceProvider: Promise<NodeDriverServiceProvider>,
+        error: unknown
+    ): void {
+        const state = this.currentConnectionState;
+        if (state.tag !== "connecting" || state.serviceProvider !== serviceProvider) {
+            return;
+        }
+
+        const errorReason = error instanceof Error ? error.message : String(error);
+        this.logger.warning({
+            id: LogId.oidcFlow,
+            context: "pendingServiceProviderRejected",
+            message: `OIDC authentication failed before completing: ${errorReason}`,
+        });
+        this.changeState("connection-error", {
+            tag: "errored",
+            errorReason,
+            connectionStringInfo: state.connectionStringInfo,
+        });
     }
 
     private onOidcAuthFailed(error: unknown): void {
