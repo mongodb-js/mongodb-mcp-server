@@ -30,7 +30,7 @@ const PUBLIC_PRIVATE_NETWORKING_VENDORS = new Set(["PUBSUB", "AZURE_BLOB_STORAGE
 const AZURE_BLOB_STORAGE_REQUIRED_FIELDS = ["region", "serviceEndpointId", "dnsDomain"] as const;
 
 /** System variables that are not available in streaming requests. */
-const UNSUPPORTED_STREAM_VARIABLES = ["$$NOW", "$$ROOT", "$$CURRENT"] as const;
+const UNSUPPORTED_STREAM_VARIABLES = ["$$NOW", "$$CURRENT"] as const;
 
 const ConnectionType = z.enum([
     "Kafka",
@@ -254,7 +254,7 @@ const StreamsBuildArgsShape = {
                 "For Kafka $emit with Schema Registry: {$emit: {connectionName, topic, schemaRegistry: {connectionName: '<sr-connection>', valueSchema: {type: 'avro', schema: {<avro-schema>}, options: {subjectNameStrategy: 'TopicNameStrategy', autoRegisterSchemas: true}}}}}. " +
                 "Note: valueSchema.type must be lowercase 'avro'. valueSchema.schema (Avro schema definition) is always required even with autoRegisterSchemas. " +
                 "Kafka/Kinesis $source must include a 'topic'/'stream' field. Cluster $source must include db and coll: {$source: {connectionName, db, coll}}. " +
-                "$$NOW, $$ROOT, and $$CURRENT are not available in streaming request. " +
+                "$$NOW and $$CURRENT are not available in streaming request. $$ROOT is supported. " +
                 "Connections referenced in $source/$merge/$emit/$iceberg/$https/$externalFunction must already exist in the workspace."
         ),
     dlq: z

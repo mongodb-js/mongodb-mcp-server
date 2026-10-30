@@ -1103,7 +1103,11 @@ describe("StreamsBuildTool", () => {
             expect(mockApiClient.createStreamProcessor).not.toHaveBeenCalled();
         });
 
-        it("should return error when pipeline contains $$ROOT", async () => {
+        it("should allow $$ROOT in a pipeline", async () => {
+            mockApiClient.listStreamConnections!.mockResolvedValue({
+                results: [{ name: "src" }, { name: "sink" }],
+            });
+
             const result = await exec({
                 ...baseArgs,
                 resource: "processor",
@@ -1115,8 +1119,34 @@ describe("StreamsBuildTool", () => {
                 ],
             });
 
+            expect(result.isError).toBeUndefined();
+            expect(mockApiClient.createStreamProcessor).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        pipeline: expect.arrayContaining([{ $replaceRoot: { newRoot: "$$ROOT" } }]),
+                    }),
+                }),
+                expect.anything()
+            );
+        });
+
+        it("should return error when pipeline contains $$CURRENT", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "proc1",
+                pipeline: [
+                    { $source: { connectionName: "src" } },
+                    { $addFields: { doc: "$$CURRENT" } },
+                    { $merge: { into: { connectionName: "sink", db: "db1", coll: "c1" } } },
+                ],
+            });
+
             expect(result.isError).toBe(true);
-            expect((result.content[0] as { text: string }).text).toContain("$$ROOT");
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("$$CURRENT");
+            expect(text).toContain("not available in streaming request");
+            expect(mockApiClient.createStreamProcessor).not.toHaveBeenCalled();
         });
 
         it("should accept $emit as a valid sink stage", async () => {
