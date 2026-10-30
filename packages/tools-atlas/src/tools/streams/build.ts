@@ -248,6 +248,8 @@ const StreamsBuildArgsShape = {
                 "Kafka/Kinesis/S3/Azure Blob $emit accept config.outputFormat; S3/Azure Blob also accept config.compression. " +
                 "S3 uses path (not prefix); there is no top-level format field. " +
                 "$emit does not work with Https connections — use $https instead. " +
+                "Use $throttle to rate-limit the pipeline: {$throttle: {messagesPerSec: <int>, bytesPerSec: <int>}} — at least one of the two limits is required. " +
+                "$throttle can appear anywhere after $source and is recommended before rate-limited external sinks (Kafka, Kinesis, S3, Azure Blob Storage, GCP Pub/Sub). " +
                 "Use $https to POST data to an Https connection: {$https: {connectionName}}. " +
                 "Use $externalFunction for Lambda: {$externalFunction: {connectionName, functionName, execution: 'async', as: 'result'}}. Lambda does NOT use $emit — use $externalFunction with execution='async' as a sink stage or execution='sync' for mid-pipeline enrichment. " +
                 "By default $https.onError is 'dlq', which requires a DLQ (see dlq parameter). Set {$https: {connectionName, onError: 'ignore'}} to skip DLQ. " +
@@ -1120,6 +1122,55 @@ export class StreamsBuildTool extends StreamsToolBase {
         return normalized;
     }
 
+    /** Sink connection types that enforce their own downstream throughput limits. */
+    private static readonly EXTERNAL_SINK_TYPES = new Set([
+        "Kafka",
+        "AWSKinesisDataStreams",
+        "S3",
+        "AzureBlobStorage",
+        "GCPPubSub",
+    ]);
+
+    /**
+     * Recommends $throttle when a pipeline writes to an external sink without one.
+     * These sinks can enforce their own rate limits, so throttling protects them
+     * from bursts. Returns an empty string when no recommendation applies.
+     */
+    private static buildThrottleRecommendation(
+        pipeline: Record<string, unknown>[],
+        connectionTypes: Map<string, string | undefined> | undefined
+    ): string {
+        if (JSON.stringify(pipeline).includes("$throttle")) {
+            return "";
+        }
+
+        const lastStage = pipeline[pipeline.length - 1];
+        if (!lastStage) {
+            return "";
+        }
+
+        let sinkType: string | undefined;
+        if ("$iceberg" in lastStage) {
+            sinkType = "S3";
+        } else if ("$emit" in lastStage) {
+            const emit = lastStage.$emit as Record<string, unknown> | undefined;
+            const connectionName = typeof emit?.connectionName === "string" ? emit.connectionName : undefined;
+            if (connectionName) {
+                sinkType = connectionTypes?.get(connectionName);
+            }
+        }
+
+        if (!sinkType || !StreamsBuildTool.EXTERNAL_SINK_TYPES.has(sinkType)) {
+            return "";
+        }
+
+        return (
+            "\n\nTip: This pipeline writes to an external sink that may enforce rate limits. " +
+            "Consider adding a $throttle stage before the sink, for example " +
+            "{$throttle: {messagesPerSec: 1000}}, to protect downstream systems."
+        );
+    }
+
     private static validatePipelineStructure(pipeline: Record<string, unknown>[]): CallToolResult | null {
         const firstStage = pipeline[0];
         const firstStageKey = firstStage ? Object.keys(firstStage)[0] : undefined;
@@ -1170,12 +1221,15 @@ export class StreamsBuildTool extends StreamsToolBase {
         pipeline: Record<string, unknown>[];
         request: ToolRequest<IAtlasConfig>;
         dlq?: { connectionName: string; db: string; coll: string };
-    }): Promise<CallToolResult | null> {
+    }): Promise<{
+        error: CallToolResult | null;
+        connectionTypes?: Map<string, string | undefined>;
+    }> {
         const referencedNames = StreamsToolBase.extractConnectionNames(pipeline);
         if (dlq?.connectionName) referencedNames.add(dlq.connectionName);
-        if (referencedNames.size === 0) return null;
+        if (referencedNames.size === 0) return { error: null };
 
-        let availableNames: Set<string>;
+        let connectionTypes: Map<string, string | undefined>;
         try {
             const data = await this.server.apiClient.listStreamConnections(
                 {
@@ -1186,31 +1240,39 @@ export class StreamsBuildTool extends StreamsToolBase {
                 },
                 request
             );
-            availableNames = new Set((data?.results ?? []).map((c) => String((c as Record<string, unknown>).name)));
+            connectionTypes = new Map(
+                (data?.results ?? []).map((c) => {
+                    const conn = c as Record<string, unknown>;
+                    return [String(conn.name), typeof conn.type === "string" ? conn.type : undefined] as const;
+                })
+            );
         } catch {
-            return null; // Soft check — skip if we can't list connections
+            return { error: null }; // Soft check — skip if we can't list connections
         }
 
-        const missingNames = [...referencedNames].filter((n) => !availableNames.has(n));
-        if (missingNames.length === 0) return null;
+        const missingNames = [...referencedNames].filter((n) => !connectionTypes.has(n));
+        if (missingNames.length === 0) return { error: null, connectionTypes };
 
         const availableList =
-            availableNames.size > 0
-                ? [...availableNames].map((n) => `  - ${n}`).join("\n")
+            connectionTypes.size > 0
+                ? [...connectionTypes.keys()].map((n) => `  - ${n}`).join("\n")
                 : "  (no connections found)";
 
         return {
-            content: [
-                {
-                    type: "text",
-                    text:
-                        `Cannot create processor — the pipeline references connection(s) that do not exist in workspace '${workspaceName}':\n` +
-                        `  Missing: ${missingNames.join(", ")}\n\n` +
-                        `Available connections:\n${availableList}\n\n` +
-                        `Add the missing connection(s) first with \`atlas-streams-build\` resource='connection', then retry.`,
-                },
-            ],
-            isError: true,
+            error: {
+                content: [
+                    {
+                        type: "text",
+                        text:
+                            `Cannot create processor — the pipeline references connection(s) that do not exist in workspace '${workspaceName}':\n` +
+                            `  Missing: ${missingNames.join(", ")}\n\n` +
+                            `Available connections:\n${availableList}\n\n` +
+                            `Add the missing connection(s) first with \`atlas-streams-build\` resource='connection', then retry.`,
+                    },
+                ],
+                isError: true,
+            },
+            connectionTypes,
         };
     }
 
@@ -1231,7 +1293,7 @@ export class StreamsBuildTool extends StreamsToolBase {
         const structureError = StreamsBuildTool.validatePipelineStructure(args.pipeline);
         if (structureError) return structureError;
 
-        const connectionError = await this.validatePipelineConnections({
+        const { error: connectionError, connectionTypes } = await this.validatePipelineConnections({
             projectId: args.projectId,
             workspaceName,
             pipeline: args.pipeline,
@@ -1284,6 +1346,7 @@ export class StreamsBuildTool extends StreamsToolBase {
             ? `\n\nNote: Billing for stream processing usage is now active for this processor. ` +
               `Use \`atlas-streams-manage\` with action 'stop-processor' to stop billing.`
             : "";
+        const throttleNote = StreamsBuildTool.buildThrottleRecommendation(args.pipeline, connectionTypes);
 
         return {
             content: [
@@ -1294,7 +1357,8 @@ export class StreamsBuildTool extends StreamsToolBase {
                         (args.autoStart
                             ? `Use \`atlas-streams-discover\` with action 'diagnose-processor' to monitor health.`
                             : `Use \`atlas-streams-manage\` with action 'start-processor' to begin processing.`) +
-                        billingNote,
+                        billingNote +
+                        throttleNote,
                 },
             ],
             structuredContent: { resource: "processor" },

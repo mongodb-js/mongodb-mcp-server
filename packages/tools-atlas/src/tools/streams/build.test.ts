@@ -283,6 +283,60 @@ describe("StreamsBuildTool", () => {
                 resource: "processor",
             });
         });
+
+        it("should recommend $throttle when an external sink has no throttle stage", async () => {
+            mockApiClient.listStreamConnections!.mockResolvedValue({
+                results: [
+                    { name: "src", type: "Kafka" },
+                    { name: "sink", type: "GCPPubSub" },
+                ],
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "pubsub-etl",
+                pipeline: [
+                    { $source: { connectionName: "src", topic: "in" } },
+                    { $emit: { connectionName: "sink", topic: "out", projectId: "p", region: "us-central1" } },
+                ],
+            });
+
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("$throttle");
+            expect(text).toContain("rate limit");
+        });
+
+        it("should not recommend $throttle when the pipeline already throttles", async () => {
+            mockApiClient.listStreamConnections!.mockResolvedValue({
+                results: [
+                    { name: "src", type: "Kafka" },
+                    { name: "sink", type: "AzureBlobStorage" },
+                ],
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "blob-etl",
+                pipeline: [
+                    { $source: { connectionName: "src", topic: "in" } },
+                    { $throttle: { messagesPerSec: 1000 } },
+                    { $emit: { connectionName: "sink", container: "c", path: "out" } },
+                ],
+            });
+
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).not.toContain("$throttle");
+            expect(mockApiClient.createStreamProcessor).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        pipeline: expect.arrayContaining([{ $throttle: { messagesPerSec: 1000 } }]),
+                    }),
+                }),
+                expect.anything()
+            );
+        });
     });
 
     describe("createConnection", () => {
