@@ -248,8 +248,9 @@ const StreamsBuildArgsShape = {
                 "Kafka/Kinesis/S3/Azure Blob $emit accept config.outputFormat; S3/Azure Blob also accept config.compression. " +
                 "S3 uses path (not prefix); there is no top-level format field. " +
                 "$emit does not work with Https connections — use $https instead. " +
-                "Use $throttle to rate-limit the pipeline: {$throttle: {messagesPerSec: <int>, bytesPerSec: <int>}} — at least one of the two limits is required. " +
-                "$throttle can appear anywhere after $source and is recommended before rate-limited external sinks (Kafka, Kinesis, S3, Azure Blob Storage, GCP Pub/Sub). " +
+                "Use $throttle to rate-limit the pipeline: {$throttle: {messagesPerSec: <int>, bytesPerSec: <int>}} — at least one of the two limits is required and each must be a positive integer. " +
+                "$throttle can appear anywhere after $source in the main pipeline (it cannot be nested inside another stage), and you may use multiple $throttle stages. " +
+                "It is recommended before rate-limited external sinks (Kafka, Kinesis, S3, Azure Blob Storage, GCP Pub/Sub). " +
                 "Use $https to POST data to an Https connection: {$https: {connectionName}}. " +
                 "Use $externalFunction for Lambda: {$externalFunction: {connectionName, functionName, execution: 'async', as: 'result'}}. Lambda does NOT use $emit — use $externalFunction with execution='async' as a sink stage or execution='sync' for mid-pipeline enrichment. " +
                 "By default $https.onError is 'dlq', which requires a DLQ (see dlq parameter). Set {$https: {connectionName, onError: 'ignore'}} to skip DLQ. " +
@@ -1140,7 +1141,7 @@ export class StreamsBuildTool extends StreamsToolBase {
         pipeline: Record<string, unknown>[],
         connectionTypes: Map<string, string | undefined> | undefined
     ): string {
-        if (JSON.stringify(pipeline).includes("$throttle")) {
+        if (pipeline.some((stage) => "$throttle" in stage)) {
             return "";
         }
 

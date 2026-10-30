@@ -2167,5 +2167,118 @@ describe("StreamsBuildTool", () => {
             expect(text).toContain(connectionId);
             expect(text).toContain(`connectionId='${connectionId}'`);
         });
+
+        it("does not treat a string value containing $throttle as a throttle stage", async () => {
+            mockApiClient.listStreamConnections!.mockResolvedValue({
+                results: [
+                    { name: "src", type: "Kafka" },
+                    { name: "sink", type: "GCPPubSub" },
+                ],
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "pubsub-etl",
+                pipeline: [
+                    { $source: { connectionName: "src", topic: "in" } },
+                    { $addFields: { note: "$throttle is useful" } },
+                    { $emit: { connectionName: "sink", topic: "out", projectId: "p", region: "us-central1" } },
+                ],
+            });
+
+            expect((result.content[0] as { text: string }).text).toContain("$throttle");
+        });
+
+        it("does not recommend $throttle for a Cluster $merge sink", async () => {
+            mockApiClient.listStreamConnections!.mockResolvedValue({
+                results: [
+                    { name: "src", type: "Kafka" },
+                    { name: "sink", type: "Cluster" },
+                ],
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "etl",
+                pipeline: [
+                    { $source: { connectionName: "src", topic: "in" } },
+                    { $merge: { into: { connectionName: "sink", db: "db1", coll: "c1" } } },
+                ],
+            });
+
+            expect((result.content[0] as { text: string }).text).not.toContain("$throttle");
+        });
+
+        it("does not recommend $throttle for an Https sink", async () => {
+            mockApiClient.listStreamConnections!.mockResolvedValue({
+                results: [
+                    { name: "src", type: "Kafka" },
+                    { name: "hook", type: "Https" },
+                ],
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "etl",
+                pipeline: [{ $source: { connectionName: "src", topic: "in" } }, { $https: { connectionName: "hook" } }],
+            });
+
+            expect((result.content[0] as { text: string }).text).not.toContain("$throttle");
+        });
+
+        it("does not recommend $throttle when the sink type is unknown", async () => {
+            mockApiClient.listStreamConnections!.mockResolvedValue({
+                results: [{ name: "src", type: "Kafka" }, { name: "sink" }],
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "etl",
+                pipeline: [
+                    { $source: { connectionName: "src", topic: "in" } },
+                    { $emit: { connectionName: "sink", topic: "out" } },
+                ],
+            });
+
+            expect((result.content[0] as { text: string }).text).not.toContain("$throttle");
+        });
+
+        it("does not recommend $throttle when listing connections fails", async () => {
+            mockApiClient.listStreamConnections!.mockRejectedValue(new Error("boom"));
+
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "etl",
+                pipeline: [
+                    { $source: { connectionName: "src", topic: "in" } },
+                    { $emit: { connectionName: "sink", topic: "out" } },
+                ],
+            });
+
+            expect((result.content[0] as { text: string }).text).not.toContain("$throttle");
+        });
+
+        it("still rejects $$NOW when the pipeline also uses $$ROOT", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "proc1",
+                pipeline: [
+                    { $source: { connectionName: "src" } },
+                    { $addFields: { root: "$$ROOT", ts: "$$NOW" } },
+                    { $merge: { into: { connectionName: "sink", db: "db1", coll: "c1" } } },
+                ],
+            });
+
+            expect(result.isError).toBe(true);
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("$$NOW");
+            expect(text).not.toContain("$$ROOT");
+        });
     });
 });
