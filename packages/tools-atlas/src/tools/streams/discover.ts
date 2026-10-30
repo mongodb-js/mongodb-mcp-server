@@ -99,19 +99,47 @@ const ConnectionInspectSchema = ConnectionSummarySchema.omit({ name: true }).ext
 
 type ConnectionInspect = z.infer<typeof ConnectionInspectSchema>;
 
+/**
+ * The API response includes read-only `links` arrays and nullable fields inside
+ * these objects. Project only the known string fields so structuredContent
+ * always matches the advertised output schema (strict clients validate it).
+ */
+function toGcpInspect(data: unknown): ConnectionInspect["gcp"] {
+    const gcp = data as Record<string, unknown> | undefined;
+    if (gcp === undefined || gcp === null) return undefined;
+    return typeof gcp.serviceAccountId === "string" ? { serviceAccountId: gcp.serviceAccountId } : undefined;
+}
+
+function toPublicPrivateNetworkingInspect(data: unknown): ConnectionInspect["publicPrivateNetworking"] {
+    const networking = data as Record<string, unknown> | undefined;
+    const access = networking?.access as Record<string, unknown> | undefined;
+    if (access === undefined || access === null) return undefined;
+    return {
+        access: {
+            ...(typeof access.type === "string" && { type: access.type }),
+            ...(typeof access.connectionId === "string" && { connectionId: access.connectionId }),
+        },
+    };
+}
+
 function toConnectionInspect(data: Record<string, unknown>): ConnectionInspect {
     const summary = toConnectionSummary(data);
+    const gcp = toGcpInspect(data.gcp);
+    const publicPrivateNetworking = toPublicPrivateNetworkingInspect(data.publicPrivateNetworking);
+    const bootstrapServers =
+        typeof data.bootstrapServers === "string" ||
+        (Array.isArray(data.bootstrapServers) && data.bootstrapServers.every((v) => typeof v === "string"))
+            ? data.bootstrapServers
+            : undefined;
     return {
         ...(summary.type !== undefined && { type: summary.type }),
         ...(summary.state !== undefined && { state: summary.state }),
-        ...(data.region !== undefined && { region: data.region }),
-        ...(data.clusterName !== undefined && { clusterName: data.clusterName }),
-        ...(data.bootstrapServers !== undefined && { bootstrapServers: data.bootstrapServers }),
-        ...(data.gcp !== undefined && { gcp: data.gcp }),
-        ...(data.publicPrivateNetworking !== undefined && {
-            publicPrivateNetworking: data.publicPrivateNetworking,
-        }),
-    } as ConnectionInspect;
+        ...(typeof data.region === "string" && { region: data.region }),
+        ...(typeof data.clusterName === "string" && { clusterName: data.clusterName }),
+        ...(bootstrapServers !== undefined && { bootstrapServers }),
+        ...(gcp !== undefined && { gcp }),
+        ...(publicPrivateNetworking !== undefined && { publicPrivateNetworking }),
+    };
 }
 
 const AutoscalingSchema = StreamsAutoscaling;
@@ -146,6 +174,9 @@ const PrivateLinkSummarySchema = z.object({
     vendor: z.string().optional(),
     dnsDomain: z.string().optional(),
     serviceEndpointId: z.string().optional(),
+    interfaceEndpointId: z.string().optional(),
+    interfaceEndpointName: z.string().optional(),
+    providerAccountId: z.string().optional(),
 });
 
 const AccountDetailsSummarySchema = z.object({
@@ -169,18 +200,24 @@ function toPrivateLinkSummary(pl: {
     vendor?: string;
     dnsDomain?: string;
     serviceEndpointId?: string;
+    interfaceEndpointId?: string;
+    interfaceEndpointName?: string;
+    providerAccountId?: string;
 }): PrivateLinkSummary | undefined {
-    if (!pl._id) {
+    if (typeof pl._id !== "string") {
         return undefined;
     }
     return {
         id: pl._id,
-        provider: pl.provider,
-        region: pl.region,
-        state: pl.state,
-        vendor: pl.vendor,
-        ...(pl.dnsDomain !== undefined && { dnsDomain: pl.dnsDomain }),
-        ...(pl.serviceEndpointId !== undefined && { serviceEndpointId: pl.serviceEndpointId }),
+        ...(typeof pl.provider === "string" && { provider: pl.provider }),
+        ...(typeof pl.region === "string" && { region: pl.region }),
+        ...(typeof pl.state === "string" && { state: pl.state }),
+        ...(typeof pl.vendor === "string" && { vendor: pl.vendor }),
+        ...(typeof pl.dnsDomain === "string" && { dnsDomain: pl.dnsDomain }),
+        ...(typeof pl.serviceEndpointId === "string" && { serviceEndpointId: pl.serviceEndpointId }),
+        ...(typeof pl.interfaceEndpointId === "string" && { interfaceEndpointId: pl.interfaceEndpointId }),
+        ...(typeof pl.interfaceEndpointName === "string" && { interfaceEndpointName: pl.interfaceEndpointName }),
+        ...(typeof pl.providerAccountId === "string" && { providerAccountId: pl.providerAccountId }),
     };
 }
 
@@ -859,13 +896,18 @@ export class StreamsDiscoverTool extends StreamsToolBase {
 
             const pls = results.map((pl) => ({
                 id: pl._id,
-                provider: pl.provider,
-                region: pl.region,
-                state: pl.state,
-                vendor: pl.vendor,
-                ...(pl.dnsDomain && { dnsDomain: pl.dnsDomain }),
-                ...(pl.serviceEndpointId && { serviceEndpointId: pl.serviceEndpointId }),
-                ...(pl.errorMessage && { errorMessage: pl.errorMessage }),
+                ...(typeof pl.provider === "string" && { provider: pl.provider }),
+                ...(typeof pl.region === "string" && { region: pl.region }),
+                ...(typeof pl.state === "string" && { state: pl.state }),
+                ...(typeof pl.vendor === "string" && { vendor: pl.vendor }),
+                ...(typeof pl.dnsDomain === "string" && { dnsDomain: pl.dnsDomain }),
+                ...(typeof pl.serviceEndpointId === "string" && { serviceEndpointId: pl.serviceEndpointId }),
+                ...(typeof pl.interfaceEndpointId === "string" && { interfaceEndpointId: pl.interfaceEndpointId }),
+                ...(typeof pl.interfaceEndpointName === "string" && {
+                    interfaceEndpointName: pl.interfaceEndpointName,
+                }),
+                ...(typeof pl.providerAccountId === "string" && { providerAccountId: pl.providerAccountId }),
+                ...(typeof pl.errorMessage === "string" && { errorMessage: pl.errorMessage }),
             }));
 
             sections.push(`## PrivateLink Connections\n${JSON.stringify(pls, null, 2)}`);

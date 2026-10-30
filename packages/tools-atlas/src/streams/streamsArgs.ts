@@ -122,15 +122,20 @@ export const ConnectionConfig = z
             .optional()
             .describe(
                 "Private networking config (PrivateLink or VPC peering) for Kafka, S3, and Kinesis connections. " +
-                    "For GCPPubSub, AzureBlobStorage, and AWSLambda connections use publicPrivateNetworking."
+                    "For GCPPubSub and AWSLambda connections use publicPrivateNetworking."
             ),
-        // Public/PrivateLink networking (AWSLambda, GCPPubSub, AzureBlobStorage)
+        // Public/PrivateLink networking (AWSLambda, GCPPubSub)
         publicPrivateNetworking: z
             .object({
                 access: z
                     .object({
                         type: z.enum(["PUBLIC", "PRIVATE_LINK"]).optional(),
-                        connectionId: z.string().optional(),
+                        connectionId: z
+                            .string()
+                            .optional()
+                            .describe(
+                                "PrivateLink endpoint ID (24-character hex string), as returned by atlas-streams-discover action 'get-networking'."
+                            ),
                     })
                     .passthrough()
                     .optional(),
@@ -138,7 +143,7 @@ export const ConnectionConfig = z
             .passthrough()
             .optional()
             .describe(
-                "Public or PrivateLink networking for GCPPubSub, AzureBlobStorage, and AWSLambda connections. " +
+                "Public or PrivateLink networking for GCPPubSub and AWSLambda connections. " +
                     "For private networking set access.type='PRIVATE_LINK' and access.connectionId to a PrivateLink endpoint ID."
             ),
     })
@@ -160,7 +165,7 @@ export const PrivateLinkConfig = z
             .string()
             .optional()
             .describe(
-                "PrivateLink vendor. If the user does not specify a vendor, ask them which vendor to use before proceeding. If they decline or say none, omit this field — the Atlas API will default to GENERIC. Valid values — AWS: 'CONFLUENT', 'MSK', 'KINESIS', 'S3'. Azure: 'EVENTHUB', 'CONFLUENT', 'AZURE_BLOB_STORAGE'. GCP: 'CONFLUENT', 'PUBSUB'."
+                "PrivateLink vendor. If the user does not specify a vendor, ask them which vendor to use before proceeding. If they decline or say none, omit this field — the Atlas API will default to GENERIC. Valid values — AWS: 'CONFLUENT', 'MSK', 'KINESIS', 'S3', 'LAMBDA'. Azure: 'EVENTHUB', 'CONFLUENT'. GCP: 'CONFLUENT', 'PUBSUB'."
             ),
         arn: z.string().optional().describe("Amazon Resource Name (ARN). Required for AWS MSK vendor."),
         authenticationScheme: z
@@ -173,7 +178,7 @@ export const PrivateLinkConfig = z
             .string()
             .optional()
             .describe(
-                "DNS domain hostname. Required for AWS CONFLUENT, AZURE EVENTHUB, AZURE CONFLUENT, and GCP CONFLUENT."
+                "DNS domain hostname. Required for AWS CONFLUENT, AZURE EVENTHUB, AZURE CONFLUENT, and GCP CONFLUENT. For GCP PUBSUB Atlas derives it — omit it."
             ),
         dnsSubDomain: z
             .array(z.string())
@@ -186,7 +191,7 @@ export const PrivateLinkConfig = z
             .string()
             .optional()
             .describe(
-                "Service endpoint ID. Required for AWS CONFLUENT, AWS S3, AWS KINESIS, and AZURE EVENTHUB. Do NOT provide for AZURE CONFLUENT or GCP CONFLUENT."
+                "Service endpoint ID. Required for AWS CONFLUENT, AWS S3, AWS KINESIS, AWS LAMBDA ('com.amazonaws.{region}.lambda'), and AZURE EVENTHUB. Do NOT provide for AZURE CONFLUENT, GCP CONFLUENT, or GCP PUBSUB."
             ),
         azureResourceIds: z
             .array(z.string())
