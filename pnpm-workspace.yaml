@@ -20,9 +20,13 @@ overrides:
   "js-yaml@^4.0.0": "^4.3.2"
   "pbkdf2@^3.0.0": "^3.1.7"
   "shell-quote@^1.0.0": "^1.11.0"
+  # inspector 2.x depends on React 19; pin React 18 so the UI keeps a single copy.
+  "react": "^18.3.1"
+  "react-dom": "^18.3.1"
 allowBuilds:
   "@braintrust/bt": false
   "@modelcontextprotocol/ext-apps": false
+  "@modelcontextprotocol/inspector": false
   braintrust: true
   core-js: false
   cpu-features: true
