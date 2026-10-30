@@ -16,11 +16,18 @@ import {
     PrivateLinkConfig,
     StreamsArgs,
     StreamsAutoscaling,
+    StreamsPrivateLinkAccessType,
     StreamsTier,
 } from "../../streams/streamsArgs.js";
 import { StreamsInvalidArgumentError } from "../../streams/errors.js";
 
 const BuildResource = z.enum(["workspace", "connection", "processor", "privatelink"]);
+
+/** Vendors whose connections read PrivateLink settings from publicPrivateNetworking. */
+const PUBLIC_PRIVATE_NETWORKING_VENDORS = new Set(["PUBSUB", "LAMBDA"]);
+
+/** System variables that are not available in streaming requests. */
+const UNSUPPORTED_STREAM_VARIABLES = ["$$NOW", "$$ROOT", "$$CURRENT"] as const;
 
 const ConnectionType = z.enum([
     "Kafka",
@@ -379,7 +386,7 @@ export class StreamsBuildTool extends StreamsToolBase {
         }
         if (!args.connectionType) {
             throw new StreamsInvalidArgumentError(
-                "connectionType is required. Choose from: Kafka, Cluster, S3, Https, AWSKinesisDataStreams, AWSLambda, SchemaRegistry, GCPPubSub, Sample."
+                `connectionType is required. Choose from: ${ConnectionType.options.join(", ")}.`
             );
         }
 
@@ -956,12 +963,11 @@ export class StreamsBuildTool extends StreamsToolBase {
         if (
             field === "publicPrivateNetworking" &&
             accessRecord.type !== undefined &&
-            accessRecord.type !== "PUBLIC" &&
-            accessRecord.type !== "PRIVATE_LINK"
+            !StreamsPrivateLinkAccessType.safeParse(accessRecord.type).success
         ) {
             throw new StreamsInvalidArgumentError(
                 `networking.access.type ${JSON.stringify(accessRecord.type)} is not valid for this connection type. ` +
-                    `Use 'PUBLIC' or 'PRIVATE_LINK'.`
+                    `Use ${StreamsPrivateLinkAccessType.options.map((type) => `'${type}'`).join(" or ")}.`
             );
         }
     }
@@ -985,7 +991,7 @@ export class StreamsBuildTool extends StreamsToolBase {
         }
 
         const pipelineStr = JSON.stringify(pipeline);
-        const unsupportedVars = ["$$NOW", "$$ROOT", "$$CURRENT"].filter((v) => pipelineStr.includes(v));
+        const unsupportedVars = UNSUPPORTED_STREAM_VARIABLES.filter((variable) => pipelineStr.includes(variable));
         if (unsupportedVars.length > 0) {
             return {
                 content: [
@@ -1171,19 +1177,16 @@ export class StreamsBuildTool extends StreamsToolBase {
             );
         }
 
-        const vendor = (args.privateLinkConfig.vendor ?? "").toUpperCase();
-        StreamsBuildTool.validatePrivateLinkVendorFields(vendor, args.privateLinkConfig);
+        const privateLinkConfig = PrivateLinkConfig.parse(args.privateLinkConfig);
+        const vendor = privateLinkConfig.vendor ?? "";
+        StreamsBuildTool.validatePrivateLinkVendorFields(vendor, privateLinkConfig);
 
         // Drop empty values so optional fields are not sent as "".
         const body: Record<string, unknown> = Object.fromEntries(
-            Object.entries(args.privateLinkConfig).filter(
+            Object.entries(privateLinkConfig).filter(
                 ([, value]) => value !== "" && value !== undefined && value !== null
             )
         );
-        // Send the canonical vendor value documented by the API.
-        if (vendor) {
-            body.vendor = vendor;
-        }
 
         const created = await this.server.apiClient.createPrivateLinkConnection(
             {
@@ -1196,8 +1199,7 @@ export class StreamsBuildTool extends StreamsToolBase {
 
         // Connections for these vendors read PrivateLink settings from
         // publicPrivateNetworking; all other vendors use networking.
-        const privateLinkVendors = ["PUBSUB", "LAMBDA"];
-        const accessField = privateLinkVendors.includes(vendor) ? "publicPrivateNetworking" : "networking";
+        const accessField = PUBLIC_PRIVATE_NETWORKING_VENDORS.has(vendor) ? "publicPrivateNetworking" : "networking";
         const pubsubNote =
             vendor === "PUBSUB"
                 ? " Only one PUBSUB endpoint is allowed per region, so reuse it for all Pub/Sub connections in that region."
@@ -1211,7 +1213,7 @@ export class StreamsBuildTool extends StreamsToolBase {
                 {
                     type: "text",
                     text:
-                        `PrivateLink connection created for ${args.privateLinkConfig.provider}` +
+                        `PrivateLink connection created for ${privateLinkConfig.provider}` +
                         `${privateLinkId ? ` (id '${privateLinkId}')` : ""}. ` +
                         `It may take a few minutes to become active. ` +
                         `Use \`atlas-streams-discover\` with action 'get-networking' to check status, and wait until ` +

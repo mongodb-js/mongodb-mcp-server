@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
 import type { IAtlasConfig } from "@mongodb-js/mcp-tools-atlas";
-import { ConnectionConfig, StreamsBuildTool } from "@mongodb-js/mcp-tools-atlas";
+import { ConnectionConfig, PrivateLinkConfig, StreamsBuildTool } from "@mongodb-js/mcp-tools-atlas";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import { Keychain } from "@mongodb-js/mcp-core";
@@ -1542,6 +1542,21 @@ describe("StreamsBuildTool", () => {
             expect(ConnectionConfig.safeParse({ publicPrivateNetworking: { access: { type: "BOGUS" } } }).success).toBe(
                 false
             );
+        });
+
+        it("accepts the documented networking access types", () => {
+            for (const type of ["PUBLIC", "VPC", "PRIVATE_LINK", "TRANSIT_GATEWAY"]) {
+                expect(ConnectionConfig.safeParse({ networking: { access: { type } } }).success).toBe(true);
+            }
+        });
+
+        it("rejects an invalid networking access type", () => {
+            expect(ConnectionConfig.safeParse({ networking: { access: { type: "BOGUS" } } }).success).toBe(false);
+        });
+
+        it("normalizes and validates the PrivateLink vendor", () => {
+            expect(PrivateLinkConfig.parse({ provider: "GCP", vendor: "pubsub" }).vendor).toBe("PUBSUB");
+            expect(() => PrivateLinkConfig.parse({ provider: "GCP", vendor: "BOGUS" })).toThrow();
         });
 
         it("moves Kafka-style networking to publicPrivateNetworking for GCP Pub/Sub", async () => {

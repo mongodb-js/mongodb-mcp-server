@@ -8,6 +8,12 @@ export const StreamsTier = z.enum(["SP2", "SP5", "SP10", "SP30", "SP50"]);
 
 export type StreamsTierValue = z.infer<typeof StreamsTier>;
 
+/** Networking access types supported by Kafka, S3, and Kinesis connections. */
+const StreamsNetworkingAccessType = z.enum(["PUBLIC", "VPC", "PRIVATE_LINK", "TRANSIT_GATEWAY"]);
+
+/** Networking access types supported by connections that use publicPrivateNetworking. */
+export const StreamsPrivateLinkAccessType = z.enum(["PUBLIC", "PRIVATE_LINK"]);
+
 const DBRoleType = z.enum(["BUILT_IN", "CUSTOM"]).default("BUILT_IN");
 
 /** Typed schema for connectionConfig — all fields optional to support elicitation of partial configs. */
@@ -107,12 +113,12 @@ export const ConnectionConfig = z
             .passthrough()
             .optional()
             .describe("Schema registry auth. Defaults to USER_INFO."),
-        // Networking (Kafka PrivateLink/VPC peering)
+        // networking: Kafka, S3, and Kinesis (PUBLIC | VPC | PRIVATE_LINK | TRANSIT_GATEWAY)
         networking: z
             .object({
                 access: z
                     .object({
-                        type: z.string().optional(),
+                        type: StreamsNetworkingAccessType.optional(),
                         connectionId: z.string().optional(),
                     })
                     .passthrough()
@@ -121,15 +127,16 @@ export const ConnectionConfig = z
             .passthrough()
             .optional()
             .describe(
-                "Private networking config (PrivateLink or VPC peering) for Kafka, S3, and Kinesis connections. " +
+                "Networking access for Kafka, S3, and Kinesis connections. " +
+                    "Set access.type to PUBLIC, VPC, PRIVATE_LINK, or TRANSIT_GATEWAY. " +
                     "For GCPPubSub and AWSLambda connections use publicPrivateNetworking."
             ),
-        // Public/PrivateLink networking (AWSLambda, GCPPubSub)
+        // publicPrivateNetworking: AWSLambda and GCPPubSub (PUBLIC | PRIVATE_LINK)
         publicPrivateNetworking: z
             .object({
                 access: z
                     .object({
-                        type: z.enum(["PUBLIC", "PRIVATE_LINK"]).optional(),
+                        type: StreamsPrivateLinkAccessType.optional(),
                         connectionId: z
                             .string()
                             .optional()
@@ -143,11 +150,18 @@ export const ConnectionConfig = z
             .passthrough()
             .optional()
             .describe(
-                "Public or PrivateLink networking for GCPPubSub and AWSLambda connections. " +
-                    "For private networking set access.type='PRIVATE_LINK' and access.connectionId to a PrivateLink endpoint ID."
+                "Networking access for GCPPubSub and AWSLambda connections. " +
+                    "Set access.type to PUBLIC or PRIVATE_LINK. " +
+                    "For private networking set access.connectionId to a PrivateLink endpoint ID."
             ),
     })
     .passthrough();
+
+/** PrivateLink vendors accepted by the API. Input is normalized to uppercase. */
+const StreamsPrivateLinkVendor = z
+    .string()
+    .transform((value) => value.toUpperCase())
+    .pipe(z.enum(["CONFLUENT", "MSK", "EVENTHUB", "GENERIC", "KINESIS", "S3", "PUBSUB", "LAMBDA"]));
 
 /** Typed schema for privateLinkConfig — provider is required, all other fields optional and per-provider. */
 export const PrivateLinkConfig = z
@@ -161,12 +175,9 @@ export const PrivateLinkConfig = z
                 "Cloud region for the PrivateLink endpoint. Required for all vendors except AWS MSK. Use cloud-native region names: AWS 'us-east-1', Azure 'eastus2', GCP 'us-central1'."
             ),
         // AWS
-        vendor: z
-            .string()
-            .optional()
-            .describe(
-                "PrivateLink vendor. If the user does not specify a vendor, ask them which vendor to use before proceeding. If they decline or say none, omit this field — the Atlas API will default to GENERIC. Valid values — AWS: 'CONFLUENT', 'MSK', 'KINESIS', 'S3', 'LAMBDA'. Azure: 'EVENTHUB', 'CONFLUENT'. GCP: 'CONFLUENT', 'PUBSUB'."
-            ),
+        vendor: StreamsPrivateLinkVendor.optional().describe(
+            "PrivateLink vendor. If the user does not specify a vendor, ask them which vendor to use before proceeding. If they decline or say none, omit this field — the Atlas API will default to GENERIC. Valid values — AWS: 'CONFLUENT', 'MSK', 'KINESIS', 'S3', 'LAMBDA'. Azure: 'EVENTHUB', 'CONFLUENT'. GCP: 'CONFLUENT', 'PUBSUB'."
+        ),
         arn: z.string().optional().describe("Amazon Resource Name (ARN). Required for AWS MSK vendor."),
         authenticationScheme: z
             .enum(["TLS", "SASL_SCRAM", "IAM"])
