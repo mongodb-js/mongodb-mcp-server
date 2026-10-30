@@ -8,6 +8,12 @@ export const StreamsTier = z.enum(["SP2", "SP5", "SP10", "SP30", "SP50"]);
 
 export type StreamsTierValue = z.infer<typeof StreamsTier>;
 
+/** Networking access types supported by Kafka, S3, and Kinesis connections. */
+const StreamsNetworkingAccessType = z.enum(["PUBLIC", "VPC", "PRIVATE_LINK", "TRANSIT_GATEWAY"]);
+
+/** Networking access types supported by connections that use publicPrivateNetworking. */
+export const StreamsPrivateLinkAccessType = z.enum(["PUBLIC", "PRIVATE_LINK"]);
+
 const DBRoleType = z.enum(["BUILT_IN", "CUSTOM"]).default("BUILT_IN");
 
 /** Typed schema for connectionConfig — all fields optional to support elicitation of partial configs. */
@@ -66,6 +72,20 @@ export const ConnectionConfig = z
             .passthrough()
             .optional()
             .describe("AWS config for S3, Kinesis, and Lambda connections."),
+        // GCP (Pub/Sub)
+        gcp: z
+            .object({
+                serviceAccountId: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "Email address of the GCP service account that Atlas Streams uses to access Pub/Sub. " +
+                            "Must be registered in this Atlas project via Cloud Provider Access."
+                    ),
+            })
+            .passthrough()
+            .optional()
+            .describe("GCP config for Pub/Sub connections."),
         // Https
         url: z.string().optional().describe("Webhook URL for Https connections."),
         headers: z.record(z.string(), z.string()).optional().describe("HTTP headers for Https connections."),
@@ -93,12 +113,12 @@ export const ConnectionConfig = z
             .passthrough()
             .optional()
             .describe("Schema registry auth. Defaults to USER_INFO."),
-        // Networking (Kafka PrivateLink/VPC peering)
+        // networking: Kafka, S3, and Kinesis (PUBLIC | VPC | PRIVATE_LINK | TRANSIT_GATEWAY)
         networking: z
             .object({
                 access: z
                     .object({
-                        type: z.string().optional(),
+                        type: StreamsNetworkingAccessType.optional(),
                         connectionId: z.string().optional(),
                     })
                     .passthrough()
@@ -106,9 +126,42 @@ export const ConnectionConfig = z
             })
             .passthrough()
             .optional()
-            .describe("Private networking config (PrivateLink or VPC peering). Kafka only."),
+            .describe(
+                "Networking access for Kafka, S3, and Kinesis connections. " +
+                    "Set access.type to PUBLIC, VPC, PRIVATE_LINK, or TRANSIT_GATEWAY. " +
+                    "For GCPPubSub and AWSLambda connections use publicPrivateNetworking."
+            ),
+        // publicPrivateNetworking: AWSLambda and GCPPubSub (PUBLIC | PRIVATE_LINK)
+        publicPrivateNetworking: z
+            .object({
+                access: z
+                    .object({
+                        type: StreamsPrivateLinkAccessType.optional(),
+                        connectionId: z
+                            .string()
+                            .optional()
+                            .describe(
+                                "PrivateLink endpoint ID (24-character hex string), as returned by atlas-streams-discover action 'get-networking'."
+                            ),
+                    })
+                    .passthrough()
+                    .optional(),
+            })
+            .passthrough()
+            .optional()
+            .describe(
+                "Networking access for GCPPubSub and AWSLambda connections. " +
+                    "Set access.type to PUBLIC or PRIVATE_LINK. " +
+                    "For private networking set access.connectionId to a PrivateLink endpoint ID."
+            ),
     })
     .passthrough();
+
+/** PrivateLink vendors accepted by the API. Input is normalized to uppercase. */
+const StreamsPrivateLinkVendor = z
+    .string()
+    .transform((value) => value.toUpperCase())
+    .pipe(z.enum(["CONFLUENT", "MSK", "EVENTHUB", "GENERIC", "KINESIS", "S3", "PUBSUB", "LAMBDA"]));
 
 /** Typed schema for privateLinkConfig — provider is required, all other fields optional and per-provider. */
 export const PrivateLinkConfig = z
@@ -122,12 +175,9 @@ export const PrivateLinkConfig = z
                 "Cloud region for the PrivateLink endpoint. Required for all vendors except AWS MSK. Use cloud-native region names: AWS 'us-east-1', Azure 'eastus2', GCP 'us-central1'."
             ),
         // AWS
-        vendor: z
-            .string()
-            .optional()
-            .describe(
-                "PrivateLink vendor. If the user does not specify a vendor, ask them which vendor to use before proceeding. If they decline or say none, omit this field — the Atlas API will default to GENERIC. Valid values — AWS: 'CONFLUENT', 'MSK', 'KINESIS', 'S3'. Azure: 'EVENTHUB', 'CONFLUENT'. GCP: 'CONFLUENT'."
-            ),
+        vendor: StreamsPrivateLinkVendor.optional().describe(
+            "PrivateLink vendor. If the user does not specify a vendor, ask them which vendor to use before proceeding. If they decline or say none, omit this field — the Atlas API will default to GENERIC. Valid values — AWS: 'CONFLUENT', 'MSK', 'KINESIS', 'S3', 'LAMBDA'. Azure: 'EVENTHUB', 'CONFLUENT'. GCP: 'CONFLUENT', 'PUBSUB'."
+        ),
         arn: z.string().optional().describe("Amazon Resource Name (ARN). Required for AWS MSK vendor."),
         authenticationScheme: z
             .enum(["TLS", "SASL_SCRAM", "IAM"])
@@ -139,7 +189,7 @@ export const PrivateLinkConfig = z
             .string()
             .optional()
             .describe(
-                "DNS domain hostname. Required for AWS CONFLUENT, AZURE EVENTHUB, AZURE CONFLUENT, and GCP CONFLUENT."
+                "DNS domain hostname. Required for AWS CONFLUENT, AZURE EVENTHUB, AZURE CONFLUENT, and GCP CONFLUENT. For GCP PUBSUB Atlas derives it — omit it."
             ),
         dnsSubDomain: z
             .array(z.string())
@@ -152,7 +202,7 @@ export const PrivateLinkConfig = z
             .string()
             .optional()
             .describe(
-                "Service endpoint ID. Required for AWS CONFLUENT, AWS S3, AWS KINESIS, and AZURE EVENTHUB. Do NOT provide for AZURE CONFLUENT or GCP CONFLUENT."
+                "Service endpoint ID. Required for AWS CONFLUENT, AWS S3, AWS KINESIS, AWS LAMBDA ('com.amazonaws.{region}.lambda'), and AZURE EVENTHUB. Do NOT provide for AZURE CONFLUENT, GCP CONFLUENT, or GCP PUBSUB."
             ),
         azureResourceIds: z
             .array(z.string())

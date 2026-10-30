@@ -496,6 +496,34 @@ describe("StreamsDiscoverTool", () => {
             });
         });
 
+        it("should expose GCP Pub/Sub config and PrivateLink access in the structured summary", async () => {
+            mockApiClient.getStreamConnection!.mockResolvedValue({
+                name: "pubsub-out",
+                type: "GCPPubSub",
+                gcp: { serviceAccountId: "atlas-streams@my-project.iam.gserviceaccount.com" },
+                publicPrivateNetworking: {
+                    access: { type: "PRIVATE_LINK", connectionId: "64b7e9f1a2c3d4e5f6a7b8c9" },
+                },
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "inspect-connection",
+                workspaceName: "ws1",
+                resourceName: "pubsub-out",
+            });
+
+            expect(result.structuredContent).toEqual({
+                connection: {
+                    type: "GCPPubSub",
+                    gcp: { serviceAccountId: "atlas-streams@my-project.iam.gserviceaccount.com" },
+                    publicPrivateNetworking: {
+                        access: { type: "PRIVATE_LINK", connectionId: "64b7e9f1a2c3d4e5f6a7b8c9" },
+                    },
+                },
+            });
+        });
+
         it("masks secret-valued authentication fields from the returned content", async () => {
             mockApiClient.getStreamConnection!.mockResolvedValue({
                 name: "kafka-in",
@@ -662,6 +690,47 @@ describe("StreamsDiscoverTool", () => {
             });
         });
 
+        it("should include the GCP PUBSUB endpoint DNS domain", async () => {
+            mockApiClient.listPrivateLinkConnections!.mockResolvedValue({
+                results: [
+                    {
+                        _id: "pl-pubsub",
+                        provider: "GCP",
+                        region: "us-central1",
+                        state: "AVAILABLE",
+                        vendor: "PUBSUB",
+                        dnsDomain: "pubsub-abc123.us-central1.p.iam.gserviceaccount.com",
+                        interfaceEndpointId: "iface-1",
+                        interfaceEndpointName: "atlas-pl-pubsub",
+                        providerAccountId: "my-project",
+                    },
+                ],
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "get-networking",
+            });
+
+            expect(result.structuredContent).toEqual({
+                privateLinks: [
+                    {
+                        id: "pl-pubsub",
+                        provider: "GCP",
+                        region: "us-central1",
+                        state: "AVAILABLE",
+                        vendor: "PUBSUB",
+                        dnsDomain: "pubsub-abc123.us-central1.p.iam.gserviceaccount.com",
+                        interfaceEndpointId: "iface-1",
+                        interfaceEndpointName: "atlas-pl-pubsub",
+                        providerAccountId: "my-project",
+                    },
+                ],
+            });
+            const text = result.content.map((c) => (c as { text: string }).text).join("\n");
+            expect(text).toContain("pubsub-abc123.us-central1.p.iam.gserviceaccount.com");
+        });
+
         it("should include errorMessage when present", async () => {
             mockApiClient.listPrivateLinkConnections!.mockResolvedValue({
                 results: [
@@ -735,6 +804,68 @@ describe("StreamsDiscoverTool", () => {
             expect(result.isError).toBe(true);
             expect((result.content[0] as { text: string }).text).toContain("Unknown action");
             expect(result.structuredContent).toBeUndefined();
+        });
+    });
+
+    describe("review regressions", () => {
+        it("projects only known fields from nested connection config", async () => {
+            mockApiClient.getStreamConnection!.mockResolvedValue({
+                name: "pubsub-out",
+                type: "GCPPubSub",
+                gcp: {
+                    serviceAccountId: "atlas-streams@my-project.iam.gserviceaccount.com",
+                    links: [{ href: "https://example.com" }],
+                },
+                publicPrivateNetworking: {
+                    access: {
+                        type: "PRIVATE_LINK",
+                        connectionId: "64b7e9f1a2c3d4e5f6a7b8c9",
+                        links: [{ href: "https://example.com" }],
+                    },
+                    links: [{ href: "https://example.com" }],
+                },
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "inspect-connection",
+                workspaceName: "ws1",
+                resourceName: "pubsub-out",
+            });
+
+            expect(result.structuredContent).toEqual({
+                connection: {
+                    type: "GCPPubSub",
+                    gcp: { serviceAccountId: "atlas-streams@my-project.iam.gserviceaccount.com" },
+                    publicPrivateNetworking: {
+                        access: { type: "PRIVATE_LINK", connectionId: "64b7e9f1a2c3d4e5f6a7b8c9" },
+                    },
+                },
+            });
+        });
+
+        it("should omit null PrivateLink fields instead of failing the output schema", async () => {
+            mockApiClient.listPrivateLinkConnections!.mockResolvedValue({
+                results: [
+                    {
+                        _id: "pl-null",
+                        provider: null,
+                        region: null,
+                        state: "AVAILABLE",
+                        vendor: null,
+                        dnsDomain: null,
+                    },
+                ],
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "get-networking",
+            });
+
+            expect(result.structuredContent).toEqual({
+                privateLinks: [{ id: "pl-null", state: "AVAILABLE" }],
+            });
         });
     });
 });

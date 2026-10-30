@@ -16,11 +16,18 @@ import {
     PrivateLinkConfig,
     StreamsArgs,
     StreamsAutoscaling,
+    StreamsPrivateLinkAccessType,
     StreamsTier,
 } from "../../streams/streamsArgs.js";
 import { StreamsInvalidArgumentError } from "../../streams/errors.js";
 
 const BuildResource = z.enum(["workspace", "connection", "processor", "privatelink"]);
+
+/** Vendors whose connections read PrivateLink settings from publicPrivateNetworking. */
+const PUBLIC_PRIVATE_NETWORKING_VENDORS = new Set(["PUBSUB", "LAMBDA"]);
+
+/** System variables that are not available in streaming requests. */
+const UNSUPPORTED_STREAM_VARIABLES = ["$$NOW", "$$ROOT", "$$CURRENT"] as const;
 
 const ConnectionType = z.enum([
     "Kafka",
@@ -30,6 +37,7 @@ const ConnectionType = z.enum([
     "AWSKinesisDataStreams",
     "AWSLambda",
     "SchemaRegistry",
+    "GCPPubSub",
     "Sample",
 ]);
 
@@ -89,6 +97,12 @@ const AWS_FIELDS = {
             "(e.g. 'arn:aws:iam::123456789:role/my-role'). " +
             "Ask the user for this value — it can be found in: Atlas UI → Project Settings → Cloud Provider Access.",
     },
+    connectionId: {
+        title: "PrivateLink Connection ID",
+        description:
+            "24-character hex ID of an AWS Lambda PrivateLink endpoint in this project. " +
+            "Use `atlas-streams-discover` with action 'get-networking' to list endpoints.",
+    },
 } as const satisfies Record<string, FieldSchema>;
 
 const SCHEMA_REGISTRY_FIELDS = {
@@ -113,8 +127,24 @@ const HTTPS_FIELDS = {
     },
 } as const satisfies Record<string, FieldSchema>;
 
+const GCP_FIELDS = {
+    serviceAccountId: {
+        title: "GCP Service Account Email",
+        description:
+            "Email address of the GCP service account Atlas uses to access Pub/Sub. " +
+            "Find it in Atlas UI → Project Settings → Cloud Provider Access (GCP).",
+    },
+    connectionId: {
+        title: "PrivateLink Connection ID",
+        description:
+            "24-character hex ID of a GCP PUBSUB PrivateLink endpoint in this project. " +
+            "Use `atlas-streams-discover` with action 'get-networking' to list endpoints.",
+    },
+} as const satisfies Record<string, FieldSchema>;
+
 const BuildOutputSchema = {
     resource: BuildResource.describe("Which build step completed"),
+    privateLinkId: z.string().optional().describe("ID of the PrivateLink endpoint created by this step."),
 };
 
 const StreamsBuildArgsShape = {
@@ -164,6 +194,7 @@ const StreamsBuildArgsShape = {
             "AWSKinesisDataStreams: needs aws.roleArn (must be registered via Atlas Cloud Provider Access). " +
             "AWSLambda: needs aws.roleArn (must be registered via Atlas Cloud Provider Access). " +
             "SchemaRegistry: needs provider, schemaRegistryUrls, and authentication config. " +
+            "GCPPubSub: needs gcp.serviceAccountId (registered via Atlas Cloud Provider Access). " +
             "Sample: provides sample data for testing (no config needed)."
     ),
     connectionConfig: ConnectionConfig.optional().describe(
@@ -185,7 +216,11 @@ const StreamsBuildArgsShape = {
                 "Use $merge to write to Atlas cluster collections: {$merge: {into: {connectionName, db, coll}}}. " +
                 "Use $iceberg to write to Apache Iceberg tables on an S3 connection (must be the last stage): {$iceberg: {connectionName, bucket, databaseName, tableName, path}}. " +
                 "path is required and must not end with '/'. Requires tier SP10 or higher. On non-AWS workspaces also specify region. " +
-                "Use $emit to write to Kafka or Kinesis sinks: {$emit: {connectionName, topic}}. $emit only works with Kafka/Kinesis connections — do NOT use $emit with Https connections. " +
+                "Use $emit to write to Kafka, Kinesis, S3, or GCP Pub/Sub sinks. Kafka: {$emit: {connectionName, topic}}. " +
+                "Kinesis: {$emit: {connectionName, stream, partitionKey}}. " +
+                "S3: {$emit: {connectionName, bucket, path}}. " +
+                "GCP Pub/Sub: {$emit: {connectionName, topic, projectId, region}}. " +
+                "$emit does not work with Https connections — use $https instead. " +
                 "Use $https to POST data to an Https connection: {$https: {connectionName}}. " +
                 "Use $externalFunction for Lambda: {$externalFunction: {connectionName, functionName, execution: 'async', as: 'result'}}. Lambda does NOT use $emit — use $externalFunction with execution='async' as a sink stage or execution='sync' for mid-pipeline enrichment. " +
                 "By default $https.onError is 'dlq', which requires a DLQ (see dlq parameter). Set {$https: {connectionName, onError: 'ignore'}} to skip DLQ. " +
@@ -351,11 +386,15 @@ export class StreamsBuildTool extends StreamsToolBase {
         }
         if (!args.connectionType) {
             throw new StreamsInvalidArgumentError(
-                "connectionType is required. Choose from: Kafka, Cluster, S3, Https, AWSKinesisDataStreams, AWSLambda, SchemaRegistry, Sample."
+                `connectionType is required. Choose from: ${ConnectionType.options.join(", ")}.`
             );
         }
 
-        const config = { ...ConnectionConfig.parse(args.connectionConfig ?? {}) };
+        let config = { ...ConnectionConfig.parse(args.connectionConfig ?? {}) };
+        const networkingField = StreamsBuildTool.networkingFieldForConnectionType(args.connectionType);
+        if (networkingField) {
+            config = StreamsBuildTool.normalizeNetworkingField(config, networkingField);
+        }
 
         const missingInfo = this.normalizeAndValidateConnectionConfig({
             config,
@@ -380,10 +419,13 @@ export class StreamsBuildTool extends StreamsToolBase {
             request
         );
 
-        const privateLinkWarning =
-            config?.networking?.access?.type === "PRIVATE_LINK"
-                ? `\n\nNote: This connection uses PrivateLink and will start in PENDING state. It may take a few minutes to provision. Use \`atlas-streams-discover\` with action 'inspect-connection' to check when it becomes READY.`
-                : "";
+        const networking = config.networking as { access?: { type?: string } } | undefined;
+        const publicPrivateNetworking = config.publicPrivateNetworking as { access?: { type?: string } } | undefined;
+        const usesPrivateLink =
+            networking?.access?.type === "PRIVATE_LINK" || publicPrivateNetworking?.access?.type === "PRIVATE_LINK";
+        const privateLinkWarning = usesPrivateLink
+            ? `\n\nNote: This connection uses PrivateLink and will start in PENDING state. It may take a few minutes to provision. Use \`atlas-streams-discover\` with action 'inspect-connection' to check when it becomes READY.`
+            : "";
 
         return {
             content: [
@@ -429,6 +471,8 @@ export class StreamsBuildTool extends StreamsToolBase {
                 return this.validateSchemaRegistryConfig(config, request);
             case "Https":
                 return this.validateHttpsConfig(config, request);
+            case "GCPPubSub":
+                return this.validateGcpPubSubConfig(config, request);
             default:
                 return null;
         }
@@ -546,9 +590,21 @@ export class StreamsBuildTool extends StreamsToolBase {
         request: ToolRequest<IAtlasConfig>;
     }): CallToolResult | InputRequiredResult | null {
         const aws = config.aws as Record<string, unknown> | undefined;
+        const access =
+            connectionType === "AWSLambda"
+                ? ((config.publicPrivateNetworking as Record<string, unknown> | undefined)?.access as
+                      | Record<string, unknown>
+                      | undefined)
+                : undefined;
+        const usesPrivateLink = access?.type === "PRIVATE_LINK";
 
         const missingFields = StreamsBuildTool.collectMissingFields([
             { key: "roleArn", present: !!aws?.roleArn, schema: AWS_FIELDS.roleArn },
+            {
+                key: "connectionId",
+                present: !usesPrivateLink || !!access?.connectionId,
+                schema: AWS_FIELDS.connectionId,
+            },
         ]);
 
         if (missingFields.length === 0) {
@@ -565,11 +621,21 @@ export class StreamsBuildTool extends StreamsToolBase {
                     if (!cfg.aws) cfg.aws = {};
                     (cfg.aws as Record<string, unknown>).roleArn = fields.roleArn;
                 }
+                if (fields.connectionId) {
+                    if (!cfg.publicPrivateNetworking) cfg.publicPrivateNetworking = {};
+                    const networking = cfg.publicPrivateNetworking as Record<string, unknown>;
+                    if (!networking.access) networking.access = {};
+                    (networking.access as Record<string, unknown>).connectionId = fields.connectionId;
+                }
             },
-            additionalNote:
-                `Note: The IAM role ARN must first be registered in the Atlas project via Cloud Provider Access.\n` +
-                `To find available ARNs: Atlas UI → Project Settings → Cloud Provider Access.\n` +
+            additionalNote: [
+                `Note: The IAM role ARN must first be registered in the Atlas project via Cloud Provider Access.`,
+                `To find available ARNs: Atlas UI → Project Settings → Cloud Provider Access.`,
                 `To register a new one: Atlas UI → Project Settings → Cloud Provider Access → Authorize an AWS IAM role.`,
+                ...(usesPrivateLink
+                    ? [`For PrivateLink, create the AWS LAMBDA endpoint first with resource='privatelink'.`]
+                    : []),
+            ].join("\n"),
         });
     }
 
@@ -652,6 +718,63 @@ export class StreamsBuildTool extends StreamsToolBase {
                 if (fields.username) authObj.username = fields.username;
                 if (fields.password) authObj.password = fields.password;
             },
+        });
+    }
+
+    private validateGcpPubSubConfig(
+        config: Record<string, unknown>,
+        request: ToolRequest<IAtlasConfig>
+    ): CallToolResult | InputRequiredResult | null {
+        const gcp = config.gcp as Record<string, unknown> | undefined;
+        const access = (config.publicPrivateNetworking as Record<string, unknown> | undefined)?.access as
+            | Record<string, unknown>
+            | undefined;
+        const usesPrivateLink = access?.type === "PRIVATE_LINK";
+
+        const missingFields = StreamsBuildTool.collectMissingFields([
+            {
+                key: "serviceAccountId",
+                present: !!gcp?.serviceAccountId,
+                schema: GCP_FIELDS.serviceAccountId,
+            },
+            {
+                key: "connectionId",
+                present: !usesPrivateLink || !!access?.connectionId,
+                schema: GCP_FIELDS.connectionId,
+            },
+        ]);
+
+        if (missingFields.length === 0) {
+            return null;
+        }
+
+        return this.elicitOrReportMissing({
+            connectionType: "GCPPubSub",
+            config,
+            missingFields,
+            request,
+            applyFields: (fields, cfg) => {
+                if (fields.serviceAccountId) {
+                    if (!cfg.gcp) cfg.gcp = {};
+                    (cfg.gcp as Record<string, unknown>).serviceAccountId = fields.serviceAccountId;
+                }
+                if (fields.connectionId) {
+                    if (!cfg.publicPrivateNetworking) cfg.publicPrivateNetworking = {};
+                    const networking = cfg.publicPrivateNetworking as Record<string, unknown>;
+                    if (!networking.access) networking.access = {};
+                    (networking.access as Record<string, unknown>).connectionId = fields.connectionId;
+                }
+            },
+            additionalNote: [
+                "The GCP service account must first be registered in the Atlas project via Cloud Provider Access.",
+                ...(usesPrivateLink
+                    ? [
+                          "For PrivateLink, create the GCP PUBSUB endpoint first with resource='privatelink', then wait " +
+                              "until atlas-streams-discover action 'get-networking' reports state DONE. The workspace must " +
+                              "be in GCP and needs a GCP cluster or network peering in the endpoint's region.",
+                      ]
+                    : []),
+            ].join("\n"),
         });
     }
 
@@ -795,6 +918,105 @@ export class StreamsBuildTool extends StreamsToolBase {
         };
     }
 
+    /**
+     * The Atlas API uses `networking` for Kafka/S3/Kinesis connections and
+     * `publicPrivateNetworking` for AWSLambda/GCPPubSub. Agents
+     * often mirror Terraform's `networking` attribute for every type, so move
+     * the value to the field the API expects. Also infer PRIVATE_LINK when a
+     * connectionId is supplied without an access type, since the API would
+     * otherwise default to PUBLIC and reject the connectionId.
+     */
+    private static networkingFieldForConnectionType(
+        connectionType: string
+    ): "networking" | "publicPrivateNetworking" | undefined {
+        switch (connectionType) {
+            case "Kafka":
+            case "S3":
+            case "AWSKinesisDataStreams":
+                return "networking";
+            case "AWSLambda":
+            case "GCPPubSub":
+            case "AzureBlobStorage":
+                return "publicPrivateNetworking";
+            default:
+                return undefined;
+        }
+    }
+
+    /** Access values that determine whether two networking blocks conflict. */
+    private static effectiveNetworkingAccess(networking: unknown): { type: string; connectionId?: string } {
+        const access =
+            typeof networking === "object" && networking !== null
+                ? (networking as Record<string, unknown>).access
+                : undefined;
+        const accessRecord =
+            typeof access === "object" && access !== null ? (access as Record<string, unknown>) : undefined;
+        const connectionId = typeof accessRecord?.connectionId === "string" ? accessRecord.connectionId : undefined;
+        const type =
+            typeof accessRecord?.type === "string"
+                ? accessRecord.type
+                : connectionId !== undefined
+                  ? "PRIVATE_LINK"
+                  : "PUBLIC";
+        return { type, connectionId };
+    }
+
+    private static networkingAccessEqual(left: unknown, right: unknown): boolean {
+        const a = StreamsBuildTool.effectiveNetworkingAccess(left);
+        const b = StreamsBuildTool.effectiveNetworkingAccess(right);
+        return a.type === b.type && a.connectionId === b.connectionId;
+    }
+
+    private static normalizeNetworkingField(
+        config: Record<string, unknown>,
+        field: "networking" | "publicPrivateNetworking"
+    ): Record<string, unknown> {
+        const normalized = { ...config };
+        const otherField = field === "networking" ? "publicPrivateNetworking" : "networking";
+        const isEmpty = (value: unknown): boolean =>
+            value === undefined || value === null || (typeof value === "object" && Object.keys(value).length === 0);
+
+        if (isEmpty(normalized[field])) {
+            if (normalized[otherField] !== undefined) {
+                normalized[field] = normalized[otherField];
+            }
+        } else if (
+            !isEmpty(normalized[otherField]) &&
+            !StreamsBuildTool.networkingAccessEqual(normalized[field], normalized[otherField])
+        ) {
+            throw new StreamsInvalidArgumentError(
+                `Conflicting networking configuration: use only '${field}' for this connection type.`
+            );
+        }
+        delete normalized[otherField];
+
+        const networking = normalized[field];
+        if (typeof networking !== "object" || networking === null) {
+            return normalized;
+        }
+        const networkingRecord = { ...(networking as Record<string, unknown>) };
+        const access = networkingRecord.access;
+        if (typeof access === "object" && access !== null) {
+            const accessRecord = { ...(access as Record<string, unknown>) };
+            if (accessRecord.type === undefined && accessRecord.connectionId !== undefined) {
+                accessRecord.type = "PRIVATE_LINK";
+            }
+            if (
+                field === "publicPrivateNetworking" &&
+                accessRecord.type !== undefined &&
+                !StreamsPrivateLinkAccessType.safeParse(accessRecord.type).success
+            ) {
+                throw new StreamsInvalidArgumentError(
+                    `networking.access.type ${JSON.stringify(accessRecord.type)} is not valid for this connection type. ` +
+                        `Use ${StreamsPrivateLinkAccessType.options.map((type) => `'${type}'`).join(" or ")}.`
+                );
+            }
+            networkingRecord.access = accessRecord;
+        }
+        normalized[field] = networkingRecord;
+        return normalized;
+    }
+
     private static validatePipelineStructure(pipeline: Record<string, unknown>[]): CallToolResult | null {
         const firstStage = pipeline[0];
         const firstStageKey = firstStage ? Object.keys(firstStage)[0] : undefined;
@@ -814,7 +1036,7 @@ export class StreamsBuildTool extends StreamsToolBase {
         }
 
         const pipelineStr = JSON.stringify(pipeline);
-        const unsupportedVars = ["$$NOW", "$$ROOT", "$$CURRENT"].filter((v) => pipelineStr.includes(v));
+        const unsupportedVars = UNSUPPORTED_STREAM_VARIABLES.filter((variable) => pipelineStr.includes(variable));
         if (unsupportedVars.length > 0) {
             return {
                 content: [
@@ -987,9 +1209,11 @@ export class StreamsBuildTool extends StreamsToolBase {
                     "  AWS MSK: {provider, vendor:'MSK', arn, authenticationScheme:'TLS'|'SASL_SCRAM'|'IAM'}\n" +
                     "  AWS S3: {provider, vendor:'S3', region, serviceEndpointId:'com.amazonaws.<region>.s3'}\n" +
                     "  AWS KINESIS: {provider, vendor:'KINESIS', region, serviceEndpointId}\n" +
+                    "  AWS LAMBDA: {provider, vendor:'LAMBDA', region, serviceEndpointId:'com.amazonaws.<region>.lambda'} (requires an AWS cluster or network peering in the same region)\n" +
                     "  AZURE EVENTHUB: {provider, vendor:'EVENTHUB', region, dnsDomain, serviceEndpointId (full Azure Resource ID)}\n" +
                     "  AZURE CONFLUENT: {provider, vendor:'CONFLUENT', region, dnsDomain, azureResourceIds}\n" +
-                    "  GCP CONFLUENT: {provider, vendor:'CONFLUENT', region, dnsDomain, gcpServiceAttachmentUris}"
+                    "  GCP CONFLUENT: {provider, vendor:'CONFLUENT', region, dnsDomain, gcpServiceAttachmentUris}\n" +
+                    "  GCP PUBSUB: {provider, vendor:'PUBSUB', region} (Atlas derives dnsDomain; omit it. Requires a GCP cluster or network peering in the same region)"
             );
         }
         if (!args.privateLinkConfig.provider) {
@@ -998,30 +1222,70 @@ export class StreamsBuildTool extends StreamsToolBase {
             );
         }
 
-        const body: Record<string, unknown> = {
-            ...args.privateLinkConfig,
-        };
+        const privateLinkConfig = PrivateLinkConfig.parse(args.privateLinkConfig);
+        const vendor = privateLinkConfig.vendor ?? "";
+        StreamsBuildTool.validatePrivateLinkVendorFields(vendor, privateLinkConfig);
 
-        await this.server.apiClient.createPrivateLinkConnection(
+        // Drop empty values so optional fields are not sent as "".
+        const body: Record<string, unknown> = Object.fromEntries(
+            Object.entries(privateLinkConfig).filter(
+                ([, value]) => value !== "" && value !== undefined && value !== null
+            )
+        );
+
+        const created = await this.server.apiClient.createPrivateLinkConnection(
             {
                 params: { path: { groupId: args.projectId } },
                 body: body as never,
             },
             request
         );
+        const privateLinkId = (created as { _id?: string } | undefined)?._id;
+
+        // Connections for these vendors read PrivateLink settings from
+        // publicPrivateNetworking; all other vendors use networking.
+        const accessField = PUBLIC_PRIVATE_NETWORKING_VENDORS.has(vendor) ? "publicPrivateNetworking" : "networking";
+        const pubsubNote =
+            vendor === "PUBSUB"
+                ? " Only one PUBSUB endpoint is allowed per region, so reuse it for all Pub/Sub connections in that region."
+                : "";
+        const connectionIdHint = privateLinkId
+            ? `${accessField}.access.connectionId='${privateLinkId}'`
+            : `set ${accessField}.access.connectionId to this endpoint's _id from get-networking`;
 
         return {
             content: [
                 {
                     type: "text",
                     text:
-                        `PrivateLink connection created for ${args.privateLinkConfig.provider}. ` +
+                        `PrivateLink connection created for ${privateLinkConfig.provider}` +
+                        `${privateLinkId ? ` (id '${privateLinkId}')` : ""}. ` +
                         `It may take a few minutes to become active. ` +
-                        `Use \`atlas-streams-discover\` with action 'get-networking' to check status.\n\n` +
-                        `Once active, create connections with networking.access.type='PRIVATE_LINK' to use it.`,
+                        `Use \`atlas-streams-discover\` with action 'get-networking' to check status, and wait until ` +
+                        `the state is DONE before creating a connection with it.${pubsubNote}\n\n` +
+                        `The workspace must be in the same cloud provider as the endpoint. ` +
+                        `Once DONE, create connections with ${accessField}.access.type='PRIVATE_LINK' and ${connectionIdHint} to use it.`,
                 },
             ],
-            structuredContent: { resource: "privatelink" },
+            structuredContent: {
+                resource: "privatelink",
+                ...(privateLinkId !== undefined && { privateLinkId }),
+            },
         };
+    }
+
+    private static validatePrivateLinkVendorFields(
+        vendor: string,
+        config: {
+            region?: string;
+            serviceEndpointId?: string;
+            dnsDomain?: string;
+        }
+    ): void {
+        if (vendor === "PUBSUB" && !config.region) {
+            throw new StreamsInvalidArgumentError(
+                "privateLinkConfig.region is required for vendor 'PUBSUB' (e.g. 'us-central1')."
+            );
+        }
     }
 }
