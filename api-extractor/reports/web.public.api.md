@@ -22,7 +22,7 @@ import type { McpServer } from '@modelcontextprotocol/server';
 import { MongoClient } from 'mongodb';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import type { RequestMeta } from '@modelcontextprotocol/server';
-import { Secret } from 'mongodb-redact';
+import { Secret } from '@mongodb-js/mongodb-redact';
 import type { ServerContext } from '@modelcontextprotocol/server';
 import { ToolAnnotations } from '@modelcontextprotocol/server';
 import { z } from 'zod';

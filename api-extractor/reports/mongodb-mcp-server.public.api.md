@@ -31,7 +31,7 @@ import type { ReadResourceCallback } from '@modelcontextprotocol/server';
 import { Registry } from 'prom-client';
 import type { RequestMeta } from '@modelcontextprotocol/server';
 import type { ResourceMetadata } from '@modelcontextprotocol/server';
-import { Secret } from 'mongodb-redact';
+import { Secret } from '@mongodb-js/mongodb-redact';
 import type { ServerContext } from '@modelcontextprotocol/server';
 import { NodeStreamableHTTPServerTransport as StreamableHTTPServerTransport } from '@modelcontextprotocol/node';
 import { ToolAnnotations } from '@modelcontextprotocol/server';

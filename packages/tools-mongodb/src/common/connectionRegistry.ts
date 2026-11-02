@@ -226,6 +226,65 @@ export class ConnectionEntry {
         throw new MongoDBError(ErrorCodes.NotConnectedToMongoDB, `Connection "${this.connectionId}" is not connected.`);
     }
 
+    /**
+     * Like {@link getServiceProvider}, but waits for an in-flight OIDC
+     * auth-code flow to finish. Device flow (including a flow that switches to
+     * it mid-wait) still fails fast so the caller can surface its URL/user
+     * code. Used for the preconfigured connection only.
+     */
+    async getServiceProviderWhenReady(): Promise<NodeDriverServiceProvider> {
+        const state = this.state;
+        if (state.tag === "connecting" && state.oidcConnectionType === "oidc-auth-flow") {
+            return this.waitForAuthCode(state.serviceProvider);
+        }
+
+        return this.getServiceProvider();
+    }
+
+    /**
+     * Awaits an auth-code connection, but stops as soon as the plugin switches
+     * the flow to device flow: that flow needs the caller to surface the
+     * verification URL/code, so blocking on it would hide them.
+     */
+    private async waitForAuthCode(
+        serviceProvider: Promise<NodeDriverServiceProvider>
+    ): Promise<NodeDriverServiceProvider> {
+        const deviceFlowError = (): MongoDBError =>
+            new MongoDBError(
+                ErrorCodes.NotConnectedToMongoDB,
+                `Connection "${this.connectionId}" switched to device flow.`
+            );
+        let rejectDeviceFlow!: (error: unknown) => void;
+        const deviceFlow = new Promise<never>((_, reject) => {
+            rejectDeviceFlow = reject;
+        });
+        const onStateChange = (next: AnyConnectionState): void => {
+            if (next.tag === "connecting" && next.oidcConnectionType === "oidc-device-flow") {
+                rejectDeviceFlow(deviceFlowError());
+            }
+        };
+        this.manager.events.on("connection-request", onStateChange);
+        try {
+            // The switch may have happened between reading the state and
+            // attaching the listener, so re-check before awaiting.
+            if (this.state.tag === "connecting" && this.state.oidcConnectionType === "oidc-device-flow") {
+                rejectDeviceFlow(deviceFlowError());
+            }
+            return await Promise.race([serviceProvider, deviceFlow]);
+        } catch (error: unknown) {
+            if (error instanceof MongoDBError) {
+                throw error;
+            }
+            const message = error instanceof Error ? error.message : String(error);
+            throw new MongoDBError(
+                ErrorCodes.NotConnectedToMongoDB,
+                `Failed to authenticate connection "${this.connectionId}": ${message}`
+            );
+        } finally {
+            this.manager.events.off("connection-request", onStateChange);
+        }
+    }
+
     async isSearchSupported(logger: LoggerBase): Promise<boolean> {
         const state = this.state;
         if (state.tag === "connected") {

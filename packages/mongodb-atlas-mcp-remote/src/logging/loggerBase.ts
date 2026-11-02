@@ -1,6 +1,6 @@
 import { EventEmitter } from "events";
-import { redact } from "mongodb-redact";
-import type { Secret } from "mongodb-redact";
+import { redact } from "@mongodb-js/mongodb-redact";
+import type { Secret } from "@mongodb-js/mongodb-redact";
 import type { LoggerType, LogLevel, LogPayload, EventMap, DefaultEventMap } from "./loggingTypes.js";
 
 export abstract class LoggerBase<T extends EventMap<T> = DefaultEventMap> extends EventEmitter<T> {
