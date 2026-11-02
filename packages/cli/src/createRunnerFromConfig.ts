@@ -23,6 +23,11 @@ export async function createRunnerFromConfig(
     const { config } = options;
     const sharedServices = await createSharedServicesFromConfig(options);
 
+    // Dial the preconfigured connection (if any) as soon as we start so
+    // interactive auth flows get a head start. Fire-and-forget so startup isn't
+    // blocked; failures retry on the first tool call.
+    void sharedServices.connectionStore.connectPreconfigured();
+
     if (config.transport === "stdio") {
         // createServer is invoked per stdio connection (serveStdio may build a
         // discarded probe instance first), so each call registers a fresh server.

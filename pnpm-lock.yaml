@@ -355,12 +355,12 @@ importers:
       '@mongodb-js/mcp-types':
         specifier: workspace:*
         version: link:../types
+      '@mongodb-js/mongodb-redact':
+        specifier: ^1.4.19
+        version: 1.4.19
       bson:
         specifier: ^7.2.0
         version: 7.3.1
-      mongodb-redact:
-        specifier: ^1.1.6
-        version: 1.4.7
       zod:
         specifier: ^4.6.6
         version: 4.6.6
@@ -698,12 +698,12 @@ importers:
       '@mongodb-js/devtools-proxy-support':
         specifier: ^0.7.19
         version: 0.7.19
+      '@mongodb-js/mongodb-redact':
+        specifier: ^1.4.19
+        version: 1.4.19
       mongodb-log-writer:
         specifier: ^2.5.13
         version: 2.5.13(bson@7.3.1)
-      mongodb-redact:
-        specifier: ^1.4.6
-        version: 1.4.7
     devDependencies:
       '@types/node':
         specifier: ^25.6.0
@@ -1090,6 +1090,9 @@ importers:
       '@mongodb-js/mcp-types':
         specifier: workspace:*
         version: link:../types
+      '@mongodb-js/mongodb-build-info':
+        specifier: ^1.9.19
+        version: 1.9.19
       '@mongosh/arg-parser':
         specifier: ^5.0.2
         version: 5.0.2(zod@4.6.6)
@@ -1105,9 +1108,6 @@ importers:
       mongodb:
         specifier: ^7.1.1
         version: 7.2.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9)
-      mongodb-build-info:
-        specifier: ^1.9.7
-        version: 1.9.11
       mongodb-connection-string-url:
         specifier: ^7.0.2
         version: 7.0.2
@@ -1139,9 +1139,9 @@ importers:
       '@modelcontextprotocol/server':
         specifier: ^2.3.1
         version: 2.3.1
-      mongodb-redact:
-        specifier: ^1.4.6
-        version: 1.4.7
+      '@mongodb-js/mongodb-redact':
+        specifier: ^1.4.19
+        version: 1.4.19
     devDependencies:
       '@types/node':
         specifier: ^25.6.0
@@ -2672,8 +2672,14 @@ packages:
   '@mongodb-js/devtools-proxy-support@0.7.19':
     resolution: {integrity: sha512-3uodCwqO6N/ToJvXvyJ8K/TqJWgRYfu93VPxFNUqAfieXpfHq+F+pmB5GY9ZnXijqTsJvpiAC49JPSOnDuYfZg==}
 
+  '@mongodb-js/mongodb-build-info@1.9.19':
+    resolution: {integrity: sha512-xCjvW+evu99Cuf6pJrZIOwBjLtSKQxv9fRmdDuOwtQEhQ6Kjk1/W8h1/noAhz8DVLlYkbY6yBW9S/sLn72KYxA==}
+
   '@mongodb-js/mongodb-downloader@3.0.3':
     resolution: {integrity: sha512-azCB7196EjRMcXZ1j4N720jamNZBtoiliiKUmkw9QLeg57KVSRA3HN+B4rltp5vAoxZ97xrWrFMRQM6OkLEeeg==}
+
+  '@mongodb-js/mongodb-redact@1.4.19':
+    resolution: {integrity: sha512-XJDnovllAo9vqCKAyAvRi8HlKkxzKAFRT7gLND3LEjbmFLq3VBY3sdpKO/z7i8hz53nV+e9q1m0KiezeXoE4Nw==}
 
   '@mongodb-js/mongodb-runner@8.4.1':
     resolution: {integrity: sha512-Hmq7GWK1dTLaN/EfuxpCWj27H21v/ZJXUwjd2W21mK8YKstA8jlf3fAtz4QmECu+NHeQTSOoCBzxmW1ony5KmA==}
@@ -6534,9 +6540,6 @@ packages:
   mongodb-ns@3.1.6:
     resolution: {integrity: sha512-NJs8wuqM9vAVc/9Oy/PMx31Lq87Dnud+qC5c6xXaSKOloNScM5NyxFjsl6XMt2wlQR5Z/be1nm4hfjDBDV7VEA==}
 
-  mongodb-redact@1.4.7:
-    resolution: {integrity: sha512-wunfnlrGOQDG2ZbSaY7M5myd8OaxwF9o1Y3ijnNcWrLSFw629WPJRqu4EPe4vXFGfFkcGprAkq+ZYdfKZOK5xw==}
-
   mongodb-schema@12.7.0:
     resolution: {integrity: sha512-TPfop6c2AAQJP1QhQwi/uJnuPEeLhMvN9ouJAZ6M9mouH6fCr0WOHLJWx5Z0dSeXJIVy//WTXxZB6yiol1bGEA==}
     deprecated: This package is not maintained anymore. Please use @mongodb-js/mongodb-schema instead
@@ -10129,6 +10132,13 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@mongodb-js/mongodb-build-info@1.9.19':
+    dependencies:
+      debug: 4.4.3(supports-color@10.2.2)
+      mongodb-connection-string-url: 7.0.2
+    transitivePeerDependencies:
+      - supports-color
+
   '@mongodb-js/mongodb-downloader@3.0.3':
     dependencies:
       '@aws-sdk/client-s3': 3.1150.0
@@ -10143,6 +10153,11 @@ snapshots:
       - encoding
       - react-native-b4a
       - supports-color
+
+  '@mongodb-js/mongodb-redact@1.4.19':
+    dependencies:
+      mongodb-connection-string-url: 7.0.2
+      regexp.escape: 2.0.1
 
   '@mongodb-js/mongodb-runner@8.4.1(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9)':
     dependencies:
@@ -14412,11 +14427,6 @@ snapshots:
 
   mongodb-ns@3.1.6:
     optional: true
-
-  mongodb-redact@1.4.7:
-    dependencies:
-      mongodb-connection-string-url: 7.0.2
-      regexp.escape: 2.0.1
 
   mongodb-schema@12.7.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9):
     dependencies:

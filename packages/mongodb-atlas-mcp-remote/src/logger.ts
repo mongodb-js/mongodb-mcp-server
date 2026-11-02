@@ -1,4 +1,4 @@
-import type { Secret } from "mongodb-redact";
+import type { Secret } from "@mongodb-js/mongodb-redact";
 import { CompositeLogger, ConsoleLogger } from "./logging/index.js";
 
 const secrets: Secret[] = [];
