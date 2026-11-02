@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { z } from "zod";
 import type { IAtlasConfig } from "@mongodb-js/mcp-tools-atlas";
-import { StreamsBuildTool } from "@mongodb-js/mcp-tools-atlas";
+import { ConnectionConfig, PrivateLinkConfig, StreamsBuildTool } from "@mongodb-js/mcp-tools-atlas";
 import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import { Keychain } from "@mongodb-js/mcp-core";
@@ -85,8 +86,8 @@ describe("StreamsBuildTool", () => {
     });
 
     const baseArgs = { projectId: "proj1", workspaceName: "ws1" };
-    // The execute() result is narrowed to CallToolResult: the tool under test
-    // never returns input_required.
+    // Most tests exercise the happy path and narrow the result to
+    // CallToolResult; elicitation tests assert `resultType === "input_required"`.
     const exec = async (args: Record<string, unknown>): Promise<CallToolResult> =>
         (await tool["execute"](args as never, {
             request: {
@@ -826,6 +827,92 @@ describe("StreamsBuildTool", () => {
         });
     });
 
+    describe("createConnection - GCPPubSub", () => {
+        it("should create a GCP Pub/Sub connection with serviceAccountId", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "pubsub-out",
+                connectionType: "GCPPubSub",
+                connectionConfig: {
+                    gcp: { serviceAccountId: "atlas-streams@my-project.iam.gserviceaccount.com" },
+                },
+            });
+
+            expect(mockApiClient.createStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        name: "pubsub-out",
+                        type: "GCPPubSub",
+                        gcp: { serviceAccountId: "atlas-streams@my-project.iam.gserviceaccount.com" },
+                    }),
+                }),
+                expect.anything()
+            );
+        });
+
+        it("should create a GCP Pub/Sub connection with PrivateLink networking", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "pubsub-out",
+                connectionType: "GCPPubSub",
+                connectionConfig: {
+                    gcp: { serviceAccountId: "atlas-streams@my-project.iam.gserviceaccount.com" },
+                    publicPrivateNetworking: {
+                        access: { type: "PRIVATE_LINK", connectionId: "64b7e9f1a2c3d4e5f6a7b8c9" },
+                    },
+                },
+            });
+
+            expect(mockApiClient.createStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        type: "GCPPubSub",
+                        publicPrivateNetworking: {
+                            access: { type: "PRIVATE_LINK", connectionId: "64b7e9f1a2c3d4e5f6a7b8c9" },
+                        },
+                    }),
+                }),
+                expect.anything()
+            );
+
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("PENDING");
+        });
+
+        it("should trigger elicitation when serviceAccountId is missing", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "pubsub-out",
+                connectionType: "GCPPubSub",
+                connectionConfig: {},
+            });
+
+            const request = mockElicitation.inputRequired.mock.calls[0]![0] as { schema: { required: string[] } };
+            expect(result.resultType).toBe("input_required");
+            expect(request.schema.required).toEqual(["serviceAccountId"]);
+        });
+
+        it("should require connectionId when access type is PRIVATE_LINK", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "pubsub-out",
+                connectionType: "GCPPubSub",
+                connectionConfig: {
+                    gcp: { serviceAccountId: "atlas-streams@my-project.iam.gserviceaccount.com" },
+                    publicPrivateNetworking: { access: { type: "PRIVATE_LINK" } },
+                },
+            });
+
+            const request = mockElicitation.inputRequired.mock.calls[0]![0] as { schema: { required: string[] } };
+            expect(result.resultType).toBe("input_required");
+            expect(request.schema.required).toEqual(["connectionId"]);
+        });
+    });
+
     describe("pipeline structural validation", () => {
         it("should return error when first stage is not $source", async () => {
             const result = await exec({
@@ -1282,6 +1369,30 @@ describe("StreamsBuildTool", () => {
             );
         });
 
+        it("should create a GCP PUBSUB PrivateLink", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "privatelink",
+                privateLinkConfig: {
+                    provider: "GCP",
+                    vendor: "PUBSUB",
+                    region: "us-central1",
+                },
+            });
+
+            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1" } },
+                    body: {
+                        provider: "GCP",
+                        vendor: "PUBSUB",
+                        region: "us-central1",
+                    },
+                },
+                expect.anything()
+            );
+        });
+
         it("should throw when privateLinkConfig is missing", async () => {
             await expect(
                 exec({
@@ -1400,6 +1511,379 @@ describe("StreamsBuildTool", () => {
             expect(result.structuredContent).toEqual({
                 resource: "processor",
             });
+        });
+    });
+
+    describe("review regressions", () => {
+        const serviceAccountId = "atlas-streams@my-project.iam.gserviceaccount.com";
+        const connectionId = "64b7e9f1a2c3d4e5f6a7b8c9";
+
+        const lastConnectionBody = (): Record<string, unknown> => {
+            const calls = mockApiClient.createStreamConnection!.mock.calls as unknown as [
+                { body: Record<string, unknown> },
+            ][];
+            return calls.at(-1)![0].body;
+        };
+
+        it("accepts the new connection type in the advertised arguments schema", () => {
+            const argsSchema = z.object(tool.argsShape());
+            const parsed = argsSchema.safeParse({
+                projectId: connectionId,
+                workspaceName: "ws1",
+                resource: "connection",
+                connectionName: "conn1",
+                connectionType: "GCPPubSub",
+                connectionConfig: {},
+            });
+            expect(parsed.success).toBe(true);
+        });
+
+        it("rejects an invalid publicPrivateNetworking access type", () => {
+            expect(ConnectionConfig.safeParse({ publicPrivateNetworking: { access: { type: "BOGUS" } } }).success).toBe(
+                false
+            );
+        });
+
+        it("accepts the documented networking access types", () => {
+            for (const type of ["PUBLIC", "VPC", "PRIVATE_LINK", "TRANSIT_GATEWAY"]) {
+                expect(ConnectionConfig.safeParse({ networking: { access: { type } } }).success).toBe(true);
+            }
+        });
+
+        it("rejects an invalid networking access type", () => {
+            expect(ConnectionConfig.safeParse({ networking: { access: { type: "BOGUS" } } }).success).toBe(false);
+        });
+
+        it("normalizes and validates the PrivateLink vendor", () => {
+            expect(PrivateLinkConfig.parse({ provider: "GCP", vendor: "pubsub" }).vendor).toBe("PUBSUB");
+            expect(() => PrivateLinkConfig.parse({ provider: "GCP", vendor: "BOGUS" })).toThrow();
+        });
+
+        it("moves Kafka-style networking to publicPrivateNetworking for GCP Pub/Sub", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "pubsub-out",
+                connectionType: "GCPPubSub",
+                connectionConfig: {
+                    gcp: { serviceAccountId },
+                    networking: { access: { type: "PRIVATE_LINK", connectionId } },
+                },
+            });
+
+            expect(lastConnectionBody()).not.toHaveProperty("networking");
+            expect(lastConnectionBody().publicPrivateNetworking).toEqual({
+                access: { type: "PRIVATE_LINK", connectionId },
+            });
+            expect((result.content[0] as { text: string }).text).toContain("PENDING");
+        });
+
+        it("infers PRIVATE_LINK when only a connectionId is provided", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "pubsub-out",
+                connectionType: "GCPPubSub",
+                connectionConfig: {
+                    gcp: { serviceAccountId },
+                    publicPrivateNetworking: { access: { connectionId } },
+                },
+            });
+
+            expect(lastConnectionBody().publicPrivateNetworking).toEqual({
+                access: { type: "PRIVATE_LINK", connectionId },
+            });
+            expect(mockElicitation.readInput).not.toHaveBeenCalled();
+        });
+
+        it("normalizes networking without mutating the input config", () => {
+            const access = { connectionId };
+            const input = { gcp: { serviceAccountId }, networking: { access } };
+            const normalized = StreamsBuildTool["normalizeNetworkingField"](input, "publicPrivateNetworking");
+
+            expect(normalized).not.toBe(input);
+            expect(normalized.publicPrivateNetworking).toEqual({
+                access: { type: "PRIVATE_LINK", connectionId },
+            });
+            expect(normalized).not.toHaveProperty("networking");
+            expect(input).toEqual({ gcp: { serviceAccountId }, networking: { access: { connectionId } } });
+            expect(access).toEqual({ connectionId });
+        });
+
+        it("elicits the GCP connectionId on the re-entry round", async () => {
+            mockElicitation.readInput.mockReturnValue({ accepted: true, fields: { connectionId } });
+
+            await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "pubsub-out",
+                connectionType: "GCPPubSub",
+                connectionConfig: {
+                    gcp: { serviceAccountId },
+                    publicPrivateNetworking: { access: { type: "PRIVATE_LINK" } },
+                },
+            });
+
+            expect(lastConnectionBody().publicPrivateNetworking).toEqual({
+                access: { type: "PRIVATE_LINK", connectionId },
+            });
+        });
+
+        it("requires connectionId for an AWS Lambda PrivateLink connection", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "lambda1",
+                connectionType: "AWSLambda",
+                connectionConfig: {
+                    aws: { roleArn: "arn:aws:iam::456:role/lambda-role" },
+                    networking: { access: { type: "PRIVATE_LINK" } },
+                },
+            });
+
+            const request = mockElicitation.inputRequired.mock.calls[0]![0] as { schema: { required: string[] } };
+            expect(result.resultType).toBe("input_required");
+            expect(request.schema.required).toEqual(["connectionId"]);
+        });
+
+        it("tells GCP PUBSUB users to use publicPrivateNetworking", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "privatelink",
+                privateLinkConfig: { provider: "GCP", vendor: "PUBSUB", region: "us-central1" },
+            });
+
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("publicPrivateNetworking.access.type");
+        });
+
+        it("keeps networking wording for AWS CONFLUENT endpoints", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "privatelink",
+                privateLinkConfig: {
+                    provider: "AWS",
+                    vendor: "CONFLUENT",
+                    region: "us-east-1",
+                    serviceEndpointId: "com.amazonaws.vpce.us-east-1.vpce-svc-123",
+                    dnsDomain: "confluent.example.com",
+                    dnsSubDomain: [],
+                },
+            });
+
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain(" networking.access.type");
+            expect(text).not.toContain("publicPrivateNetworking");
+        });
+
+        it("requires region for a GCP PUBSUB PrivateLink", async () => {
+            await expect(
+                exec({
+                    ...baseArgs,
+                    resource: "privatelink",
+                    privateLinkConfig: { provider: "GCP", vendor: "PUBSUB" },
+                })
+            ).rejects.toThrow("privateLinkConfig.region is required for vendor 'PUBSUB'");
+        });
+
+        it("omits an empty dnsDomain for a GCP PUBSUB PrivateLink", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "privatelink",
+                privateLinkConfig: { provider: "GCP", vendor: "PUBSUB", region: "us-central1", dnsDomain: "" },
+            });
+
+            const calls = mockApiClient.createPrivateLinkConnection!.mock.calls as unknown as [
+                { body: Record<string, unknown> },
+            ][];
+            expect(calls.at(-1)![0].body).not.toHaveProperty("dnsDomain");
+        });
+
+        it("tells agents to wait for DONE before using a PrivateLink", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "privatelink",
+                privateLinkConfig: { provider: "GCP", vendor: "PUBSUB", region: "us-central1" },
+            });
+
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("state is DONE");
+            expect(text).toContain("same cloud provider");
+            expect(text).toContain("Only one PUBSUB endpoint is allowed per region");
+        });
+
+        it("matches the PrivateLink vendor case-insensitively", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "privatelink",
+                privateLinkConfig: { provider: "GCP", vendor: "pubsub", region: "us-central1" },
+            });
+
+            expect((result.content[0] as { text: string }).text).toContain("publicPrivateNetworking.access.type");
+            const calls = mockApiClient.createPrivateLinkConnection!.mock.calls as unknown as [
+                { body: Record<string, unknown> },
+            ][];
+            expect(calls.at(-1)![0].body.vendor).toBe("PUBSUB");
+        });
+
+        it("rejects networking access types other than PUBLIC or PRIVATE_LINK for GCP Pub/Sub", async () => {
+            await expect(
+                exec({
+                    ...baseArgs,
+                    resource: "connection",
+                    connectionName: "pubsub-out",
+                    connectionType: "GCPPubSub",
+                    connectionConfig: {
+                        gcp: { serviceAccountId },
+                        networking: { access: { type: "VPC", connectionId } },
+                    },
+                })
+            ).rejects.toThrow("Use 'PUBLIC' or 'PRIVATE_LINK'");
+        });
+
+        it("moves networking to publicPrivateNetworking for AWS Lambda", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "lambda1",
+                connectionType: "AWSLambda",
+                connectionConfig: {
+                    aws: { roleArn: "arn:aws:iam::456:role/lambda-role" },
+                    networking: { access: { type: "PRIVATE_LINK", connectionId } },
+                },
+            });
+
+            expect(lastConnectionBody()).not.toHaveProperty("networking");
+            expect(lastConnectionBody().publicPrivateNetworking).toEqual({
+                access: { type: "PRIVATE_LINK", connectionId },
+            });
+        });
+
+        it("moves publicPrivateNetworking to networking for S3", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "s3-conn",
+                connectionType: "S3",
+                connectionConfig: {
+                    aws: { roleArn: "arn:aws:iam::456:role/s3-role" },
+                    publicPrivateNetworking: { access: { type: "PRIVATE_LINK", connectionId } },
+                },
+            });
+
+            expect(lastConnectionBody()).not.toHaveProperty("publicPrivateNetworking");
+            expect(lastConnectionBody().networking).toEqual({
+                access: { type: "PRIVATE_LINK", connectionId },
+            });
+        });
+
+        it("keeps the PrivateLink block when the target field is an empty object", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "pubsub-out",
+                connectionType: "GCPPubSub",
+                connectionConfig: {
+                    gcp: { serviceAccountId },
+                    publicPrivateNetworking: {},
+                    networking: { access: { type: "PRIVATE_LINK", connectionId } },
+                },
+            });
+
+            expect(lastConnectionBody().publicPrivateNetworking).toEqual({
+                access: { type: "PRIVATE_LINK", connectionId },
+            });
+        });
+
+        it("rejects conflicting networking configuration", async () => {
+            await expect(
+                exec({
+                    ...baseArgs,
+                    resource: "connection",
+                    connectionName: "pubsub-out",
+                    connectionType: "GCPPubSub",
+                    connectionConfig: {
+                        gcp: { serviceAccountId },
+                        publicPrivateNetworking: { access: { type: "PUBLIC" } },
+                        networking: { access: { type: "PRIVATE_LINK", connectionId } },
+                    },
+                })
+            ).rejects.toThrow("Conflicting networking configuration");
+        });
+
+        it("rejects networking blocks with different connection IDs", async () => {
+            await expect(
+                exec({
+                    ...baseArgs,
+                    resource: "connection",
+                    connectionName: "pubsub-out",
+                    connectionType: "GCPPubSub",
+                    connectionConfig: {
+                        gcp: { serviceAccountId },
+                        publicPrivateNetworking: { access: { type: "PRIVATE_LINK", connectionId } },
+                        networking: {
+                            access: { type: "PRIVATE_LINK", connectionId: "111111111111111111111111" },
+                        },
+                    },
+                })
+            ).rejects.toThrow("Conflicting networking configuration");
+        });
+
+        it("treats semantically equal networking blocks as equal regardless of key order", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "pubsub-out",
+                connectionType: "GCPPubSub",
+                connectionConfig: {
+                    gcp: { serviceAccountId },
+                    publicPrivateNetworking: { access: { type: "PRIVATE_LINK", connectionId } },
+                    networking: {
+                        access: { connectionId, type: "PRIVATE_LINK" },
+                        links: [{ href: "https://example.com" }],
+                    },
+                },
+            });
+
+            expect(lastConnectionBody().publicPrivateNetworking).toEqual({
+                access: { type: "PRIVATE_LINK", connectionId },
+            });
+        });
+
+        it("treats an inferred PRIVATE_LINK as equal to an explicit one", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "pubsub-out",
+                connectionType: "GCPPubSub",
+                connectionConfig: {
+                    gcp: { serviceAccountId },
+                    publicPrivateNetworking: { access: { connectionId } },
+                    networking: { access: { type: "PRIVATE_LINK", connectionId } },
+                },
+            });
+
+            expect(lastConnectionBody().publicPrivateNetworking).toEqual({
+                access: { type: "PRIVATE_LINK", connectionId },
+            });
+        });
+
+        it("returns the new PrivateLink endpoint ID", async () => {
+            mockApiClient.createPrivateLinkConnection!.mockResolvedValue({ _id: connectionId });
+
+            const result = await exec({
+                ...baseArgs,
+                resource: "privatelink",
+                privateLinkConfig: { provider: "GCP", vendor: "PUBSUB", region: "us-central1" },
+            });
+
+            expect(result.structuredContent).toEqual({
+                resource: "privatelink",
+                privateLinkId: connectionId,
+            });
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain(connectionId);
+            expect(text).toContain(`connectionId='${connectionId}'`);
         });
     });
 });
