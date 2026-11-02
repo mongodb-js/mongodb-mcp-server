@@ -28,7 +28,7 @@ export {
 export { ReactiveResource } from "./reactiveResource.js";
 export { getRandomUUID } from "./getRandomUUID.js";
 export { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
-export { CommonArgs, ASCII_ONLY_NON_CC_ERROR } from "./args.js";
+export { CommonArgs, ASCII_ONLY_NON_CC_ERROR, ANY_ADDITIONAL_PROPERTIES, ANY_ARRAY_ITEMS } from "./args.js";
 export { LogId } from "./logId.js";
 export { setManagedTimeout, type ManagedTimeout, sleep } from "./managedTimeout.js";
 export {

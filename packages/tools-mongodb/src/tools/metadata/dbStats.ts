@@ -1,12 +1,12 @@
 import { connectionScopedArgsShape, DBOperationArgs, MongoDBToolBase, type IMongoDBConfig } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
-import { formatUntrustedData } from "@mongodb-js/mcp-core";
+import { ANY_ADDITIONAL_PROPERTIES, formatUntrustedData } from "@mongodb-js/mcp-core";
 import { bsonToJson } from "../../helpers/bsonToJson.js";
 import { z } from "zod";
 
 const DbStatsOutputSchema = {
-    stats: z.record(z.string(), z.unknown()),
+    stats: z.record(z.string(), z.unknown()).meta(ANY_ADDITIONAL_PROPERTIES),
 };
 
 export type DbStatsOutput = z.infer<z.ZodObject<typeof DbStatsOutputSchema>>;

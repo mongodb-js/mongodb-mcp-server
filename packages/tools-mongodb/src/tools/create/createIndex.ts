@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { CollOperationArgs, connectionScopedArgsShape, MongoDBToolBase } from "../../mongodbTool.js";
-import { type ToolArgs, type ToolResult, ToolArgumentValidationError } from "@mongodb-js/mcp-core";
+import {
+    ANY_ADDITIONAL_PROPERTIES,
+    type ToolArgs,
+    type ToolResult,
+    ToolArgumentValidationError,
+} from "@mongodb-js/mcp-core";
 import type { OperationType, IndexMetadata } from "@mongodb-js/mcp-types";
 import { IndexDirectionSchema, modelsSupportingAutoEmbedIndexes } from "../../mongodbSchemas.js";
 
@@ -143,7 +148,10 @@ const atlasSearchIndexDefinition = z
                     .record(
                         z.string().describe("The field name"),
                         z
-                            .unknown()
+                            .union([
+                                z.object({}).passthrough().meta(ANY_ADDITIONAL_PROPERTIES),
+                                z.array(z.object({}).passthrough().meta(ANY_ADDITIONAL_PROPERTIES)),
+                            ])
                             .describe(
                                 "The field index definition. It must contain the field type (e.g. `{ type: 'string' }`), as well as any additional options for that field type (e.g. `analyzer`). Field types include `autocomplete`, `boolean`, `date`, `dateFacet`, `document`, `embeddedDocuments`, `geo`, `number`, `numberFacet`, `objectId`, `string`, `stringFacet`, `token`, `uuid`. Provide an array of field definitions instead of a single object to index the same field as multiple types, e.g. `[{ type: 'string' }, { type: 'autocomplete' }]`."
                             )
@@ -152,6 +160,7 @@ const atlasSearchIndexDefinition = z
                     .describe("The field mapping definitions. If `dynamic` is set to `false`, this is required."),
             })
             .passthrough()
+            .meta(ANY_ADDITIONAL_PROPERTIES)
             .refine(
                 (data) => {
                     const dynamicEnabled = typeof data.dynamic === "boolean" ? data.dynamic : true;
@@ -176,6 +185,7 @@ const atlasSearchIndexDefinition = z
             ),
     })
     .passthrough()
+    .meta(ANY_ADDITIONAL_PROPERTIES)
     .describe(
         `\
 Definition for an Atlas Search (lexical) index. Use this only if user explicitly asked for creating an Atlas search index or simply a search index.

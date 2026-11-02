@@ -58,6 +58,16 @@ import { z } from 'zod';
 import { ZodRawShape } from 'zod';
 import { ZodString } from 'zod';
 
+// @public
+export const ANY_ADDITIONAL_PROPERTIES: {
+    readonly additionalProperties: true;
+};
+
+// @public
+export const ANY_ARRAY_ITEMS: {
+    readonly items: undefined;
+};
+
 // @public (undocumented)
 export type AnyToolBase = ToolBase<any>;
 
