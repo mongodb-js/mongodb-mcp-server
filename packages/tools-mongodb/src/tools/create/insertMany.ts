@@ -8,7 +8,6 @@ const InsertManyOutputSchema = {
     database: z.string(),
     collection: z.string(),
     insertedCount: z.number(),
-    // An inserted _id can be any BSON value, not only an ObjectId.
     insertedIds: z.array(z.unknown()).meta(ANY_ARRAY_ITEMS),
 };
 

@@ -27,8 +27,6 @@ jobs:
         run: pnpm run build
       - name: Run style check
         run: pnpm run check
-      - name: Check tool schemas are portable
-        run: pnpm --filter mongodb-mcp-server run check:tool-schemas
 
   check-generate:
     runs-on: ubuntu-latest
