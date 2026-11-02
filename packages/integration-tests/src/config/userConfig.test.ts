@@ -172,6 +172,11 @@ describe("config", () => {
             const testCases = [
                 { envVar: "MDB_MCP_DISABLED_TOOLS", property: "disabledTools", value: "find,export" },
                 { envVar: "MDB_MCP_LOGGERS", property: "loggers", value: "disk,mcp" },
+                {
+                    envVar: "MDB_MCP_MONITORING_SERVER_FEATURES",
+                    property: "monitoringServerFeatures",
+                    value: "process-metrics",
+                },
             ] as const;
 
             for (const { envVar, property, value } of testCases) {
@@ -200,6 +205,15 @@ describe("config", () => {
 
     describe("cli parsing", () => {
         useClearEnvironment("MDB_MCP_");
+
+        it("accepts process-metrics as a monitoring server feature", () => {
+            const { parsed, error } = parseUserConfig({
+                args: ["--monitoringServerFeatures", "process-metrics"],
+            });
+
+            expect(error).toBeUndefined();
+            expect(parsed?.monitoringServerFeatures).toEqual(["process-metrics"]);
+        });
 
         it("warns when --connectionScope is used (deprecated option)", () => {
             const { warnings } = parseUserConfig({ args: ["--connectionScope", "global"] });

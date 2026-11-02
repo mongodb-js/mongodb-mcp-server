@@ -430,7 +430,7 @@ const ServerConfigSchema = z.object({
         )
         .default(["health-check"])
         .describe(
-            "Features to expose on the monitoring server (only used when transport is 'http' and monitoringServerHost/monitoringServerPort are set)."
+            "Features to expose on the monitoring server: health-check, metrics, and process-metrics. process-metrics exposes /metrics with Node.js process metrics (only used when transport is 'http' and monitoringServerHost/monitoringServerPort are set)."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
 });

@@ -58,7 +58,10 @@ export class MonitoringServer<
             });
         }
 
-        if (this.features.includes("metrics") && this.metrics?.getMetrics) {
+        if (
+            (this.features.includes("metrics") || this.features.includes("process-metrics")) &&
+            this.metrics?.getMetrics
+        ) {
             const getMetrics = this.metrics.getMetrics.bind(this.metrics);
             this.app.get("/metrics", async (_req: express.Request, res: express.Response) => {
                 try {
@@ -112,4 +115,4 @@ export type MonitoringServerOptions<TMetrics extends DefaultMetricDefinitions = 
     metrics: IMetrics<TMetrics>;
 };
 
-export type MonitoringServerFeature = "health-check" | "metrics";
+export type MonitoringServerFeature = "health-check" | "metrics" | "process-metrics";
