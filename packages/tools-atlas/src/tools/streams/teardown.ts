@@ -89,7 +89,11 @@ export class StreamsTeardownTool extends StreamsToolBase {
             }
             case "privatelink": {
                 const name = this.requireResourceName(args);
-                return `You are about to delete PrivateLink connection '${name}'. This cannot be undone. Proceed?`;
+                return (
+                    `You are about to delete PrivateLink connection '${name}'. ` +
+                    `Any connections using this endpoint will lose private connectivity. ` +
+                    `This cannot be undone. Proceed?`
+                );
             }
             case "peering": {
                 const name = this.requireResourceName(args);
