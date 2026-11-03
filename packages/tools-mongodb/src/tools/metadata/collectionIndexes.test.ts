@@ -38,6 +38,13 @@ describe("CollectionIndexesTool search index type resolution", () => {
         expect(index?.type).toBe("autoEmbed");
     });
 
+    it("infers vectorSearch from the fields even if the server reports a different type", () => {
+        const [index] = extractTypes([
+            { name: "vec", type: "search", latestDefinition: { fields: [{ type: "vector", path: "embedding" }] } },
+        ]);
+        expect(index?.type).toBe("vectorSearch");
+    });
+
     it("keeps the server-provided type for regular vector indexes", () => {
         const [index] = extractTypes([
             {
