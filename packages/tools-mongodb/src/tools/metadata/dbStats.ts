@@ -35,7 +35,6 @@ export class DbStatsTool extends MongoDBToolBase {
             {
                 dbStats: 1,
                 scale: 1,
-                ...(this.server.config.maxTimeMS !== undefined && { maxTimeMS: this.server.config.maxTimeMS }),
             },
             { signal: request.signal }
         );

@@ -25,12 +25,15 @@ import type {
     SupportedConnectionState,
     TransportRequestContext,
     AtlasClusterConnectionInfo,
+    ToolExecutionDurationLabelName,
 } from "@mongodb-js/mcp-types";
+import { TOOL_EXECUTION_DURATION_LABEL_NAMES } from "@mongodb-js/mcp-types";
 import { createUIResource, type UIResource } from "@mcp-ui/server";
 import { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
 import { getRandomUUID } from "@mongodb-js/mcp-core";
 import { requestIdAttr } from "./helpers/requestIdAttr.js";
 import { clientTelemetryProperties, protocolTelemetryProperties } from "./helpers/clientTelemetry.js";
+import { ConfirmationDeclinedError } from "./errors.js";
 
 import { LogId } from "./logId.js";
 
@@ -97,6 +100,19 @@ function resolveClientInfo(
         }
     }
     return negotiated;
+}
+
+const BUILT_IN_TOOL_LABELS: ReadonlySet<string> = new Set(TOOL_EXECUTION_DURATION_LABEL_NAMES);
+
+/**
+ * The built-in labels describe the call, not the server: a metrics instance
+ * supplying one would shadow the call's own value.
+ */
+function assertNoBuiltInToolLabels(labels: Readonly<Record<string, string>>): void {
+    const supplied = Object.keys(labels).find((name) => BUILT_IN_TOOL_LABELS.has(name));
+    if (supplied !== undefined) {
+        throw new Error(`Metrics instance supplies the built-in tool label "${supplied}"`);
+    }
 }
 
 /** Narrow a possibly-undefined per-request envelope to a keyed object. */
@@ -575,23 +591,35 @@ export abstract class ToolBase<
          * observing its execution duration. `error` is passed when the call
          * failed, and its type is reported alongside the metric.
          */
-        const recordOutcome = (result: CallToolResult, error?: unknown): void => {
+        const recordOutcome = (
+            result: CallToolResult,
+            { error, declined = false }: { error?: unknown; declined?: boolean } = {}
+        ): void => {
             // Time the user spent answering an elicitation is not time the tool
             // spent working, so it counts towards neither duration below.
             const executionStartTime = startTime + (context.request.elicitationDurationMs ?? 0);
 
-            this.emitToolEvent(args, { startTime: executionStartTime, result, clientInfo: context.request.clientInfo });
+            this.emitToolEvent(args, {
+                startTime: executionStartTime,
+                result,
+                declined,
+                clientInfo: context.request.clientInfo,
+            });
 
-            this.server.metrics.get("toolExecutionDuration").observe(
-                {
-                    tool_name: this.name,
-                    category: this.category,
-                    status: error !== undefined || result.isError ? "error" : "success",
-                    operation_type: this.operationType,
-                    ...(error !== undefined ? { error_type: error instanceof Error ? error.name : "unknown" } : {}),
-                },
-                (Date.now() - executionStartTime) / 1000
-            );
+            const builtInLabels = {
+                tool_name: this.name,
+                category: this.category,
+                status: declined ? "declined" : error !== undefined || result.isError ? "error" : "success",
+                operation_type: this.operationType,
+                ...(!declined && error !== undefined
+                    ? { error_type: error instanceof Error ? error.name : "unknown" }
+                    : {}),
+            } satisfies Partial<Record<ToolExecutionDurationLabelName, string>>;
+            const labels = {
+                ...this.server.metrics.labels,
+                ...builtInLabels,
+            };
+            this.server.metrics.get("toolExecutionDuration").observe(labels, (Date.now() - executionStartTime) / 1000);
         };
 
         try {
@@ -618,7 +646,7 @@ export abstract class ToolBase<
                         attributes: { ...requestIdAttr(context.request.headers) },
                     });
                     const declined: CallToolResult = { content: [{ type: "text", text }], isError: true };
-                    recordOutcome(declined);
+                    recordOutcome(declined, { declined: true });
                     return declined;
                 }
             }
@@ -649,15 +677,27 @@ export abstract class ToolBase<
             });
             return result;
         } catch (error: unknown) {
-            this.server.logger.error({
-                id: LogId.toolExecuteFailure,
-                context: "tool",
-                message: `Error executing ${this.name}: ${error as string}`,
-                attributes: { ...requestIdAttr(context.request.headers) },
-            });
-            const toolResult = await this.handleError(error, args);
+            const declined = error instanceof ConfirmationDeclinedError;
+            if (declined) {
+                this.server.logger.debug({
+                    id: LogId.toolExecute,
+                    context: "tool",
+                    message: error.message,
+                    attributes: { ...requestIdAttr(context.request.headers) },
+                });
+            } else {
+                this.server.logger.error({
+                    id: LogId.toolExecuteFailure,
+                    context: "tool",
+                    message: `Error executing ${this.name}: ${error as string}`,
+                    attributes: { ...requestIdAttr(context.request.headers) },
+                });
+            }
+            const toolResult: CallToolResult = declined
+                ? { content: [{ type: "text", text: this.server.keychain.redact(error.message) }], isError: true }
+                : await this.handleError(error, args);
 
-            recordOutcome(toolResult, error);
+            recordOutcome(toolResult, { error, declined });
 
             return toolResult;
         }
@@ -732,6 +772,7 @@ export abstract class ToolBase<
     }
 
     constructor({ server, transportRequest }: ToolServerParam<TServer>) {
+        assertNoBuiltInToolLabels(server.metrics.labels);
         this.server = server;
         this.transportRequest = transportRequest;
         const { toolName, category, operationType } = this.constructor as ToolClass<TServer, TMetricsDefinitions>;
@@ -956,8 +997,14 @@ export abstract class ToolBase<
         {
             startTime,
             result,
+            declined = false,
             clientInfo,
-        }: { startTime: number; result: CallToolResult; clientInfo?: { name?: string; version?: string } }
+        }: {
+            startTime: number;
+            result: CallToolResult;
+            declined?: boolean;
+            clientInfo?: { name?: string; version?: string };
+        }
     ): void {
         if (!this.server.telemetry.isTelemetryEnabled()) {
             return;
@@ -974,7 +1021,7 @@ export abstract class ToolBase<
                     category: this.category,
                     component: "tool",
                     duration_ms: duration,
-                    result: result.isError ? "failure" : "success",
+                    result: declined ? "declined" : result.isError ? "failure" : "success",
                     ...clientTelemetryProperties(clientInfo),
                     ...protocolTelemetryProperties(this.server.mcpServer, this.transportRequest),
                     ...metadata,

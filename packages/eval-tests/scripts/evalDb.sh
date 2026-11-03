@@ -9,7 +9,7 @@ start() {
 
 	if [ -z "$EMBEDDING_PROVIDER_ENDPOINT" ]; then
 		EMBEDDING_PROVIDER_ENDPOINT="https://api.voyageai.com/v1/embeddings"
-		echo "⚠️ EMBEDDING_PROVIDER_ENDPOINT environment variable is not set using default value"
+		echo "⚠️ EMBEDDING_PROVIDER_ENDPOINT environment variable is not set using default value ($EMBEDDING_PROVIDER_ENDPOINT)"
 	fi
 
 	if [ -z "$VOYAGE_API_KEY" ]; then

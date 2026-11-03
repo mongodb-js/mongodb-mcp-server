@@ -1,4 +1,4 @@
-export type { Secret } from "mongodb-redact";
+export type { Secret } from "@mongodb-js/mongodb-redact";
 
 /**
  * The redaction half of a keychain, for consumers that need to scrub secrets out of a value but

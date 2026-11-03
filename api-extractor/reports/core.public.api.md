@@ -6,7 +6,6 @@
 
 import type { AtlasClusterConnectionInfo } from '@mongodb-js/mcp-types';
 import { CallToolResult } from '@modelcontextprotocol/server';
-import type { ClientCapabilities } from '@modelcontextprotocol/server';
 import type { CloseableTransport } from '@mongodb-js/mcp-types';
 import type { ConnectionMetadata } from '@mongodb-js/mcp-types';
 import type { DefaultEventMap } from '@mongodb-js/mcp-types';
@@ -36,12 +35,13 @@ import type { LogLevel } from '@mongodb-js/mcp-types';
 import type { LogPayload } from '@mongodb-js/mcp-types';
 import { McpServer } from '@modelcontextprotocol/server';
 import type { MongoLogId } from '@mongodb-js/mcp-types';
+import type { NegotiatedClientState } from '@mongodb-js/mcp-types';
 import type { OperationType } from '@mongodb-js/mcp-types';
 import type { PreviewFeature } from '@mongodb-js/mcp-types';
 import type { ReactiveResourceOptions } from '@mongodb-js/mcp-types';
 import type { ResourceConfiguration } from '@mongodb-js/mcp-types';
 import type { ResourceMetadata } from '@modelcontextprotocol/server';
-import { Secret } from 'mongodb-redact';
+import { Secret } from '@mongodb-js/mongodb-redact';
 import { ServerContext } from '@modelcontextprotocol/server';
 import type { SessionCloseReason } from '@mongodb-js/mcp-types';
 import type { SessionStoreConstructorArgs } from '@mongodb-js/mcp-types';
@@ -103,6 +103,11 @@ export class CompositeLogger extends LoggerBase {
 
 // @public
 export const CONFIRMATION_INPUT_KEY = "confirmation";
+
+// @public
+export class ConfirmationDeclinedError extends UserFacingError {
+    constructor(message: string);
+}
 
 // @public @deprecated
 export function createDefaultSessionStore<TTransport extends CloseableTransport = CloseableTransport, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions>(params: SessionStoreConstructorArgs<TMetrics>): SessionStore<TTransport>;
@@ -333,6 +338,8 @@ export class NoopLogger extends LoggerBase {
 export class NoopMetrics implements IMetrics<DefaultMetricDefinitions> {
     get<K extends keyof DefaultMetricDefinitions>(_key: K): DefaultMetricDefinitions[K];
     getMetrics(): Promise<string>;
+    // (undocumented)
+    readonly labels: Readonly<Record<string, string>>;
 }
 
 // @public (undocumented)
@@ -418,6 +425,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
             logger: ICompositeLogger;
         };
         headers?: Record<string, unknown>;
+        metrics?: IMetrics<DefaultMetricDefinitions>;
     }): Promise<void>;
     // (undocumented)
     closeAllSessions(): Promise<void>;

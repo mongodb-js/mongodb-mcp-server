@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { ClaudeHarnessConfig, seedClaudeOAuthCredentials } from "./claudeConfig.js";
+import { ClaudeHarnessConfig, seedClaudeHome, seedClaudeOAuthCredentials } from "./claudeConfig.js";
 import { oauthCredentialStoreKey } from "../shared.js";
 import type { AgentHarnessOptions } from "../types.js";
 
@@ -44,6 +44,24 @@ describe("ClaudeHarnessConfig", () => {
     it("omits headers when none are configured", () => {
         const config = new ClaudeHarnessConfig().buildConfig(buildOptions());
         expect(parseMcpServer(config)).toEqual({ type: "http", url: "https://example.test/mcp" });
+    });
+});
+
+describe("seedClaudeHome", () => {
+    it("suppresses auto-mode onboarding dialogs in the hermetic home", () => {
+        const homeDir = makeTmpDir();
+        seedClaudeHome({ homeDir, workDir: makeTmpDir(), mcpServerName: "mongo" });
+
+        const config = JSON.parse(fs.readFileSync(path.join(homeDir, ".claude.json"), "utf8")) as Record<
+            string,
+            unknown
+        >;
+        expect(config).toMatchObject({
+            hasCompletedOnboarding: true,
+            hasSeenAutoDefaultNudge: true,
+            hasSeenAutoModeEntryWarning: true,
+            hasSeenAutoDefaultNotice: true,
+        });
     });
 });
 

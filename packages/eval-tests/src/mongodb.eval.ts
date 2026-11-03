@@ -91,6 +91,7 @@ ${hooks.expected.reference_answer}
 
                 const { response, messages } = await runTask({
                     model,
+                    reasoningEffort: resolved.modelReasoningEffort,
                     systemContext: resolved.systemContext,
                     tools,
                     prompt,
@@ -108,6 +109,7 @@ ${hooks.expected.reference_answer}
 
                     judge = await judgeUsingLLM({
                         model: judgeModel,
+                        reasoningEffort: resolved.judgeModelReasoningEffort,
                         tools: {
                             ...readOnlyTools,
                             [GetConversationTool.toolName]: new GetConversationTool(messages).getTool(),

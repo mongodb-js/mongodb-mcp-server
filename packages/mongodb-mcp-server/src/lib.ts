@@ -64,7 +64,7 @@ export type {
     TelemetryConfig,
 } from "@mongodb-js/mcp-atlas-telemetry";
 export { Keychain } from "@mongodb-js/mcp-core";
-export { UserFacingError, ToolArgumentValidationError } from "@mongodb-js/mcp-core";
+export { UserFacingError, ToolArgumentValidationError, ConfirmationDeclinedError } from "@mongodb-js/mcp-core";
 export type { Secret } from "@mongodb-js/mcp-types";
 export { Elicitation } from "@mongodb-js/mcp-core";
 export { applyConfigOverrides, ConfigOverrideError, getConfigMeta, nameToConfigKey } from "@mongodb-js/mcp-cli";
@@ -85,6 +85,7 @@ export {
     PrometheusMetrics,
     createDefaultMetrics,
     type DefaultPrometheusMetricDefinitions,
+    type InstanceLabels,
     type PrometheusMetricsOptions,
     Registry,
     Gauge,

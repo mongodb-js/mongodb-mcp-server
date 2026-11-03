@@ -117,15 +117,17 @@ jobs:
       - name: Output atlas-mcp-remote deployment info
         run: echo "::notice title=atlas-mcp-remote Deployment Info::Deploying version ${{ steps.get-remote-version.outputs.ATLAS_MCP_REMOTE_GIT_TAG_VERSION }} to channel ${{ steps.remote-npm-tag.outputs.ATLAS_MCP_REMOTE_RELEASE_CHANNEL }}"
 
+  # Publishes both npm packages from a single job. npm trusted publishing is bound to
+  # the `Production` environment, and GitHub prompts required reviewers once per job
+  # that references an environment, so publishing both here keeps it to one approval.
   publish:
     runs-on: ubuntu-latest
     environment: Production
     permissions:
       contents: write
       id-token: write
-    needs:
-      - check
-    if: needs.check.outputs.VERSION_EXISTS == 'false'
+    needs: [check]
+    if: needs.check.outputs.VERSION_EXISTS == 'false' || (needs.check.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION != '0.0.0')
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -134,23 +136,80 @@ jobs:
           fetch-depth: 0
       - uses: ./.github/actions/setup-node-pnpm
 
-      - name: Build
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm run build
-      - name: Publish to NPM
-        run: pnpm -r publish --tag ${{ needs.check.outputs.RELEASE_CHANNEL }} --no-git-checks
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-      # mcpb install resolves @mongodb-js/mcp-* deps from the registry, so publish first.
-      - name: Wait for workspace deps to be available on npm
+      # Published before the recursive publish below so pnpm skips it there (it skips
+      # versions already on the registry). The `!= '0.0.0'` guard skips the placeholder
+      # version; it can be dropped after the first manual release, see MCP-493.
+      - name: Build atlas-mcp-remote
+        if: needs.check.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION != '0.0.0'
+        run: pnpm --filter 'mongodb-atlas-mcp-remote' run compile
+      # Both publication steps are idempotent: re-running this job (e.g. after a later
+      # server step failed) reuses the stale `check` outputs and would otherwise fail on
+      # an already-published version or an already-created release.
+      - name: Publish atlas-mcp-remote to NPM
+        if: needs.check.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION != '0.0.0'
+        env:
+          NPM_VERSION: ${{ needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION }}
+          RELEASE_CHANNEL: ${{ needs.check.outputs.ATLAS_MCP_REMOTE_RELEASE_CHANNEL }}
+        shell: bash
+        run: |
+          set -e
+
+          if npm view "mongodb-atlas-mcp-remote@${NPM_VERSION}" version >/dev/null 2>&1; then
+            echo "mongodb-atlas-mcp-remote@${NPM_VERSION} is already published, skipping"
+            exit 0
+          fi
+
+          pnpm --filter 'mongodb-atlas-mcp-remote' publish --tag "${RELEASE_CHANNEL}" --no-git-checks
+      - name: Publish atlas-mcp-remote GitHub release
+        if: needs.check.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION != '0.0.0'
+        env:
+          GH_TOKEN: ${{ secrets.APIX_BOT_PAT || github.token }}
+          TAG: ${{ needs.check.outputs.ATLAS_MCP_REMOTE_GIT_TAG_VERSION }}
+        shell: bash
+        run: |
+          set -e
+
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            echo "Release ${TAG} already exists, skipping"
+            exit 0
+          fi
+
+          gh release create "${TAG}" \
+            --title "${TAG}" \
+            --generate-notes \
+            --target ${{ github.sha }} \
+            ${{ (needs.check.outputs.ATLAS_MCP_REMOTE_RELEASE_CHANNEL != 'latest' && '--prerelease') || ''}}
+      - name: Wait for atlas-mcp-remote to be available on npm
+        if: needs.check.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION != '0.0.0'
         uses: ./.github/actions/wait-for-npm
         with:
-          package-name: "@mongodb-js/mcp-core"
+          package-name: mongodb-atlas-mcp-remote
+          package-version: ${{ needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION }}
+
+      - name: Build
+        if: needs.check.outputs.VERSION_EXISTS == 'false'
+        run: pnpm run build
+      - name: Publish to NPM
+        if: needs.check.outputs.VERSION_EXISTS == 'false'
+        run: pnpm -r publish --tag ${{ needs.check.outputs.RELEASE_CHANNEL }} --no-git-checks
+
+      # The mcpb staging install resolves the workspace deps from the registry.
+      # mongodb-mcp-server is published last, so waiting for it implies its deps are up too.
+      - name: Wait for mongodb-mcp-server to be available on npm
+        if: needs.check.outputs.VERSION_EXISTS == 'false'
+        uses: ./.github/actions/wait-for-npm
+        with:
+          package-name: mongodb-mcp-server
           package-version: ${{ needs.check.outputs.NPM_VERSION }}
       - name: Build .mcpb
+        if: needs.check.outputs.VERSION_EXISTS == 'false'
         run: pnpm run build:mcpb
 
       - name: Generate AI release summary
+        if: needs.check.outputs.VERSION_EXISTS == 'false'
         id: ai-summary
         continue-on-error: true
         env:
@@ -159,6 +218,7 @@ jobs:
         run: pnpm run generate:release-notes --newVersion ${{ needs.check.outputs.GIT_TAG_VERSION }} --commitSha ${{ github.sha }}
 
       - name: Publish github release
+        if: needs.check.outputs.VERSION_EXISTS == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -172,14 +232,112 @@ jobs:
             --target ${{ github.sha }} \
             ${{ (needs.check.outputs.RELEASE_CHANNEL != 'latest' && '--prerelease') || ''}}
 
-      - name: Wait for package to be available on npm
-        uses: ./.github/actions/wait-for-npm
+  upload-release-sbom:
+    runs-on: ubuntu-latest
+    needs: [check, publish]
+    if: needs.check.outputs.VERSION_EXISTS == 'false' && needs.check.outputs.RELEASE_CHANNEL == 'latest'
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout release commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          package-name: mongodb-mcp-server
-          package-version: ${{ needs.check.outputs.NPM_VERSION }}
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate release dependency SBOM
+        run: pnpm run create-dependency-sbom-lists
+
+      - name: Configure AWS credentials for DevProd Platforms ECR
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ secrets.DEVPROD_PLATFORMS_ECR_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Upload release SBOM to Kondukto via SilkBomb
+        env:
+          KONDUKTO_BRANCH: ${{ github.ref_name }}
+          KONDUKTO_TOKEN: ${{ secrets.KONDUKTO_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          ECR_HOST=901841024863.dkr.ecr.us-east-1.amazonaws.com
+          SILKBOMB_IMAGE="${ECR_HOST}/release-infrastructure/silkbomb:2.0"
+
+          aws ecr get-login-password --region us-east-1 \
+            | docker login --username AWS --password-stdin "${ECR_HOST}"
+
+          docker pull "${SILKBOMB_IMAGE}"
+
+          docker run --rm \
+            -e KONDUKTO_TOKEN \
+            -v "$PWD":/pwd \
+            "${SILKBOMB_IMAGE}" \
+            augment \
+            --repo "$GITHUB_REPOSITORY" \
+            --branch "$KONDUKTO_BRANCH" \
+            --sbom-in /pwd/.sbom/sbom-prod.cyclonedx.json \
+            --sbom-out /pwd/.sbom/sbom.json
+
+      - name: Upload release SBOM artifacts
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-sbom-${{ needs.check.outputs.GIT_TAG_VERSION }}
+          path: |
+            .sbom/sbom-prod.cyclonedx.json
+            .sbom/sbom.json
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 7
+
+  handle-sbom-failure:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    needs: [check, upload-release-sbom]
+    if: ${{ failure() && needs.upload-release-sbom.result == 'failure' }}
+    steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1
+      - name: Check out code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: mongodb-js/devtools-shared/actions/setup-bot-token@d9b3431b50a916345471259794a44bd4533fcc58 # main
+        id: app-token
+        with:
+          app-id: ${{ vars.DEVTOOLS_BOT_APP_ID }}
+          private-key: ${{ secrets.DEVTOOLS_BOT_PRIVATE_KEY }}
+      - name: Create SBOM failure issue
+        uses: imjohnbo/issue-bot@3188c6ce06249206709d3b1f274d0d4c5a521601
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          title: Release SBOM upload failed for ${{ needs.check.outputs.GIT_TAG_VERSION }}
+          body: |
+            The release SBOM job failed after publication. Kondukto may still reflect an older release.
+
+            - Version: ${{ needs.check.outputs.GIT_TAG_VERSION }}
+            - Channel: ${{ needs.check.outputs.RELEASE_CHANNEL }}
+            - Commit: ${{ github.sha }}
+            - SBOM job result: ${{ needs.upload-release-sbom.result }}
+
+            Investigate the failed step and rerun the failed jobs to upload the release SBOM.
+
+            See https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          labels: "release_failure"
 
   docker-push:
     needs: [check, publish]
+    if: needs.check.outputs.VERSION_EXISTS == 'false'
     uses: ./.github/workflows/docker-publish.yml
     permissions:
       contents: read
@@ -240,48 +398,3 @@ jobs:
             -d "{\"name\": \"vNext\", \"projectId\": ${project_id}, \"startDate\": \"${TODAY}\"}" \
             "${JIRA_URL}/rest/api/2/version" > /dev/null
           echo "Created new vNext version with start date ${TODAY}"
-
-  publish-atlas-mcp-remote:
-    runs-on: ubuntu-latest
-    environment: Production
-    permissions:
-      contents: write
-      id-token: write
-    needs:
-      - check
-    # The `!= '0.0.0'` guard skips creating github release forthe placeholder version. `private: true` already makes the npm
-    # publish a no-op. Both can be dropped after the first manual release, see https://jira.mongodb.org/browse/MCP-493
-    if: needs.check.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION != '0.0.0'
-    steps:
-      - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-          fetch-depth: 0
-      - uses: ./.github/actions/setup-node-pnpm
-
-      - name: Build
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm --filter 'mongodb-atlas-mcp-remote' run compile
-      - name: Publish to NPM
-        run: pnpm --filter 'mongodb-atlas-mcp-remote' publish --tag ${{ needs.check.outputs.ATLAS_MCP_REMOTE_RELEASE_CHANNEL }} --no-git-checks
-
-      - name: Publish GitHub release
-        env:
-          GH_TOKEN: ${{ secrets.APIX_BOT_PAT || github.token }}
-        shell: bash
-        run: |
-          set -e
-
-          gh release create ${{ needs.check.outputs.ATLAS_MCP_REMOTE_GIT_TAG_VERSION }} \
-            --title "${{ needs.check.outputs.ATLAS_MCP_REMOTE_GIT_TAG_VERSION }}" \
-            --generate-notes \
-            --target ${{ github.sha }} \
-            ${{ (needs.check.outputs.ATLAS_MCP_REMOTE_RELEASE_CHANNEL != 'latest' && '--prerelease') || ''}}
-
-      - name: Wait for package to be available on npm
-        uses: ./.github/actions/wait-for-npm
-        with:
-          package-name: mongodb-atlas-mcp-remote
-          package-version: ${{ needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION }}

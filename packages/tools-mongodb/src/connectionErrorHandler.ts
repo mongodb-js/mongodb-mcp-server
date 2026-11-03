@@ -4,7 +4,10 @@ import type { AnyConnectionState } from "./common/connectionManager.js";
 import { DisconnectTool } from "./tools/connect/disconnect.js";
 import { ListConnectionsTool } from "./tools/connect/listConnections.js";
 
-export type ConnectionErrorHandlerContext = { availableTools: ToolServerTool[]; connectionState?: AnyConnectionState };
+export type ConnectionErrorHandlerContext = {
+    availableTools: readonly ToolServerTool[];
+    connectionState?: AnyConnectionState;
+};
 export type ConnectionErrorUnhandled = { errorHandled: false };
 export type ConnectionErrorHandled = { errorHandled: true; result: CallToolResult };
 
@@ -60,10 +63,20 @@ export const connectionErrorHandler: ConnectionErrorHandler = (error, { availabl
     const additionalPromptForConnectivity: { type: "text"; text: string }[] = [];
 
     if (connectionState?.tag === "connecting" && connectionState.oidcConnectionType) {
-        additionalPromptForConnectivity.push({
-            type: "text",
-            text: `The user needs to finish their OIDC connection by opening '${connectionState.oidcLoginUrl}' in the browser and use the following user code: '${connectionState.oidcUserCode}'`,
-        });
+        // Device flow starts without a URL/code until notifyDeviceFlow supplies
+        // them, so branch on the flow type, not on their presence.
+        const { oidcConnectionType, oidcLoginUrl, oidcUserCode } = connectionState;
+        let oidcPrompt: string;
+        if (oidcConnectionType === "oidc-device-flow") {
+            oidcPrompt =
+                oidcLoginUrl && oidcUserCode
+                    ? `The user needs to finish their OIDC connection by opening '${oidcLoginUrl}' in the browser and use the following user code: '${oidcUserCode}'`
+                    : "The OIDC device flow is starting. Retry the request to get the verification URL and user code.";
+        } else {
+            oidcPrompt =
+                "A browser window has been opened to finish the OIDC authentication. Complete the sign-in there, then retry the request.";
+        }
+        additionalPromptForConnectivity.push({ type: "text", text: oidcPrompt });
     } else {
         additionalPromptForConnectivity.push({
             type: "text",

@@ -17,7 +17,10 @@ export interface InProcessServer {
  * Start the MongoDB MCP server in-process over streamable HTTP on a random
  * localhost port, using the same production wiring as the CLI.
  */
-export async function startInProcessServer(connectionString: string): Promise<InProcessServer> {
+export async function startInProcessServer(
+    connectionString: string,
+    tools: typeof AllTools = AllTools
+): Promise<InProcessServer> {
     const config = UserConfigSchema.parse({
         ...UserConfigSchema.parse({}),
         connectionString,
@@ -33,7 +36,7 @@ export async function startInProcessServer(connectionString: string): Promise<In
     const transportRunner = await createRunnerFromConfig({
         config,
         serverMetadata: packageInfo,
-        tools: AllTools,
+        tools,
         resources: Resources,
         logger,
         keychain,

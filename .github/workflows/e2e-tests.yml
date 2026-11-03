@@ -51,7 +51,7 @@ jobs:
         run: pnpm run test:e2e-tests
       - name: Upload agent e2e test report
         if: always()
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: e2e-tests-test-report
           path: |

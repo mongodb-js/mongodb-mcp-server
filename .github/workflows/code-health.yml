@@ -44,7 +44,7 @@ jobs:
         run: pnpm test
       - name: Upload test results
         if: always() && matrix.os == 'ubuntu-latest' && matrix.node-version == '22'
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: test-results
           path: coverage/lcov.info
@@ -96,7 +96,7 @@ jobs:
         run: pnpm run test:browser
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: browser-test-results
           path: coverage/packages/browser-tests/lcov.info

@@ -20,6 +20,8 @@ export class FakeConnectionManager extends ConnectionManager {
     public connectCalls: ConnectionSettings[] = [];
     public failNextConnect?: Error;
     public closed = false;
+    /** When set, `connect` waits on this before resolving, to model a slow dial. */
+    public connectGate?: Promise<void>;
     private readonly serviceProvider?: NodeDriverServiceProvider;
 
     constructor(serviceProvider?: NodeDriverServiceProvider) {
@@ -27,22 +29,21 @@ export class FakeConnectionManager extends ConnectionManager {
         this.serviceProvider = serviceProvider;
     }
 
-    override connect(settings: ConnectionSettings): Promise<AnyConnectionState> {
+    override async connect(settings: ConnectionSettings): Promise<AnyConnectionState> {
         this.connectCalls.push(settings);
         if (this.failNextConnect) {
             const error = this.failNextConnect;
             this.failNextConnect = undefined;
             this.changeState("connection-error", { tag: "errored", errorReason: error.message });
-            return Promise.reject(error);
+            throw error;
         }
-        return Promise.resolve(
-            this.changeState(
-                "connection-success",
-                new ConnectionStateConnected({
-                    serviceProvider: this.serviceProvider ?? ({ fake: true } as unknown as NodeDriverServiceProvider),
-                    connectionStringInfo: { authType: "scram", hostType: "unknown" },
-                })
-            )
+        await this.connectGate;
+        return this.changeState(
+            "connection-success",
+            new ConnectionStateConnected({
+                serviceProvider: this.serviceProvider ?? ({ fake: true } as unknown as NodeDriverServiceProvider),
+                connectionStringInfo: { authType: "scram", hostType: "unknown" },
+            })
         );
     }
 

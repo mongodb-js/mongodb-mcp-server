@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { Keychain } from "@mongodb-js/mcp-core";
 import { connectionErrorHandler, connectCapableTools } from "../connectionErrorHandler.js";
 import { ErrorCodes, MongoDBError } from "./errors.js";
+import type { ConnectionStateConnecting } from "./connectionManager.js";
 import type { ToolServerTool } from "@mongodb-js/mcp-types";
 
 const A_CONNECTION_URI = "mongodb+srv://mcpUser12345:s3cr3t@cluster0.example.com/?authSource=admin";
@@ -53,6 +54,68 @@ describe("connectionErrorHandler", () => {
         // The redacted placeholder and a connect hint are present.
         expect(serialized).toContain("<mongodb uri>");
         expect(serialized).toContain("Could not connect to MongoDB. Last error:");
+    });
+
+    it("asks the user to finish the browser sign-in for an auth-code OIDC flow", async () => {
+        const handler = await connectionErrorHandler(
+            new MongoDBError(ErrorCodes.NotConnectedToMongoDB, "not connected"),
+            {
+                availableTools: [],
+                connectionState: {
+                    tag: "connecting",
+                    serviceProvider: Promise.resolve({}) as never,
+                    oidcConnectionType: "oidc-auth-flow",
+                } satisfies ConnectionStateConnecting,
+            }
+        );
+
+        expect(handler.errorHandled).toBe(true);
+        if (!handler.errorHandled) throw new Error("unreachable");
+        const serialized = JSON.stringify(handler.result);
+        expect(serialized).not.toContain("undefined");
+        expect(serialized).toContain("browser window");
+    });
+
+    it("asks the caller to retry when a device flow has no URL/code yet", async () => {
+        const handler = await connectionErrorHandler(
+            new MongoDBError(ErrorCodes.NotConnectedToMongoDB, "not connected"),
+            {
+                availableTools: [],
+                connectionState: {
+                    tag: "connecting",
+                    serviceProvider: Promise.resolve({}) as never,
+                    oidcConnectionType: "oidc-device-flow",
+                } satisfies ConnectionStateConnecting,
+            }
+        );
+
+        expect(handler.errorHandled).toBe(true);
+        if (!handler.errorHandled) throw new Error("unreachable");
+        const serialized = JSON.stringify(handler.result);
+        expect(serialized).not.toContain("browser window");
+        expect(serialized).toContain("Retry the request to get the verification URL and user code");
+    });
+
+    it("surfaces the verification URL and user code for a device-flow OIDC flow", async () => {
+        const handler = await connectionErrorHandler(
+            new MongoDBError(ErrorCodes.NotConnectedToMongoDB, "not connected"),
+            {
+                availableTools: [],
+                connectionState: {
+                    tag: "connecting",
+                    serviceProvider: Promise.resolve({}) as never,
+                    oidcConnectionType: "oidc-device-flow",
+                    oidcLoginUrl: "https://example.com/device",
+                    oidcUserCode: "ABCD-1234",
+                } satisfies ConnectionStateConnecting,
+            }
+        );
+
+        expect(handler.errorHandled).toBe(true);
+        if (!handler.errorHandled) throw new Error("unreachable");
+        const serialized = JSON.stringify(handler.result);
+        expect(serialized).toContain("https://example.com/device");
+        expect(serialized).toContain("ABCD-1234");
     });
 
     it("lists only connect-capable tools (excluding disconnect)", () => {

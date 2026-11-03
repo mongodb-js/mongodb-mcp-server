@@ -1,5 +1,6 @@
 FROM node:24-alpine
 ARG VERSION=latest
+RUN apk upgrade --no-cache
 RUN addgroup -S mcp && adduser -S mcp -G mcp
 RUN npm install -g mongodb-mcp-server@${VERSION}
 USER mcp

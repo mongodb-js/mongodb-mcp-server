@@ -169,6 +169,7 @@ describeWithStreams("atlas-streams-build", (integration) => {
         // - S3 connection creation (requires AWS IAM role ARN registered in Atlas)
         // - AWSKinesisDataStreams connection creation (requires AWS IAM role ARN)
         // - AWSLambda connection creation (requires AWS IAM role ARN)
+        // - GCPPubSub connection creation (requires GCP service account via Cloud Provider Access)
         // - PrivateLink creation (requires provider-specific infrastructure)
     });
 });

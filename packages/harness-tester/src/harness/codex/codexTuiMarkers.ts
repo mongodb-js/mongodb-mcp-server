@@ -25,6 +25,14 @@ const WORKING_MARKER = /^[^\s›].*\(\d+[smh](?:[ \t]\d+[smh])*[ \t]•[ \t][^)]
 /** Transient banners rendered as "neither working nor idle" that are not input prompts. */
 const TRANSITIONAL_MARKER = /^[ \t]*(?:Waiting for startup|Reconnecting to app-server|Loading earlier messages)\b/m;
 
+/**
+ * The confirmation form the server elicits before a destructive tool runs.
+ * Codex renders the message ("Do you confirm the execution of the action?")
+ * and the Yes/No options; the marker separates a real elicitation from a
+ * transient "neither working nor idle" frame such as the just-submitted prompt.
+ */
+const ELICITATION_MARKER = /\bconfirm\b/i;
+
 /** Whether the viewport shows an in-progress turn, regardless of the status header. */
 export function isCodexWorking(text: string): boolean {
     return WORKING_MARKER.test(text);
@@ -38,4 +46,9 @@ export function isCodexComposerIdle(text: string): boolean {
 /** Whether the viewport shows a transient startup/reconnect banner (not a real input prompt). */
 export function isCodexTransitional(text: string): boolean {
     return TRANSITIONAL_MARKER.test(text);
+}
+
+/** Whether the viewport shows the server's confirmation form. */
+export function isCodexElicitation(text: string): boolean {
+    return ELICITATION_MARKER.test(text);
 }

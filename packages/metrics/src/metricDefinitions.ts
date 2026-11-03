@@ -1,6 +1,12 @@
 import { Counter, Gauge, Histogram } from "prom-client";
-import type { DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
+import { TOOL_EXECUTION_DURATION_LABEL_NAMES, type DefaultMetricDefinitions } from "@mongodb-js/mcp-types";
 import type { PrometheusMetricDefinitions } from "./types.js";
+
+/**
+ * Label names the default definitions set per observation. An instance label
+ * must not use one: the observation-level value always wins.
+ */
+export const RESERVED_METRIC_LABEL_NAMES = [...TOOL_EXECUTION_DURATION_LABEL_NAMES, "reason"] as const;
 
 /**
  * Creates a new set of default metrics for an MCP server.
@@ -15,7 +21,7 @@ export function createDefaultMetrics() {
         toolExecutionDuration: new Histogram({
             name: "mcp_tool_execution_duration_seconds",
             help: "Duration of tool executions in seconds",
-            labelNames: ["tool_name", "category", "status", "operation_type", "error_type"] as const,
+            labelNames: TOOL_EXECUTION_DURATION_LABEL_NAMES,
             buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 2.5, 5, 10],
             registers: [],
         }),

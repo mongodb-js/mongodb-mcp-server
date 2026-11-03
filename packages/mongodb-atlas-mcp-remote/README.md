@@ -76,6 +76,12 @@ MDB_MCP_API_CLIENT_ID = "your-client-id"
 MDB_MCP_API_CLIENT_SECRET = "your-client-secret"
 ```
 
+## HTTP Compatibility
+
+The wrapper's HTTP connection uses the MCP SDK's default `redirectPolicy: "same-origin"`. Cross-origin redirects and redirects that would rewrite a POST's method (`301`, `302`, or `303`) are rejected. Same-origin `307` and `308` redirects can be followed. Use the final MCP endpoint URL rather than relying on a redirecting proxy or alias.
+
+See the library guide's [HTTP compatibility requirements](../../MCP_SERVER_LIBRARY.md#http-compatibility) for protocol headers, legacy session support, and request size limits. The client-facing stdio transport is unchanged.
+
 ## Contributing
 
 This package is part of the [`mongodb-mcp-server`](https://github.com/mongodb-js/mongodb-mcp-server) monorepo. See the [Contributing Guide](../../CONTRIBUTING.md) for development setup.

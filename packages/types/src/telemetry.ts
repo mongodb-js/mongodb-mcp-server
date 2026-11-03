@@ -12,7 +12,7 @@ export interface ITelemetry {
     close(): Promise<void>;
 }
 
-export type TelemetryResult = "success" | "failure";
+export type TelemetryResult = "success" | "failure" | "declined";
 
 export type TelemetryBoolSet = "true" | "false";
 

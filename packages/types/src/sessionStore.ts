@@ -48,6 +48,8 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
      * @param params.headers The headers of the request that initiated the
      * session (e.g. for tracing the x-request-id in logs and downstream
      * requests).
+     * @param params.metrics Defaults to the store's own instance; a labeled
+     * sibling scopes this session's labels.
      */
     addSession(params: {
         sessionId: string;
@@ -55,6 +57,7 @@ export interface ISessionStore<T extends CloseableTransport = CloseableTransport
         logger: ILogger;
         session?: { logger: ICompositeLogger };
         headers?: Record<string, unknown>;
+        metrics?: IMetrics<DefaultMetricDefinitions>;
     }): Promise<void>;
     /** Returns whether a session exists, without resetting its idle timeout (unlike {@link getSession}). */
     hasSession(sessionId: string): boolean;

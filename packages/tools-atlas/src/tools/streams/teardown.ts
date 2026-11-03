@@ -9,7 +9,7 @@ import { StreamsInvalidArgumentError } from "../../streams/errors.js";
 
 const TeardownResource = z.enum(["processor", "connection", "workspace", "privatelink", "peering"]);
 
-export const TeardownOutputSchema = z.object({
+const TeardownOutputSchema = z.object({
     resource: TeardownResource.describe("Which resource deletion completed or was initiated"),
     processorsRemoved: z
         .number()
@@ -25,7 +25,7 @@ export const TeardownOutputSchema = z.object({
         .describe("Connections removed as part of workspace deletion (when inventory was available)"),
 });
 
-export type TeardownOutput = z.infer<typeof TeardownOutputSchema>;
+type TeardownOutput = z.infer<typeof TeardownOutputSchema>;
 
 const StreamsTeardownArgsShape = {
     projectId: AtlasArgs.projectId().describe(
@@ -89,7 +89,11 @@ export class StreamsTeardownTool extends StreamsToolBase {
             }
             case "privatelink": {
                 const name = this.requireResourceName(args);
-                return `You are about to delete PrivateLink connection '${name}'. This cannot be undone. Proceed?`;
+                return (
+                    `You are about to delete PrivateLink connection '${name}'. ` +
+                    `Any connections using this endpoint will lose private connectivity. ` +
+                    `This cannot be undone. Proceed?`
+                );
             }
             case "peering": {
                 const name = this.requireResourceName(args);
