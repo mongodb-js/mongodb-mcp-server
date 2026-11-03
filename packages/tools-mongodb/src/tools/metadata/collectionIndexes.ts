@@ -121,9 +121,9 @@ export class CollectionIndexesTool extends MongoDBToolBase {
     }
 
     /**
-     * Resolves the search index type from the index document, falling back to
-     * definition structure inference when the server doesn't provide a top-level
-     * `type` field.
+     * Resolves the search index type from the index document. Auto-embed indexes
+     * are identified by their field definitions because the server reports them
+     * as vector search indexes.
      */
     private static resolveIndexType(index: Record<string, unknown>): string {
         const definition = (index["latestDefinition"] ?? {}) as Record<string, unknown>;
