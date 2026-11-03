@@ -123,9 +123,19 @@ export class CollectionIndexesTool extends MongoDBToolBase {
     /**
      * Resolves the search index type from the index document, falling back to
      * definition structure inference when the server doesn't provide a top-level
-     * `type` field.
+     * `type` field. Auto-embed indexes are detected from their field definitions
+     * first, because the server may report them as plain `vectorSearch` indexes.
      */
     private static resolveIndexType(index: Record<string, unknown>): string {
+        const definition = (index["latestDefinition"] ?? {}) as Record<string, unknown>;
+        const fields = definition["fields"];
+
+        // Auto-embed indexes have an autoEmbed field type. Check this before the
+        // server-provided type, which can be `vectorSearch` for these indexes.
+        if (Array.isArray(fields) && fields.some((field: Record<string, unknown>) => field["type"] === "autoEmbed")) {
+            return "autoEmbed";
+        }
+
         // Direct type from server response.
         // TODO: This is undocumented and is not always present, should be removed in the future.
         const serverType = index["type"];
@@ -133,19 +143,13 @@ export class CollectionIndexesTool extends MongoDBToolBase {
             return serverType;
         }
 
-        const definition = (index["latestDefinition"] ?? {}) as Record<string, unknown>;
         const defType = definition["type"];
         if (defType && typeof defType === "string") {
             return defType;
         }
 
         // Vector search uses a `fields` array, Atlas search uses `mappings`
-        const fields = definition["fields"];
         if (Array.isArray(fields)) {
-            // Check for auto-embed indexes (have autoEmbed field type)
-            if (fields.some((field: Record<string, unknown>) => field["type"] === "autoEmbed")) {
-                return "autoEmbed";
-            }
             // Check for regular vector search indexes (have vector field type)
             if (fields.some((field: Record<string, unknown>) => field["type"] === "vector")) {
                 return "vectorSearch";
