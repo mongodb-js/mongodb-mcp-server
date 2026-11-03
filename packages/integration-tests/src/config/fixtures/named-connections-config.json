@@ -1,0 +1,6 @@
+{
+  "connectionStrings": {
+    "analytics": "mongodb://analytics-localhost:1000",
+    "orders": "mongodb://orders-localhost:1000"
+  }
+}
