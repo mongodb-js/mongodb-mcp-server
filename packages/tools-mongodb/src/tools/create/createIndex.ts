@@ -76,7 +76,7 @@ For nested fields, use dot notation to specify the path to embedded fields.\
         model: z
             .enum(modelsSupportingAutoEmbedIndexes)
             .describe(
-                "Voyage embedding model to use for automatically generating embeddings from the source text in the indexed field. Always set it. voyage-4-large: most accurate; voyage-4: balanced; voyage-4-lite: cheapest and fastest; voyage-code-3: source code."
+                "Voyage embedding model to use for automatically generating embeddings from the source text in the indexed field. voyage-4-large: most accurate; voyage-4: balanced; voyage-4-lite: cheapest and fastest; voyage-code-3: source code."
             ),
         modality: z
             .enum(["text"])
