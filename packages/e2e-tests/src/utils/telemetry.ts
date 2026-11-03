@@ -1,7 +1,7 @@
 import type { MockTelemetryServer, ReceivedTelemetryEvent } from "@mongodb-js/mcp-test-utils";
 
 // Telemetry is batched and sent on a timer (or on server close), so allow at least one interval.
-export const TELEMETRY_EVENT_TIMEOUT_MS = 45_000;
+const TELEMETRY_EVENT_TIMEOUT_MS = 45_000;
 
 /** Waits for a tool telemetry event delivered to the mock telemetry server. */
 export function waitForToolTelemetryEvent(

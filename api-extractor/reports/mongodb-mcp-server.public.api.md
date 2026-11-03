@@ -1080,6 +1080,7 @@ export type UserConfig = z.infer<typeof UserConfigSchema>;
 // @public (undocumented)
 export const UserConfigSchema: z.ZodObject<{
     apiBaseUrl: z.ZodDefault<z.ZodString>;
+    telemetryBaseUrl: z.ZodOptional<z.ZodString>;
     assistantBaseUrl: z.ZodDefault<z.ZodString>;
     apiClientId: z.ZodOptional<z.ZodString>;
     apiClientSecret: z.ZodOptional<z.ZodString>;
