@@ -10,6 +10,7 @@ import { DeviceId } from "../helpers/deviceId.js";
 import { ErrorCodes, MongoDBError } from "./errors.js";
 
 const defaultTestConfig: ConnectionStoreConfig = {
+    connectionStrings: {},
     maxActiveConnections: 10,
     connectionIdleTimeoutMs: 600_000,
     transport: "stdio",

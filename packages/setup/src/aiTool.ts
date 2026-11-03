@@ -212,7 +212,7 @@ export abstract class AITool {
         }
         return {
             command: "npx",
-            args: ["-y", "mongodb-mcp-server@latest"],
+            args,
             env,
         };
     }
