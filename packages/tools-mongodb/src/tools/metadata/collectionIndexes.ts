@@ -126,12 +126,6 @@ export class CollectionIndexesTool extends MongoDBToolBase {
      * `type` field.
      */
     private static resolveIndexType(index: Record<string, unknown>): string {
-        const definition = (index["latestDefinition"] ?? {}) as Record<string, unknown>;
-        const fields = definition["fields"];
-        if (Array.isArray(fields) && fields.some((field: Record<string, unknown>) => field["type"] === "autoEmbed")) {
-            return "autoEmbed";
-        }
-
         // Direct type from server response.
         // TODO: This is undocumented and is not always present, should be removed in the future.
         const serverType = index["type"];
@@ -139,13 +133,19 @@ export class CollectionIndexesTool extends MongoDBToolBase {
             return serverType;
         }
 
+        const definition = (index["latestDefinition"] ?? {}) as Record<string, unknown>;
         const defType = definition["type"];
         if (defType && typeof defType === "string") {
             return defType;
         }
 
         // Vector search uses a `fields` array, Atlas search uses `mappings`
+        const fields = definition["fields"];
         if (Array.isArray(fields)) {
+            // Check for auto-embed indexes (have autoEmbed field type)
+            if (fields.some((field: Record<string, unknown>) => field["type"] === "autoEmbed")) {
+                return "autoEmbed";
+            }
             // Check for regular vector search indexes (have vector field type)
             if (fields.some((field: Record<string, unknown>) => field["type"] === "vector")) {
                 return "vectorSearch";
