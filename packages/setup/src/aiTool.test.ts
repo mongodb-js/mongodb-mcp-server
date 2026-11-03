@@ -30,7 +30,7 @@ describe("AITool.updateConfig readOnly flag", () => {
             it(`${tool}: ${isReadOnly ? "includes" : "omits"} --readOnly (new file)`, () => {
                 const configPath = path.join(tmpDir, "config.json");
                 AI_TOOL_REGISTRY[tool].updateConfig({ configPath, env: {}, isReadOnly, keychain });
-                const args = getArgs(tool, JSON.parse(fs.readFileSync(configPath, "utf-8")));
+                const args = getArgs(tool, JSON.parse(fs.readFileSync(configPath, "utf-8")) as Record<string, unknown>);
                 expect(args.includes("--readOnly")).toBe(isReadOnly);
             });
         }
@@ -39,7 +39,7 @@ describe("AITool.updateConfig readOnly flag", () => {
             const configPath = path.join(tmpDir, "config.json");
             AI_TOOL_REGISTRY[tool].updateConfig({ configPath, env: {}, isReadOnly: false, keychain });
             AI_TOOL_REGISTRY[tool].updateConfig({ configPath, env: {}, isReadOnly: true, keychain });
-            const args = getArgs(tool, JSON.parse(fs.readFileSync(configPath, "utf-8")));
+            const args = getArgs(tool, JSON.parse(fs.readFileSync(configPath, "utf-8")) as Record<string, unknown>);
             expect(args).toContain("--readOnly");
         });
     }
