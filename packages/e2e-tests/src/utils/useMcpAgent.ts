@@ -40,7 +40,7 @@ export function useMcpAgent({ harness, tools }: { harness: AgentHarness; tools?:
             serverArgs: [],
         });
         connectionString = cluster.connectionString();
-        server = await startInProcessServer(connectionString, tools);
+        server = await startInProcessServer({ connectionString }, tools);
     }, 120_000);
 
     afterAll(async () => {
