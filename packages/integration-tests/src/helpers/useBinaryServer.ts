@@ -1,9 +1,7 @@
 import path from "node:path";
 
-import { useClearEnvironment } from "@mongodb-js/mcp-test-utils";
+import { useClearEnvironment, type MockTelemetryServer } from "@mongodb-js/mcp-test-utils";
 import { beforeEach } from "vitest";
-
-import type { MockTelemetryServer } from "../mocks/telemetryServer.js";
 
 const projectRoot = path.resolve(import.meta.dirname, "../../../..");
 const DEFAULT_SERVER_PATH = path.resolve(projectRoot, "packages/mongodb-mcp-server/dist/esm/index.js");

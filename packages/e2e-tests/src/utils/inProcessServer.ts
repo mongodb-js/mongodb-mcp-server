@@ -20,6 +20,10 @@ export interface InProcessServerOptions {
     apiClientId?: string;
     apiClientSecret?: string;
     apiBaseUrl?: string;
+    /** Defaults to "disabled". */
+    telemetry?: "enabled" | "disabled";
+    /** Route telemetry to a different host than {@link apiBaseUrl}, e.g. a mock telemetry server. */
+    telemetryBaseUrl?: string;
 }
 
 /**
@@ -36,10 +40,11 @@ export async function startInProcessServer(
         ...(options.apiClientId ? { apiClientId: options.apiClientId } : {}),
         ...(options.apiClientSecret ? { apiClientSecret: options.apiClientSecret } : {}),
         ...(options.apiBaseUrl ? { apiBaseUrl: options.apiBaseUrl } : {}),
+        ...(options.telemetryBaseUrl ? { telemetryBaseUrl: options.telemetryBaseUrl } : {}),
+        telemetry: options.telemetry ?? "disabled",
         transport: "http",
         httpHost: "127.0.0.1",
         httpPort: 0, // random port
-        telemetry: "disabled",
         loggers: [],
     });
 

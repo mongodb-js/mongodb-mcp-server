@@ -34,6 +34,11 @@ const ServerConfigSchema = z.object({
         .string()
         .default("https://cloud.mongodb.com/")
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    // Undocumented telemetry host override (tests capture events against a local mock).
+    telemetryBaseUrl: z
+        .string()
+        .optional()
+        .register(configRegistry, { overrideBehavior: "not-allowed", cliArgument: false }),
     assistantBaseUrl: z
         .string()
         .default("https://knowledge.mongodb.com/api/v1/")

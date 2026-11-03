@@ -65,6 +65,8 @@ export type SharedServerServices = {
     /** Shared, app-level registry view over {@link connectionStore}. */
     connectionRegistry: ConnectionRegistry;
     apiClient: ApiClient;
+    /** API client used only for telemetry; equals {@link apiClient} unless `telemetryBaseUrl` is set. */
+    telemetryApiClient: ApiClient;
     exportsManager: ExportsManager;
     telemetry: AtlasTelemetry;
     atlasLocalClient: AtlasLocalClient | undefined;
@@ -165,11 +167,21 @@ export async function createSharedServicesFromConfig(
     // Validate app-fixed config once at startup (see {@link validateAppConfig}).
     await validateAppConfig({ config, logger, apiClient });
 
+    // Second client only when telemetry targets a different host than the API.
+    const telemetryApiClient =
+        config.telemetryBaseUrl && config.telemetryBaseUrl !== config.apiBaseUrl
+            ? createApiClientFromConfig({
+                  config: { ...config, apiBaseUrl: config.telemetryBaseUrl },
+                  serverMetadata,
+                  logger,
+              })
+            : apiClient;
+
     const telemetry = createTelemetryFromConfig({
         config,
         logger,
         deviceId,
-        apiClient,
+        apiClient: telemetryApiClient,
         keychain,
         serverMetadata,
     });
@@ -188,6 +200,7 @@ export async function createSharedServicesFromConfig(
         connectionStore,
         connectionRegistry,
         apiClient,
+        telemetryApiClient,
         exportsManager,
         telemetry,
         atlasLocalClient,
@@ -381,7 +394,8 @@ export function createServerFromConfig({
  * it), then telemetry flushes last.
  */
 export async function closeSharedServices(sharedServices: SharedServerServices): Promise<void> {
-    const { telemetry, connectionStore, exportsManager, apiClient } = sharedServices;
+    const { telemetry, connectionStore, exportsManager, apiClient, telemetryApiClient } = sharedServices;
     await Promise.allSettled([connectionStore.closeAll(), exportsManager.close()]);
-    await Promise.allSettled([apiClient.close(), telemetry.close()]);
+    const apiClients = telemetryApiClient === apiClient ? [apiClient] : [apiClient, telemetryApiClient];
+    await Promise.allSettled([...apiClients.map((client) => client.close()), telemetry.close()]);
 }
