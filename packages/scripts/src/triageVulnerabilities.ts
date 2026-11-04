@@ -28,7 +28,7 @@ import {
     type InvestigationScope,
 } from "./triageAssessment.js";
 
-const GROVE_URL = "https://grove-gateway-prod.azure-api.net/grove-foundry-prod";
+const GROVE_URL = "https://ai-gateway.corp.mongodb.com";
 const SONNET_MODEL = "claude-sonnet-5";
 const MAX_OUTPUT_TOKENS = 6000;
 const MAX_CONTEXT_CHARACTERS = 128_000;
@@ -287,7 +287,7 @@ export function selectModelId(ids: string[]): string {
 
 async function availableModels(key: string): Promise<string[]> {
     const response = await fetch(`${GROVE_URL}/openai/v1/models`, {
-        headers: { "api-key": key, Authorization: `Bearer ${key}` },
+        headers: { "x-api-key": key },
         redirect: "error",
         signal: AbortSignal.timeout(30_000),
     });
@@ -300,7 +300,14 @@ async function availableModels(key: string): Promise<string[]> {
 
 function groveModel(id: string, config: { key: string; provider?: string }): LanguageModel {
     const { key, provider } = config;
-    const options = { apiKey: key, headers: { "api-key": key } };
+    const request: typeof fetch = (resource, init) => {
+        const headers = new Headers(init?.headers);
+        headers.delete("authorization");
+        headers.delete("api-key");
+        headers.set("x-api-key", key);
+        return fetch(resource, { ...init, headers, redirect: "error" });
+    };
+    const options = { apiKey: key, fetch: request };
     return provider === "anthropic" || (!provider && id.startsWith("claude-"))
         ? createAnthropic({ ...options, baseURL: `${GROVE_URL}/anthropic/v1` })(id)
         : createOpenAI({ ...options, baseURL: `${GROVE_URL}/openai/v1` }).chat(id);
@@ -520,6 +527,11 @@ async function investigate(input: {
             evidence: records,
         };
     } catch (error) {
+        if (APICallError.isInstance(error) && [401, 403].includes(error.statusCode ?? 0))
+            throw new TriageFailure("authentication", {
+                cause: error,
+                option: `GROVE_API_KEY and Grove model permissions (HTTP ${error.statusCode})`,
+            });
         if (APICallError.isInstance(error))
             throw new Error(`Grove generation failed (HTTP ${error.statusCode ?? "unknown"})`, { cause: error });
         throw new Error("Investigation failed or incomplete; no comment proposed", { cause: error });
@@ -528,7 +540,7 @@ async function investigate(input: {
 
 function required(name: string): string {
     const value = process.env[name];
-    if (!value) throw new Error(`${name} is required`);
+    if (!value) throw new TriageFailure("configuration", { option: `${name} (required environment variable)` });
     return value;
 }
 
@@ -646,9 +658,10 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
     );
     if (provider && values.model === "auto") throw new Error("--provider requires an explicit --model");
     const jiraUrl = required("JIRA_URL");
+    const jiraToken = required("JIRA_TOKEN");
     const jira = configurationValue(
-        () => new ReadOnlyJira(jiraUrl, { token: required("JIRA_TOKEN") }),
-        "JIRA_URL and JIRA_TOKEN"
+        () => new ReadOnlyJira(jiraUrl, { token: jiraToken }),
+        "JIRA_URL (absolute HTTPS base URL, e.g. https://jira.example.com; no embedded credentials, query or fragment)"
     );
     const readRepository = (ref: string): RepositoryReader => {
         try {
@@ -674,9 +687,10 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
     if (id === "auto") {
         try {
             id = selectModelId(await availableModels(key));
-        } catch {
+        } catch (error) {
+            const diagnostic = diagnoseFailure(error);
             console.error(
-                `Grove model discovery unavailable; falling back to ${SONNET_MODEL}. Use --model to override.`
+                `Grove model discovery unavailable [${diagnostic.category}]: ${diagnostic.guidance}; falling back to ${SONNET_MODEL}. Use --model to override.`
             );
             id = SONNET_MODEL;
         }
@@ -700,6 +714,7 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
                         evidenceLimits,
                         deadlineSeconds,
                         provider: provider ?? (modelId.startsWith("claude-") ? "anthropic" : "openai"),
+                        gateway: GROVE_URL,
                         investigationInstructions: INVESTIGATION_INSTRUCTIONS,
                         assessmentInstructions: ASSESSMENT_INSTRUCTIONS,
                         harnessVersion: 10,
