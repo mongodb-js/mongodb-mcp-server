@@ -43,6 +43,12 @@ export const evidenceLimitsSchema = z.object({
         .default(20 * 1024 * 1024),
 });
 export type EvidenceLimits = z.infer<typeof evidenceLimitsSchema>;
+export const advisoryReadOptionsSchema = z.object({
+    descriptionOffset: z.number().int().min(0).default(0),
+    descriptionCharacters: z.number().int().min(1).max(4000).default(1000),
+    referenceOffset: z.number().int().min(0).default(0),
+    referenceLimit: z.number().int().min(1).max(50).default(10),
+});
 type PackageArchive = {
     files: Map<string, string>;
     entries: { path: string; type: string; bytes: number; readable: boolean }[];
@@ -259,14 +265,17 @@ export class TriageEvidence {
 
     private boundedJson(value: unknown): string {
         const text = JSON.stringify(value);
-        if (text.length > Math.min(16_000, this.remainingCharacters))
-            return JSON.stringify({
-                truncated: true,
-                limitations: [
-                    "Structured evidence exceeds remaining context budget; request narrower evidence. No complete facts returned.",
-                ],
-            });
-        return this.bounded(text);
+        const result =
+            text.length <= Math.min(16_000, this.remainingCharacters)
+                ? text
+                : JSON.stringify({
+                      truncated: true,
+                      limitations: [
+                          "Structured evidence exceeds remaining context budget; request narrower evidence. No complete facts returned.",
+                      ],
+                  });
+        this.remainingCharacters = Math.max(0, this.remainingCharacters - result.length);
+        return result;
     }
 
     async reference(input: { url: string; startLine?: number; lineCount?: number }): Promise<string> {
@@ -497,7 +506,8 @@ export class TriageEvidence {
         throw new Error("Release tag nesting limit exceeded");
     }
 
-    async advisory(id: string): Promise<string> {
+    async advisory(id: string, input: z.input<typeof advisoryReadOptionsSchema> = {}): Promise<string> {
+        const options = advisoryReadOptionsSchema.parse(input);
         const normalized = id.toUpperCase();
         const ghsa = /^GHSA-[23456789CFGHJMPQRVWX]{4}(?:-[23456789CFGHJMPQRVWX]{4}){2}$/;
         const cve = /^CVE-\d{4}-\d{4,}$/;
@@ -527,8 +537,43 @@ export class TriageEvidence {
         const advisories = z.array(schema).parse(Array.isArray(json) ? json : [json]);
         if (!advisories.length)
             return "No matching GitHub advisory; this is missing evidence, not proof of non-impact.";
-        if (this.remainingCharacters > 0) this.hasAdvisoryEvidence = true;
-        return this.boundedJson({ source: url.href, advisories });
+        let descriptionCharacters = options.descriptionCharacters;
+        let referenceLimit = options.referenceLimit;
+        const page = (): { source: string; advisories: unknown[] } => ({
+            source: url.href,
+            advisories: advisories.map((advisory) => ({
+                ...advisory,
+                description: advisory.description.slice(
+                    options.descriptionOffset,
+                    options.descriptionOffset + descriptionCharacters
+                ),
+                descriptionOffset: options.descriptionOffset,
+                descriptionLength: advisory.description.length,
+                nextDescriptionOffset:
+                    options.descriptionOffset + descriptionCharacters < advisory.description.length
+                        ? options.descriptionOffset + descriptionCharacters
+                        : null,
+                references: advisory.references.slice(
+                    options.referenceOffset,
+                    options.referenceOffset + referenceLimit
+                ),
+                referenceOffset: options.referenceOffset,
+                referenceCount: advisory.references.length,
+                nextReferenceOffset:
+                    options.referenceOffset + referenceLimit < advisory.references.length
+                        ? options.referenceOffset + referenceLimit
+                        : null,
+            })),
+        });
+        let result = page();
+        const available = Math.min(16_000, this.remainingCharacters);
+        while (JSON.stringify(result).length > available && (descriptionCharacters || referenceLimit)) {
+            if (descriptionCharacters) descriptionCharacters = Math.floor(descriptionCharacters / 2);
+            else referenceLimit = Math.floor(referenceLimit / 2);
+            result = page();
+        }
+        if (JSON.stringify(result).length <= available) this.hasAdvisoryEvidence = true;
+        return this.boundedJson(result);
     }
 
     async githubReference(input: {

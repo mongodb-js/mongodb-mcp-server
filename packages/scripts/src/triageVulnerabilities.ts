@@ -8,7 +8,12 @@ import { z } from "zod/v4";
 import { planTriage, ReadOnlyJira, TRIAGE_PROMPT, type TriageIssue, type TriagePlan } from "./vulnerabilityTriage.js";
 import { createHash } from "node:crypto";
 import { readFileSync, statSync } from "node:fs";
-import { TriageEvidence, evidenceLimitsSchema, type EvidenceOptions } from "./triageEvidence.js";
+import {
+    TriageEvidence,
+    advisoryReadOptionsSchema,
+    evidenceLimitsSchema,
+    type EvidenceOptions,
+} from "./triageEvidence.js";
 import { PnpmDependencyGraph } from "./triageDependencies.js";
 import { configurationValue, diagnoseFailure, TriageFailure } from "./triageDiagnostics.js";
 import {
@@ -17,8 +22,10 @@ import {
     checkAssessment,
     collectEvidence,
     renderAssessment,
+    renderInvestigationScope,
     replayInvestigation,
     type InvestigationResult,
+    type InvestigationScope,
 } from "./triageAssessment.js";
 
 const GROVE_URL = "https://grove-gateway-prod.azure-api.net/grove-foundry-prod";
@@ -314,6 +321,19 @@ async function investigate(input: {
     const deadlineAt = Date.now() + input.deadlineSeconds * 1000;
     repository.withDeadline(deadlineAt);
     release?.withDeadline(deadlineAt);
+    const releasedProduct = release?.product();
+    const scope: InvestigationScope = {
+        main: { commit: repository.commit },
+        release:
+            release && releasedProduct
+                ? {
+                      commit: release.commit,
+                      name: releasedProduct.name,
+                      version: releasedProduct.version,
+                      label: releaseLabel ?? "unspecified source-to-artifact mapping",
+                  }
+                : null,
+    };
     const abortSignal = AbortSignal.timeout(input.deadlineSeconds * 1000);
     const evidence = new TriageEvidence(fetch, { ...input.evidenceOptions, signal: abortSignal });
     const targetSchema = z.enum(["main", "release"]).default("main");
@@ -395,9 +415,9 @@ async function investigate(input: {
                 }),
                 readAdvisory: tool({
                     description:
-                        "Retrieve a GHSA or CVE advisory from GitHub's public advisory database, including affected versions and prerequisites. No arbitrary URLs. A missing record is not proof of non-impact.",
-                    inputSchema: z.object({ id: z.string().max(100) }),
-                    execute: ({ id }) => evidence.advisory(id),
+                        "Retrieve GHSA or CVE advisories from GitHub's public database. Keeps complete version records while paging description text and references. Follow each advisory's nextDescriptionOffset/nextReferenceOffset; use its GHSA id to narrow a CVE result. Descriptive pages may shrink to fit; missing facts are explicit gaps, not non-impact. No arbitrary URLs.",
+                    inputSchema: advisoryReadOptionsSchema.extend({ id: z.string().max(100) }),
+                    execute: ({ id, ...request }) => evidence.advisory(id, request),
                 }),
                 readGitHubReference: tool({
                     description:
@@ -487,13 +507,18 @@ async function investigate(input: {
         if (Date.now() >= deadlineAt) throw new TriageFailure("deadline", {});
         const assessment = checkAssessment(result.output, records);
         const coverage = [
-            `Assessment scope: current-main commit ${repository.commit}; released-product ${releaseLabel ?? "unspecified"}, commit ${release?.commit ?? "not supplied (released-product impact unknown)"}.`,
+            renderInvestigationScope(scope),
             `Evidence coverage: advisory ${evidence.hasAdvisoryEvidence ? "retrieved" : "MISSING"}; dependency implementation ${evidence.hasDependencyEvidence ? "read" : "MISSING"}; GitHub references/source ${evidence.hasGitHubEvidence ? "retrieved" : "MISSING"}; supplemental references ${evidence.hasSupplementalEvidence ? "retrieved" : "not retrieved"}.`,
             `Dependency graph: main ${repository.hasDependencyGraphEvidence ? "queried" : "MISSING"}; release ${release?.hasDependencyGraphEvidence ? "queried" : "MISSING"}; released npm artifact ${evidence.hasArtifactEvidence ? "inventoried" : "MISSING"}. Graph queries and artifact inventories do not establish completeness or function reachability; review tool gaps and cited source.`,
             `External evidence usage: ${JSON.stringify(evidence.usage())}.`,
             "Missing evidence means the assessment is incomplete, not that the vulnerability is absent.",
         ].join("\n");
-        return { body: `${coverage}\n\n${renderAssessment(assessment, records)}`, assessment, evidence: records };
+        return {
+            body: `${coverage}\n\n${renderAssessment(assessment, records)}`,
+            scope,
+            assessment,
+            evidence: records,
+        };
     } catch (error) {
         if (APICallError.isInstance(error))
             throw new Error(`Grove generation failed (HTTP ${error.statusCode ?? "unknown"})`, { cause: error });
@@ -677,7 +702,7 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
                         provider: provider ?? (modelId.startsWith("claude-") ? "anthropic" : "openai"),
                         investigationInstructions: INVESTIGATION_INSTRUCTIONS,
                         assessmentInstructions: ASSESSMENT_INSTRUCTIONS,
-                        harnessVersion: 9,
+                        harnessVersion: 10,
                         supplementalConfiguration: {
                             konduktoUrl: evidenceOptions.kondukto?.url,
                             konduktoEnabled: !!evidenceOptions.kondukto,
