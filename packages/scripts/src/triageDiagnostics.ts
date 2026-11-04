@@ -46,6 +46,73 @@ export function configurationValue<Value>(read: () => Value, option?: string): V
     }
 }
 
+export function debugFailure(error: unknown): {
+    causes: { type: string; httpStatus?: number; code?: string }[];
+    truncated: boolean;
+} {
+    const knownTypes = new Set([
+        "Error",
+        "TypeError",
+        "RangeError",
+        "SyntaxError",
+        "AbortError",
+        "TimeoutError",
+        "ZodError",
+        "AI_APICallError",
+        "AI_NoObjectGeneratedError",
+        "AI_NoOutputGeneratedError",
+        "AI_InvalidResponseDataError",
+        "AI_JSONParseError",
+        "AI_TypeValidationError",
+        "AI_ToolExecutionError",
+        "AI_InvalidToolInputError",
+        "AI_ToolChoiceViolationError",
+        "AI_NoSuchToolError",
+        "AI_UnsupportedFunctionalityError",
+        "AI_RetryError",
+        "AI_MessageConversionError",
+        "AI_InvalidArgumentError",
+        "AI_EmptyResponseBodyError",
+        "AI_InvalidPromptError",
+    ]);
+    const knownCodes = new Set([
+        "ECONNREFUSED",
+        "ECONNRESET",
+        "ENOTFOUND",
+        "ETIMEDOUT",
+        "EAI_AGAIN",
+        "ENOENT",
+        "EACCES",
+        "ERR_INVALID_URL",
+        "ABORT_ERR",
+    ]);
+    const causes: { type: string; httpStatus?: number; code?: string }[] = [];
+    const seen = new Set<unknown>();
+    let current = error;
+    while (current !== undefined && causes.length < 10 && !seen.has(current)) {
+        seen.add(current);
+        const metadata = z
+            .object({
+                statusCode: z.number().int().min(100).max(599).optional(),
+                code: z.string().optional(),
+            })
+            .safeParse(current);
+        causes.push({
+            type: current instanceof Error && knownTypes.has(current.name) ? current.name : "unrecognized-error",
+            ...(current instanceof EvidenceHttpError
+                ? { httpStatus: current.status }
+                : metadata.success && metadata.data.statusCode !== undefined
+                  ? { httpStatus: metadata.data.statusCode }
+                  : {}),
+            ...(metadata.success && metadata.data.code && knownCodes.has(metadata.data.code)
+                ? { code: metadata.data.code }
+                : {}),
+        });
+        current = current instanceof Error ? current.cause : undefined;
+    }
+    return { causes, truncated: current !== undefined };
+}
+
 export function diagnoseFailure(error: unknown): FailureDiagnostic {
     const chain: unknown[] = [];
     let current = error;

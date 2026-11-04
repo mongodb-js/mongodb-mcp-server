@@ -190,6 +190,18 @@ Terminal failures and failed-tool ledger entries expose safe categories and fixe
 
 Local budget/provider validation and Jira URL configuration are classified as configuration failures, with safe option names rather than supplied values. Missing local main/explicit-release revisions are repository-evidence failures, not invalid model reports. These stage-specific categories take precedence over wrapped parser or subprocess errors.
 
+### Debugging
+
+For an unknown failure, enable safe diagnostics:
+
+```bash
+pnpm triage:vulnerabilities --limit 1 --debug
+```
+
+`--debug` writes `[triage-debug]` JSON events to stderr, leaving JSONL write proposals on stdout unchanged. Step events report the step number, tool-choice policy, finish reason, tool call/error counts, token usage, and whether each repository target has been read. Failure events report at most ten causes using allowlisted error types, HTTP statuses, and network error codes; unknown names and codes are omitted or replaced, and cycles are bounded. Debug records never include raw error messages or stacks, headers, credentials, ticket text, prompts, model responses, or tool arguments/results. To capture stderr locally, append `2>triage-debug.log`.
+
+Debug mode does not change caching, add retries or relax evidence checks. A live debug run still sends the same approved ticket/code data to the gateway and incurs normal inference costs. Share the debug events rather than credentials or full provider payloads when investigating a failure.
+
 ### Models
 
 `--model auto` is the default. It queries Grove's OpenAI-compatible model catalog and prefers the newest advertised non-experimental, non-vision DeepSeek Flash model. If discovery is unavailable or no Flash model is listed, it selects `claude-sonnet-5` through Grove's Anthropic route. If an auto-selected Flash inference is denied or its route is unavailable (HTTP 403/404), it retries with Sonnet and recomputes the comment fingerprint. Other failures are not silently retried on another model.
