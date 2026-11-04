@@ -186,21 +186,25 @@ Public evidence GETs retry HTTP 429/502/503/504 responses, fetch `TypeError` fai
 
 Retries use 500 ms then 1 second backoff unless `Retry-After` supplies a numeric delay or HTTP date. Retry windows above 30 seconds fail promptly rather than waiting indefinitely or retrying too soon. The investigation's shared cancellation signal also interrupts waits; the next attempt checks remaining budgets and cancellation again. GitHub 403 rate-limit responses are diagnosed as rate limits but not automatically retried.
 
-Terminal failures and failed-tool ledger entries expose safe categories and fixed follow-up guidance: rate limit, authentication, missing resource, unavailable upstream, exhausted budget, cancelled/deadline, invalid report/replay input, missing local release commit, unresolved release mapping, missing repository evidence, network or configuration problems. Unknown failures remain generic. Wrapped causes are inspected, but raw exceptions, upstream bodies and credentials are not printed as diagnostics. Missing or failed evidence never establishes non-impact; an incomplete investigation can still produce `needs-investigation` when both repository targets were inspected. Otherwise no comment is proposed for that ticket.
+Terminal failures and failed-tool ledger entries expose safe categories and fixed follow-up guidance: rate limit, authentication, missing resource, unavailable upstream, exhausted budget, cancelled/deadline, invalid report/replay input, missing local release commit, unresolved release mapping, missing repository evidence, network or configuration problems. Unknown failures remain generic. Wrapped causes are inspected, but raw exceptions, upstream bodies and credentials are not printed as normal diagnostics. Opt-in debug mode includes bounded provider error bodies as described below. Missing or failed evidence never establishes non-impact; an incomplete investigation can still produce `needs-investigation` when both repository targets were inspected. Otherwise no comment is proposed for that ticket.
 
 Local budget/provider validation and Jira URL configuration are classified as configuration failures, with safe option names rather than supplied values. Missing local main/explicit-release revisions are repository-evidence failures, not invalid model reports. These stage-specific categories take precedence over wrapped parser or subprocess errors.
 
 ### Debugging
 
-For an unknown failure, enable safe diagnostics:
+For an unknown failure, enable debug diagnostics:
 
 ```bash
 pnpm triage:vulnerabilities --limit 1 --debug
 ```
 
-`--debug` writes `[triage-debug]` JSON events to stderr, leaving JSONL write proposals on stdout unchanged. Step events report the step number, tool-choice policy, finish reason, tool call/error counts, token usage, and whether each repository target has been read. Failure events report at most ten causes using allowlisted error types, HTTP statuses, and network error codes; unknown names and codes are omitted or replaced, and cycles are bounded. Debug records never include raw error messages or stacks, headers, credentials, ticket text, prompts, model responses, or tool arguments/results. To capture stderr locally, append `2>triage-debug.log`.
+Model HTTP 400 rejections are classified as `model-request`, not `unknown`. Debug causes can include allowlisted `providerCode` and `parameter` fields, plus `mentionedParameters` identifying known request fields mentioned in the provider message. These are diagnostic hints, not proof of which setting caused the rejection. Only JSON error envelopes of at most 32 KiB are inspected for these hints. A rejection does not trigger an inference retry or automatic model fallback.
 
-Debug mode does not change caching, add retries or relax evidence checks. A live debug run still sends the same approved ticket/code data to the gateway and incurs normal inference costs. Share the debug events rather than credentials or full provider payloads when investigating a failure.
+`--debug` writes `[triage-debug]` JSON events to stderr, leaving JSONL write proposals on stdout unchanged. Step events report the step number, tool-choice policy, finish reason, tool call/error counts, token usage, and whether each repository target has been read. Failure events report at most ten causes using allowlisted error types, HTTP statuses, and network error codes; unknown names and codes are omitted or replaced, and cycles are bounded. SDK API failures also include a `responseBody` preview, including non-JSON gateway errors, capped at 4,096 characters with a `responseBodyTruncated` flag. Preview processing examines at most the first 32,768 characters. Configured secret environment values, JSON credential fields, and common authentication patterns are redacted on a best-effort basis. Request bodies, headers, raw exception messages and stacks are not logged. To capture stderr locally, append `2>triage-debug.log`.
+
+**Debug output may contain sensitive data.** Providers can echo ticket text, source code, prompts or unrecognised credentials in error bodies. Redaction is not a security guarantee: inspect debug events before sharing them, protect local logs, and avoid enabling debug in routine production runs.
+
+Debug mode does not change caching, add retries or relax evidence checks. A live debug run still sends the same approved ticket/code data to the gateway and incurs normal inference costs. Share only inspected debug events when investigating a failure.
 
 ### Models
 

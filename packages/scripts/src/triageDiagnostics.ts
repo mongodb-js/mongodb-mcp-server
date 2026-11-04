@@ -1,4 +1,5 @@
 import { z } from "zod/v4";
+import { APICallError } from "ai";
 import { EvidenceHttpError } from "./triageEvidence.js";
 
 const guidance = {
@@ -22,6 +23,8 @@ const guidance = {
     "repository-evidence":
         "Repository evidence is unavailable or incomplete. Check --repo, --ref and --release-ref, local Git objects, source availability and model limits.",
     network: "An upstream network request failed. Check connectivity and retry later.",
+    "model-request":
+        "The model endpoint rejected the inference request. Check the selected model's tool-choice and structured-output support; use --debug for bounded provider details. This rejection is not retried.",
     configuration: "Check required environment variables and CLI arguments; use --help for configuration.",
     unknown:
         "Investigation failed; no write is proposed. Check configured access, repository targets and investigation limits.",
@@ -46,8 +49,111 @@ export function configurationValue<Value>(read: () => Value, option?: string): V
     }
 }
 
+type DebugCause = {
+    type: string;
+    httpStatus?: number;
+    code?: string;
+    providerCode?: string;
+    parameter?: string;
+    mentionedParameters?: string[];
+    responseBody?: string;
+    responseBodyTruncated?: boolean;
+};
+
+function providerBodyPreview(error: unknown): Pick<DebugCause, "responseBody" | "responseBodyTruncated"> {
+    if (!APICallError.isInstance(error) || !error.responseBody) return {};
+    const sensitiveField = /authorization|cookie|api[-_]?key|token|password|secret|credential/i;
+    let preview = error.responseBody.slice(0, 32_768);
+    try {
+        const parsed: unknown = JSON.parse(preview, (key: string, value: unknown): unknown =>
+            sensitiveField.test(key) ? "[REDACTED]" : value
+        );
+        preview = JSON.stringify(parsed) ?? preview;
+    } catch {
+        preview = error.responseBody.slice(0, 32_768);
+    }
+    const secrets = Object.entries(process.env)
+        .filter(([name, value]) => sensitiveField.test(name) && value)
+        .flatMap(([, value]) => (value ? [value, JSON.stringify(value).slice(1, -1)] : []))
+        .sort((left, right) => right.length - left.length);
+    for (const secret of secrets) preview = preview.split(secret).join("[REDACTED]");
+    preview = preview
+        .replace(/\b(Bearer|Basic)\s+[A-Za-z0-9._~+/-]+=*/gi, "$1 [REDACTED]")
+        .replace(
+            /\b(authorization|cookie|api[-_]?key|token|password|secret|credential)\s*[:=]\s*[^\s,;<>]+/gi,
+            "$1=[REDACTED]"
+        );
+    return {
+        responseBody: preview.slice(0, 4096),
+        responseBodyTruncated: error.responseBody.length > 32_768 || preview.length > 4096,
+    };
+}
+
+function providerDebugDetails(error: unknown): Pick<DebugCause, "providerCode" | "parameter" | "mentionedParameters"> {
+    if (
+        !APICallError.isInstance(error) ||
+        !error.responseBody ||
+        error.responseBody.length > 32_768 ||
+        Buffer.byteLength(error.responseBody, "utf8") > 32_768
+    )
+        return {};
+    let body: unknown;
+    try {
+        body = JSON.parse(error.responseBody);
+    } catch {
+        return {};
+    }
+    const parsed = z
+        .object({
+            error: z.object({
+                code: z.string().nullish(),
+                type: z.string().nullish(),
+                param: z.string().nullish(),
+                message: z.string().optional(),
+            }),
+        })
+        .safeParse(body);
+    if (!parsed.success) return {};
+    const knownCodes = new Set([
+        "invalid_request_error",
+        "invalid_request",
+        "unsupported_parameter",
+        "unsupported_value",
+        "BadRequest",
+        "InvalidRequest",
+        "invalid_json_schema",
+        "model_not_found",
+        "unsupported_response_format",
+        "tool_choice_not_supported",
+        "not_supported",
+        "validation_error",
+    ]);
+    const parameters = [
+        "tool_choice",
+        "response_format",
+        "tools",
+        "parallel_tool_calls",
+        "max_tokens",
+        "max_completion_tokens",
+        "temperature",
+        "top_p",
+        "model",
+        "messages",
+        "thinking",
+    ];
+    const value = parsed.data.error;
+    const providerCode = [value.code, value.type].find((code) => code && knownCodes.has(code));
+    const parameter = value.param && parameters.includes(value.param) ? value.param : undefined;
+    const mentionedParameters = parameters.filter((name) => value.message?.includes(name));
+    return {
+        ...(providerCode ? { providerCode } : {}),
+        ...(parameter ? { parameter } : {}),
+        ...(mentionedParameters.length ? { mentionedParameters } : {}),
+    };
+}
+
 export function debugFailure(error: unknown): {
-    causes: { type: string; httpStatus?: number; code?: string }[];
+    causes: DebugCause[];
     truncated: boolean;
 } {
     const knownTypes = new Set([
@@ -86,7 +192,7 @@ export function debugFailure(error: unknown): {
         "ERR_INVALID_URL",
         "ABORT_ERR",
     ]);
-    const causes: { type: string; httpStatus?: number; code?: string }[] = [];
+    const causes: DebugCause[] = [];
     const seen = new Set<unknown>();
     let current = error;
     while (current !== undefined && causes.length < 10 && !seen.has(current)) {
@@ -107,6 +213,8 @@ export function debugFailure(error: unknown): {
             ...(metadata.success && metadata.data.code && knownCodes.has(metadata.data.code)
                 ? { code: metadata.data.code }
                 : {}),
+            ...providerDebugDetails(current),
+            ...providerBodyPreview(current),
         });
         current = current instanceof Error ? current.cause : undefined;
     }
@@ -133,6 +241,7 @@ export function diagnoseFailure(error: unknown): FailureDiagnostic {
             return result("rate-limit");
         if (code === 401 || code === 403) return result("authentication");
         if (code === 404) return result("missing-resource");
+        if (code === 400 && APICallError.isInstance(candidate)) return result("model-request");
         if (code && code >= 500) return result("upstream-unavailable");
         if (!(candidate instanceof Error)) continue;
         const message = candidate.message;
