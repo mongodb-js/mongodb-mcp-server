@@ -208,6 +208,8 @@ Debug mode does not change caching, add retries or relax evidence checks. A live
 
 ### Models
 
+While repository evidence is missing, model steps require tool use and omit the structured response format: the gateway rejects forced tool calls combined with `response_format`. Once both repository targets have been read, the assessment schema is enabled with automatic tool choice; the final allowed step disables tools. Reporting still requires a valid structured assessment and evidence from both targets. This avoids the incompatible request without adding inference calls, retries, or model fallbacks.
+
 `--model auto` is the default. It queries Grove's OpenAI-compatible model catalog and prefers the newest advertised non-experimental, non-vision DeepSeek Flash model. If discovery is unavailable or no Flash model is listed, it selects `claude-sonnet-5` through Grove's Anthropic route. If an auto-selected Flash inference is denied or its route is unavailable (HTTP 403/404), it retries with Sonnet and recomputes the comment fingerprint. Other failures are not silently retried on another model.
 
 ```bash

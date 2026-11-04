@@ -10,6 +10,7 @@ import {
     stepCountIs,
     tool,
     ToolChoiceViolationError,
+    wrapLanguageModel,
     type LanguageModel,
 } from "ai";
 import { z } from "zod/v4";
@@ -38,6 +39,7 @@ import {
 
 const GROVE_URL = "https://ai-gateway.corp.mongodb.com";
 const SONNET_MODEL = "claude-sonnet-5";
+type GatewayModel = Extract<LanguageModel, { specificationVersion: "v3" }>;
 const MAX_OUTPUT_TOKENS = 6000;
 const MAX_CONTEXT_CHARACTERS = 128_000;
 const INVESTIGATION_INSTRUCTIONS =
@@ -306,7 +308,7 @@ async function availableModels(key: string): Promise<string[]> {
         .data.map(({ id }) => id);
 }
 
-function groveModel(id: string, config: { key: string; provider?: string }): LanguageModel {
+function groveModel(id: string, config: { key: string; provider?: string }): GatewayModel {
     const { key, provider } = config;
     const request: typeof fetch = (resource, init) => {
         const headers = new Headers(init?.headers);
@@ -322,7 +324,7 @@ function groveModel(id: string, config: { key: string; provider?: string }): Lan
 }
 
 async function investigate(input: {
-    model: LanguageModel;
+    model: GatewayModel;
     repository: RepositoryReader;
     release?: RepositoryReader;
     steps: number;
@@ -334,6 +336,13 @@ async function investigate(input: {
     debug?: boolean;
 }): Promise<InvestigationResult> {
     const { model, repository, release, steps, issue, url, releaseLabel } = input;
+    const evidenceModel = wrapLanguageModel({
+        model,
+        middleware: {
+            specificationVersion: "v3",
+            transformParams: ({ params }) => Promise.resolve({ ...params, responseFormat: undefined }),
+        },
+    });
     const deadlineAt = Date.now() + input.deadlineSeconds * 1000;
     repository.withDeadline(deadlineAt);
     release?.withDeadline(deadlineAt);
@@ -535,6 +544,7 @@ async function investigate(input: {
                         })}`
                     );
                 return {
+                    model: toolChoice === "required" ? evidenceModel : model,
                     toolChoice,
                     system:
                         `${TRIAGE_PROMPT}\n${ASSESSMENT_INSTRUCTIONS}\n` +
