@@ -74,6 +74,7 @@ export const LogId = {
     streamableHttpTransportSessionLimitExceeded: mongoLogId(1_006_012),
     streamableHttpTransportClientStateSaveFailure: mongoLogId(1_006_013),
     streamableHttpTransportClientStateRestoreFailure: mongoLogId(1_006_014),
+    streamableHttpTransportRequestCancelledOnDisconnect: mongoLogId(1_006_015),
 
     httpServerStarted: mongoLogId(1_006_100),
     httpServerStopping: mongoLogId(1_006_101),
