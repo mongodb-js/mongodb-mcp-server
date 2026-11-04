@@ -1,18 +1,24 @@
 import { afterAll, beforeAll } from "vitest";
 import { startMockTelemetryServer, type MockTelemetryServer } from "@mongodb-js/mcp-test-utils";
 import { useAgent, type AgentHarness, type AgentHarnessOptions } from "@mongodb-js/harness-tester";
+import { AllTools } from "mongodb-mcp-server";
 import type { InProcessServer } from "./inProcessServer.js";
 import { startInProcessServer } from "./inProcessServer.js";
 
 // CI maps the repo's TEST_ATLAS_* secrets onto these AGENT_E2E_ATLAS_* vars.
 const ATLAS_CLIENT_ID = process.env.AGENT_E2E_ATLAS_CLIENT_ID ?? "";
 const ATLAS_CLIENT_SECRET = process.env.AGENT_E2E_ATLAS_CLIENT_SECRET ?? "";
-// Same default as the Atlas integration tests, which use these credentials.
-const ATLAS_BASE_URL = process.env.AGENT_E2E_ATLAS_BASE_URL ?? "https://cloud-dev.mongodb.com";
+// Same default as the Atlas integration tests, which use these credentials. `||` (not `??`)
+// because CI exports an unset TEST_ATLAS_BASE_URL as an empty string.
+const ATLAS_BASE_URL = process.env.AGENT_E2E_ATLAS_BASE_URL || "https://cloud-dev.mongodb.com";
 
 export function hasAtlasApiCreds(): boolean {
     return !!ATLAS_CLIENT_ID && !!ATLAS_CLIENT_SECRET;
 }
+
+// Read-only tools only: the harnesses auto-approve tool calls, so exposing
+// mutating tools could create real Atlas resources with the test credentials.
+const ATLAS_READ_ONLY_TOOLS = ["atlas-list-projects", "atlas-list-orgs", "atlas-list-clusters"];
 
 export interface AtlasApiE2EContext {
     harness: AgentHarness;
@@ -48,12 +54,15 @@ export function useAtlasApiAgent({
         if (telemetry) {
             telemetryServer = await startMockTelemetryServer();
         }
-        server = await startInProcessServer({
-            apiClientId: ATLAS_CLIENT_ID,
-            apiClientSecret: ATLAS_CLIENT_SECRET,
-            apiBaseUrl: ATLAS_BASE_URL,
-            ...(telemetryServer ? { telemetry: "enabled", telemetryBaseUrl: telemetryServer.baseUrl } : {}),
-        });
+        server = await startInProcessServer(
+            {
+                apiClientId: ATLAS_CLIENT_ID,
+                apiClientSecret: ATLAS_CLIENT_SECRET,
+                apiBaseUrl: ATLAS_BASE_URL,
+                ...(telemetryServer ? { telemetry: "enabled", telemetryBaseUrl: telemetryServer.baseUrl } : {}),
+            },
+            AllTools.filter((tool) => ATLAS_READ_ONLY_TOOLS.includes(tool.toolName))
+        );
     }, 120_000);
 
     afterAll(async () => {
