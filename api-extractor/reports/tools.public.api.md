@@ -2563,7 +2563,7 @@ export type MongoDBToolServices = ToolServices<IMongoDBConfig> & {
 export type MonitoringServerFeature = (typeof monitoringServerFeatureValues)[number];
 
 // @public (undocumented)
-export const monitoringServerFeatureValues: readonly ["health-check", "metrics"];
+export const monitoringServerFeatureValues: readonly ["health-check", "metrics", "process-metrics"];
 
 // @public (undocumented)
 export type NotConnectedToMongoDBErrorCode = typeof ErrorCodes.NotConnectedToMongoDB;

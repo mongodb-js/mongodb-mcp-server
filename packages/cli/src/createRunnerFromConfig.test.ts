@@ -5,6 +5,7 @@ import type * as McpCore from "@mongodb-js/mcp-core";
 import { MCPConnectionStore, type ConnectionRegistry } from "@mongodb-js/mcp-tools-mongodb";
 import type * as McpToolsMongodb from "@mongodb-js/mcp-tools-mongodb";
 import { StreamableHttpRunner } from "@mongodb-js/mcp-http-runners";
+import { PrometheusMetrics } from "@mongodb-js/mcp-metrics";
 import type { TransportRequestContext } from "@mongodb-js/mcp-types";
 import { UserConfigSchema } from "./config/userConfig.js";
 
@@ -161,6 +162,27 @@ describe("createSharedServicesFromConfig", () => {
         expect(sharedServices.connectionStore).toBeDefined();
         expect(sharedServices.connectionRegistry).toBeDefined();
         expect(sharedServices.atlasLocalClient).toBeUndefined();
+        expect(await sharedServices.metrics.getMetrics()).not.toMatch(/^# TYPE process_/m);
+    });
+
+    it("collects process metrics when the monitoring feature is enabled", async () => {
+        const config = UserConfigSchema.parse({
+            telemetry: "disabled",
+            loggers: ["stderr"],
+            monitoringServerFeatures: ["process-metrics"],
+        });
+
+        const sharedServices = await createSharedServicesFromConfig({
+            config,
+            serverMetadata,
+            tools: [],
+            resources: [],
+            logger,
+            keychain: new Keychain(),
+        });
+
+        expect(sharedServices.metrics).toBeInstanceOf(PrometheusMetrics);
+        expect(await sharedServices.metrics.getMetrics()).toMatch(/^# TYPE process_/m);
     });
 });
 

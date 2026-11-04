@@ -143,7 +143,10 @@ export async function createSharedServicesFromConfig(
     options: CreateServerServicesOptions
 ): Promise<SharedServerServices> {
     const { config, serverMetadata, logger, keychain } = options;
-    const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
+    const metrics = new PrometheusMetrics({
+        definitions: createDefaultMetrics(),
+        collectProcessMetrics: config.monitoringServerFeatures.includes("process-metrics"),
+    });
     const monitoringServer = createMonitoringServerFromConfig({ config, logger, metrics });
 
     const deviceId = DeviceId.create(logger);
