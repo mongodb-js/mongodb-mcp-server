@@ -70,6 +70,13 @@ export default defineConfig({
         },
         projects: [
             {
+                test: {
+                    name: "scripts",
+                    environment: "node",
+                    include: ["packages/scripts/src/vulnerabilityTriage.test.ts"],
+                },
+            },
+            {
                 extends: true,
                 test: {
                     name: "unit",

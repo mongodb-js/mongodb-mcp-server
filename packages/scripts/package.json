@@ -15,6 +15,7 @@
     "filter:openapi": "tsx src/filter.ts",
     "apply:openapi": "tsx src/apply.ts",
     "create-dependency-sbom-lists": "tsx src/sbomReport/index.ts",
+    "triage:vulnerabilities": "tsx src/triageVulnerabilities.ts",
     "check": "tsc --noEmit --project tsconfig.json"
   },
   "devDependencies": {
@@ -27,6 +28,7 @@
     "@mongodb-js/mcp-tools-atlas": "workspace:*",
     "mongodb-mcp-server": "workspace:*",
     "@types/node": "^25.6.0",
+    "@types/tar-stream": "^3.1.5",
     "tsx": "^4.23.12",
     "typescript": "^5.9.2",
     "vite": "^8.3.4",
@@ -36,9 +38,13 @@
     "zod": "^4.4.2",
     "@mongosh/arg-parser": "^5.0.2",
     "@ai-sdk/anthropic": "^3.0.129",
+    "@ai-sdk/openai": "^3.0.126",
     "ai": "^6.0.304",
     "semver": "^7.7.4",
     "@types/semver": "^7.7.0",
-    "simple-git": "^4.0.2"
+    "simple-git": "^4.0.2",
+    "tar-stream": "^3.2.0",
+    "parse5": "^8.0.1",
+    "yaml": "^2.9.1"
   }
 }

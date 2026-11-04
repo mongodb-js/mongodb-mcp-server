@@ -53,6 +53,7 @@
     "eval:serve": "pnpm --filter @mongodb-js/mcp-eval-tests eval:serve",
     "eval:push": "pnpm --filter @mongodb-js/mcp-eval-tests eval:push",
     "create-dependency-sbom-lists": "pnpm --filter @mongodb-js/mcp-scripts run create-dependency-sbom-lists",
+    "triage:vulnerabilities": "pnpm --filter @mongodb-js/mcp-scripts exec tsx src/triageVulnerabilities.ts --repo ../..",
     "update-third-party-notices": "mongodb-sbom-tools generate-3rd-party-notices --product=\"MongoDB MCP Server\" --dependencies=.sbom/dependencies-prod.json --config=licenses.json > THIRD_PARTY_NOTICES.md"
   },
   "license": "Apache-2.0",
