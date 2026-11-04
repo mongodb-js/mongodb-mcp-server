@@ -20,7 +20,7 @@ const guidance = {
     "release-resolution":
         "Published release metadata could not be mapped to verified source. Check release metadata or supply a known --release-ref; do not substitute main.",
     "repository-evidence":
-        "The investigation did not finish with evidence for both repository targets. Review scope, source availability and model limits.",
+        "Repository evidence is unavailable or incomplete. Check --repo, --ref and --release-ref, local Git objects, source availability and model limits.",
     network: "An upstream network request failed. Check connectivity and retry later.",
     configuration: "Check required environment variables and CLI arguments; use --help for configuration.",
     unknown:
@@ -28,6 +28,23 @@ const guidance = {
 } as const;
 
 export type FailureDiagnostic = { category: keyof typeof guidance; guidance: string };
+
+export class TriageFailure extends Error {
+    readonly category: FailureDiagnostic["category"];
+
+    constructor(category: FailureDiagnostic["category"], options: ErrorOptions & { option?: string }) {
+        super(`${options.option ? `Check ${options.option}. ` : ""}${guidance[category]}`, options);
+        this.category = category;
+    }
+}
+
+export function configurationValue<Value>(read: () => Value, option?: string): Value {
+    try {
+        return read();
+    } catch (cause) {
+        throw new TriageFailure("configuration", { cause, option });
+    }
+}
 
 export function diagnoseFailure(error: unknown): FailureDiagnostic {
     const chain: unknown[] = [];
@@ -37,6 +54,8 @@ export function diagnoseFailure(error: unknown): FailureDiagnostic {
         current = current instanceof Error ? current.cause : undefined;
     }
     const result = (category: keyof typeof guidance): FailureDiagnostic => ({ category, guidance: guidance[category] });
+    const staged = chain.find((candidate) => candidate instanceof TriageFailure);
+    if (staged instanceof TriageFailure) return { category: staged.category, guidance: staged.message };
     for (const candidate of chain.reverse()) {
         const status =
             candidate instanceof EvidenceHttpError

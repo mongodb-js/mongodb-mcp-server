@@ -361,7 +361,12 @@ export function checkAssessment(raw: unknown, evidence: EvidenceRecord[]): Check
         const allVersionsUnaffected =
             range &&
             proposed.resolvedVersions.length > 0 &&
-            proposed.resolvedVersions.every((version) => valid(version.version) && !satisfies(version.version, range));
+            proposed.resolvedVersions.every(
+                (version) =>
+                    valid(version.version) &&
+                    !satisfies(version.version, range) &&
+                    !satisfies(version.version, range, { includePrerelease: true })
+            );
         if (proposed.recommendation !== "needs-investigation") {
             for (const missing of proposed.missingEvidence) checks.add(`Unresolved evidence: ${missing}`);
             if (!claims.advisory) checks.add("Advisory applicability needs cited evidence");
@@ -390,19 +395,34 @@ export function checkAssessment(raw: unknown, evidence: EvidenceRecord[]): Check
                 )
                     checks.add("Not all established versions are outside the supplied affected range");
                 if (proposed.exclusion?.basis === "unaffected-version") {
+                    let productCovered = false;
                     for (const record of evidence.filter(
                         (item) => item.target === target && item.tool === "dependencyPaths"
                     )) {
                         const request = z.object({ name: z.string() }).passthrough().safeParse(record.input);
                         if (!request.success || request.data.name !== proposed.packageName) continue;
-                        let graph: { resolutionComplete: boolean; occurrences: { name: string; version?: string }[] };
+                        const occurrenceSchema = z.object({ name: z.string(), version: z.string().optional() });
+                        let graph: {
+                            resolutionComplete: boolean;
+                            occurrences: z.infer<typeof occurrenceSchema>[];
+                            productCoverage?: {
+                                importer: string;
+                                resolutionComplete: boolean;
+                                occurrences: z.infer<typeof occurrenceSchema>[];
+                            };
+                        };
                         try {
                             graph = z
                                 .object({
                                     resolutionComplete: z.boolean(),
-                                    occurrences: z.array(
-                                        z.object({ name: z.string(), version: z.string().optional() })
-                                    ),
+                                    occurrences: z.array(occurrenceSchema),
+                                    productCoverage: z
+                                        .object({
+                                            importer: z.string().min(1),
+                                            resolutionComplete: z.boolean(),
+                                            occurrences: z.array(occurrenceSchema),
+                                        })
+                                        .optional(),
                                 })
                                 .parse(JSON.parse(record.output));
                         } catch {
@@ -413,9 +433,15 @@ export function checkAssessment(raw: unknown, evidence: EvidenceRecord[]): Check
                         }
                         if (!graph.resolutionComplete)
                             checks.add("Observed dependency graph has unresolved edges; version coverage needs review");
-                        for (const occurrence of graph.occurrences.filter(
-                            (node) => node.name === proposed.packageName
-                        )) {
+                        if (graph.productCoverage?.resolutionComplete) productCovered = true;
+                        if (graph.productCoverage && !graph.productCoverage.resolutionComplete)
+                            checks.add(
+                                "Product-root dependency graph has unresolved edges; version coverage needs review"
+                            );
+                        for (const occurrence of [
+                            ...graph.occurrences,
+                            ...(graph.productCoverage?.occurrences ?? []),
+                        ].filter((node) => node.name === proposed.packageName)) {
                             if (
                                 !occurrence.version ||
                                 !proposed.resolvedVersions.some((version) => version.version === occurrence.version)
@@ -425,6 +451,8 @@ export function checkAssessment(raw: unknown, evidence: EvidenceRecord[]): Check
                                 );
                         }
                     }
+                    if (!productCovered)
+                        checks.add("Complete harness-derived product-root version coverage is required");
                 }
                 if (
                     ["unreachable-behavior", "prerequisite-not-met"].includes(proposed.exclusion?.basis ?? "") &&
@@ -452,8 +480,13 @@ export function checkAssessment(raw: unknown, evidence: EvidenceRecord[]): Check
 }
 
 export function renderAssessment(report: CheckedAssessment, evidence: EvidenceRecord[] = []): string {
+    const plain = (value: string): string =>
+        value
+            .replace(/[\r\n\u2028\u2029]+/g, " ")
+            .replace(/[\\{}[\]*_~^|#!+?-]/g, "\\$&")
+            .replace(/^(\s*(?:h[1-6]|bq|p|bc|pre|notextile))\./, "$1\\.");
     const claim = (label: string, value: z.infer<typeof claimSchema>): string =>
-        `${label}: ${value.text}${value.citations.length ? " " + value.citations.map((citation) => `[${citation.evidenceId}] ${citation.locator}`).join("; ") : " [no supporting citation]"}`;
+        `${plain(label)}: ${plain(value.text)}${value.citations.length ? " " + value.citations.map((citation) => `\\[${plain(citation.evidenceId)}\\] ${plain(citation.locator)}`).join("; ") : " [no supporting citation]"}`;
     const sections = (["release", "main"] as const).map((target) => {
         const result = report.targets[target];
         const assessment = result.assessment;
@@ -463,8 +496,8 @@ export function renderAssessment(report: CheckedAssessment, evidence: EvidenceRe
             ...(result.recommendation !== assessment.recommendation
                 ? [`Model proposed: ${assessment.recommendation}; evidence checks require further investigation.`]
                 : []),
-            assessment.summary,
-            `Package: ${assessment.packageName}; versions: ${assessment.resolvedVersions.map((version) => version.version).join(", ") || "unknown"}; supplied advisory range: ${assessment.affectedRange || "unknown"}.`,
+            plain(assessment.summary),
+            `Package: ${plain(assessment.packageName)}; versions: ${plain(assessment.resolvedVersions.map((version) => version.version).join(", ")) || "unknown"}; supplied advisory range: ${plain(assessment.affectedRange) || "unknown"}.`,
             ...assessment.resolvedVersions.map((version) =>
                 claim(`Version ${version.version}`, { text: "Resolution evidence", citations: version.citations })
             ),
@@ -481,11 +514,11 @@ export function renderAssessment(report: CheckedAssessment, evidence: EvidenceRe
                 : []),
             "h3. Missing evidence and checks",
             ...([...assessment.missingEvidence, ...result.checks].length
-                ? [...assessment.missingEvidence, ...result.checks].map((item) => `* ${item}`)
+                ? [...assessment.missingEvidence, ...result.checks].map((item) => `* ${plain(item)}`)
                 : ["* No blocking gaps recorded by these checks; human verification is still required."]),
-            ...assessment.limitations.map((item) => `* Limitation: ${item}`),
+            ...assessment.limitations.map((item) => `* Limitation: ${plain(item)}`),
             "h3. Recommended follow-up",
-            ...assessment.nextSteps.map((item) => `* ${item}`),
+            ...assessment.nextSteps.map((item) => `* ${plain(item)}`),
         ].join("\n");
     });
     const cited = new Set<string>();
@@ -506,14 +539,14 @@ export function renderAssessment(report: CheckedAssessment, evidence: EvidenceRe
         .filter((record) => cited.has(record.id))
         .map(
             (record) =>
-                `* [${record.id}] ${record.tool}; target=${record.target ?? "external"}; ${JSON.stringify(record.input)}; ${record.availability}; SHA-256=${record.sha256}`
+                `* \\[${plain(record.id)}\\] ${plain(record.tool)}; target=${record.target ?? "external"}; ${plain(JSON.stringify(record.input) ?? "null")}; ${record.availability}; SHA-256=${record.sha256}`
         )
         .join("\n");
     return [
         "h1. Investigation and recommendation",
         "Advisory only. A human must decide the final disposition; no closure, risk acceptance, remediation or ticket status change is authorized.",
         "Evidence checks validate structure, retrieved citation IDs, target scope and supplied semver consistency, not whether cited text proves a claim. Recommendations remain provisional.",
-        report.summary,
+        plain(report.summary),
         ...sections,
         "h2. Evidence index",
         index || "No retrieved evidence cited. Inspect the missing evidence and recommended follow-up.",

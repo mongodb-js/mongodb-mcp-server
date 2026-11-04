@@ -257,6 +257,18 @@ export class TriageEvidence {
         return result + (result.length < text.length ? "\n[TRUNCATED; narrow the request]" : "");
     }
 
+    private boundedJson(value: unknown): string {
+        const text = JSON.stringify(value);
+        if (text.length > Math.min(16_000, this.remainingCharacters))
+            return JSON.stringify({
+                truncated: true,
+                limitations: [
+                    "Structured evidence exceeds remaining context budget; request narrower evidence. No complete facts returned.",
+                ],
+            });
+        return this.bounded(text);
+    }
+
     async reference(input: { url: string; startLine?: number; lineCount?: number }): Promise<string> {
         const url = new URL(input.url);
         if (url.protocol !== "https:" || url.port || url.username || url.password)
@@ -516,7 +528,7 @@ export class TriageEvidence {
         if (!advisories.length)
             return "No matching GitHub advisory; this is missing evidence, not proof of non-impact.";
         if (this.remainingCharacters > 0) this.hasAdvisoryEvidence = true;
-        return this.bounded(JSON.stringify({ source: url.href, advisories }, null, 2));
+        return this.boundedJson({ source: url.href, advisories });
     }
 
     async githubReference(input: {
@@ -984,6 +996,7 @@ export class TriageEvidence {
         pathContains?: string;
         offset?: number;
         limit?: number;
+        releaseScope?: { commit: string; label: string };
     }): Promise<string> {
         const artifact = await this.packageArchive(input);
         const manifest = z
@@ -1017,35 +1030,30 @@ export class TriageEvidence {
         const selected = artifact.entries.filter(
             (entry) => !input.pathContains || entry.path.includes(input.pathContains)
         );
-        const result = this.bounded(
-            JSON.stringify(
-                {
-                    source: artifact.source,
-                    tarball: artifact.tarball,
-                    integrity: artifact.integrity,
-                    lockfileIntegrity: input.expectedIntegrity ? "verified" : "not supplied",
-                    manifest,
-                    totalEntries: artifact.entries.length,
-                    matchingEntries: selected.length,
-                    entries: selected.slice(offset, offset + limit),
-                    nextOffset: offset + limit < selected.length ? offset + limit : null,
-                    embeddedLocksAndSboms: artifact.entries
-                        .filter((entry) =>
-                            /(?:^|\/)(?:npm-shrinkwrap\.json|package-lock\.json|pnpm-lock\.yaml)$|(?:sbom|cyclonedx|spdx)/i.test(
-                                entry.path
-                            )
-                        )
-                        .map((entry) => entry.path),
-                    limitations: [
-                        "Inventory of this exact npm tarball, not an installed dependency closure or automatically verified SBOM. Other release distributions are not inspected.",
-                        "Bundles may embed dependencies without separate package manifests. External dependency ranges do not prove installed versions. Inspect bundle source, embedded locks/SBOMs and runtime entry points separately.",
-                        "Unreadable entries include unsafe paths, links, binary and oversized files; missing readable source is not proof of absence. Patches from the repository are not applied to registry archives.",
-                    ],
-                },
-                null,
-                2
-            )
-        );
+        const result = this.boundedJson({
+            releaseScope: input.releaseScope,
+            source: artifact.source,
+            tarball: artifact.tarball,
+            integrity: artifact.integrity,
+            lockfileIntegrity: input.expectedIntegrity ? "verified" : "not supplied",
+            manifest,
+            totalEntries: artifact.entries.length,
+            matchingEntries: selected.length,
+            entries: selected.slice(offset, offset + limit),
+            nextOffset: offset + limit < selected.length ? offset + limit : null,
+            embeddedLocksAndSboms: artifact.entries
+                .filter((entry) =>
+                    /(?:^|\/)(?:npm-shrinkwrap\.json|package-lock\.json|pnpm-lock\.yaml)$|(?:sbom|cyclonedx|spdx)/i.test(
+                        entry.path
+                    )
+                )
+                .map((entry) => entry.path),
+            limitations: [
+                "Inventory of this exact npm tarball, not an installed dependency closure or automatically verified SBOM. Other release distributions are not inspected.",
+                "Bundles may embed dependencies without separate package manifests. External dependency ranges do not prove installed versions. Inspect bundle source, embedded locks/SBOMs and runtime entry points separately.",
+                "Unreadable entries include unsafe paths, links, binary and oversized files; missing readable source is not proof of absence. Patches from the repository are not applied to registry archives.",
+            ],
+        });
         if (this.remainingCharacters > 0) this.hasArtifactEvidence = true;
         return result;
     }
