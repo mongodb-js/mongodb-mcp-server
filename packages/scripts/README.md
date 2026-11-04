@@ -145,6 +145,14 @@ Each comment includes a deterministic scope/evidence-coverage preamble, so absen
 
 ### Human Review Report
 
+After all tickets have been processed, each proposed comment is printed as a human-readable preview on stderr, labelled with the ticket, create/update action, and `NOT SENT`. Cached tickets print a short skip notice instead. Stdout remains one JSONL record per ticket, including the full evidence ledger and proposed request. Previews appear after the JSON output; redirect stdout to keep the JSON out of the terminal entirely:
+
+```bash
+pnpm triage:vulnerabilities --limit 1 --debug > triage-run.jsonl
+```
+
+The preview contains the same internal ticket/evidence-derived content as the comment; handle terminal captures and the saved JSONL accordingly. Debug progress also stays on stderr.
+
 The CLI uses the AI SDK's schema-output API with provider JSON-schema output and renders the Jira comment itself. The gateway/model must support schema output; adapter contracts are tested locally, not guaranteed by catalog discovery. **Every report is investigation and recommendation only; a human makes the final disposition.** There is no automated ticket closure, risk acceptance, remediation, or status change. The existing GET-only Jira and dry-run boundaries are unchanged.
 
 Release and main each report the package and resolved versions, supplied advisory range, dependency path, affected behavior, caller trace, packaging, exploitation prerequisites, any proposed exclusion, blocking missing evidence, nonblocking limitations, and concrete follow-up for the reviewer. Recommendations are `likely-affected`, `likely-not-affected`, or `needs-investigation`, never a final decision. A complete report still asks for human verification.
@@ -157,7 +165,11 @@ Every dependency query also computes production/optional coverage from the harne
 
 These are **minimum consistency checks, not semantic proof**: they do not prove that a cited line establishes a behavior claim, that the advisory is the right vulnerability for the ticket, that a dependency path is a complete call graph, or that deployment assumptions hold. They ground supported version/range claims only in the retrieved structured evidence, not in independently refreshed or complete installed-dependency data. File/line locators and the reasoning itself still need human review. An explicit release ref's unverified artifact mapping also remains a limitation. Do not treat an unflagged recommendation as validated safety or permission to close a ticket.
 
-Unsupported recommendations are downgraded to `needs-investigation`, preserving the model's original proposal, explanation, citations, and the check findings for review. Incomplete investigations remain useful output when both repository targets were inspected. Invalid JSON, schema-invalid output, or incomplete inference produces no proposed comment rather than accepting arbitrary prose or spending additional inference on a repair attempt.
+Unsupported recommendations are downgraded to `needs-investigation`, preserving the model's original proposal, explanation, citations, and the check findings for review. Missing-evidence checks also run for recommendations that already say `needs-investigation`; that status does not bypass the checks or imply that no gaps were found.
+
+Before a live comment is proposed, a report-readiness gate rejects short/placeholder fields, uncited target findings, ignored retrieved advisories, missing packaging inspection/citations, and `needs-investigation` without concrete blocking gaps and follow-up. Empty complete production graphs require an all-roots `dependencyPaths` query (`importer=*`, `includeDev=true`) to investigate build/dev copies, which must not be conflated with shipped dependencies. Failed access may remain an explicit gap. This gate establishes minimum useful content, not semantic proof that the model's reasoning or cited claims are correct.
+
+A schema-valid but inadequate draft receives fixed harness feedback and can continue investigating for **at most two paid revision rounds**. The conversation, returned evidence IDs, pinned readers, external-request budget, original deadline, and total `--steps` budget are shared across rounds; a revision can contain tool-use steps and consumes the remaining step budget. A draft can cite evidence from earlier rounds. If readiness still fails or there are no steps left, no comment is proposed. Valid substantive `needs-investigation` reports remain allowed. Invalid JSON, schema-invalid output, and incomplete inference fail without a repair round; HTTP inference errors still have no added transport retries. The updated harness fingerprint invalidates older cached assessments.
 
 Dry-run JSONL includes harness-generated `investigation.scope` (the pinned main commit and release commit, package name/version and provenance label), `investigation.assessment` (original target assessments, checked recommendations, check findings, and `humanDecisionRequired: true`) and `investigation.evidence`. Scope is separate from model output and is retained even for investigations using only file reads. Each evidence record contains the actual tool-call ID, tool name, target when applicable, input arguments, returned output, availability (`retrieved`, `limited`, or `unavailable`), and SHA-256 of that output. Failed calls are unavailable records with a generic failure marker, not supporting evidence; raw exceptions and credential-bearing HTTP headers are not recorded. The model receives an explicit evidence-ID index between steps, and the rendered comment includes an index for citations it used.
 
@@ -205,6 +217,8 @@ Model HTTP 400 rejections are classified as `model-request`, not `unknown`. Debu
 **Debug output may contain sensitive data.** Providers can echo ticket text, source code, prompts or unrecognised credentials in error bodies. Redaction is not a security guarantee: inspect debug events before sharing them, protect local logs, and avoid enabling debug in routine production runs.
 
 Debug mode does not change caching, add retries or relax evidence checks. A live debug run still sends the same approved ticket/code data to the gateway and incurs normal inference costs. Share only inspected debug events when investigating a failure.
+
+When report readiness requires continuation, `report-revision` debug events include the revision number, fixed quality feedback, and remaining shared steps. These events do not include the rejected draft itself. Revision rounds apply with or without debug and can add paid inference calls as described above; debug does not create additional rounds.
 
 ### Models
 

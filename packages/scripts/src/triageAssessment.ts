@@ -99,8 +99,109 @@ export function renderInvestigationScope(scope: InvestigationScope | null): stri
 }
 
 export const ASSESSMENT_INSTRUCTIONS =
+    "A schema-shaped placeholder is not a report. Never use placeholder, x, TBD or generic filler. Summarize the actual retrieved findings with citations even when the recommendation is needs-investigation. Explain the scope of empty dependency graphs rather than reporting all facts as unknown; distinguish selected production roots from build/dev dependencies and bundled copies. Read relevant target manifests and production entry points, complete advisory pages and relevant fix/source references before stopping when the tools and budget allow it. Every unknown must explain what is missing and why it matters, with concrete blocking gaps and follow-up. Each target must cite at least one actual target-specific finding. Use retrieved advisories rather than discarding their facts.\n" +
     "Return ONLY a JSON object matching the following schema, without Markdown fences or prose outside JSON. This is advisory investigation for a human decision, never an authorization to close, accept risk, or remediate a ticket. Cite actual tool-call IDs as evidenceId and use locator for the exact file:line range or reference section inspected. Never invent IDs, versions, call paths, or exclusions. Ground resolvedVersions in cited dependencyPaths occurrences or the matching product artifact manifest; source text alone is not machine-verified resolution. For version-based recommendations cite readAdvisory or a GitHub advisory reference containing non-withdrawn npm vulnerability records for this package, and use the union of their affected ranges without guessing. List unresolved blocking questions in missingEvidence; nonblocking caveats belong in limitations. Use needs-investigation when support is missing. For unknown claims provide a candid explanation and empty citations; affectedRange may be empty and exclusion null. nextSteps must give concrete human follow-up, including validation of any proposed upgrade. Assess release and main independently.\n" +
     JSON.stringify(z.toJSONSchema(assessmentSchema));
+
+export function reportQualityIssues(assessment: Assessment, evidence: EvidenceRecord[]): string[] {
+    const issues: string[] = [];
+    const substantive = (text: string): boolean =>
+        text.trim().length >= 24 &&
+        !/^(?:(?:placeholder|todo|tbd|investigating|pending|x)[\s.!]*)+$/i.test(text.trim());
+    if (!substantive(assessment.summary))
+        issues.push("Report summary must describe actual findings, not placeholders.");
+    for (const target of ["release", "main"] as const) {
+        const proposed = assessment.targets[target];
+        const claims = [
+            proposed.advisory,
+            proposed.dependencyPath,
+            proposed.affectedBehavior,
+            proposed.callerTrace,
+            proposed.packaging,
+        ];
+        if (!substantive(proposed.summary) || claims.some((claim) => !substantive(claim.text)))
+            issues.push(
+                `${target}: explain the findings or the specific unknown for every report field; placeholders are not findings.`
+            );
+        if (proposed.nextSteps.some((text) => !substantive(text)))
+            issues.push(`${target}: provide concrete follow-up actions, not placeholder next steps.`);
+        if (
+            proposed.recommendation === "needs-investigation" &&
+            (!proposed.missingEvidence.length || proposed.missingEvidence.some((text) => !substantive(text)))
+        )
+            issues.push(`${target}: needs-investigation requires concrete blocking evidence gaps.`);
+        const usable = (claim: z.infer<typeof claimSchema>): EvidenceRecord[] =>
+            claim.citations.flatMap((citation) => {
+                const matches = evidence.filter((record) => record.id === citation.evidenceId);
+                return matches.length === 1 &&
+                    matches[0]?.availability !== "unavailable" &&
+                    (!matches[0]?.target || matches[0].target === target)
+                    ? matches
+                    : [];
+            });
+        if (
+            !claims.some((claim) =>
+                usable(claim).some(
+                    (record) =>
+                        record.target === target &&
+                        ["dependencyPaths", "readFile", "search", "readProductArtifact"].includes(record.tool)
+                )
+            )
+        )
+            issues.push(`${target}: cite at least one retrieved target-specific finding and explain its scope.`);
+        const packaging = evidence.filter(
+            (record) => record.target === target && ["readFile", "readProductArtifact"].includes(record.tool)
+        );
+        if (
+            !packaging.length ||
+            (packaging.some((record) => record.availability !== "unavailable") &&
+                !usable(proposed.packaging).some(
+                    (record) => record.target === target && ["readFile", "readProductArtifact"].includes(record.tool)
+                ))
+        )
+            issues.push(
+                `${target}: inspect target manifests/entry points or the released artifact, and cite the packaging findings; failed access must be an explicit gap.`
+            );
+        const graphs = evidence.filter(
+            (record) =>
+                record.target === target &&
+                record.tool === "dependencyPaths" &&
+                z.object({ name: z.literal(proposed.packageName) }).safeParse(record.input).success
+        );
+        const productionAbsence = graphs.some((record) => {
+            try {
+                return z
+                    .object({
+                        productCoverage: z.object({
+                            resolutionComplete: z.literal(true),
+                            occurrences: z.array(z.unknown()).length(0),
+                        }),
+                    })
+                    .safeParse(JSON.parse(record.output)).success;
+            } catch {
+                return false;
+            }
+        });
+        if (
+            productionAbsence &&
+            !graphs.some(
+                (record) =>
+                    z.object({ importer: z.literal("*"), includeDev: z.literal(true) }).safeParse(record.input).success
+            )
+        )
+            issues.push(
+                `${target}: the production graph has no copy; query dependencyPaths with importer=* and includeDev=true to investigate build/dev copies before reporting, and distinguish them from shipped dependencies.`
+            );
+        if (
+            evidence.some((record) => record.tool === "readAdvisory" && record.availability === "retrieved") &&
+            !usable(proposed.advisory).some((record) =>
+                ["readAdvisory", "readReference", "readGitHubReference"].includes(record.tool)
+            )
+        )
+            issues.push(`${target}: use the retrieved advisory and cite its affected behavior and applicability.`);
+    }
+    return issues;
+}
 
 export function evidenceRecord(input: { id: string; tool: string; input: unknown; output: string }): EvidenceRecord {
     const request = z
@@ -402,6 +503,13 @@ export function checkAssessment(raw: unknown, evidence: EvidenceRecord[]): Check
                     !satisfies(version.version, range) &&
                     !satisfies(version.version, range, { includePrerelease: true })
             );
+        if (proposed.recommendation === "needs-investigation") {
+            for (const missing of proposed.missingEvidence) checks.add(`Unresolved evidence: ${missing}`);
+            for (const [field, supported] of Object.entries(claims))
+                if (!supported) checks.add(`Missing cited ${field} evidence`);
+            if (!proposed.missingEvidence.length)
+                checks.add("Needs-investigation must identify concrete blocking evidence gaps");
+        }
         if (proposed.recommendation !== "needs-investigation") {
             for (const missing of proposed.missingEvidence) checks.add(`Unresolved evidence: ${missing}`);
             if (!claims.advisory) checks.add("Advisory applicability needs cited evidence");
