@@ -1161,6 +1161,7 @@ export const UserConfigSchema: z.ZodObject<{
     monitoringServerFeatures: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
         "health-check": "health-check";
         metrics: "metrics";
+        "process-metrics": "process-metrics";
     }>>, string | string[] | undefined>>;
     gssapiHostName: z.ZodOptional<z.ZodString>;
     sslFIPSMode: z.ZodOptional<z.ZodBoolean>;

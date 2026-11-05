@@ -591,6 +591,9 @@ importers:
       '@mongodb-js/mcp-ui':
         specifier: workspace:*
         version: link:../ui
+      '@mongodb-js/mongodb-schema':
+        specifier: ^12.8.12
+        version: 12.8.12(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9)
       '@mongodb-js/oidc-mock-provider':
         specifier: ^0.13.7
         version: 0.13.14
@@ -624,9 +627,6 @@ importers:
       mongodb-mcp-server:
         specifier: workspace:*
         version: link:../mongodb-mcp-server
-      mongodb-schema:
-        specifier: ^12.7.0
-        version: 12.7.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9)
       node-machine-id:
         specifier: 1.1.12
         version: 1.1.12
@@ -1081,6 +1081,9 @@ importers:
       '@mongodb-js/device-id':
         specifier: ^0.4.18
         version: 0.4.18
+      '@mongodb-js/hadron-document':
+        specifier: ^8.12.3
+        version: 8.12.3(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9)
       '@mongodb-js/mcp-atlas-telemetry':
         specifier: workspace:*
         version: link:../atlas-telemetry
@@ -1093,6 +1096,9 @@ importers:
       '@mongodb-js/mongodb-build-info':
         specifier: ^1.9.19
         version: 1.9.19
+      '@mongodb-js/mongodb-schema':
+        specifier: ^12.8.12
+        version: 12.8.12(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9)
       '@mongosh/arg-parser':
         specifier: ^5.0.2
         version: 5.0.2(zod@4.6.6)
@@ -1102,18 +1108,12 @@ importers:
       bson:
         specifier: ^7.2.0
         version: 7.3.1
-      hadron-document:
-        specifier: ^8.11.5
-        version: 8.11.5(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9)
       mongodb:
         specifier: ^7.1.1
         version: 7.2.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9)
       mongodb-connection-string-url:
         specifier: ^7.0.2
         version: 7.0.2
-      mongodb-schema:
-        specifier: ^12.7.0
-        version: 12.7.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9)
       node-machine-id:
         specifier: 1.1.12
         version: 1.1.12
@@ -2672,17 +2672,30 @@ packages:
   '@mongodb-js/devtools-proxy-support@0.7.19':
     resolution: {integrity: sha512-3uodCwqO6N/ToJvXvyJ8K/TqJWgRYfu93VPxFNUqAfieXpfHq+F+pmB5GY9ZnXijqTsJvpiAC49JPSOnDuYfZg==}
 
+  '@mongodb-js/hadron-document@8.12.3':
+    resolution: {integrity: sha512-b7gkttEsn7HHtECEydLhVzs1cZ78RArodXiR8qZej84y1UFrlOWAIpma81g1O5cf7cqADXHF3fA/mJomGPjjKA==}
+
+  '@mongodb-js/hadron-type-checker@7.5.12':
+    resolution: {integrity: sha512-uhYwWhY8K0qdsdEOE/fzKr2tYm/x8xMT8Ka040Pyh2t+eDvgDwhcZnz8chhU16thSENcSBy/Yk/RvxqWiTlBUA==}
+
   '@mongodb-js/mongodb-build-info@1.9.19':
     resolution: {integrity: sha512-xCjvW+evu99Cuf6pJrZIOwBjLtSKQxv9fRmdDuOwtQEhQ6Kjk1/W8h1/noAhz8DVLlYkbY6yBW9S/sLn72KYxA==}
 
   '@mongodb-js/mongodb-downloader@3.0.3':
     resolution: {integrity: sha512-azCB7196EjRMcXZ1j4N720jamNZBtoiliiKUmkw9QLeg57KVSRA3HN+B4rltp5vAoxZ97xrWrFMRQM6OkLEeeg==}
 
+  '@mongodb-js/mongodb-ns@3.2.9':
+    resolution: {integrity: sha512-QltUBjcOc463QroMv7wLbZdRlBaooYM5xBOwqo/k17ZyK31UGBTuLHyzgclxuBJM3rcr7z46bkrA9205DKnhhA==}
+
   '@mongodb-js/mongodb-redact@1.4.19':
     resolution: {integrity: sha512-XJDnovllAo9vqCKAyAvRi8HlKkxzKAFRT7gLND3LEjbmFLq3VBY3sdpKO/z7i8hz53nV+e9q1m0KiezeXoE4Nw==}
 
   '@mongodb-js/mongodb-runner@8.4.1':
     resolution: {integrity: sha512-Hmq7GWK1dTLaN/EfuxpCWj27H21v/ZJXUwjd2W21mK8YKstA8jlf3fAtz4QmECu+NHeQTSOoCBzxmW1ony5KmA==}
+    hasBin: true
+
+  '@mongodb-js/mongodb-schema@12.8.12':
+    resolution: {integrity: sha512-mDg38J6UddSGh9992pphK3AvqjI4jhTRbZojFZzF4TwADD5eL2Rds8oj3eqvk2OCyxRCoI3lfMUvz8i0BFSnTg==}
     hasBin: true
 
   '@mongodb-js/oidc-http-server-pages@1.2.6':
@@ -2709,6 +2722,11 @@ packages:
   '@mongodb-js/sbom-tools@0.10.23':
     resolution: {integrity: sha512-MYcBHX0JIlF6Ndia4IVNp6wFzjya83oz+vNZj7pv7uVcRqD3CaG2seaBkU1D5OdKeVCG/nhrxfISDSxXIHt7EA==}
     hasBin: true
+
+  '@mongodb-js/shell-bson-parser@1.6.3':
+    resolution: {integrity: sha512-pRUbMY/ME9LjvdLJOAkpEVDjjTPBt3ebFQK7jxCErFym/6H9+MaaU8h1NvELGoWa0Qxn3vGyQOFxWfOKSEQRSQ==}
+    peerDependencies:
+      bson: ^7.2.0
 
   '@mongodb-js/socksv5@0.0.11':
     resolution: {integrity: sha512-vA4OvtpE/A4dWBlnrkVN1HqwQSJeTdC16AyJ2Gd0jmUbqYDUkEogjkXDRZM0flM6ZD8PErlD4QHhXKC1c2uPNw==}
@@ -4660,6 +4678,9 @@ packages:
   argparse@2.0.1:
     resolution: {integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==}
 
+  argparse@3.0.4:
+    resolution: {integrity: sha512-fwWK3Zq22l4XJJjx5mcBHGikIk+hJqO+32dPm0Jur7+rtG5x1scOjSfdT9ZKeWHPpsya/l0HHK4tDImBkTrtvA==}
+
   aria-hidden@1.2.6:
     resolution: {integrity: sha512-ik3ZgC9dY/lYVVM++OISsaYDeg1tb0VtP5uL3ouh1koGOaUMDPpbFIei4JkFimWUFPn90sbMNMXQAIVOlnYKJA==}
     engines: {node: '>=10'}
@@ -5798,12 +5819,6 @@ packages:
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
 
-  hadron-document@8.11.5:
-    resolution: {integrity: sha512-LUyPJPZ0XJpqsgI50TWJOx/xGPESfJRaWZtPSy6V5ldqzn8bQJUKdXwHwHMAYx9JBkAXXR4HMGHd7Dqs5KPYPg==}
-
-  hadron-type-checker@7.5.5:
-    resolution: {integrity: sha512-OviWZ7scw9nagjAtbFKAPidincGEgamFx6Pt2z+OXUuIXzrJM1tkWitld/RzionCadnOTEpUkhfHAOPBzjbRsw==}
-
   happy-dom@20.9.0:
     resolution: {integrity: sha512-GZZ9mKe8r646NUAf/zemnGbjYh4Bt8/MqASJY+pSm5ZDtc3YQox+4gsLI7yi1hba6o+eCsGxpHn5+iEVn31/FQ==}
     engines: {node: '>=20.0.0'}
@@ -6157,6 +6172,9 @@ packages:
   jackspeak@3.4.3:
     resolution: {integrity: sha512-OGlZQpz2yfahA/Rd1Y8Cd9SIEsqvXkLVoSw/cgwhnhFMDbsQFeZYoJJ7bIZBS9BcamUW96asq/npPWugM+RQBw==}
 
+  javascript-stringify@2.1.0:
+    resolution: {integrity: sha512-JVAfqNPTvNq3sB/VHQJAFxN/sPgKnsKrCwyRt15zwNCdrMMJDdcEOdubuy+DuJYYdm0ox1J4uzEuYKkN+9yhVg==}
+
   jiti@2.7.0:
     resolution: {integrity: sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ==}
     hasBin: true
@@ -6183,6 +6201,10 @@ packages:
 
   js-yaml@4.3.2:
     resolution: {integrity: sha512-SFNOvSJ+Dgf/9An904Yx+CgSlIPCkIpao4qo51lpee25TIRejdH3rhR4EZMGoNx3/TP3O+wzWuiTFl4sqbltzA==}
+    hasBin: true
+
+  js-yaml@5.5.0:
+    resolution: {integrity: sha512-paNr4LFIFPjeeSmwNYdrb8FafLLG/Cr2Af3GjbsHJ5CxIjH4r0c2emlmRdAtpPAieP1gRVzk6buBbVP5gBMGAg==}
     hasBin: true
 
   jsdom@29.1.1:
@@ -6536,14 +6558,6 @@ packages:
     resolution: {integrity: sha512-7whNUcb6z+15wCssRhfsYfXh3mvw4v9UzrP29ZFGz1bhZ3A12UT+uVGaXcIH8Df6itby24yTM4AkuQjlcDAOKA==}
     peerDependencies:
       bson: ^7.2.0
-
-  mongodb-ns@3.1.6:
-    resolution: {integrity: sha512-NJs8wuqM9vAVc/9Oy/PMx31Lq87Dnud+qC5c6xXaSKOloNScM5NyxFjsl6XMt2wlQR5Z/be1nm4hfjDBDV7VEA==}
-
-  mongodb-schema@12.7.0:
-    resolution: {integrity: sha512-TPfop6c2AAQJP1QhQwi/uJnuPEeLhMvN9ouJAZ6M9mouH6fCr0WOHLJWx5Z0dSeXJIVy//WTXxZB6yiol1bGEA==}
-    deprecated: This package is not maintained anymore. Please use @mongodb-js/mongodb-schema instead
-    hasBin: true
 
   mongodb@7.2.0:
     resolution: {integrity: sha512-F/2+BMZtLVhY30ioZp0dAmZ+IRZMBqI+nrv6t5+9/1AIwCa8sMRC3jBf81lpxMhnZgqq8CoUD503Z1oZWq1/sw==}
@@ -10132,6 +10146,28 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@mongodb-js/hadron-document@8.12.3(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9)':
+    dependencies:
+      '@mongodb-js/hadron-type-checker': 7.5.12
+      '@mongodb-js/shell-bson-parser': 1.6.3(bson@7.3.1)
+      bson: 7.3.1
+      eventemitter3: 4.0.7
+      lodash: 4.18.1
+      mongodb: 7.2.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9)
+    transitivePeerDependencies:
+      - '@aws-sdk/credential-providers'
+      - '@mongodb-js/zstd'
+      - gcp-metadata
+      - kerberos
+      - mongodb-client-encryption
+      - snappy
+      - socks
+
+  '@mongodb-js/hadron-type-checker@7.5.12':
+    dependencies:
+      bson: 7.3.1
+      lodash: 4.18.1
+
   '@mongodb-js/mongodb-build-info@1.9.19':
     dependencies:
       debug: 4.4.3(supports-color@10.2.2)
@@ -10153,6 +10189,9 @@ snapshots:
       - encoding
       - react-native-b4a
       - supports-color
+
+  '@mongodb-js/mongodb-ns@3.2.9':
+    optional: true
 
   '@mongodb-js/mongodb-redact@1.4.19':
     dependencies:
@@ -10182,6 +10221,28 @@ snapshots:
       - snappy
       - socks
       - supports-color
+
+  '@mongodb-js/mongodb-schema@12.8.12(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9)':
+    dependencies:
+      reservoir: 0.1.2
+    optionalDependencies:
+      '@mongodb-js/mongodb-ns': 3.2.9
+      bson: 7.3.1
+      cli-table: 0.3.11
+      js-yaml: 5.5.0
+      mongodb: 7.2.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9)
+      numeral: 2.0.6
+      progress: 2.0.3
+      stats-lite: 2.2.0
+      yargs: 18.2.0
+    transitivePeerDependencies:
+      - '@aws-sdk/credential-providers'
+      - '@mongodb-js/zstd'
+      - gcp-metadata
+      - kerberos
+      - mongodb-client-encryption
+      - snappy
+      - socks
 
   '@mongodb-js/oidc-http-server-pages@1.2.6': {}
 
@@ -10225,6 +10286,12 @@ snapshots:
     transitivePeerDependencies:
       - encoding
       - supports-color
+
+  '@mongodb-js/shell-bson-parser@1.6.3(bson@7.3.1)':
+    dependencies:
+      acorn: 8.18.0
+      bson: 7.3.1
+      javascript-stringify: 2.1.0
 
   '@mongodb-js/socksv5@0.0.11':
     dependencies:
@@ -12272,6 +12339,9 @@ snapshots:
 
   argparse@2.0.1: {}
 
+  argparse@3.0.4:
+    optional: true
+
   aria-hidden@1.2.6:
     dependencies:
       tslib: 2.8.1
@@ -13699,27 +13769,6 @@ snapshots:
 
   graceful-fs@4.2.11: {}
 
-  hadron-document@8.11.5(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9):
-    dependencies:
-      bson: 7.3.1
-      eventemitter3: 4.0.7
-      hadron-type-checker: 7.5.5
-      lodash: 4.18.1
-      mongodb: 7.2.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9)
-    transitivePeerDependencies:
-      - '@aws-sdk/credential-providers'
-      - '@mongodb-js/zstd'
-      - gcp-metadata
-      - kerberos
-      - mongodb-client-encryption
-      - snappy
-      - socks
-
-  hadron-type-checker@7.5.5:
-    dependencies:
-      bson: 7.3.1
-      lodash: 4.18.1
-
   happy-dom@20.9.0:
     dependencies:
       '@types/node': 25.6.0
@@ -14074,6 +14123,8 @@ snapshots:
     optionalDependencies:
       '@pkgjs/parseargs': 0.11.0
 
+  javascript-stringify@2.1.0: {}
+
   jiti@2.7.0: {}
 
   jju@1.4.0: {}
@@ -14094,6 +14145,11 @@ snapshots:
   js-yaml@4.3.2:
     dependencies:
       argparse: 2.0.1
+
+  js-yaml@5.5.0:
+    dependencies:
+      argparse: 3.0.4
+    optional: true
 
   jsdom@29.1.1(@noble/hashes@1.8.0):
     dependencies:
@@ -14424,31 +14480,6 @@ snapshots:
     dependencies:
       bson: 7.3.1
       heap-js: 2.7.1
-
-  mongodb-ns@3.1.6:
-    optional: true
-
-  mongodb-schema@12.7.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9):
-    dependencies:
-      reservoir: 0.1.2
-    optionalDependencies:
-      bson: 7.3.1
-      cli-table: 0.3.11
-      js-yaml: 4.3.2
-      mongodb: 7.2.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9)
-      mongodb-ns: 3.1.6
-      numeral: 2.0.6
-      progress: 2.0.3
-      stats-lite: 2.2.0
-      yargs: 17.7.3
-    transitivePeerDependencies:
-      - '@aws-sdk/credential-providers'
-      - '@mongodb-js/zstd'
-      - gcp-metadata
-      - kerberos
-      - mongodb-client-encryption
-      - snappy
-      - socks
 
   mongodb@7.2.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9):
     dependencies:
