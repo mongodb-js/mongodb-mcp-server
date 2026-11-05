@@ -345,7 +345,10 @@ export class TriageEvidence {
                     (response.status === 403 && response.headers.get("x-ratelimit-remaining") === "0"),
             });
             await response.body?.cancel();
-            if (authenticated || attempt >= 2 || ![429, 502, 503, 504].includes(response.status)) throw failure;
+            // 422/500 are transient during partial upstream outages (e.g. GitHub API incidents);
+            // bounded retries ride through them without masking persistent failures.
+            if (authenticated || attempt >= 2 || ![422, 429, 500, 502, 503, 504].includes(response.status))
+                throw failure;
             if (this.remainingRequests <= 0)
                 throw new Error("External evidence request budget exhausted before retry", { cause: failure });
             const retryAfter = response.headers.get("retry-after");

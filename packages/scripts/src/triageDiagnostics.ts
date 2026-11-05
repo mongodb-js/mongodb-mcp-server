@@ -360,6 +360,7 @@ export function diagnoseFailure(error: unknown): FailureDiagnostic {
         if (code === 401 || code === 403) return result("authentication");
         if (code === 404) return result("missing-resource");
         if (code === 400 && APICallError.isInstance(candidate)) return result("model-request");
+        if (code === 408 || code === 422 || code === 425) return result("upstream-unavailable");
         if (code && code >= 500) return result("upstream-unavailable");
         if (!(candidate instanceof Error)) continue;
         const message = candidate.message;
