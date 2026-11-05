@@ -1,4 +1,5 @@
 import { afterAll, beforeAll } from "vitest";
+import { startMockTelemetryServer, type MockTelemetryServer } from "@mongodb-js/mcp-test-utils";
 import { useAgent, type AgentHarness, type AgentHarnessOptions } from "@mongodb-js/harness-tester";
 import { AllTools } from "mongodb-mcp-server";
 import type { InProcessServer } from "./inProcessServer.js";
@@ -24,33 +25,50 @@ export interface AtlasApiE2EContext {
     workDir: () => string;
     serverUrl: () => string;
     isHarnessAvailable: () => boolean;
+    /** Mock telemetry endpoint the server sends to, when `telemetry` is enabled. */
+    telemetryServer: () => MockTelemetryServer | undefined;
     buildOptions: (overrides?: Partial<AgentHarnessOptions>) => AgentHarnessOptions;
 }
 
 /**
  * Composes the agent-only `useAgent` hook with an in-process MCP server started
  * with Atlas API credentials and no connection string — no mongod is spun up.
+ * With `telemetry`, telemetry goes to a local mock while the Atlas API keeps
+ * using the real base URL.
  */
-export function useAtlasApiAgent({ harness }: { harness: AgentHarness }): AtlasApiE2EContext {
+export function useAtlasApiAgent({
+    harness,
+    telemetry = false,
+}: {
+    harness: AgentHarness;
+    telemetry?: boolean;
+}): AtlasApiE2EContext {
     const base = useAgent({ harness });
     let server: InProcessServer | undefined;
+    let telemetryServer: MockTelemetryServer | undefined;
 
     beforeAll(async () => {
         if (!base.isHarnessAvailable() || !hasAtlasApiCreds()) {
             return;
+        }
+        if (telemetry) {
+            telemetryServer = await startMockTelemetryServer();
         }
         server = await startInProcessServer(
             {
                 apiClientId: ATLAS_CLIENT_ID,
                 apiClientSecret: ATLAS_CLIENT_SECRET,
                 apiBaseUrl: ATLAS_BASE_URL,
+                ...(telemetryServer ? { telemetry: "enabled", telemetryBaseUrl: telemetryServer.baseUrl } : {}),
             },
             AllTools.filter((tool) => ATLAS_READ_ONLY_TOOLS.includes(tool.toolName))
         );
     }, 120_000);
 
     afterAll(async () => {
+        // Close the server first so its telemetry flushes to the still-running mock.
         await server?.close();
+        await telemetryServer?.close();
     });
 
     return {
@@ -58,6 +76,7 @@ export function useAtlasApiAgent({ harness }: { harness: AgentHarness }): AtlasA
         workDir: base.workDir,
         serverUrl: () => server?.url ?? "",
         isHarnessAvailable: base.isHarnessAvailable,
+        telemetryServer: () => telemetryServer,
         // In-process server first, then agent-only defaults; test overrides win.
         buildOptions: (overrides = {}) => ({
             serverUrl: server?.url,

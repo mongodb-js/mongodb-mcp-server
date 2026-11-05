@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
+import { expectDefined } from "@mongodb-js/mcp-test-utils";
 import { hasAtlasApiCreds, useAtlasApiAgent } from "./utils/useAtlasApiAgent.js";
 import { describeHarness } from "./utils/describeHarness.js";
+import { waitForToolTelemetryEvent } from "./utils/telemetry.js";
 
 // Read-only Atlas Admin API tools that need no cluster connection.
 const ATLAS_API_TOOLS = ["atlas-list-projects", "atlas-list-orgs", "atlas-list-clusters"];
@@ -15,7 +17,7 @@ const ERROR_PATTERN = /\b(error|failed|forbidden|unable|unauthori[sz]\w*|\b403)\
  */
 describe.skipIf(!hasAtlasApiCreds())("Atlas API tools (no cluster)", () => {
     describeHarness(({ harness }) => {
-        const { serverUrl, buildOptions } = useAtlasApiAgent({ harness });
+        const { serverUrl, buildOptions, telemetryServer } = useAtlasApiAgent({ harness, telemetry: true });
 
         it("exposes Atlas tools to a direct MCP client without a connection string", async () => {
             const client = new Client({ name: "e2e-tests", version: "0.0.0" });
@@ -56,6 +58,15 @@ describe.skipIf(!hasAtlasApiCreds())("Atlas API tools (no cluster)", () => {
                 expect(turn.toolCalls.some((tc) => tc.name === "atlas-list-projects")).toBe(true);
                 expect(turn.text).not.toMatch(ERROR_PATTERN);
                 expect(turn.text).toMatch(/PROJECT_COUNT:\s*\d+|no projects/i);
+
+                const telemetry = telemetryServer();
+                expectDefined(telemetry);
+                const event = await waitForToolTelemetryEvent(telemetry, { command: "atlas-list-projects" });
+                expect(event.properties).toMatchObject({
+                    component: "tool",
+                    command: "atlas-list-projects",
+                    result: "success",
+                });
             } finally {
                 await session.dispose();
             }
@@ -82,6 +93,15 @@ describe.skipIf(!hasAtlasApiCreds())("Atlas API tools (no cluster)", () => {
                 expect(turn.toolCalls.some((tc) => tc.name === "atlas-list-orgs")).toBe(true);
                 expect(turn.text).not.toMatch(ERROR_PATTERN);
                 expect(turn.text).toMatch(/ORG_COUNT:\s*\d+|no organizations/i);
+
+                const telemetry = telemetryServer();
+                expectDefined(telemetry);
+                const event = await waitForToolTelemetryEvent(telemetry, { command: "atlas-list-orgs" });
+                expect(event.properties).toMatchObject({
+                    component: "tool",
+                    command: "atlas-list-orgs",
+                    result: "success",
+                });
             } finally {
                 await session.dispose();
             }
