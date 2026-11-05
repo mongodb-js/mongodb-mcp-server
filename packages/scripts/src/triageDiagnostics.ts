@@ -16,6 +16,8 @@ const guidance = {
         "The investigation timed out or was cancelled. Retry with a narrower scope or a larger deadline if appropriate.",
     "invalid-report":
         "The report or replay input is invalid JSON or does not match the required schema. No comment is proposed; inspect the saved input or model response in an approved environment.",
+    "report-quality":
+        "The model report did not meet the evidence and content requirements. No comment is proposed. Use --debug to inspect report-revision feedback; this is not a JSON schema error.",
     "missing-release-commit":
         "The published release commit is missing locally. Fetch the intended release objects yourself, or provide a known --release-ref override.",
     "release-resolution":
@@ -25,6 +27,8 @@ const guidance = {
     network: "An upstream network request failed. Check connectivity and retry later.",
     "model-request":
         "The model endpoint rejected the inference request. Check the selected model's tool-choice and structured-output support; use --debug for bounded provider details. This rejection is not retried.",
+    "model-output":
+        "The model response reached its output-token limit and is incomplete. No comment is proposed. For report truncation, increase --report-tokens or use a model that produces a concise complete assessment. Increasing --steps does not increase the per-response output limit.",
     configuration: "Check required environment variables and CLI arguments; use --help for configuration.",
     unknown:
         "Investigation failed; no write is proposed. Check configured access, repository targets and investigation limits.",
@@ -60,6 +64,130 @@ type DebugCause = {
     responseBodyTruncated?: boolean;
 };
 
+export function redactDebugText(text: string): string {
+    const secrets = Object.entries(process.env)
+        .filter(
+            ([name, value]) => /authorization|cookie|api[-_]?key|token|password|secret|credential/i.test(name) && value
+        )
+        .flatMap(([, value]) => (value ? [value, JSON.stringify(value).slice(1, -1), encodeURIComponent(value)] : []))
+        .sort((left, right) => right.length - left.length);
+    for (const secret of secrets) text = text.split(secret).join("[REDACTED]");
+    return text
+        .replace(/\b(Bearer|Basic)\s+[A-Za-z0-9._~+/-]+=*/gi, "$1 [REDACTED]")
+        .replace(
+            /\b(authorization|cookie|api[-_]?key|token|password|secret|credential)\s*[:=]\s*[^\s,;<>]+/gi,
+            "$1=[REDACTED]"
+        );
+}
+
+export function debugToolCall(call: { toolName: string; toolCallId: string; input: unknown }): {
+    tool: string;
+    callId: string;
+    details: Record<string, string | number | boolean>;
+} {
+    const fields: Record<string, string[]> = {
+        dependencyPaths: ["target", "name", "importer", "includeDev", "maxPaths"],
+        readProductArtifact: ["pathContains", "offset", "limit"],
+        listFiles: ["target", "pathContains"],
+        readFile: ["target", "path", "startLine", "lineCount"],
+        search: ["target", "pathContains", "offset", "startLine", "limit"],
+        readAdvisory: ["id", "descriptionOffset", "descriptionCharacters", "referenceOffset", "referenceLimit"],
+        readGitHubReference: ["url", "path", "page", "patchOffset", "view", "startLine", "lineCount"],
+        readReference: ["url", "startLine", "lineCount"],
+        readGitHubSource: ["repository", "commit", "path", "pathContains", "startLine", "lineCount"],
+        readDependency: ["name", "version", "path", "pathContains", "startLine", "lineCount"],
+        readPackageVersions: ["name", "major", "offset", "limit", "requestedVersion"],
+        searchDependency: ["name", "version", "pathContains"],
+    };
+    const details: Record<string, string | number | boolean> = {};
+    const input = z.record(z.string(), z.unknown()).safeParse(call.input);
+    const selectedFields = Object.hasOwn(fields, call.toolName) ? (fields[call.toolName] ?? []) : [];
+    for (const field of selectedFields) {
+        const value = input.success ? input.data[field] : undefined;
+        if (typeof value === "string") {
+            let text = value;
+            if (field === "url") {
+                try {
+                    const url = new URL(value);
+                    text = `${url.origin}${url.pathname}`;
+                } catch {
+                    text = "[invalid URL]";
+                }
+            }
+            details[field] = redactDebugText(text).slice(0, 240);
+        } else if (typeof value === "number" && Number.isFinite(value)) details[field] = value;
+        else if (typeof value === "boolean") details[field] = value;
+    }
+    return {
+        tool: Object.hasOwn(fields, call.toolName) ? call.toolName : "unknown-tool",
+        callId: redactDebugText(call.toolCallId).slice(0, 200),
+        details,
+    };
+}
+
+// Known harness capability boundaries found in evidence outputs and tool-failure causes.
+// Surfaced as the [triage-gaps] stderr event so unsupported evidence patterns are visible
+// and the harness can be extended as vulnerability data drifts.
+const capabilityPatterns: [RegExp, string][] = [
+    [/Only pnpm v9 lockfiles are supported/i, "non-pnpm-v9-lockfile"],
+    [/No tracked root pnpm-lock\.yaml/i, "missing-pnpm-lockfile"],
+    [/Unsupported evidence host or report path|External evidence URL is not allowed/i, "unsupported-evidence-host"],
+    [/No matching GitHub advisory/i, "advisory-not-in-global-database"],
+    [/Non-registry resolution requires separate source evidence/i, "non-registry-dependency"],
+    [/Kondukto access unavailable|Unsupported Kondukto finding URL/i, "kondukto-access"],
+    [/Cannot infer a published product from a private package/i, "private-package"],
+    [/"ecosystem":"(?!npm")[a-z]+"/i, "non-npm-advisory-ecosystem"],
+];
+
+export function capabilityGaps(texts: Iterable<string>): string[] {
+    const found = new Set<string>();
+    for (const text of texts) {
+        for (const match of text.matchAll(/"capability":\s*"([\w-]+)"/g)) if (match[1]) found.add(match[1]);
+        for (const [pattern, capability] of capabilityPatterns) if (pattern.test(text)) found.add(capability);
+    }
+    return [...found].sort();
+}
+
+export function toolFailureEvidence(call: { toolName: string; input: unknown }, error: unknown): string {
+    const diagnostic = diagnoseFailure(error);
+    const messages: string[] = [];
+    for (let current: unknown = error; current instanceof Error; current = current.cause)
+        messages.push(current.message);
+    const capability = capabilityPatterns.find(([pattern]) => messages.some((message) => pattern.test(message)))?.[1];
+    const details = debugToolCall({ ...call, toolCallId: "failure" }).details;
+    const causes = debugFailure(error).causes;
+    const httpStatus = causes.find((cause) => cause.httpStatus)?.httpStatus;
+    let reason = diagnostic.guidance;
+    let recovery = "Check the requested resource and access before retrying; failure is not proof of non-impact.";
+    if (diagnostic.category === "missing-resource") {
+        reason = "The upstream service returned HTTP 404 for this resource.";
+        if (["readDependency", "searchDependency"].includes(call.toolName)) {
+            reason = `npm returned HTTP 404 for ${String(details.name ?? "the package")}@${String(details.version ?? "the requested version")}. It may never have been published or may have been unpublished; this response does not distinguish those cases.`;
+            recovery =
+                "Use readPackageVersions to discover versions currently advertised by npm; do not guess a patched version.";
+        } else if (typeof details.url === "string" && details.url.includes("/releases/tag/")) {
+            reason =
+                "GitHub returned HTTP 404 for the release notes. An npm version or Git tag can exist without a GitHub Release page.";
+            recovery =
+                "Use npm version metadata and the advisory's pinned fix/source references instead of assuming the package release is absent.";
+        }
+    }
+    const invalidInput = causes.some((cause) => cause.type === "AI_InvalidToolInputError");
+    if (invalidInput) {
+        reason = "The tool arguments did not match its schema; the request was rejected before execution.";
+        recovery =
+            "Correct the arguments using the tool schema. Empty path filters are allowed for paged repository searches.";
+    }
+    return JSON.stringify({
+        evidenceStatus: "unavailable",
+        reasonCode: invalidInput ? "invalid-tool-input" : diagnostic.category,
+        reason,
+        recovery,
+        ...(capability ? { capability } : {}),
+        ...(httpStatus ? { httpStatus } : {}),
+    });
+}
+
 function providerBodyPreview(error: unknown): Pick<DebugCause, "responseBody" | "responseBodyTruncated"> {
     if (!APICallError.isInstance(error) || !error.responseBody) return {};
     const sensitiveField = /authorization|cookie|api[-_]?key|token|password|secret|credential/i;
@@ -72,17 +200,7 @@ function providerBodyPreview(error: unknown): Pick<DebugCause, "responseBody" | 
     } catch {
         preview = error.responseBody.slice(0, 32_768);
     }
-    const secrets = Object.entries(process.env)
-        .filter(([name, value]) => sensitiveField.test(name) && value)
-        .flatMap(([, value]) => (value ? [value, JSON.stringify(value).slice(1, -1)] : []))
-        .sort((left, right) => right.length - left.length);
-    for (const secret of secrets) preview = preview.split(secret).join("[REDACTED]");
-    preview = preview
-        .replace(/\b(Bearer|Basic)\s+[A-Za-z0-9._~+/-]+=*/gi, "$1 [REDACTED]")
-        .replace(
-            /\b(authorization|cookie|api[-_]?key|token|password|secret|credential)\s*[:=]\s*[^\s,;<>]+/gi,
-            "$1=[REDACTED]"
-        );
+    preview = redactDebugText(preview);
     return {
         responseBody: preview.slice(0, 4096),
         responseBodyTruncated: error.responseBody.length > 32_768 || preview.length > 4096,

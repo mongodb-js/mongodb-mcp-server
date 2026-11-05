@@ -5,6 +5,7 @@ import { extract } from "tar-stream";
 import { parse, type DefaultTreeAdapterMap } from "parse5";
 import { z } from "zod/v4";
 import { setTimeout as delay } from "node:timers/promises";
+import { rcompare, valid, validRange } from "semver";
 
 const MAX_FILE_BYTES = 1024 * 1024;
 
@@ -73,10 +74,28 @@ export type EvidenceOptions = {
     exports?: { url: string; evidence: unknown }[];
     limits?: Partial<EvidenceLimits>;
     signal?: AbortSignal;
+    /** Bearer token sent only to api.github.com; raises the anonymous rate limit for advisory/source reads. */
+    githubToken?: string;
 };
 
 const packageSchema = z.string().regex(/^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/);
 const versionSchema = z.string().regex(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/);
+const npmCatalogSchema = z
+    .object({
+        versions: z.record(z.string(), z.unknown()).optional(),
+        "dist-tags": z.record(z.string(), z.string()).default({}),
+        time: z
+            .object({
+                unpublished: z
+                    .object({ time: z.string().optional(), versions: z.array(z.string()).optional() })
+                    .optional(),
+            })
+            .optional(),
+    })
+    .refine(
+        (value) => value.versions !== undefined || value.time?.unpublished !== undefined,
+        "npm catalog must contain versions or an explicit unpublish record"
+    );
 const githubTreeSchema = z.object({
     truncated: z.boolean(),
     tree: z.array(
@@ -89,6 +108,104 @@ const githubTreeSchema = z.object({
         })
     ),
 });
+const advisoryRecordSchema = z.object({
+    ghsa_id: z.string(),
+    cve_id: z.string().nullable(),
+    html_url: z.string(),
+    summary: z.string(),
+    description: z.string(),
+    updated_at: z.string(),
+    withdrawn_at: z.string().nullable(),
+    vulnerabilities: z.array(
+        z.object({
+            package: z.object({ ecosystem: z.string(), name: z.string() }),
+            vulnerable_version_range: z.string(),
+            first_patched_version: z.string().nullable(),
+        })
+    ),
+    references: z.array(z.string()),
+});
+
+const cveVersionEntrySchema = z
+    .object({
+        version: z.string().max(100),
+        lessThan: z.string().max(100).optional(),
+        lessThanOrEqual: z.string().max(100).optional(),
+        status: z.string().max(50).optional(),
+        versionType: z.string().max(50).optional(),
+    })
+    .passthrough();
+const cveAffectedEntrySchema = z
+    .object({
+        vendor: z.string().max(200).optional(),
+        product: z.string().max(200).optional(),
+        packageURL: z.string().max(500).optional(),
+        versions: z.array(cveVersionEntrySchema).optional(),
+        affectedData: z
+            .array(
+                z
+                    .object({
+                        vendor: z.string().max(200).optional(),
+                        product: z.string().max(200).optional(),
+                        packageURL: z.string().max(500).optional(),
+                        versions: z.array(cveVersionEntrySchema).optional(),
+                    })
+                    .passthrough()
+            )
+            .optional(),
+    })
+    .passthrough();
+
+// NVD 2.0 records embed the CNA affected list under vulnerabilities[].cve.affected (some with
+// affectedData nesting); CVE 5.x records carry containers.cna.affected. Normalize semver version
+// entries into npm package ranges so paged supplemental evidence retains machine-readable bounds.
+function npmAffectedRanges(record: unknown): { package: string; range: string }[] {
+    const entries: z.infer<typeof cveAffectedEntrySchema>[] = [];
+    const nvd = z
+        .object({
+            vulnerabilities: z.array(
+                z.object({ cve: z.object({ affected: z.array(cveAffectedEntrySchema).optional() }).passthrough() })
+            ),
+        })
+        .safeParse(record);
+    if (nvd.success)
+        for (const vulnerability of nvd.data.vulnerabilities) entries.push(...(vulnerability.cve.affected ?? []));
+    const cve5 = z
+        .object({
+            containers: z.object({
+                cna: z.object({ affected: z.array(cveAffectedEntrySchema).optional() }).passthrough(),
+            }),
+        })
+        .safeParse(record);
+    if (cve5.success) entries.push(...(cve5.data.containers.cna.affected ?? []));
+    const ranges: { package: string; range: string }[] = [];
+    for (const entry of entries) {
+        for (const candidate of [entry, ...(entry.affectedData ?? [])]) {
+            const purl = candidate.packageURL?.replace(/^pkg:npm\//, "");
+            const at = purl ? purl.lastIndexOf("@") : -1;
+            const name = purl
+                ? decodeURIComponent(at > 0 ? purl.slice(0, at) : purl)
+                : (candidate.product ?? candidate.vendor);
+            if (!name) continue;
+            for (const version of candidate.versions ?? []) {
+                if (version.status && version.status !== "affected") continue;
+                if (version.versionType && version.versionType !== "semver") continue;
+                const range = version.lessThan
+                    ? validRange(
+                          version.version === "0"
+                              ? `< ${version.lessThan}`
+                              : `>= ${version.version} < ${version.lessThan}`
+                      )
+                    : version.lessThanOrEqual
+                      ? validRange(`>= ${version.version} <= ${version.lessThanOrEqual}`)
+                      : validRange(version.version);
+                if (range && !ranges.some((existing) => existing.package === name && existing.range === range))
+                    ranges.push({ package: name, range });
+            }
+        }
+    }
+    return ranges;
+}
 
 export class TriageEvidence {
     hasAdvisoryEvidence = false;
@@ -99,12 +216,15 @@ export class TriageEvidence {
     private readonly request: typeof fetch;
     private readonly limits: EvidenceLimits;
     private remainingRequests: number;
+    private maxResponseBytes = 0;
     private remainingCharacters: number;
     private remainingArchiveBytes: number;
     private remainingDownloadBytes: number;
     private retries = 0;
     private readonly packages = new Map<string, Promise<PackageArchive>>();
+    private readonly catalogs = new Map<string, Promise<z.infer<typeof npmCatalogSchema>>>();
     private readonly githubTrees = new Map<string, z.infer<typeof githubTreeSchema>>();
+    private readonly advisoryReads = new Map<string, Promise<z.infer<typeof advisoryRecordSchema>[]>>();
     private readonly options: EvidenceOptions;
     private readonly konduktoOrigin?: string;
 
@@ -168,6 +288,7 @@ export class TriageEvidence {
                 const { done, value } = await reader.read();
                 if (done) break;
                 length += value.byteLength;
+                this.maxResponseBytes = Math.max(this.maxResponseBytes, length);
                 this.remainingDownloadBytes -= value.byteLength;
                 if (length > this.limits.responseBytes || this.remainingDownloadBytes < 0)
                     throw new Error("External evidence exceeds download budget");
@@ -195,6 +316,9 @@ export class TriageEvidence {
                         Accept: "application/json, text/html;q=0.9",
                         "User-Agent": "mongodb-vulnerability-auto-triage",
                         ...(authenticated && this.options.kondukto ? { "X-Cookie": this.options.kondukto.token } : {}),
+                        ...(url.hostname === "api.github.com" && this.options.githubToken
+                            ? { Authorization: `Bearer ${this.options.githubToken}` }
+                            : {}),
                     },
                     signal: this.options.signal
                         ? AbortSignal.any([this.options.signal, AbortSignal.timeout(20_000)])
@@ -241,6 +365,7 @@ export class TriageEvidence {
         requests: number;
         retries: number;
         downloadBytes: number;
+        maxResponseBytes: number;
         archiveBytes: number;
         contextCharacters: number;
         limits: EvidenceLimits;
@@ -249,6 +374,7 @@ export class TriageEvidence {
             requests: this.limits.requests - this.remainingRequests,
             retries: this.retries,
             downloadBytes: this.limits.downloadBytes - this.remainingDownloadBytes,
+            maxResponseBytes: this.maxResponseBytes,
             archiveBytes: this.limits.archiveBytes - this.remainingArchiveBytes,
             contextCharacters: this.limits.contextCharacters - this.remainingCharacters,
             limits: this.limits,
@@ -337,11 +463,13 @@ export class TriageEvidence {
             .min(1)
             .max(200)
             .parse(input.lineCount ?? 100);
+        // Retain machine-readable affected-version bounds even when the record is read in pages.
+        const normalized = typeof content === "string" ? [] : npmAffectedRanges(content);
         const allLines = JSON.stringify(content, null, 2).split("\n");
         const lines = allLines.slice(start - 1, start - 1 + count);
         if (lines.length && this.remainingCharacters > 0) this.hasSupplementalEvidence = true;
         return this.bounded(
-            `${source}\nResult range starts at ${start}; ${lines.length} of ${allLines.length} total lines returned. Use startLine to continue.\nUntrusted supplemental context; CWE is general background, and vendor product conclusions do not establish impact in our product. No scripts, assets, payloads, or linked URLs are executed/fetched.\n${lines.map((line, index) => `${start + index}: ${line}`).join("\n")}`
+            `${source}\nResult range starts at ${start}; ${lines.length} of ${allLines.length} total lines returned. Use startLine to continue.\nUntrusted supplemental context; CWE is general background, and vendor product conclusions do not establish impact in our product. No scripts, assets, payloads, or linked URLs are executed/fetched.\n${normalized.length ? `Normalized from this record's CNA version data (npm packages only):\naffectedRanges: ${JSON.stringify(normalized)}\n` : ""}${lines.map((line, index) => `${start + index}: ${line}`).join("\n")}`
         );
     }
 
@@ -516,25 +644,24 @@ export class TriageEvidence {
         const url = ghsa.test(normalized)
             ? new URL(`https://api.github.com/advisories/${normalized.toLowerCase()}`)
             : new URL(`https://api.github.com/advisories?cve_id=${normalized}&per_page=10`);
-        const json: unknown = JSON.parse((await this.download(url)).toString("utf8"));
-        const schema = z.object({
-            ghsa_id: z.string(),
-            cve_id: z.string().nullable(),
-            html_url: z.string(),
-            summary: z.string(),
-            description: z.string(),
-            updated_at: z.string(),
-            withdrawn_at: z.string().nullable(),
-            vulnerabilities: z.array(
-                z.object({
-                    package: z.object({ ecosystem: z.string(), name: z.string() }),
-                    vulnerable_version_range: z.string(),
-                    first_patched_version: z.string().nullable(),
+        return this.advisoryFromUrl(url, options);
+    }
+
+    private async advisoryFromUrl(url: URL, options: z.output<typeof advisoryReadOptionsSchema>): Promise<string> {
+        let pending = this.advisoryReads.get(url.href);
+        if (!pending) {
+            pending = this.download(url)
+                .then((bytes) => {
+                    const json: unknown = JSON.parse(bytes.toString("utf8"));
+                    return z.array(advisoryRecordSchema).parse(Array.isArray(json) ? json : [json]);
                 })
-            ),
-            references: z.array(z.string()),
-        });
-        const advisories = z.array(schema).parse(Array.isArray(json) ? json : [json]);
+                .catch((error: unknown) => {
+                    this.advisoryReads.delete(url.href);
+                    throw error;
+                });
+            this.advisoryReads.set(url.href, pending);
+        }
+        const advisories = await pending;
         if (!advisories.length)
             return "No matching GitHub advisory; this is missing evidence, not proof of non-impact.";
         let descriptionCharacters = options.descriptionCharacters;
@@ -580,6 +707,7 @@ export class TriageEvidence {
         url: string;
         path?: string;
         page?: number;
+        patchOffset?: number;
         view?: "metadata" | "files" | "comments" | "reviews" | "review-comments";
         startLine?: number;
         lineCount?: number;
@@ -618,8 +746,18 @@ export class TriageEvidence {
         const sha = z.string().regex(/^[a-f0-9]{40}$/i);
         let result: unknown;
         if (kind === "security" && identifier === "advisories" && rest.length === 1 && rest[0]) {
-            return this.advisory(rest[0]);
-        } else if (kind === "commit" && identifier && /^[a-f0-9]{40}$/i.test(identifier) && !rest.length) {
+            try {
+                return await this.advisory(rest[0]);
+            } catch (error) {
+                if (!(error instanceof EvidenceHttpError) || error.status !== 404) throw error;
+                // Repository-published advisories are not reviewed into the global database;
+                // read them through the owning repository's endpoint.
+                return this.advisoryFromUrl(
+                    new URL(`${base}/security-advisories/${encodeURIComponent(rest[0])}`),
+                    advisoryReadOptionsSchema.parse({})
+                );
+            }
+        } else if (kind === "commit" && identifier && /^[a-f0-9]{7,40}$/i.test(identifier) && !rest.length) {
             const url = new URL(`${base}/commits/${identifier}?per_page=100&page=${page}`);
             const commit = z
                 .object({
@@ -635,19 +773,94 @@ export class TriageEvidence {
                     ),
                 })
                 .parse(JSON.parse((await this.download(url)).toString("utf8")));
-            if (commit.sha.toLowerCase() !== identifier.toLowerCase())
+            if (
+                identifier.length === 40
+                    ? commit.sha.toLowerCase() !== identifier.toLowerCase()
+                    : !commit.sha.toLowerCase().startsWith(identifier.toLowerCase())
+            )
                 throw new Error("GitHub commit identity mismatch");
-            result = {
+            const selected = commit.files.filter((file) => !input.path || file.filename === input.path);
+            const patchOffset = z
+                .number()
+                .int()
+                .min(0)
+                .parse(input.patchOffset ?? 0);
+            if (patchOffset && !input.path) throw new Error("patchOffset requires an exact path");
+            const files = selected.map((file) => ({
+                ...file,
+                ...(input.path && file.patch
+                    ? {
+                          patch: file.patch.slice(patchOffset, patchOffset + 8000),
+                          patchOffset,
+                          nextPatchOffset: patchOffset + 8000 < file.patch.length ? patchOffset + 8000 : null,
+                      }
+                    : {}),
+            }));
+            const baseResult = {
                 source: reference.href,
                 apiSource: url.href,
                 commit: commit.sha,
-                message: commit.commit.message,
-                files: commit.files.filter((file) => !input.path || file.filename === input.path),
+                message: commit.commit.message.slice(0, 2000),
+                files,
                 page,
                 nextPage: commit.files.length === 100 && page < 10 ? page + 1 : null,
                 limitations:
-                    "GitHub may omit or truncate patches. At most 10 pages are available. Missing files/patches are not proof of non-impact; read source at an exact commit when needed.",
+                    "GitHub may omit or truncate patches. At most 10 pages are available. Missing files/patches are not proof of non-impact; read source at an exact commit when needed. For a selected path, nextPatchOffset continues patch characters, not source line numbers.",
             };
+            if (input.path && files.some((file) => "nextPatchOffset" in file && file.nextPatchOffset !== null)) {
+                const output = this.boundedJson({
+                    ...baseResult,
+                    evidenceStatus: "limited",
+                    reason: "The selected patch exceeds the bounded patch page; the returned JSON and patch fragment are intact.",
+                    recovery: "Read the same URL and exact path with patchOffset=nextPatchOffset until it is null.",
+                });
+                if (!z.object({ truncated: z.literal(true) }).safeParse(JSON.parse(output)).success)
+                    this.hasGitHubEvidence = true;
+                return output;
+            }
+            if (JSON.stringify(baseResult).length > Math.min(16_000, this.remainingCharacters) && !input.path) {
+                const indexed = selected.map(({ patch, ...file }) => ({
+                    ...file,
+                    patchAvailable: patch !== undefined,
+                    patch: undefined as string | undefined,
+                    patchOffset: undefined as number | undefined,
+                    nextPatchOffset: undefined as number | null | undefined,
+                }));
+                const compact = {
+                    ...baseResult,
+                    files: indexed,
+                    coverage: "file-index-with-selected-patches",
+                    patchesComplete: false,
+                    recovery:
+                        "Implementation patches are prioritized over snapshots and tests. Select an omitted filename with path, then follow nextPatchOffset as patchOffset. Inspect only patches relevant to the advisory; omitted content is not proof of non-impact.",
+                };
+                const prioritized = [...selected].sort(
+                    (left, right) =>
+                        Number(/snapshot|__snapshots__|\.snap|(?:^|\/)tests?\//i.test(left.filename)) -
+                        Number(/snapshot|__snapshots__|\.snap|(?:^|\/)tests?\//i.test(right.filename))
+                );
+                for (const file of prioritized) {
+                    if (!file.patch) continue;
+                    const entry = indexed.find((candidate) => candidate.filename === file.filename);
+                    if (!entry) continue;
+                    entry.patch = file.patch.slice(0, 8000);
+                    entry.patchOffset = 0;
+                    entry.nextPatchOffset = file.patch.length > 8000 ? 8000 : null;
+                    if (JSON.stringify(compact).length > Math.min(15_000, this.remainingCharacters)) {
+                        entry.patch = undefined;
+                        entry.patchOffset = undefined;
+                        entry.nextPatchOffset = undefined;
+                    }
+                }
+                const output = this.boundedJson(compact);
+                if (!z.object({ truncated: z.literal(true) }).safeParse(JSON.parse(output)).success)
+                    this.hasGitHubEvidence = true;
+                return output;
+            }
+            const output = this.boundedJson(baseResult);
+            if (!z.object({ truncated: z.literal(true) }).safeParse(JSON.parse(output)).success)
+                this.hasGitHubEvidence = true;
+            return output;
         } else if (
             ["pull", "issues"].includes(kind ?? "") &&
             identifier &&
@@ -780,7 +993,7 @@ export class TriageEvidence {
             return `${pinned ? "Pinned upstream source." : `Mutable upstream ref resolved to ${commit}; not evidence of our shipped version.`}${requestedCount > 200 ? " Requested range truncated to 200 lines." : ""}\n${source}`;
         } else {
             throw new Error(
-                "Supported GitHub references: full-SHA commits, pull requests, releases/tag, security/advisories, and full-SHA blob URLs. Use readGitHubSource for pinned source."
+                "Supported GitHub references: commits by full or unambiguous short SHA, pull requests, releases/tag, security/advisories (global or repository-published), and full-SHA blob URLs. Use readGitHubSource for pinned source."
             );
         }
         const text = this.bounded(JSON.stringify(result, null, 2));
@@ -953,6 +1166,113 @@ export class TriageEvidence {
         );
     }
 
+    async packageVersions(input: {
+        name: string;
+        major?: number;
+        offset?: number;
+        limit?: number;
+        requestedVersion?: string;
+    }): Promise<string> {
+        return this.boundedJson(await this.versionCatalog(input));
+    }
+
+    private async versionCatalog(input: {
+        name: string;
+        major?: number;
+        offset?: number;
+        limit?: number;
+        requestedVersion?: string;
+    }): Promise<{
+        source: string;
+        versions: string[];
+        nextOffset: number | null;
+        totalVersions: number;
+        requestedVersion?: string;
+        requestedVersionPresent?: boolean;
+        unpublishRecord?: { time?: string; versions?: string[] };
+        limitations: string;
+    }> {
+        packageSchema.parse(input.name);
+        if (input.requestedVersion) versionSchema.parse(input.requestedVersion);
+        const offset = z
+            .number()
+            .int()
+            .min(0)
+            .parse(input.offset ?? 0);
+        const limit = z
+            .number()
+            .int()
+            .min(1)
+            .max(100)
+            .parse(input.limit ?? 50);
+        const major = z.number().int().min(0).optional().parse(input.major);
+        const source = `https://registry.npmjs.org/${encodeURIComponent(input.name)}`;
+        let pending = this.catalogs.get(input.name);
+        if (!pending) {
+            pending = this.download(new URL(source))
+                .then((bytes) => npmCatalogSchema.parse(JSON.parse(bytes.toString("utf8"))))
+                .catch((error: unknown) => {
+                    this.catalogs.delete(input.name);
+                    throw error;
+                });
+            this.catalogs.set(input.name, pending);
+        }
+        const catalog = await pending;
+        const versions = Object.keys(catalog.versions ?? {})
+            .filter((version) => valid(version) && (major === undefined || version.startsWith(`${major}.`)))
+            .sort(rcompare);
+        return {
+            source,
+            versions: versions.slice(offset, offset + limit),
+            totalVersions: versions.length,
+            nextOffset: offset + limit < versions.length ? offset + limit : null,
+            ...(input.requestedVersion
+                ? {
+                      requestedVersion: input.requestedVersion,
+                      requestedVersionPresent: Object.hasOwn(catalog.versions ?? {}, input.requestedVersion),
+                  }
+                : {}),
+            ...(catalog.time?.unpublished ? { unpublishRecord: catalog.time.unpublished } : {}),
+            limitations:
+                "Current npm metadata only. An absent version may never have been published or may have been unpublished. Only an explicit unpublishRecord establishes the registry's reported unpublish event; it does not establish a safe patched version.",
+        };
+    }
+
+    private async dependencyArchive(input: {
+        name: string;
+        version: string;
+        expectedIntegrity?: string;
+    }): Promise<PackageArchive | string> {
+        try {
+            return await this.packageArchive(input);
+        } catch (error) {
+            if (!(error instanceof EvidenceHttpError) || error.status !== 404) throw error;
+            let discovery;
+            try {
+                discovery = await this.versionCatalog({
+                    name: input.name,
+                    major: Number(input.version.split(".")[0]),
+                    requestedVersion: input.version,
+                });
+            } catch (cause) {
+                if (!(cause instanceof EvidenceHttpError) || cause.status !== 404) throw cause;
+            }
+            return this.boundedJson({
+                evidenceStatus: "unavailable",
+                reasonCode: "npm-resource-not-found",
+                httpStatus: 404,
+                reason: discovery?.requestedVersionPresent
+                    ? "npm advertises this version, but its exact-version metadata or tarball returned HTTP 404. This is not evidence that the version was unpublished."
+                    : "npm returned HTTP 404 and does not currently advertise the requested version. It may never have been published or may have been unpublished; absence alone cannot distinguish these cases.",
+                recovery:
+                    "Use the returned version discovery or readPackageVersions, then verify the advisory's affected range and any candidate fix against source. Do not infer a patched release from version numbering.",
+                package: input.name,
+                version: input.version,
+                discovery,
+            });
+        }
+    }
+
     async searchDependency(input: {
         name: string;
         version: string;
@@ -961,10 +1281,13 @@ export class TriageEvidence {
         pathContains?: string;
     }): Promise<string> {
         z.string().min(1).max(200).parse(input.text);
-        const { files, integrity } = await this.packageArchive(input);
+        const archive = await this.dependencyArchive(input);
+        if (typeof archive === "string") return archive;
+        const { files, integrity } = archive;
         const matches: string[] = [];
         for (const [path, content] of files) {
             if (input.pathContains && !path.includes(input.pathContains)) continue;
+            if (path.endsWith(".map") && !input.pathContains?.endsWith(".map")) continue;
             for (const [index, line] of content.split("\n").entries()) {
                 if (line.includes(input.text)) matches.push(`${path}:${index + 1}: ${line}`);
                 if (matches.length >= 100) break;
@@ -973,7 +1296,7 @@ export class TriageEvidence {
         }
         if (matches.length && this.remainingCharacters > 0) this.hasDependencyEvidence = true;
         return this.bounded(
-            `${input.name}@${input.version}; ${integrity}; lockfile integrity ${input.expectedIntegrity ? "verified" : "NOT supplied"}\n${matches.join("\n")}\n${matches.length >= 100 ? "[TRUNCATED at 100 matches; narrow the search]" : "Literal text search only; missing matches do not establish non-reachability."}`
+            `${input.name}@${input.version}; ${integrity}; lockfile integrity ${input.expectedIntegrity ? "verified" : "NOT supplied"}\nSource maps excluded unless pathContains ends with .map.\n${matches.join("\n")}\n${matches.length >= 100 ? "[TRUNCATED at 100 matches; narrow the search]" : "Literal text search only; missing matches do not establish non-reachability."}`
         );
     }
 
@@ -1112,7 +1435,9 @@ export class TriageEvidence {
         startLine?: number;
         lineCount?: number;
     }): Promise<string> {
-        const { files, integrity } = await this.packageArchive(input);
+        const archive = await this.dependencyArchive(input);
+        if (typeof archive === "string") return archive;
+        const { files, integrity } = archive;
         const source = `https://registry.npmjs.org/${encodeURIComponent(input.name)}/${encodeURIComponent(input.version)}`;
         if (!input.path)
             return this.bounded(

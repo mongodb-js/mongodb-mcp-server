@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
-import { satisfies, subset, valid, validRange } from "semver";
+import { satisfies, valid, validRange } from "semver";
 import { z } from "zod/v4";
-import { diagnoseFailure } from "./triageDiagnostics.js";
+import { toolFailureEvidence } from "./triageDiagnostics.js";
 
 const textSchema = z.string().min(1).max(1600);
 const citationSchema = z
@@ -44,7 +44,7 @@ const targetSchema = z
             .nullable(),
         missingEvidence: z.array(textSchema).max(20),
         limitations: z.array(textSchema).max(20),
-        nextSteps: z.array(textSchema).min(1).max(12),
+        nextSteps: z.array(textSchema).max(12),
     })
     .strict();
 
@@ -60,6 +60,7 @@ export type EvidenceRecord = {
     output: string;
     sha256: string;
     availability: "retrieved" | "limited" | "unavailable";
+    issue?: { reason: string; recovery: string };
 };
 type TargetAssessment = Assessment["targets"]["main"];
 export type CheckedAssessment = {
@@ -99,8 +100,9 @@ export function renderInvestigationScope(scope: InvestigationScope | null): stri
 }
 
 export const ASSESSMENT_INSTRUCTIONS =
-    "A schema-shaped placeholder is not a report. Never use placeholder, x, TBD or generic filler. Summarize the actual retrieved findings with citations even when the recommendation is needs-investigation. Explain the scope of empty dependency graphs rather than reporting all facts as unknown; distinguish selected production roots from build/dev dependencies and bundled copies. Read relevant target manifests and production entry points, complete advisory pages and relevant fix/source references before stopping when the tools and budget allow it. Every unknown must explain what is missing and why it matters, with concrete blocking gaps and follow-up. Each target must cite at least one actual target-specific finding. Use retrieved advisories rather than discarding their facts.\n" +
-    "Return ONLY a JSON object matching the following schema, without Markdown fences or prose outside JSON. This is advisory investigation for a human decision, never an authorization to close, accept risk, or remediate a ticket. Cite actual tool-call IDs as evidenceId and use locator for the exact file:line range or reference section inspected. Never invent IDs, versions, call paths, or exclusions. Ground resolvedVersions in cited dependencyPaths occurrences or the matching product artifact manifest; source text alone is not machine-verified resolution. For version-based recommendations cite readAdvisory or a GitHub advisory reference containing non-withdrawn npm vulnerability records for this package, and use the union of their affected ranges without guessing. List unresolved blocking questions in missingEvidence; nonblocking caveats belong in limitations. Use needs-investigation when support is missing. For unknown claims provide a candid explanation and empty citations; affectedRange may be empty and exclusion null. nextSteps must give concrete human follow-up, including validation of any proposed upgrade. Assess release and main independently.\n" +
+    "The Jira reader needs a direct answer, not an investigation transcript. Each target summary must be at most 90 words and 600 characters: one or two short plain-language sentences stating whether we are likely affected and the decisive reason. Name the relevant package/version or product behavior in ordinary language. Do not include tool IDs, JSON, audit logs, questions, checklists, or requests for routine human verification in summaries. If genuinely undecidable, state the single decisive missing fact and why it prevents an answer. Do not default to needs-investigation merely because certainty is not absolute. Resolve answer-changing gaps yourself using the available tools. Stop when a supported exclusion settles applicability; unrelated unknowns belong in limitations, not missingEvidence. nextSteps may be empty; do not manufacture work for the reviewer. Detailed claims and citations are internal audit data, not the comment.\n" +
+    "A schema-shaped placeholder is not a report. Never use placeholder, x, TBD or generic filler. Summarize the actual retrieved findings with citations even when the recommendation is needs-investigation. Explain the scope of empty dependency graphs rather than reporting all facts as unknown; distinguish selected production roots from build/dev dependencies and bundled copies. Read relevant target manifests and production entry points, complete advisory pages and relevant fix/source references before stopping when the tools and budget allow it. missingEvidence is reserved for evidence the tools cannot retrieve within budget: fully read packaging scripts, manifests and artifact inventories before declaring packaging unverified, and never list a gap you could close with an available read. Every unknown must explain what is missing and why it matters, with concrete blocking gaps and follow-up. Each target must cite at least one actual target-specific finding. Use retrieved advisories rather than discarding their facts.\n" +
+    "Return ONLY a JSON object matching the following schema, without Markdown fences or prose outside JSON. This is advisory investigation for a human decision, never an authorization to close, accept risk, or remediate a ticket. Cite actual tool-call IDs as evidenceId and use locator for the exact file:line range or reference section inspected. Never invent IDs, versions, call paths, or exclusions. Ground resolvedVersions in cited dependencyPaths occurrences or the matching product artifact manifest; source text alone is not machine-verified resolution. For version-based recommendations cite readAdvisory or a GitHub advisory reference containing non-withdrawn npm vulnerability records for this package, and use the union of their affected ranges without guessing. List only answer-changing unresolved gaps in missingEvidence; nonblocking caveats belong in limitations. Use needs-investigation when evidence necessary for the conclusion is missing, not when an irrelevant field is unknown. For unknown or unnecessary claims provide a candid explanation and empty citations; affectedRange may be empty and exclusion null. Assess release and main independently.\n" +
     JSON.stringify(z.toJSONSchema(assessmentSchema));
 
 export function reportQualityIssues(assessment: Assessment, evidence: EvidenceRecord[]): string[] {
@@ -119,10 +121,35 @@ export function reportQualityIssues(assessment: Assessment, evidence: EvidenceRe
             proposed.callerTrace,
             proposed.packaging,
         ];
-        if (!substantive(proposed.summary) || claims.some((claim) => !substantive(claim.text)))
+        const allClaims = [
+            ...claims,
+            ...proposed.prerequisites.map((item) => item.evidence),
+            ...(proposed.exclusion ? [proposed.exclusion.evidence] : []),
+            ...proposed.resolvedVersions.map((version) => ({ text: version.version, citations: version.citations })),
+        ];
+        for (const citation of allClaims.flatMap((claim) => claim.citations)) {
+            const matches = evidence.filter((record) => record.id === citation.evidenceId);
+            if (
+                matches.length !== 1 ||
+                matches[0]?.availability === "unavailable" ||
+                (matches[0]?.target && matches[0].target !== target)
+            ) {
+                issues.push(
+                    `${target}: replace invalid, unavailable, ambiguous or wrong-target citation ${citation.evidenceId} with evidence actually retrieved for this claim; if unavailable, remove the citation and describe the answer-changing gap instead.`
+                );
+            }
+        }
+        const decisiveClaims =
+            proposed.recommendation === "likely-not-affected" &&
+            ["unaffected-version", "not-shipped"].includes(proposed.exclusion?.basis ?? "")
+                ? [proposed.advisory, proposed.dependencyPath, proposed.packaging]
+                : claims;
+        if (!substantive(proposed.summary) || decisiveClaims.some((claim) => !substantive(claim.text)))
             issues.push(
                 `${target}: explain the findings or the specific unknown for every report field; placeholders are not findings.`
             );
+        if (proposed.summary.length > 600 || proposed.summary.trim().split(/\s+/).length > 90)
+            issues.push(`${target}: shorten the reader-facing summary to at most 90 words and 600 characters.`);
         if (proposed.nextSteps.some((text) => !substantive(text)))
             issues.push(`${target}: provide concrete follow-up actions, not placeholder next steps.`);
         if (
@@ -204,6 +231,19 @@ export function reportQualityIssues(assessment: Assessment, evidence: EvidenceRe
 }
 
 export function evidenceRecord(input: { id: string; tool: string; input: unknown; output: string }): EvidenceRecord {
+    let outcome: { evidenceStatus: "limited" | "unavailable"; reason: string; recovery: string } | undefined;
+    try {
+        const parsed = z
+            .object({
+                evidenceStatus: z.enum(["limited", "unavailable"]),
+                reason: z.string().min(1).max(1000),
+                recovery: z.string().min(1).max(1000),
+            })
+            .safeParse(JSON.parse(input.output));
+        if (parsed.success) outcome = parsed.data;
+    } catch {
+        outcome = undefined;
+    }
     const request = z
         .object({ target: z.enum(["main", "release"]).optional() })
         .passthrough()
@@ -218,18 +258,40 @@ export function evidenceRecord(input: { id: string; tool: string; input: unknown
                   : "main"
               : undefined;
     const unavailable =
-        !input.output.trim() ||
-        /(?:^|\n)(?:No |Not an allowed|Too many|(?:Repository|External evidence) context budget exhausted)/i.test(
+        (!input.output.trim() && !["listFiles", "search", "searchDependency"].includes(input.tool)) ||
+        /(?:^|\n)(?:No (?!matches\b)|Not an allowed|Too many|(?:Repository|External evidence) context budget exhausted)/i.test(
             input.output.trim()
         );
-    const limited = /\[TRUNCATED|"resolutionComplete":\s*false|"pathsTruncated":\s*true|"truncated":\s*true/i.test(
-        input.output
-    );
+    const limited = /\[TRUNCATED|"resolutionComplete":\s*false|"truncated":\s*true/i.test(input.output);
+    let issue: EvidenceRecord["issue"];
+    if (outcome) issue = { reason: outcome.reason, recovery: outcome.recovery };
+    else if (unavailable || limited) {
+        issue = {
+            reason: limited
+                ? "The returned content is incomplete or exceeds the per-result limit."
+                : "The requested evidence was not returned.",
+            recovery: limited
+                ? "Request a narrower file or line range, or follow the returned continuation."
+                : "Check the resource identity and use discovery before retrying.",
+        };
+        if (input.output.startsWith("Too many candidate files"))
+            issue = {
+                reason: "The search selected more than 100 files and was rejected before reading them.",
+                recovery: "Use a narrower path or the paged search continuation.",
+            };
+        if (/^No (?:readable regular file|file available)/.test(input.output))
+            issue = {
+                reason: "The requested file is absent from the pinned source or package archive.",
+                recovery:
+                    "List files first and use an exact returned path; archive contents may differ from upstream source.",
+            };
+    }
     return {
         ...input,
         target,
         sha256: createHash("sha256").update(input.output).digest("hex"),
-        availability: unavailable ? "unavailable" : limited ? "limited" : "retrieved",
+        availability: outcome?.evidenceStatus ?? (unavailable ? "unavailable" : limited ? "limited" : "retrieved"),
+        ...(issue ? { issue } : {}),
     };
 }
 
@@ -245,9 +307,6 @@ export function collectEvidence(
             const entry = step.toolResults.find(
                 (returned) => returned.toolCallId === call.toolCallId && returned.toolName === call.toolName
             );
-            const failure = diagnoseFailure(
-                step.content?.find((part) => part.type === "tool-error" && part.toolCallId === call.toolCallId)?.error
-            );
             return evidenceRecord({
                 id: call.toolCallId,
                 tool: call.toolName,
@@ -256,7 +315,12 @@ export function collectEvidence(
                     ? typeof entry.output === "string"
                         ? entry.output
                         : (JSON.stringify(entry.output) ?? "")
-                    : `No successful tool result returned; ${failure.category}: ${failure.guidance}`,
+                    : toolFailureEvidence(
+                          call,
+                          step.content?.find(
+                              (part) => part.type === "tool-error" && part.toolCallId === call.toolCallId
+                          )?.error
+                      ),
             });
         })
     );
@@ -349,7 +413,7 @@ export function replayInvestigation(raw: unknown): {
             "OFFLINE REPLAY: saved evidence only; sources and release mappings have NOT been refreshed. No Jira write is proposed.\n\n" +
             renderInvestigationScope(saved.scope ?? null) +
             "\n\n" +
-            renderAssessment(assessment, evidence),
+            renderAssessment(assessment, { evidence }),
     };
 }
 
@@ -442,18 +506,55 @@ export function checkAssessment(raw: unknown, evidence: EvidenceRecord[]): Check
             );
         });
         const versionsSupported = versionChecks.length > 0 && versionChecks.every(Boolean);
+        // Machine-observed versions from target-scoped graph/artifact records are decisive for
+        // version evaluation; the model's resolvedVersions list is only required to cover them
+        // (enforced by the observed-version coverage check below), extra informational rows in
+        // the list do not weaken an exclusion the graph data proves.
+        const machineVersions = [...new Set(evidence.flatMap((record) => observedVersions(record)))].filter((version) =>
+            valid(version)
+        );
         const prerequisites = proposed.prerequisites.map((item) => ({
             status: item.status,
             supported: support(item.evidence, { scoped: true }),
         }));
         const exclusionSupported = proposed.exclusion
-            ? support(proposed.exclusion.evidence, { scoped: true, tools: ["readFile", "readProductArtifact"] }) &&
+            ? support(proposed.exclusion.evidence, {
+                  scoped: true,
+                  tools: ["readFile", "readProductArtifact", "dependencyPaths"],
+              }) &&
               citations(proposed.exclusion.evidence.citations).every((record) => record.availability === "retrieved")
             : false;
-        const range = proposed.affectedRange.trim() ? validRange(proposed.affectedRange.replaceAll(",", " ")) : null;
+        // The stated range is model-written text and often carries prose after the comparators;
+        // parse it leniently and treat the retrieved advisory range as the authority for version math.
+        const range = ((): ReturnType<typeof validRange> => {
+            const cleaned = proposed.affectedRange.trim().replaceAll(",", " ");
+            if (!cleaned) return null;
+            const direct = validRange(cleaned);
+            if (direct) return direct;
+            const prefix = cleaned.split(/[(;\n]/, 1)[0]?.trim() ?? "";
+            return prefix ? validRange(prefix) : null;
+        })();
         const observedRanges: string[] = [];
         let unsupportedRange = false;
         for (const record of citations(proposed.advisory.citations)) {
+            if (!["readAdvisory", "readGitHubReference", "readReference"].includes(record.tool)) continue;
+            // Supplemental NVD/CVE records carry a normalized affectedRanges line computed from the
+            // record's CNA version data, so paged reads still provide machine-readable bounds.
+            const marker = /(?:^|\n)affectedRanges: (\[.*\])(?=\n|$)/.exec(record.output);
+            if (marker?.[1]) {
+                try {
+                    const ranges = z
+                        .array(z.object({ package: z.string(), range: z.string() }))
+                        .parse(JSON.parse(marker[1]));
+                    for (const entry of ranges.filter((item) => item.package === proposed.packageName)) {
+                        const normalized = validRange(entry.range.replaceAll(",", " "));
+                        if (normalized) observedRanges.push(normalized);
+                        else unsupportedRange = true;
+                    }
+                } catch {
+                    // Fall through to the advisory-record shape.
+                }
+            }
             if (!["readAdvisory", "readGitHubReference"].includes(record.tool)) continue;
             try {
                 const advisory = z
@@ -485,23 +586,22 @@ export function checkAssessment(raw: unknown, evidence: EvidenceRecord[]): Check
             }
         }
         const observedRange = observedRanges.length ? observedRanges.join(" || ") : null;
-        const rangeVerified =
-            !unsupportedRange &&
-            !!range &&
-            !!observedRange &&
-            subset(range, observedRange) &&
-            subset(observedRange, range);
+        // Version applicability is evaluated against the retrieved advisory range when available.
+        // The model's stated range is audit text only; it is not rendered and never blocks a
+        // verdict that retrieved advisory data and graph-observed versions already ground.
+        const evaluationRange = observedRange ?? range;
         const matchingVersions =
-            range &&
-            proposed.resolvedVersions.some((version) => valid(version.version) && satisfies(version.version, range));
+            evaluationRange &&
+            proposed.resolvedVersions.some(
+                (version) => valid(version.version) && satisfies(version.version, evaluationRange)
+            );
         const allVersionsUnaffected =
-            range &&
-            proposed.resolvedVersions.length > 0 &&
-            proposed.resolvedVersions.every(
+            evaluationRange &&
+            machineVersions.length > 0 &&
+            machineVersions.every(
                 (version) =>
-                    valid(version.version) &&
-                    !satisfies(version.version, range) &&
-                    !satisfies(version.version, range, { includePrerelease: true })
+                    !satisfies(version, evaluationRange) &&
+                    !satisfies(version, evaluationRange, { includePrerelease: true })
             );
         if (proposed.recommendation === "needs-investigation") {
             for (const missing of proposed.missingEvidence) checks.add(`Unresolved evidence: ${missing}`);
@@ -519,14 +619,14 @@ export function checkAssessment(raw: unknown, evidence: EvidenceRecord[]): Check
                     checks.add(
                         "A matching non-withdrawn npm advisory range could not be parsed; affected-version coverage is incomplete"
                     );
-                if (!versionsSupported)
-                    checks.add("Reported versions are not established by cited target graph/artifact data");
-                if (!rangeVerified)
+                if (!observedRange)
                     checks.add(
-                        "The supplied affected range does not match retrieved non-withdrawn npm advisory data for this package"
+                        "The affected version range could not be verified against retrieved non-withdrawn npm advisory data for this package"
                     );
             }
             if (proposed.recommendation === "likely-affected") {
+                if (!versionsSupported)
+                    checks.add("Reported versions are not established by cited target graph/artifact data");
                 if (!versionsSupported || !matchingVersions)
                     checks.add("Resolved versions and affected range do not support likely impact");
                 for (const field of ["dependencyPath", "affectedBehavior", "callerTrace"] as const)
@@ -536,11 +636,8 @@ export function checkAssessment(raw: unknown, evidence: EvidenceRecord[]): Check
             } else {
                 if (!proposed.exclusion || !exclusionSupported)
                     checks.add("A concrete, target-specific exclusion is required");
-                if (
-                    proposed.exclusion?.basis === "unaffected-version" &&
-                    (!versionsSupported || !allVersionsUnaffected)
-                )
-                    checks.add("Not all established versions are outside the supplied affected range");
+                if (proposed.exclusion?.basis === "unaffected-version" && !allVersionsUnaffected)
+                    checks.add("Not all graph-resolved versions are outside the retrieved affected range");
                 if (proposed.exclusion?.basis === "unaffected-version") {
                     let productCovered = false;
                     for (const record of evidence.filter(
@@ -633,72 +730,112 @@ function plain(value: string): string {
         .replace(/^(\s*(?:h[1-6]|bq|p|bc|pre|notextile))\./, "$1\\.");
 }
 
-export function renderAssessment(report: CheckedAssessment, evidence: EvidenceRecord[] = []): string {
-    const claim = (label: string, value: z.infer<typeof claimSchema>): string =>
-        `${plain(label)}: ${plain(value.text)}${value.citations.length ? " " + value.citations.map((citation) => `\\[${plain(citation.evidenceId)}\\] ${plain(citation.locator)}`).join("; ") : " [no supporting citation]"}`;
-    const sections = (["release", "main"] as const).map((target) => {
+// The reader must be able to see which exact targets were assessed; full commits keep the
+// line machine-parseable for future cache decisions.
+export function renderAssessedTargets(scope: InvestigationScope | null, ticketCreated?: string): string {
+    const created = ticketCreated ? ` Ticket created ${plain(ticketCreated.slice(0, 10))}.` : "";
+    if (!scope) return `Assessed targets: unknown; no structured target identities recorded.${created}`;
+    const release = scope.release
+        ? `released product ${plain(scope.release.name)}@${plain(scope.release.version)} (commit ${scope.release.commit})`
+        : "released product not assessed";
+    return `Assessed targets: current main commit ${scope.main.commit}; ${release}.${created}`;
+}
+
+type RenderOptions = {
+    evidence?: EvidenceRecord[];
+    scope?: InvestigationScope | null;
+    ticketCreated?: string;
+};
+
+function renderReport(report: CheckedAssessment, options: RenderOptions & { targets: ("release" | "main")[] }): string {
+    const evidence = options.evidence ?? [];
+    const sections = options.targets.map((target) => {
         const result = report.targets[target];
         const assessment = result.assessment;
+        const verdict = {
+            "likely-affected": "likely affected",
+            "likely-not-affected": "likely not affected",
+            "needs-investigation": "could not determine whether we are affected",
+        }[result.recommendation];
+        const confidence =
+            result.recommendation === "needs-investigation"
+                ? "low"
+                : assessment.exclusion?.basis === "unaffected-version"
+                  ? "high"
+                  : "moderate";
+        const explanation =
+            result.recommendation === assessment.recommendation
+                ? assessment.summary
+                : assessment.missingEvidence[0]
+                  ? `The proposed conclusion could not be verified. ${assessment.missingEvidence[0]}`
+                  : result.checks.some((check) => check.startsWith("Invalid, unavailable"))
+                    ? "The proposed conclusion relied on unavailable, ambiguous or wrong-target citations."
+                    : result.checks.includes("Advisory applicability needs cited evidence")
+                      ? "The affected version range was not supported by a retrieved advisory."
+                      : result.checks.includes("Target-specific packaging evidence is missing")
+                        ? "The evidence did not establish this target's shipped contents."
+                        : result.checks.includes("A concrete, target-specific exclusion is required")
+                          ? "The proposed exclusion was not verified against cited target-specific evidence."
+                          : result.checks.some(
+                                  (check) =>
+                                      check.startsWith("Not all graph-resolved versions") ||
+                                      check.startsWith("The affected version range could not be verified")
+                              )
+                            ? "The established versions could not be verified against the retrieved advisory's affected range."
+                            : "The retrieved evidence did not establish the affected version, a reachable vulnerable behavior or a supported exclusion.";
+        // The grounding basis lets later runs decide whether a stale fingerprint can be
+        // soundly kept without inference: version-grounded verdicts are graph-decidable.
+        const grounding =
+            result.recommendation === "needs-investigation"
+                ? null
+                : (assessment.exclusion?.basis ?? "affected-version");
         return [
-            `h2. ${target === "release" ? "Released product" : "Current main"}`,
-            `Provisional recommendation: ${result.recommendation}. Human decision required.`,
-            ...(result.recommendation !== assessment.recommendation
-                ? [`Model proposed: ${assessment.recommendation}; evidence checks require further investigation.`]
-                : []),
-            plain(assessment.summary),
-            `Package: ${plain(assessment.packageName)}; versions: ${plain(assessment.resolvedVersions.map((version) => version.version).join(", ")) || "unknown"}; supplied advisory range: ${plain(assessment.affectedRange) || "unknown"}.`,
-            ...assessment.resolvedVersions.map((version) =>
-                claim(`Version ${version.version}`, { text: "Resolution evidence", citations: version.citations })
-            ),
-            claim("Advisory", assessment.advisory),
-            claim("Dependency path", assessment.dependencyPath),
-            claim("Affected behavior", assessment.affectedBehavior),
-            claim("Caller trace", assessment.callerTrace),
-            claim("Packaging", assessment.packaging),
-            ...assessment.prerequisites.map((item) =>
-                claim(`Prerequisite (${item.status}): ${item.condition}`, item.evidence)
-            ),
-            ...(assessment.exclusion
-                ? [claim(`Proposed exclusion (${assessment.exclusion.basis})`, assessment.exclusion.evidence)]
-                : []),
-            "h3. Missing evidence and checks",
-            ...([...assessment.missingEvidence, ...result.checks].length
-                ? [...assessment.missingEvidence, ...result.checks].map((item) => `* ${plain(item)}`)
-                : ["* No blocking gaps recorded by these checks; human verification is still required."]),
-            ...assessment.limitations.map((item) => `* Limitation: ${plain(item)}`),
-            "h3. Recommended follow-up",
-            ...assessment.nextSteps.map((item) => `* ${plain(item)}`),
-        ].join("\n");
+            `*${target === "release" ? "Released product" : "Current main"}: ${verdict}.*`,
+            `Confidence: ${confidence}.`,
+            ...(grounding ? [`Grounding: ${grounding}.`] : []),
+            plain(explanation),
+        ].join(" ");
     });
-    const cited = new Set<string>();
-    for (const target of [report.targets.release.assessment, report.targets.main.assessment]) {
-        const claims = [
-            target.advisory,
-            target.dependencyPath,
-            target.affectedBehavior,
-            target.callerTrace,
-            target.packaging,
-            ...target.prerequisites.map((item) => item.evidence),
-            ...(target.exclusion ? [target.exclusion.evidence] : []),
-            ...target.resolvedVersions,
-        ];
-        for (const value of claims) for (const citation of value.citations) cited.add(citation.evidenceId);
-    }
-    const index = evidence
-        .filter((record) => cited.has(record.id))
-        .map(
-            (record) =>
-                `* \\[${plain(record.id)}\\] ${plain(record.tool)}; target=${record.target ?? "external"}; ${plain(JSON.stringify(record.input) ?? "null")}; ${record.availability}; SHA-256=${record.sha256}`
-        )
-        .join("\n");
-    return [
-        "h1. Investigation and recommendation",
-        "Advisory only. A human must decide the final disposition; no closure, risk acceptance, remediation or ticket status change is authorized.",
-        "Evidence checks validate structure, retrieved citation IDs, target scope and supplied semver consistency, not whether cited text proves a claim. Recommendations remain provisional.",
-        plain(report.summary),
-        ...sections,
-        "h2. Evidence index",
-        index || "No retrieved evidence cited. Inspect the missing evidence and recommended follow-up.",
-        "The dry-run JSONL includes the full returned evidence ledger. Tool errors are not successful evidence.",
-    ].join("\n\n");
+    const cited = new Set(
+        options.targets.flatMap((target) => {
+            const assessment = report.targets[target].assessment;
+            return [
+                assessment.advisory,
+                assessment.dependencyPath,
+                assessment.affectedBehavior,
+                assessment.callerTrace,
+                assessment.packaging,
+                ...assessment.prerequisites.map((item) => item.evidence),
+                ...(assessment.exclusion ? [assessment.exclusion.evidence] : []),
+                ...assessment.resolvedVersions,
+            ].flatMap((claim) => claim.citations.map((citation) => citation.evidenceId));
+        })
+    );
+    const relevant = evidence.filter((record) => cited.has(record.id));
+    const unavailable = relevant.filter((record) => record.availability === "unavailable").length;
+    const limited = relevant.filter((record) => record.availability === "limited").length;
+    return (
+        [
+            ...sections,
+            ...(unavailable || limited
+                ? [
+                      `Cited evidence limitations: ${unavailable} unavailable or rejected results; ${limited} incomplete results. Reasons and recovery details are in the dry-run evidence record.`,
+                  ]
+                : []),
+            ...(options.scope !== undefined ? [renderAssessedTargets(options.scope, options.ticketCreated)] : []),
+        ].join("\n\n") + " Recommendation only; final decision remains with the reviewer."
+    );
+}
+
+export function renderAssessment(report: CheckedAssessment, options: RenderOptions = {}): string {
+    return renderReport(report, { ...options, targets: ["release", "main"] });
+}
+
+// Per-target comment body: the release and main findings are cached as separate Jira comments
+// so that a change to one target does not churn the other.
+export function renderTargetComment(
+    report: CheckedAssessment,
+    options: RenderOptions & { target: "release" | "main" }
+): string {
+    return renderReport(report, { ...options, targets: [options.target] });
 }
