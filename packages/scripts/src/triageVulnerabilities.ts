@@ -157,7 +157,13 @@ export class RepositoryReader {
             .parse(JSON.parse(this.gitSync(["show", `${this.commit}:${path}`])));
     }
 
-    product(): { name: string; version: string; private?: boolean; importer: string } {
+    product(): {
+        name: string;
+        version: string;
+        private?: boolean;
+        importer: string;
+        repository?: string | { url: string };
+    } {
         const path = this.files.includes("packages/mongodb-mcp-server/package.json")
             ? "packages/mongodb-mcp-server/package.json"
             : "package.json";
@@ -167,6 +173,7 @@ export class RepositoryReader {
             version: manifest.version,
             private: manifest.private,
             importer: path === "package.json" ? "." : path.slice(0, -"/package.json".length),
+            ...(manifest.repository ? { repository: manifest.repository } : {}),
         };
     }
 
@@ -1275,6 +1282,7 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
             "ticket-workers": { type: "string", default: "1" },
             prefetch: { type: "boolean", default: true },
             recheck: { type: "boolean", default: false },
+            "repo-url": { type: "string" },
         },
     });
     if (values.help) {
@@ -1282,7 +1290,7 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
             "Read-only vulnerability auto-triage. Prints proposed Jira comment writes as JSONL; never writes to Jira.\n\n--jql <query> (default: filter = 63609)\n--limit <1..100> (default: 1)\n--repo <checkout> (default: cwd)\n--ref <main-revision> (default: origin/main; fetch it yourself first)\n--release-ref <release-tag-or-commit> (override; default: npm latest, mapped to its source commit)\n--model <id|auto> (default: auto; requires DeepSeek Flash, no fallback)\n--provider <anthropic|openai> (inferred from model by default)\n--steps <2..1000> (default: 100)\n--max-requests <1..2000> (default: 1000 external requests per ticket)\n--context-characters <16000..2000000> (default: 500000 per repository target and external reader)\n--archive-mib <1..1024> (default: 256 total expanded archives)\n--download-mib <1..1024> (default: 512 total downloaded evidence)\n--response-mib <1..50> (default: 50 per download)\n--deadline-seconds <30..3600> (default: 1800 per investigation, including external tools)\n--list-models (Grove discovery only)\n--evidence-file <json> (optional exact-URL Kondukto exports; max 1 MiB)\n--replay-file <jsonl> (offline recheck; no credentials, Git, network or write proposals; max 32 MiB/100 entries)\n\nLive-mode secrets: GROVE_API_KEY, JIRA_URL, JIRA_TOKEN, GITHUB_TOKEN (falls back to `gh auth token` when unset; sent only to api.github.com). Optional scanner access: KONDUKTO_URL and KONDUKTO_TOKEN (read-only token; sent only to that Kondukto SaaS origin). Live dry-run sends ticket/code/evidence data to Grove, fetches allowlisted external references, and incurs model costs. Higher budgets can increase costs and exceed model context limits."
         );
         console.log(
-            "\nBaseline defaults: 100 global model steps, 1000 evidence requests, 500000 context characters per reader, 256 MiB expanded archives, 512 MiB downloads, 50 MiB per response, and 1800 seconds per ticket.\n--workers <1..3> (default: 3; parallel initial investigators, shared budgets; 1 disables fan-out)\n--worker-steps <2..100> (default: 12 per initial worker)\n--round-steps <2..100> (default: 12 per coordinator investigation round)\n--investigation-tokens <2000..64000> (default: 32000 per investigation response)\n--report-tokens <2000..64000> (default: 32000 per report)\n--ticket-workers <1..3> (default: 1; tickets triaged in parallel, each with its own budgets and readers)\n--no-prefetch (disable the pre-investigation advisory and dependency-graph reads seeded from ticket advisory IDs)\n--recheck (re-assess tickets whose previous findings were supported; by default only unresolved or changed tickets re-run)\n--debug (step progress and bounded provider error bodies on stderr; best-effort redaction, may contain sensitive data)"
+            "\nBaseline defaults: 100 global model steps, 1000 evidence requests, 500000 context characters per reader, 256 MiB expanded archives, 512 MiB downloads, 50 MiB per response, and 1800 seconds per ticket.\n--workers <1..3> (default: 3; parallel initial investigators, shared budgets; 1 disables fan-out)\n--worker-steps <2..100> (default: 12 per initial worker)\n--round-steps <2..100> (default: 12 per coordinator investigation round)\n--investigation-tokens <2000..64000> (default: 32000 per investigation response)\n--report-tokens <2000..64000> (default: 32000 per report)\n--ticket-workers <1..3> (default: 1; tickets triaged in parallel, each with its own budgets and readers)\n--no-prefetch (disable the pre-investigation advisory and dependency-graph reads seeded from ticket advisory IDs)\n--repo-url <url> (restrict tickets to this Jira Repo value; default: derived from the checkout's product manifest)\n--recheck (re-assess tickets whose previous findings were supported; by default only unresolved or changed tickets re-run)\n--debug (step progress and bounded provider error bodies on stderr; best-effort redaction, may contain sensitive data)"
         );
         return;
     }
@@ -1411,8 +1419,29 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
         }
     };
     const repository = readRepository(values.ref);
+    // Team Jira filters span several repositories; restrict tickets to this checkout's repo.
+    const manifestRepository = repository.product().repository;
+    const derivedRepoUrl = ((): string | undefined => {
+        const url = typeof manifestRepository === "string" ? manifestRepository : manifestRepository?.url;
+        return (
+            url
+                ?.replace(/^git\+/, "")
+                .replace(/\.git$/, "")
+                .replace(/\/+$/, "")
+                .trim() || undefined
+        );
+    })();
+    const repoUrl = configurationValue(
+        () =>
+            z
+                .string()
+                .min(1)
+                .max(2000)
+                .parse(values["repo-url"] ?? derivedRepoUrl),
+        "--repo-url (no repository URL found in the checkout's product manifest to derive the ticket Repo filter from)"
+    );
     const author = await jira.identity();
-    const issues = await jira.issues(values.jql, limit);
+    const issues = await jira.issues(values.jql, { limit, repoUrl });
     if (!issues.length) {
         console.error("No matching tickets. No model calls or proposed writes.");
         return;
