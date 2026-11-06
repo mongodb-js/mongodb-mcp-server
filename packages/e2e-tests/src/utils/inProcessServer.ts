@@ -13,21 +13,38 @@ export interface InProcessServer {
     close: () => Promise<void>;
 }
 
+export interface InProcessServerOptions {
+    /** MongoDB connection string for direct DB access. Omit for an Atlas-API-only server. */
+    connectionString?: string;
+    /** Atlas Admin API credentials. Omit for a DB-only server. */
+    apiClientId?: string;
+    apiClientSecret?: string;
+    apiBaseUrl?: string;
+    /** Defaults to "disabled". */
+    telemetry?: "enabled" | "disabled";
+    /** Route telemetry to a different host than {@link apiBaseUrl}, e.g. a mock telemetry server. */
+    telemetryBaseUrl?: string;
+}
+
 /**
  * Start the MongoDB MCP server in-process over streamable HTTP on a random
  * localhost port, using the same production wiring as the CLI.
  */
 export async function startInProcessServer(
-    connectionString: string,
+    options: InProcessServerOptions = {},
     tools: typeof AllTools = AllTools
 ): Promise<InProcessServer> {
     const config = UserConfigSchema.parse({
         ...UserConfigSchema.parse({}),
-        connectionString,
+        ...(options.connectionString ? { connectionString: options.connectionString } : {}),
+        ...(options.apiClientId ? { apiClientId: options.apiClientId } : {}),
+        ...(options.apiClientSecret ? { apiClientSecret: options.apiClientSecret } : {}),
+        ...(options.apiBaseUrl ? { apiBaseUrl: options.apiBaseUrl } : {}),
+        ...(options.telemetryBaseUrl ? { telemetryBaseUrl: options.telemetryBaseUrl } : {}),
+        telemetry: options.telemetry ?? "disabled",
         transport: "http",
         httpHost: "127.0.0.1",
         httpPort: 0, // random port
-        telemetry: "disabled",
         loggers: [],
     });
 

@@ -227,6 +227,19 @@ describe("createServerFromConfig (request-scoped server)", () => {
         expect(createMonitoringServerFromConfig).toHaveBeenCalledTimes(1);
     });
 
+    it("builds a second API client for telemetry when telemetryBaseUrl points elsewhere", async () => {
+        const config = UserConfigSchema.parse({
+            telemetry: "disabled",
+            telemetryBaseUrl: "https://telemetry.example.com/",
+        });
+
+        await makeSharedServerServices(config);
+
+        expect(createApiClientFromConfig).toHaveBeenCalledTimes(2);
+        const secondCall = vi.mocked(createApiClientFromConfig).mock.calls[1]?.[0];
+        expect(secondCall?.config.apiBaseUrl).toBe("https://telemetry.example.com/");
+    });
+
     it("creates a fresh server per call over the same shared app-level services", async () => {
         const config = UserConfigSchema.parse({
             telemetry: "disabled",
