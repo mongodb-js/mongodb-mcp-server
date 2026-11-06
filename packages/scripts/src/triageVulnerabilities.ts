@@ -340,9 +340,13 @@ export class RepositoryReader {
         );
     }
 
+    // A search covers every candidate file in one call: exhausting the repository is the whole
+    // point for negative reachability evidence, and per-page continuation made models give up
+    // before finishing. Matches are bounded by the output budget; only then do nextOffset/nextLine
+    // continue the scan.
     async search(
         pattern: string,
-        selection: string | { pathContains: string; offset?: number; startLine?: number; limit?: number }
+        selection: string | { pathContains: string; offset?: number; startLine?: number }
     ): Promise<string> {
         const options = typeof selection === "string" ? { pathContains: selection } : selection;
         const offset = z
@@ -355,41 +359,37 @@ export class RepositoryReader {
             .int()
             .min(1)
             .parse(options.startLine ?? 1);
-        const limit = z
-            .number()
-            .int()
-            .min(1)
-            .max(100)
-            .parse(options.limit ?? 25);
         const matches: string[] = [];
         const candidates = this.files.filter((path) => path.includes(options.pathContains));
-        let nextOffset: number | null = offset + limit < candidates.length ? offset + limit : null;
+        let nextOffset: number | null = null;
         let nextLine = 1;
         let characters = 0;
-        const pagePaths = candidates.slice(offset, offset + limit);
-        const pageTexts = await this.gitFiles(pagePaths);
-        searchPage: for (let pageIndex = 0; pageIndex < pagePaths.length; pageIndex++) {
-            const fileIndex = offset + pageIndex;
-            const path = pagePaths[pageIndex];
-            if (!path) continue;
-            const text = pageTexts[pageIndex] ?? "";
-            if (text.includes("\0")) continue;
-            const lines = text.split("\n");
-            for (const [index, line] of lines.entries()) {
-                if (fileIndex === offset && index + 1 < startLine) continue;
-                const position = line.indexOf(pattern);
-                if (position < 0) continue;
-                const excerptStart = Math.max(0, position - 160);
-                const excerpt = line.slice(excerptStart, excerptStart + 800);
-                const match = `${path}:${index + 1}: ${line.length > 800 ? "[excerpt] " : ""}${excerpt}`;
-                const size = JSON.stringify(match).length;
-                if (matches.length >= 100 || characters + size > 10_000) {
-                    nextOffset = fileIndex;
-                    nextLine = index + 1;
-                    break searchPage;
+        const paths = candidates.slice(offset);
+        const batchSize = 16;
+        searchAll: for (let batchStart = 0; batchStart < paths.length; batchStart += batchSize) {
+            const batchPaths = paths.slice(batchStart, batchStart + batchSize);
+            const batchTexts = await this.gitFiles(batchPaths);
+            for (const [index, path] of batchPaths.entries()) {
+                if (!path) continue;
+                const text = batchTexts[index] ?? "";
+                if (text.includes("\0")) continue;
+                const lines = text.split("\n");
+                for (const [lineIndex, line] of lines.entries()) {
+                    if (batchStart + index === 0 && lineIndex + 1 < startLine) continue;
+                    const position = line.indexOf(pattern);
+                    if (position < 0) continue;
+                    const excerptStart = Math.max(0, position - 160);
+                    const excerpt = line.slice(excerptStart, excerptStart + 800);
+                    const match = `${path}:${lineIndex + 1}: ${line.length > 800 ? "[excerpt] " : ""}${excerpt}`;
+                    const size = JSON.stringify(match).length;
+                    if (matches.length >= 100 || characters + size > 10_000) {
+                        nextOffset = offset + batchStart + index;
+                        nextLine = lineIndex + 1;
+                        break searchAll;
+                    }
+                    matches.push(match);
+                    characters += size;
                 }
-                matches.push(match);
-                characters += size;
             }
         }
         return this.bounded(
@@ -404,7 +404,7 @@ export class RepositoryReader {
                 nextLine: nextOffset === null ? null : nextLine,
                 searchComplete: nextOffset === null,
                 limitations:
-                    "Literal case-sensitive search. Follow nextOffset and nextLine as offset/startLine with the same filter to cover remaining files and lines. Long matching lines are excerpts; use readFile for source. Empty matches on a page do not establish non-impact.",
+                    "Literal case-sensitive search. All candidate files were scanned when searchComplete is true; a complete negative result is decisive for reachability. Follow nextOffset and nextLine as offset/startLine with the same filter only when matches overflowed the output budget. Long matching lines are excerpts; use readFile for source.",
             })
         );
     }
@@ -803,13 +803,12 @@ async function investigate(input: {
                         }),
                         search: tool({
                             description:
-                                "Search literal case-sensitive text in pinned tracked files with bounded paging. Empty pathContains searches all paths. Follow nextOffset/nextLine as offset/startLine with the same filter; a page with no matches is not a complete negative search until nextOffset is null. Matching long lines are excerpts.",
+                                "Search literal case-sensitive text in pinned tracked files; every candidate file is scanned in one call, so a result with searchComplete true and no matches is a complete, decisive negative. Empty pathContains searches all paths. Only when matches overflow the output budget does a continuation appear; then follow nextOffset/nextLine as offset/startLine with the same filter. Matching long lines are excerpts.",
                             inputSchema: z.object({
                                 text: z.string().min(1).max(200),
                                 pathContains: z.string().max(200).default(""),
                                 offset: z.number().int().min(0).optional(),
                                 startLine: z.number().int().min(1).optional(),
-                                limit: z.number().int().min(1).max(100).optional(),
                                 target: targetSchema,
                             }),
                             execute: ({ text, target, ...selection }) => targetReader(target).search(text, selection),

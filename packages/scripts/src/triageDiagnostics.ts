@@ -90,7 +90,7 @@ export function debugToolCall(call: { toolName: string; toolCallId: string; inpu
         readProductArtifact: ["pathContains", "offset", "limit"],
         listFiles: ["target", "pathContains"],
         readFile: ["target", "path", "startLine", "lineCount"],
-        search: ["target", "pathContains", "offset", "startLine", "limit"],
+        search: ["target", "pathContains", "offset", "startLine"],
         readAdvisory: ["id", "descriptionOffset", "descriptionCharacters", "referenceOffset", "referenceLimit"],
         readGitHubReference: ["url", "path", "page", "patchOffset", "view", "startLine", "lineCount"],
         readReference: ["url", "startLine", "lineCount"],
