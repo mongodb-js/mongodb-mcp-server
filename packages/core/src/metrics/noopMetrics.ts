@@ -29,6 +29,11 @@ const noopMetric: ICounter & IObservable & IGauge = {
 export class NoopMetrics implements IMetrics<DefaultMetricDefinitions> {
     public readonly labels: Readonly<Record<string, string>> = Object.freeze({});
 
+    /** Records nothing, so the labels have no effect. */
+    withLabels(): NoopMetrics {
+        return this;
+    }
+
     /** Returns a no-op metric for any key */
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     get<K extends keyof DefaultMetricDefinitions>(_key: K): DefaultMetricDefinitions[K] {
