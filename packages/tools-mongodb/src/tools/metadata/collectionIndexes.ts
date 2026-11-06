@@ -121,11 +121,26 @@ export class CollectionIndexesTool extends MongoDBToolBase {
     }
 
     /**
-     * Resolves the search index type from the index document, falling back to
-     * definition structure inference when the server doesn't provide a top-level
-     * `type` field.
+     * Resolves the search index type from the index document. The field
+     * definitions are the most reliable signal, so they are checked first: the
+     * server-provided top-level `type` can report auto-embed indexes as plain
+     * `vectorSearch`. The server type and definition type are used as fallbacks
+     * for definitions without a `fields` array (e.g. Atlas Search indexes).
      */
     private static resolveIndexType(index: Record<string, unknown>): string {
+        const definition = (index["latestDefinition"] ?? {}) as Record<string, unknown>;
+
+        // Vector search uses a `fields` array, Atlas search uses `mappings`
+        const fields = definition["fields"];
+        if (Array.isArray(fields)) {
+            // Auto-embed indexes have an autoEmbed field type
+            if (fields.some((field: Record<string, unknown>) => field["type"] === "autoEmbed")) {
+                return "autoEmbed";
+            }
+            // Regular vector search indexes, including ones mixed with filter fields
+            return "vectorSearch";
+        }
+
         // Direct type from server response.
         // TODO: This is undocumented and is not always present, should be removed in the future.
         const serverType = index["type"];
@@ -133,25 +148,9 @@ export class CollectionIndexesTool extends MongoDBToolBase {
             return serverType;
         }
 
-        const definition = (index["latestDefinition"] ?? {}) as Record<string, unknown>;
         const defType = definition["type"];
         if (defType && typeof defType === "string") {
             return defType;
-        }
-
-        // Vector search uses a `fields` array, Atlas search uses `mappings`
-        const fields = definition["fields"];
-        if (Array.isArray(fields)) {
-            // Check for auto-embed indexes (have autoEmbed field type)
-            if (fields.some((field: Record<string, unknown>) => field["type"] === "autoEmbed")) {
-                return "autoEmbed";
-            }
-            // Check for regular vector search indexes (have vector field type)
-            if (fields.some((field: Record<string, unknown>) => field["type"] === "vector")) {
-                return "vectorSearch";
-            }
-            // Other vector search variations (e.g., mixed with filter fields only)
-            return "vectorSearch";
         }
 
         if (definition["mappings"] !== undefined && definition["mappings"] !== null) {
