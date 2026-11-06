@@ -584,6 +584,12 @@ async function investigate(input: {
             maxReportedOutputTokens: number;
         }
     >();
+    // Wall-clock timing per phase and per tool, to identify where investigations spend time.
+    // toolMs sums tool call durations; concurrent batched calls overlap, so modelMs
+    // (elapsed minus toolMs) is a lower-bound estimate of inference wait time.
+    const phaseTimings = new Map<string, { elapsedMs: number; toolMs: number }>();
+    const toolTimings = new Map<string, { calls: number; ms: number }>();
+    let prefetchMs = 0;
     const usageSummary = (): Record<string, unknown> => {
         const phases = [...modelUsage.values()];
         return {
@@ -597,7 +603,21 @@ async function investigate(input: {
             reportedOutputTokens: phases.some((phase) => phase.outputTokens === null)
                 ? null
                 : phases.reduce((total, phase) => total + (phase.outputTokens ?? 0), 0),
-            phases: Object.fromEntries(modelUsage),
+            phases: Object.fromEntries(
+                [...modelUsage].map(([key, phase]) => {
+                    const timing = phaseTimings.get(key) ?? { elapsedMs: 0, toolMs: 0 };
+                    return [
+                        key,
+                        {
+                            ...phase,
+                            elapsedMs: timing.elapsedMs,
+                            toolMs: timing.toolMs,
+                            modelMs: Math.max(0, timing.elapsedMs - timing.toolMs),
+                        },
+                    ];
+                })
+            ),
+            timings: { prefetchMs, tools: Object.fromEntries(toolTimings) },
             repository: { main: repository.usage(), release: release?.usage() ?? null },
             external: evidence.usage(),
             allowances: {
@@ -632,6 +652,7 @@ async function investigate(input: {
         // advisories, the affected npm packages they identify, and each target's dependency
         // graph for those packages. Workers and the coordinator can cite these records
         // directly instead of spending sequential model steps on discovery reads.
+        const prefetchStarted = Date.now();
         if (input.prefetch !== false) {
             let prefetchCount = 0;
             const prefetchId = (tool: string): string => `prefetch-${++prefetchCount}-${tool}`;
@@ -680,6 +701,7 @@ async function investigate(input: {
                     `[triage-debug] ${JSON.stringify({ event: "prefetch", advisories: advisories.map((advisory) => advisory.id), packages: packageNames.slice(0, 2), evidenceRecords: records.length })}`
                 );
         }
+        prefetchMs = Date.now() - prefetchStarted;
         while (usedSteps < steps) {
             type Worker = "advisory" | "main" | "release";
             const roles: Worker[] = input.workers === 3 ? ["advisory", "main", "release"] : ["main", "release"];
@@ -717,6 +739,8 @@ async function investigate(input: {
                     console.error(
                         `[triage-debug] ${JSON.stringify({ event: "round-start", worker: worker ?? "coordinator", phase: reporting ? "report" : "investigate", round: revisions + 1, maxRoundSteps: phaseSteps, remainingSteps: steps - usedSteps, reportingStepsReserved: reporting ? 0 : 1, evidenceRecords: records.length })}`
                     );
+                const phaseKey = `${worker ?? "coordinator"}:${reporting ? "report" : "investigate"}`;
+                const phaseStarted = Date.now();
                 return generateText({
                     model: worker
                         ? wrapLanguageModel({
@@ -898,48 +922,51 @@ async function investigate(input: {
                         }),
                     },
                     stopWhen: stepCountIs(phaseSteps),
-                    experimental_onToolCallFinish: input.debug
-                        ? (event): void => {
-                              const output =
-                                  event.success && typeof event.output === "string" ? event.output : undefined;
-                              const record = evidenceRecord({
-                                  id: event.toolCall.toolCallId,
-                                  tool: event.toolCall.toolName,
-                                  input: event.toolCall.input,
-                                  output:
-                                      output ??
-                                      toolFailureEvidence(event.toolCall, event.success ? undefined : event.error),
-                              });
-                              const availability = record.availability;
-                              if (event.success && availability === "retrieved") return;
-                              console.error(
-                                  `[triage-debug] ${JSON.stringify({
-                                      event: "tool-finish",
-                                      step: event.stepNumber === undefined ? null : stepIndex(event.stepNumber),
-                                      worker: worker ?? "coordinator",
-                                      phase: reporting ? "report" : "investigate",
-                                      ...debugToolCall(event.toolCall),
-                                      success: event.success,
-                                      durationMs: Math.round(event.durationMs),
-                                      ...(record.issue
-                                          ? {
-                                                reason: redactDebugText(record.issue.reason).slice(0, 1000),
-                                                recovery: redactDebugText(record.issue.recovery).slice(0, 1000),
-                                            }
-                                          : {}),
-                                      ...(output === undefined
-                                          ? {}
-                                          : {
-                                                outputCharacters: output.length,
-                                                availability,
-                                            }),
-                                      ...(event.success
-                                          ? {}
-                                          : { errorCategory: diagnoseFailure(event.error).category }),
-                                  })}`
-                              );
-                          }
-                        : undefined,
+                    experimental_onToolCallFinish: (event): void => {
+                        const duration = Math.round(event.durationMs);
+                        const toolTiming = toolTimings.get(event.toolCall.toolName) ?? { calls: 0, ms: 0 };
+                        toolTiming.calls++;
+                        toolTiming.ms += duration;
+                        toolTimings.set(event.toolCall.toolName, toolTiming);
+                        const phaseTiming = phaseTimings.get(phaseKey) ?? { elapsedMs: 0, toolMs: 0 };
+                        phaseTiming.toolMs += duration;
+                        phaseTimings.set(phaseKey, phaseTiming);
+                        if (!input.debug) return;
+                        const output = event.success && typeof event.output === "string" ? event.output : undefined;
+                        const record = evidenceRecord({
+                            id: event.toolCall.toolCallId,
+                            tool: event.toolCall.toolName,
+                            input: event.toolCall.input,
+                            output:
+                                output ?? toolFailureEvidence(event.toolCall, event.success ? undefined : event.error),
+                        });
+                        const availability = record.availability;
+                        if (event.success && availability === "retrieved") return;
+                        console.error(
+                            `[triage-debug] ${JSON.stringify({
+                                event: "tool-finish",
+                                step: event.stepNumber === undefined ? null : stepIndex(event.stepNumber),
+                                worker: worker ?? "coordinator",
+                                phase: reporting ? "report" : "investigate",
+                                ...debugToolCall(event.toolCall),
+                                success: event.success,
+                                durationMs: duration,
+                                ...(record.issue
+                                    ? {
+                                          reason: redactDebugText(record.issue.reason).slice(0, 1000),
+                                          recovery: redactDebugText(record.issue.recovery).slice(0, 1000),
+                                      }
+                                    : {}),
+                                ...(output === undefined
+                                    ? {}
+                                    : {
+                                          outputCharacters: output.length,
+                                          availability,
+                                      }),
+                                ...(event.success ? {} : { errorCategory: diagnoseFailure(event.error).category }),
+                            })}`
+                        );
+                    },
                     onStepFinish: (step): void => {
                         const key = `${worker ?? "coordinator"}:${reporting ? "report" : "investigate"}`;
                         const usage = modelUsage.get(key) ?? {
@@ -1072,6 +1099,10 @@ async function investigate(input: {
                     maxOutputTokens,
                     maxRetries: 0,
                     abortSignal,
+                }).finally(() => {
+                    const timing = phaseTimings.get(phaseKey) ?? { elapsedMs: 0, toolMs: 0 };
+                    timing.elapsedMs += Date.now() - phaseStarted;
+                    phaseTimings.set(phaseKey, timing);
                 });
             };
             if (parallel) {

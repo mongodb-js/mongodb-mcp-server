@@ -221,6 +221,7 @@ export class TriageEvidence {
     private remainingArchiveBytes: number;
     private remainingDownloadBytes: number;
     private retries = 0;
+    private readonly requestTimings = new Map<string, { requests: number; ms: number }>();
     private readonly packages = new Map<string, Promise<PackageArchive>>();
     private readonly catalogs = new Map<string, Promise<z.infer<typeof npmCatalogSchema>>>();
     private readonly githubTrees = new Map<string, z.infer<typeof githubTreeSchema>>();
@@ -301,6 +302,18 @@ export class TriageEvidence {
     }
 
     private async fetchResponse(url: URL, authenticated: boolean): Promise<Response> {
+        const started = Date.now();
+        try {
+            return await this.fetchResponseWithRetries(url, authenticated);
+        } finally {
+            const timing = this.requestTimings.get(url.hostname) ?? { requests: 0, ms: 0 };
+            timing.requests++;
+            timing.ms += Date.now() - started;
+            this.requestTimings.set(url.hostname, timing);
+        }
+    }
+
+    private async fetchResponseWithRetries(url: URL, authenticated: boolean): Promise<Response> {
         for (let attempt = 0; ; attempt++) {
             this.options.signal?.throwIfAborted();
             if (this.remainingRequests <= 0) throw new Error("External evidence request budget exhausted");
@@ -371,6 +384,7 @@ export class TriageEvidence {
         maxResponseBytes: number;
         archiveBytes: number;
         contextCharacters: number;
+        timings: Record<string, { requests: number; ms: number }>;
         limits: EvidenceLimits;
     } {
         return {
@@ -380,6 +394,7 @@ export class TriageEvidence {
             maxResponseBytes: this.maxResponseBytes,
             archiveBytes: this.limits.archiveBytes - this.remainingArchiveBytes,
             contextCharacters: this.limits.contextCharacters - this.remainingCharacters,
+            timings: Object.fromEntries(this.requestTimings),
             limits: this.limits,
         };
     }
