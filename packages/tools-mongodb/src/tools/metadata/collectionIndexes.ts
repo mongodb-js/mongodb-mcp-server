@@ -49,17 +49,20 @@ export class CollectionIndexesTool extends MongoDBToolBase {
         collection,
     }: ToolArgs<ReturnType<typeof this.argsShape>>): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const provider = await this.resolveConnection(connectionId);
-        const indexes = await provider.getIndexes(database, collection);
-        const classicIndexes: IndexStatus[] = indexes.map((index) => ({
-            name: index.name as string,
-            key: index.key as Record<string, unknown>,
-        }));
-
-        const searchIndexes: SearchIndexStatus[] = [];
-        if (await this.isSearchSupported(connectionId)) {
-            const searchIndexDefinitions = await provider.getSearchIndexes(database, collection);
-            searchIndexes.push(...this.extractSearchIndexDetails(searchIndexDefinitions));
-        }
+        const [classicIndexes, searchIndexes] = await Promise.all([
+            (async (): Promise<IndexStatus[]> => {
+                const indexes = await provider.getIndexes(database, collection);
+                return indexes.map((index) => ({
+                    name: index.name as string,
+                    key: index.key as Record<string, unknown>,
+                }));
+            })(),
+            (async (): Promise<SearchIndexStatus[]> => {
+                if (!(await this.isSearchSupported(connectionId))) return [];
+                const searchIndexDefinitions = await provider.getSearchIndexes(database, collection);
+                return this.extractSearchIndexDetails(searchIndexDefinitions);
+            })(),
+        ]);
 
         return {
             content: [
@@ -126,6 +129,12 @@ export class CollectionIndexesTool extends MongoDBToolBase {
      * `type` field.
      */
     private static resolveIndexType(index: Record<string, unknown>): string {
+        const definition = (index["latestDefinition"] ?? {}) as Record<string, unknown>;
+        const fields = definition["fields"];
+        if (Array.isArray(fields) && fields.some((field: Record<string, unknown>) => field["type"] === "autoEmbed")) {
+            return "autoEmbed";
+        }
+
         // Direct type from server response.
         // TODO: This is undocumented and is not always present, should be removed in the future.
         const serverType = index["type"];
@@ -133,19 +142,13 @@ export class CollectionIndexesTool extends MongoDBToolBase {
             return serverType;
         }
 
-        const definition = (index["latestDefinition"] ?? {}) as Record<string, unknown>;
         const defType = definition["type"];
         if (defType && typeof defType === "string") {
             return defType;
         }
 
         // Vector search uses a `fields` array, Atlas search uses `mappings`
-        const fields = definition["fields"];
         if (Array.isArray(fields)) {
-            // Check for auto-embed indexes (have autoEmbed field type)
-            if (fields.some((field: Record<string, unknown>) => field["type"] === "autoEmbed")) {
-                return "autoEmbed";
-            }
             // Check for regular vector search indexes (have vector field type)
             if (fields.some((field: Record<string, unknown>) => field["type"] === "vector")) {
                 return "vectorSearch";
