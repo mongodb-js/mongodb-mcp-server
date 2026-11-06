@@ -157,6 +157,17 @@ export function reportQualityIssues(assessment: Assessment, evidence: EvidenceRe
             (!proposed.missingEvidence.length || proposed.missingEvidence.some((text) => !substantive(text)))
         )
             issues.push(`${target}: needs-investigation requires concrete blocking evidence gaps.`);
+        if (
+            proposed.recommendation === "needs-investigation" &&
+            proposed.missingEvidence.some((text) =>
+                /(?:would|could|can) be (?:closed|resolved|answered) by|single (?:[a-z-]+ )?(?:search|read|check|call)\b|one (?:search|read|call)\b/i.test(
+                    text
+                )
+            )
+        )
+            issues.push(
+                `${target}: a listed gap reads as closable with the available tools; close it with the tools in the next investigation round or explain why they cannot.`
+            );
         const usable = (claim: z.infer<typeof claimSchema>): EvidenceRecord[] =>
             claim.citations.flatMap((citation) => {
                 const matches = evidence.filter((record) => record.id === citation.evidenceId);

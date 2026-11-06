@@ -53,8 +53,8 @@ import {
 
 const GROVE_URL = "https://ai-gateway.corp.mongodb.com";
 type GatewayModel = Extract<LanguageModel, { specificationVersion: "v3" }>;
-const DEFAULT_OUTPUT_TOKENS = 32_000;
-const DEFAULT_REPORT_TOKENS = 32_000;
+const DEFAULT_OUTPUT_TOKENS = 64_000;
+const DEFAULT_REPORT_TOKENS = 64_000;
 const MAX_CONTEXT_CHARACTERS = 128_000;
 const INVESTIGATION_INSTRUCTIONS =
     "Begin with dependencyPaths for EACH target, the advisory affected ranges, relevant manifests and release packaging. Inspect readProductArtifact when needed to establish the released contents. The graph defaults to the product importer with production and optional edges; also investigate build/dev roots when packaging could bundle them, using importer=* and includeDev=true. Unsupported lockfiles, incomplete graphs and missing necessary artifacts are explicit gaps, not exclusions. Bounded displayed graph paths do not imply incomplete resolution. Stop a target when a verified unaffected-version or shipping exclusion settles applicability; do not spend its remaining allowance on irrelevant source or caller tracing. When an affected version is shipped, follow relevant public GitHub references and inspect fix diffs, regression tests and exact-version dependency source to identify affected symbols and prerequisites. Trace direct and transitive callers only where they can change the answer, inspecting each intermediate package at its target-specific resolved version. Pass expectedIntegrity from the graph when reading registry dependency archives; registry archives do not include local patches. Use readPackageVersions before trying speculative versions; an absent version does not prove it was unpublished or that no patched version exists. A missing GitHub Release page does not mean the npm version or Git tag is missing. Follow search and patch continuations only where necessary to settle the recommendation; request exact implementation paths instead of broad snapshot diffs. Empty listings/searches and recovered failed probes are not remaining blockers by themselves. Public APIs receive only public advisory IDs, repository references, source paths, and package names/versions, never ticket text or secrets. Do not modify anything.";
@@ -1105,14 +1105,18 @@ async function investigate(input: {
                     {
                         role: "user",
                         content:
-                            "All parallel workers have finished. Produce the structured assessment using their actual tool evidence and findings. Reconcile contradictions, cite namespaced evidence IDs, preserve unresolved gaps, and do not treat worker conclusions as verified facts.",
+                            "All parallel workers have finished. Before the structured assessment, resolve any answer-changing gap a worker flagged but ran out of steps for, when the available tools can close it (for example a dependency-source search or a manifest/packaging read); do not repeat established reads. If nothing closable remains, synthesize the joined findings now. The structured assessment follows this round.",
                     },
                 ];
                 if (input.debug)
                     console.error(
                         `[triage-debug] ${JSON.stringify({ event: "workers-joined", workers: roles, usedSteps, remainingSteps: steps - usedSteps, evidenceRecords: records.length })}`
                     );
-                reporting = true;
+                // The coordinator gets one investigation round to close gaps the workers flagged;
+                // reporting follows it. A worker that hit its step cap must not leave a
+                // tool-closable gap for the human reader. Skipped when the remaining budget
+                // cannot fit one investigation step plus the reserved report step.
+                reporting = steps - usedSteps < 2;
                 continue;
             }
             const result = await runPhase();
@@ -1263,18 +1267,18 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
             "release-ref": { type: "string" },
             model: { type: "string", default: "auto" },
             provider: { type: "string" },
-            steps: { type: "string", default: "100" },
+            steps: { type: "string", default: "1000" },
             workers: { type: "string", default: "3" },
-            "worker-steps": { type: "string", default: "12" },
-            "round-steps": { type: "string", default: "12" },
+            "worker-steps": { type: "string", default: "120" },
+            "round-steps": { type: "string", default: "120" },
             "investigation-tokens": { type: "string", default: String(DEFAULT_OUTPUT_TOKENS) },
             "report-tokens": { type: "string", default: String(DEFAULT_REPORT_TOKENS) },
-            "max-requests": { type: "string", default: "1000" },
-            "context-characters": { type: "string", default: "500000" },
-            "archive-mib": { type: "string", default: "256" },
-            "download-mib": { type: "string", default: "512" },
+            "max-requests": { type: "string", default: "2000" },
+            "context-characters": { type: "string", default: "1000000" },
+            "archive-mib": { type: "string", default: "1024" },
+            "download-mib": { type: "string", default: "1024" },
             "response-mib": { type: "string", default: "50" },
-            "deadline-seconds": { type: "string", default: "1800" },
+            "deadline-seconds": { type: "string", default: "3600" },
             "list-models": { type: "boolean" },
             "evidence-file": { type: "string" },
             "replay-file": { type: "string" },
@@ -1286,10 +1290,10 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
     });
     if (values.help) {
         console.log(
-            "Read-only vulnerability auto-triage. Prints proposed Jira comment writes as JSONL; never writes to Jira.\n\n--jql <query> (default: filter = 63609)\n--limit <1..100> (default: 1)\n--repo <checkout> (default: cwd)\n--ref <main-revision> (default: origin/main; fetch it yourself first)\n--release-ref <release-tag-or-commit> (override; default: npm latest, mapped to its source commit)\n--model <id|auto> (default: auto; requires DeepSeek Flash, no fallback)\n--provider <anthropic|openai> (inferred from model by default)\n--steps <2..1000> (default: 100)\n--max-requests <1..2000> (default: 1000 external requests per ticket)\n--context-characters <16000..2000000> (default: 500000 per repository target and external reader)\n--archive-mib <1..1024> (default: 256 total expanded archives)\n--download-mib <1..1024> (default: 512 total downloaded evidence)\n--response-mib <1..50> (default: 50 per download)\n--deadline-seconds <30..3600> (default: 1800 per investigation, including external tools)\n--list-models (Grove discovery only)\n--evidence-file <json> (optional exact-URL Kondukto exports; max 1 MiB)\n--replay-file <jsonl> (offline recheck; no credentials, Git, network or write proposals; max 32 MiB/100 entries)\n\nLive-mode secrets: GROVE_API_KEY, JIRA_URL, JIRA_TOKEN, GITHUB_TOKEN (falls back to `gh auth token` when unset; sent only to api.github.com). Optional scanner access: KONDUKTO_URL and KONDUKTO_TOKEN (read-only token; sent only to that Kondukto SaaS origin). Live dry-run sends ticket/code/evidence data to Grove, fetches allowlisted external references, and incurs model costs. Higher budgets can increase costs and exceed model context limits."
+            "Read-only vulnerability auto-triage. Prints proposed Jira comment writes as JSONL; never writes to Jira.\n\n--jql <query> (default: filter = 63609)\n--limit <1..100> (default: 1)\n--repo <checkout> (default: cwd)\n--ref <main-revision> (default: origin/main; fetch it yourself first)\n--release-ref <release-tag-or-commit> (override; default: npm latest, mapped to its source commit)\n--model <id|auto> (default: auto; requires DeepSeek Flash, no fallback)\n--provider <anthropic|openai> (inferred from model by default)\n--steps <2..1000> (default: 1000)\n--max-requests <1..2000> (default: 2000 external requests per ticket)\n--context-characters <16000..2000000> (default: 1000000 per repository target and external reader)\n--archive-mib <1..1024> (default: 1024 total expanded archives)\n--download-mib <1..1024> (default: 1024 total downloaded evidence)\n--response-mib <1..50> (default: 50 per download)\n--deadline-seconds <30..3600> (default: 3600 per investigation, including external tools)\n--list-models (Grove discovery only)\n--evidence-file <json> (optional exact-URL Kondukto exports; max 1 MiB)\n--replay-file <jsonl> (offline recheck; no credentials, Git, network or write proposals; max 32 MiB/100 entries)\n\nLive-mode secrets: GROVE_API_KEY, JIRA_URL, JIRA_TOKEN, GITHUB_TOKEN (falls back to `gh auth token` when unset; sent only to api.github.com). Optional scanner access: KONDUKTO_URL and KONDUKTO_TOKEN (read-only token; sent only to that Kondukto SaaS origin). Live dry-run sends ticket/code/evidence data to Grove, fetches allowlisted external references, and incurs model costs. Higher budgets can increase costs and exceed model context limits."
         );
         console.log(
-            "\nBaseline defaults: 100 global model steps, 1000 evidence requests, 500000 context characters per reader, 256 MiB expanded archives, 512 MiB downloads, 50 MiB per response, and 1800 seconds per ticket.\n--workers <1..3> (default: 3; parallel initial investigators, shared budgets; 1 disables fan-out)\n--worker-steps <2..100> (default: 12 per initial worker)\n--round-steps <2..100> (default: 12 per coordinator investigation round)\n--investigation-tokens <2000..64000> (default: 32000 per investigation response)\n--report-tokens <2000..64000> (default: 32000 per report)\n--ticket-workers <1..3> (default: 1; tickets triaged in parallel, each with its own budgets and readers)\n--no-prefetch (disable the pre-investigation advisory and dependency-graph reads seeded from ticket advisory IDs)\n--repo-url <url> (restrict tickets to this Jira Repo value; default: derived from the checkout's product manifest)\n--recheck (re-assess tickets whose previous findings were supported; by default only unresolved or changed tickets re-run)\n--debug (step progress and bounded provider error bodies on stderr; best-effort redaction, may contain sensitive data)"
+            "\nBaseline defaults: 1000 global model steps, 2000 evidence requests, 1000000 context characters per reader, 1024 MiB expanded archives, 1024 MiB downloads, 50 MiB per response, and 3600 seconds per ticket.\n--workers <1..3> (default: 3; parallel initial investigators, shared budgets; 1 disables fan-out)\n--worker-steps <2..1000> (default: 120 per initial worker)\n--round-steps <2..1000> (default: 120 per coordinator investigation round)\n--investigation-tokens <2000..64000> (default: 64000 per investigation response)\n--report-tokens <2000..64000> (default: 64000 per report)\n--ticket-workers <1..3> (default: 1; tickets triaged in parallel, each with its own budgets and readers)\n--no-prefetch (disable the pre-investigation advisory and dependency-graph reads seeded from ticket advisory IDs)\n--repo-url <url> (restrict tickets to this Jira Repo value; default: derived from the checkout's product manifest)\n--recheck (re-assess tickets whose previous findings were supported; by default only unresolved or changed tickets re-run)\n--debug (step progress and bounded provider error bodies on stderr; best-effort redaction, may contain sensitive data)"
         );
         return;
     }
@@ -1333,11 +1337,11 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
         "--investigation-tokens (2000..64000)"
     );
     const workerSteps = configurationValue(
-        () => z.coerce.number().int().min(2).max(100).parse(values["worker-steps"]),
+        () => z.coerce.number().int().min(2).max(1000).parse(values["worker-steps"]),
         "--worker-steps (2..100)"
     );
     const roundSteps = configurationValue(
-        () => z.coerce.number().int().min(2).max(100).parse(values["round-steps"]),
+        () => z.coerce.number().int().min(2).max(1000).parse(values["round-steps"]),
         "--round-steps (2..100)"
     );
     const deadlineSeconds = configurationValue(

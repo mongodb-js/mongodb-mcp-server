@@ -58,7 +58,7 @@ For this monorepo, the product manifest is `packages/mongodb-mcp-server/package.
 
 The model's repository tools select `main` or `release`, each pinned independently, and both must be inspected. Findings are prompted to separate **Released product**, **Current main**, **Evidence**, and **Missing evidence**. Fixes on main are not treated as released fixes.
 
-The model can list paths, read numbered file ranges, perform bounded literal searches, and query the deterministic dependency graph. Defaults are deliberately generous while establishing a baseline: 100 model steps per ticket, 32,000 output tokens per investigation response and report, 500,000 context characters per repository target and external reader, and a 30-minute investigation deadline. `--steps` accepts 2 through 1,000; `--limit` accepts 1 through 100. Higher allowances can substantially increase model costs; selected-model context/output limits and provider rate limits still apply. Oversized ticket inputs, truncated or malformed final reports, and investigations without a successful repository read or graph query for each supplied target fail closed. These are maximum budgets, not a promise that an investigation is complete.
+The model can list paths, read numbered file ranges, perform bounded literal searches, and query the deterministic dependency graph. Defaults are deliberately generous while establishing a baseline: 1,000 model steps per ticket, 64,000 output tokens per investigation response and report, 1,000,000 context characters per repository target and external reader, and a 60-minute investigation deadline. `--steps` accepts 2 through 1,000; `--limit` accepts 1 through 100. Higher allowances can substantially increase model costs; selected-model context/output limits and provider rate limits still apply. Oversized ticket inputs, truncated or malformed final reports, and investigations without a successful repository read or graph query for each supplied target fail closed. These are maximum budgets, not a promise that an investigation is complete.
 
 ### Dependency Graph And Published Artifact
 
@@ -94,26 +94,26 @@ For **each** target, the investigation instructions require a shipped dependency
 
 All network access requires HTTPS and rejects redirects. Investigation budgets are shared across external tools per ticket:
 
-| Flag                     | Default | Allowed Range                                                         |
-| ------------------------ | ------- | --------------------------------------------------------------------- |
-| `--max-requests`         | 1,000   | 1-2,000 external requests                                             |
-| `--steps`                | 100     | 2-1,000 model steps                                                   |
-| `--workers`              | 3       | 1-3 concurrent initial model investigators                            |
-| `--worker-steps`         | 12      | 2-100 model steps per initial worker                                  |
-| `--round-steps`          | 12      | 2-100 model steps per coordinator investigation round                 |
-| `--investigation-tokens` | 32,000  | 2,000-64,000 output tokens per investigation response                 |
-| `--report-tokens`        | 32,000  | 2,000-64,000 output tokens per report                                 |
-| `--deadline-seconds`     | 1,800   | 30-3,600 seconds                                                      |
-| `--ticket-workers`       | 1       | 1-3 tickets triaged concurrently, each with independent budgets       |
-| `--context-characters`   | 500,000 | 16,000-2,000,000 characters per repository target and external reader |
-| `--archive-mib`          | 256     | 1-1,024 MiB total expanded tarballs                                   |
-| `--download-mib`         | 512     | 1-1,024 MiB total received evidence                                   |
-| `--response-mib`         | 50      | 1-50 MiB per download                                                 |
+| Flag                     | Default   | Allowed Range                                                         |
+| ------------------------ | --------- | --------------------------------------------------------------------- |
+| `--max-requests`         | 2,000     | 1-2,000 external requests                                             |
+| `--steps`                | 1,000     | 2-1,000 model steps                                                   |
+| `--workers`              | 3         | 1-3 concurrent initial model investigators                            |
+| `--worker-steps`         | 120       | 2-1,000 model steps per initial worker                                |
+| `--round-steps`          | 120       | 2-1,000 model steps per coordinator investigation round               |
+| `--investigation-tokens` | 64,000    | 2,000-64,000 output tokens per investigation response                 |
+| `--report-tokens`        | 64,000    | 2,000-64,000 output tokens per report                                 |
+| `--deadline-seconds`     | 3,600     | 30-3,600 seconds                                                      |
+| `--ticket-workers`       | 1         | 1-3 tickets triaged concurrently, each with independent budgets       |
+| `--context-characters`   | 1,000,000 | 16,000-2,000,000 characters per repository target and external reader |
+| `--archive-mib`          | 1,024     | 1-1,024 MiB total expanded tarballs                                   |
+| `--download-mib`         | 1,024     | 1-1,024 MiB total received evidence                                   |
+| `--response-mib`         | 50        | 1-50 MiB per download                                                 |
 
-For a deeper investigation:
+For a cheaper, faster investigation while experimenting:
 
 ```bash
-pnpm triage:vulnerabilities --steps 200 --worker-steps 20 --round-steps 20 --max-requests 1500 --deadline-seconds 3600
+pnpm triage:vulnerabilities --steps 100 --worker-steps 12 --round-steps 12 --max-requests 1000 --deadline-seconds 1800
 ```
 
 Budgets are finite and validated before Jira access; increasing them can increase model costs or exceed the selected model's context window. The deadline covers model inference and external tools; each evidence HTTP request also has a 20-second timeout. Individual tool results remain capped at 16,000 characters; archives allow 5,000 entries each and source reads allow 1 MiB per file. Request/download/expanded-archive/context usage and configured external limits are emitted on stderr, not included in the comment. Automatic release discovery uses a separate reader with default limits, outside the per-ticket investigation deadline. Provider and anonymous GitHub API rate limits still apply independently; increasing `--max-requests` does not bypass them.
@@ -183,7 +183,7 @@ Before a live comment is proposed, a report-readiness gate rejects short/placeho
 
 By default, three model investigators run **concurrently with isolated conversations**: `advisory` inspects the upstream advisory, fix and prerequisites; `main` traces the pinned main target; and `release` traces the pinned release target and published packaging. Main/release repository schemas and execution guards restrict reads to the assigned target; the advisory worker exposes only external-evidence tools and cannot read repository targets. Worker conclusions remain untrusted model findings, not independently verified facts. A single coordinator waits for every worker, merges their actual evidence and findings, reconciles differences, and produces the quality-checked structured report. Tool-call IDs are namespaced per worker; duplicate joined IDs fail closed. No worker writes to Jira.
 
-Each initial worker has **at most 12 model steps by default**, configurable with `--worker-steps`, including a final tool-free synthesis step when target reads are complete and the budget permits, and can finish earlier. The global `--steps` allowance is partitioned before fan-out, with one reporting step reserved; workers do not receive separate copies of that budget. They share the same external-evidence reader, request/download/archive/context allowances, per-target repository readers, original deadline and cancellation. A model failure cancels and settles sibling workers before returning without a proposal. All worker inference counts toward the global step cap. Three workers need at least seven global steps (two per worker plus reporting); otherwise the bounded single-worker path is used. `--workers 2` runs only main and release workers and needs at least five steps; `--workers 1` disables initial fan-out for comparison or constrained provider capacity.
+Each initial worker has **at most 120 model steps by default**, configurable with `--worker-steps`, including a final tool-free synthesis step when target reads are complete and the budget permits, and can finish earlier. The global `--steps` allowance is partitioned before fan-out, with one reporting step reserved; workers do not receive separate copies of that budget. They share the same external-evidence reader, request/download/archive/context allowances, per-target repository readers, original deadline and cancellation. A model failure cancels and settles sibling workers before returning without a proposal. All worker inference counts toward the global step cap. Three workers need at least seven global steps (two per worker plus reporting); otherwise the bounded single-worker path is used. `--workers 2` runs only main and release workers and needs at least five steps; `--workers 1` disables initial fan-out for comparison or constrained provider capacity.
 
 Tickets are otherwise processed one at a time. `--ticket-workers 2` or `3` triages that many tickets concurrently; each ticket builds its own readers, evidence reader, ledger, and model client, so no mutable state is shared. Each ticket's JSONL result is still printed to stdout as it completes, and its comment preview follows on stderr. Parallel tickets multiply model gateway load and cost.
 
@@ -252,7 +252,7 @@ Model HTTP 400 rejections are classified as `model-request`, not `unknown`. Debu
 
 A schema-valid report rejected for inadequate findings is classified as `report-quality`, separately from invalid JSON or a schema mismatch (`invalid-report`).
 
-`finish=length` is classified as `model-output`: the response reached its output-token cap, not the global step limit. Diagnostics identify the worker/phase and active cap. `--investigation-tokens` controls investigation responses and `--report-tokens` controls structured reports; both default to 32,000 and accept 2,000 through 64,000. The selected model must support the requested allowance. Increasing `--steps` cannot fix per-response truncation. Truncated output is never accepted as a report and does not trigger a transport retry.
+`finish=length` is classified as `model-output`: the response reached its output-token cap, not the global step limit. Diagnostics identify the worker/phase and active cap. `--investigation-tokens` controls investigation responses and `--report-tokens` controls structured reports; both default to 64,000 and accept 2,000 through 64,000. The selected model must support the requested allowance. Increasing `--steps` cannot fix per-response truncation. Truncated output is never accepted as a report and does not trigger a transport retry.
 
 Every successful run emits a `[triage-usage]` JSON event on stderr, separate from the comment preview, with completed model steps, elapsed investigation seconds, tool-call counts, provider-reported token totals, per-worker/phase peak input and output tokens, repository context consumption, external requests/retries/bytes/context, largest downloaded response, and configured allowances. This is measured usage for this run, not a proven minimum or a validated production limit. Token totals include repeated input context across calls; omitted provider counts remain unknown. Initial release discovery is outside these per-ticket figures. On failure, the same event retains counters collected before failure, even without `--debug`; an interrupted inference may have additional unreported usage. Use these observations to tune allowances after successful baseline runs rather than constraining the first run aggressively.
 
