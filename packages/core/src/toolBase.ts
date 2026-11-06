@@ -27,7 +27,7 @@ import type {
     AtlasClusterConnectionInfo,
     ToolExecutionDurationLabelName,
 } from "@mongodb-js/mcp-types";
-import { TOOL_EXECUTION_DURATION_LABEL_NAMES } from "@mongodb-js/mcp-types";
+import { TOOL_EXECUTION_DURATION_LABEL_NAMES, declaredLabelNames } from "@mongodb-js/mcp-types";
 import { createUIResource, type UIResource } from "@mcp-ui/server";
 import { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
 import { getRandomUUID } from "@mongodb-js/mcp-core";
@@ -105,13 +105,24 @@ function resolveClientInfo(
 const BUILT_IN_TOOL_LABELS: ReadonlySet<string> = new Set(TOOL_EXECUTION_DURATION_LABEL_NAMES);
 
 /**
- * The built-in labels describe the call, not the server: a metrics instance
- * supplying one would shadow the call's own value.
+ * The built-in labels describe the call, and any other instance label must be
+ * one `toolExecutionDuration` declares: the merge at emission would otherwise
+ * throw there, after the tool has run.
  */
-function assertNoBuiltInToolLabels(labels: Readonly<Record<string, string>>): void {
-    const supplied = Object.keys(labels).find((name) => BUILT_IN_TOOL_LABELS.has(name));
-    if (supplied !== undefined) {
-        throw new Error(`Metrics instance supplies the built-in tool label "${supplied}"`);
+function assertToolLabels(metrics: {
+    labels: Readonly<Record<string, string | undefined>>;
+    get(key: "toolExecutionDuration"): unknown;
+}): void {
+    const supplied = Object.keys(metrics.labels);
+    const builtIn = supplied.find((name) => BUILT_IN_TOOL_LABELS.has(name));
+    if (builtIn !== undefined) {
+        throw new Error(`Metrics instance supplies the built-in tool label "${builtIn}"`);
+    }
+
+    const declared = new Set(declaredLabelNames(metrics.get("toolExecutionDuration")));
+    const undeclared = supplied.filter((name) => !declared.has(name));
+    if (undeclared.length > 0) {
+        throw new Error(`toolExecutionDuration does not declare the instance labels: ${undeclared.join(", ")}`);
     }
 }
 
@@ -772,7 +783,7 @@ export abstract class ToolBase<
     }
 
     constructor({ server, transportRequest }: ToolServerParam<TServer>) {
-        assertNoBuiltInToolLabels(server.metrics.labels);
+        assertToolLabels(server.metrics);
         this.server = server;
         this.transportRequest = transportRequest;
         const { toolName, category, operationType } = this.constructor as ToolClass<TServer, TMetricsDefinitions>;
