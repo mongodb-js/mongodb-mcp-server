@@ -1,109 +1,68 @@
+import { execFile } from "child_process";
+import path from "path";
+import { promisify } from "util";
 import { describe, expect, it } from "vitest";
-import { AllTools } from "mongodb-mcp-server";
-import { defaultTestConfig, setupIntegrationTest } from "../integrationHelpers.js";
 
-/** Keywords whose value is a single subschema. */
-const SUBSCHEMA_KEYWORDS = [
-    "items",
-    "contains",
-    "propertyNames",
-    "if",
-    "then",
-    "else",
-    "additionalProperties",
-    "unevaluatedProperties",
-    "additionalItems",
-    "unevaluatedItems",
-    "contentSchema",
-];
+const projectRoot = path.resolve(import.meta.dirname, "../../../..");
+const serverPath = path.resolve(projectRoot, "packages/mongodb-mcp-server/dist/esm/index.js");
+// Run with `pnpm dlx` rather than installed as a dependency: the Inspector pulls in React 19, which would change how
+// the lockfile resolves React for @mongodb-js/mcp-core's @mcp-ui/server dependency.
+const INSPECTOR = "@modelcontextprotocol/inspector@2.12.0";
 
-/** Keywords whose value is an array of subschemas. */
-const SUBSCHEMA_ARRAY_KEYWORDS = ["allOf", "anyOf", "oneOf", "prefixItems"];
+// Allows for downloading the Inspector on the first run.
+const INSPECTOR_TIMEOUT_MS = 180_000;
 
-/** Keywords whose value is a name → subschema map. */
-const SUBSCHEMA_MAP_KEYWORDS = ["properties", "patternProperties", "dependentSchemas", "$defs", "definitions"];
-
-function isSchemaObject(value: unknown): value is Record<string, unknown> {
-    return typeof value === "object" && value !== null && !Array.isArray(value);
+interface InspectorOutput {
+    result: { tools: { name: string }[] };
+    schemaFindings?: {
+        toolName: string;
+        findings: { rule: string; severity: string; schema: string; path: string }[];
+    }[];
 }
 
 /**
- * Returns the paths of every subschema that is the empty schema `{}`, which accepts any value and which some MCP
- * clients reject as untyped. `not: {}` is skipped, since there `{}` is the usual spelling of "reject everything".
- * Only subschema positions are visited, so property names and instance data such as `default` are ignored.
+ * Lists the built server's tools with MCP Inspector and returns its schema portability findings, which flag schemas
+ * that some MCP clients reject or mishandle (such as the empty schema `{}`). `--strict` alone only fails on
+ * error-severity findings, so the findings are read from the JSON output and warnings count too.
  */
-function findEmptySchemas(schema: Record<string, unknown>, path: string): string[] {
-    const found: string[] = [];
-    const visit = (sub: unknown, subPath: string): void => {
-        if (!isSchemaObject(sub)) {
-            return;
-        }
-        if (Object.keys(sub).length === 0) {
-            found.push(subPath);
-        } else {
-            found.push(...findEmptySchemas(sub, subPath));
-        }
+async function lintToolSchemas(): Promise<{ toolCount: number; findings: string[] }> {
+    const { stdout } = await promisify(execFile)(
+        "pnpm",
+        [
+            "dlx",
+            INSPECTOR,
+            "--cli",
+            "--method",
+            "tools/list",
+            "--strict",
+            "--format",
+            "json",
+            process.execPath,
+            serverPath,
+            "--telemetry",
+            "disabled",
+        ],
+        { cwd: projectRoot, maxBuffer: 64 * 1024 * 1024 }
+    );
+    const output = JSON.parse(stdout) as InspectorOutput;
+    return {
+        toolCount: output.result.tools.length,
+        findings: (output.schemaFindings ?? []).flatMap(({ toolName, findings }) =>
+            findings.map(({ rule, severity, schema, path }) => `${toolName}: ${schema}.${path} (${severity}: ${rule})`)
+        ),
     };
-
-    for (const key of SUBSCHEMA_KEYWORDS) {
-        visit(schema[key], `${path}.${key}`);
-    }
-    for (const key of SUBSCHEMA_ARRAY_KEYWORDS) {
-        const subs = schema[key];
-        if (Array.isArray(subs)) {
-            subs.forEach((sub, index) => visit(sub, `${path}.${key}[${index}]`));
-        }
-    }
-    for (const key of SUBSCHEMA_MAP_KEYWORDS) {
-        const map = schema[key];
-        if (isSchemaObject(map)) {
-            for (const [name, sub] of Object.entries(map)) {
-                visit(sub, `${path}.${key}.${name}`);
-            }
-        }
-    }
-    if (isSchemaObject(schema.not) && Object.keys(schema.not).length > 0) {
-        found.push(...findEmptySchemas(schema.not, `${path}.not`));
-    }
-    return found;
 }
 
 describe("tool schemas", () => {
-    const { mcpClient } = setupIntegrationTest(() => ({ ...defaultTestConfig }), { tools: AllTools });
+    it(
+        "have no MCP Inspector portability findings",
+        async () => {
+            const { toolCount, findings } = await lintToolSchemas();
+            expect(toolCount).toBeGreaterThan(0);
 
-    it("does not advertise the empty schema `{}` in any tool's input or output schema", async () => {
-        const { tools } = await mcpClient().listTools();
-        expect(tools.length).toBeGreaterThan(0);
-
-        const emptySchemas = tools.flatMap((tool) => [
-            ...findEmptySchemas(tool.inputSchema, `${tool.name}: inputSchema`),
-            ...(tool.outputSchema ? findEmptySchemas(tool.outputSchema, `${tool.name}: outputSchema`) : []),
-        ]);
-
-        // Spell "any value" as `additionalProperties: true` or by leaving `items` out, using
-        // ANY_ADDITIONAL_PROPERTIES or ANY_ARRAY_ITEMS from @mongodb-js/mcp-core with `.meta()`.
-        expect(emptySchemas).toEqual([]);
-    });
-
-    it("finds empty schemas in nested positions", () => {
-        expect(
-            findEmptySchemas(
-                {
-                    type: "object",
-                    properties: {
-                        filter: { type: "object", additionalProperties: {} },
-                        ids: { type: "array", items: {} },
-                        stages: { anyOf: [{ type: "object", additionalProperties: true }, {}] },
-                        items: { type: "string", default: {} },
-                    },
-                    not: {},
-                },
-                "tool"
-            )
-        ).toEqual([
-            "tool.properties.filter.additionalProperties",
-            "tool.properties.ids.items",
-            "tool.properties.stages.anyOf[1]",
-        ]);
-    });
+            // For "any value", use ANY_ADDITIONAL_PROPERTIES or ANY_ARRAY_ITEMS from @mongodb-js/mcp-core with `.meta()`.
+            expect(findings).toEqual([]);
+        },
+        INSPECTOR_TIMEOUT_MS
+    );
 });
