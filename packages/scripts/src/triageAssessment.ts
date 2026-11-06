@@ -757,10 +757,13 @@ function renderReport(report: CheckedAssessment, options: RenderOptions & { targ
             "likely-not-affected": "likely not affected",
             "needs-investigation": "could not determine whether we are affected",
         }[result.recommendation];
+        // Exclusions proven by machine-checked versions, shipping contents, or caller traces are
+        // stronger than a prerequisite-not-met argument, which still hinges on runtime conditions.
         const confidence =
             result.recommendation === "needs-investigation"
                 ? "low"
-                : assessment.exclusion?.basis === "unaffected-version"
+                : assessment.exclusion?.basis &&
+                    ["unaffected-version", "not-shipped", "unreachable-behavior"].includes(assessment.exclusion.basis)
                   ? "high"
                   : "moderate";
         const explanation =
@@ -791,8 +794,8 @@ function renderReport(report: CheckedAssessment, options: RenderOptions & { targ
                 : (assessment.exclusion?.basis ?? "affected-version");
         return [
             `*${target === "release" ? "Released product" : "Current main"}: ${verdict}.*`,
-            `Confidence: ${confidence}.`,
-            ...(grounding ? [`Grounding: ${grounding}.`] : []),
+            `Confidence: *${confidence}*.`,
+            ...(grounding ? [`Grounding: *${grounding}*.`] : []),
             plain(explanation),
         ].join(" ");
     });

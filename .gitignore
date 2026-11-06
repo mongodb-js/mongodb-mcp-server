@@ -56,3 +56,6 @@ packages/eval-tests/dist
 
 # pnpm store
 .pnpm-store
+
+# don't accidentally commit triage logs
+triage-*.jsonl

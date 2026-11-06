@@ -1569,7 +1569,14 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
             console.error(
                 plan.action === "skip"
                     ? `${plan.issue}: skipped; ${plan.reason ?? "cached comment unchanged."}`
-                    : `\n--- ${plan.issue}: ${issue.fields.summary.replace(/\s+/g, " ").trim()} | dry-run ${plan.action} (NOT SENT) ---\n${plan.body}\n--- End comment preview ---\n`
+                    : `\n--- ${plan.issue}: ${issue.fields.summary.replace(/\s+/g, " ").trim()} | dry-run ${plan.action} (NOT SENT) ---\n${(
+                          plan.comments ?? []
+                      )
+                          .map(
+                              (comment) =>
+                                  `--- ${comment.target} comment: ${comment.action}${comment.commentId ? `, existing id ${comment.commentId}` : ""} ---\n${comment.body}`
+                          )
+                          .join("\n")}\n--- End comment preview ---\n`
             );
         } catch (error) {
             if (values.debug) printDebugFailure(error, "ticket");
