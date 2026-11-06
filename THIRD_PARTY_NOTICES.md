@@ -1,5 +1,5 @@
 The following third-party software is used by and included in **MongoDB MCP Server**.
-This document was automatically generated on Thu Oct 29 2026.
+This document was automatically generated on Wed Nov 04 2026.
 
 ## List of dependencies
 
@@ -238,6 +238,7 @@ Package|Version|License
 **[archiver-utils](#c24c3d6b9a924f24761483842da09de743714209b73e20a6d4c9266c5574f258)**|5.0.2|MIT
 **[archiver](#fde853f8127fa9002100a3b443cd0034200b4f15da80426e6e72b7a93a64c97c)**|7.0.1|MIT
 **[argparse](#eb6fb2df860c4a7d86e82ee4f11a49f6ed75c3fa50ca7844991b389ef38df18c)**|2.0.1|Python-2.0
+**[argparse](#1e0bfac0a32e5320ff960732e0ca21cf643af719a220582da679511ea86e60d2)**|3.0.4|PSF-2.0
 **[array-buffer-byte-length](#d2eea51ee292aa61808a43465fe8f0fd873560e309f89c578b5cc0b75cc4b461)**|1.0.2|MIT
 **[arraybuffer.prototype.slice](#d729782f9cf5fe38c3fae832b40cb4a40a8f4d9494869afd4d91c3cb2d8d84e4)**|1.0.4|MIT
 **[asn1](#c03a7b8eb9b75e350660b88148698446ab536a4ea01c5f321c14036a86aac2ef)**|0.2.6|MIT
@@ -473,11 +474,12 @@ Package|Version|License
 **[istanbul-lib-report](#96da7ca55e01a254d103665f2c736d0ef47500d732b71fc6e21afc28757b1a87)**|3.0.1|BSD-3-Clause
 **[istanbul-reports](#335cdf9731d4bee8df00267789f950c6aae3c5a7ba7188910e808bc80afa72be)**|3.2.0|BSD-3-Clause
 **[jackspeak](#20e7f6bd36b7d2d07c429f5008dd288370010b5810d2fa3c494c5ded6d020f85)**|3.4.3|BlueOak-1.0.0
+**[javascript-stringify](#e0d27d21a288d227e51243715c044b3933d9fc0fb025dc16ec79c78af35f85a7)**|2.1.0|MIT
 **[jiti](#443514e89728e9b13a6c67ad75a85618302afe26b5321bfae5b3ff27e7f7dca9)**|2.7.0|MIT
 **[jose](#1444258c77843fb7d4437baefe7ba5da192d7f6b4708a7aa7aec3761c90a5ba6)**|6.2.1|MIT
 **[js-tokens](#e31e0a73d9249cb7bfda19a712c85c21efcfc0d780f7efa21901c289c0f23265)**|10.0.0|MIT
 **[js-tokens](#f4371f095c6f087cf41433031f8c612e21a4258b18cb4e847ffae73905e146d4)**|4.0.0|MIT
-**[js-yaml](#f454554c643bd231e598832ae172468ffd2bab4eb0b295e8e474275722fcc6f6)**|4.3.2|MIT
+**[js-yaml](#458dcc67b6fc524bee67304f40407158ce36601fa9f6cc2d6f45b26cbaba263e)**|5.5.0|MIT
 **[jsdom](#b52d347e16732b1f49bab2e77b5c7285b4ed0074d6b8c904da9ec7ebb46a6886)**|29.1.1|MIT
 **[json-bigint](#88c834751617826d41739bc9c4eda53c24014d5a030f6265ec4ea569c58cf995)**|1.0.0|MIT
 **[json-schema-traverse](#e830fd7d93f6ebaa303067a25ee40b4b88dce5126f3473b7f80f712ea55d44b8)**|1.0.0|MIT
@@ -521,9 +523,6 @@ Package|Version|License
 **[mongodb-connection-string-url](#267005f447433080cc6f4777fd158a8ea3dc603ee3a9d3d77cace34dcf82718c)**|7.0.2|Apache-2.0
 **[mongodb-download-url](#6c4eae084ed9aa946815da89f42f7f16ee58088fe829d6e4a3a6867b02cba9a2)**|2.0.2|Apache-2.0
 **[mongodb-log-writer](#0788567a51c952a5640e64bd3cb5ef4a5e445f340b3bc971f286caa80334a932)**|2.5.13|Apache-2.0
-**[mongodb-ns](#1681b02f7072ef576cc967fe600d4bc561bc1f5f8e0e451d2903288655650eaf)**|3.1.6|Apache-2.0
-**[mongodb-redact](#0d0f8f4e555e3b1ef8a1b40798f42de87bf20699f4b7fb4fab2716eaa2f315b0)**|1.4.7|Apache-2.0
-**[mongodb-schema](#e0300e77409789ae795961e8ed90b479d8816c8b4c2e078c0c8679293eae5c9d)**|12.7.0|Apache-2.0
 **[mongodb](#38940045ee88475d4d74b9a0d5fd843c2ac1c8fd42e38d7a25a7d974a32bce03)**|7.2.0|Apache-2.0
 **[mrmime](#cb73e44ebd6e3474f747f5e411481f90b5a8c38829fc474751cdbdf2b24c2698)**|2.0.1|MIT
 **[ms](#2083576c5af8054927640b4788059806d07e250a26066c9ccb2d928394fb9226)**|2.1.3|MIT
@@ -1999,6 +1998,11 @@ License tags: MIT
 License tags: Python-2.0
 
 
+<a id="1e0bfac0a32e5320ff960732e0ca21cf643af719a220582da679511ea86e60d2"></a>
+### [argparse](https://www.npmjs.com/package/argparse) (version 3.0.4)
+License tags: PSF-2.0
+
+
 <a id="d2eea51ee292aa61808a43465fe8f0fd873560e309f89c578b5cc0b75cc4b461"></a>
 ### [array-buffer-byte-length](https://www.npmjs.com/package/array-buffer-byte-length) (version 1.0.2)
 License tags: MIT
@@ -3174,6 +3178,11 @@ License tags: BSD-3-Clause
 License tags: BlueOak-1.0.0
 
 
+<a id="e0d27d21a288d227e51243715c044b3933d9fc0fb025dc16ec79c78af35f85a7"></a>
+### [javascript-stringify](https://www.npmjs.com/package/javascript-stringify) (version 2.1.0)
+License tags: MIT
+
+
 <a id="443514e89728e9b13a6c67ad75a85618302afe26b5321bfae5b3ff27e7f7dca9"></a>
 ### [jiti](https://www.npmjs.com/package/jiti) (version 2.7.0)
 License tags: MIT
@@ -3194,8 +3203,8 @@ License tags: MIT
 License tags: MIT
 
 
-<a id="f454554c643bd231e598832ae172468ffd2bab4eb0b295e8e474275722fcc6f6"></a>
-### [js-yaml](https://www.npmjs.com/package/js-yaml) (version 4.3.2)
+<a id="458dcc67b6fc524bee67304f40407158ce36601fa9f6cc2d6f45b26cbaba263e"></a>
+### [js-yaml](https://www.npmjs.com/package/js-yaml) (version 5.5.0)
 License tags: MIT
 
 
@@ -3411,21 +3420,6 @@ License tags: Apache-2.0
 
 <a id="0788567a51c952a5640e64bd3cb5ef4a5e445f340b3bc971f286caa80334a932"></a>
 ### [mongodb-log-writer](https://www.npmjs.com/package/mongodb-log-writer) (version 2.5.13)
-License tags: Apache-2.0
-
-
-<a id="1681b02f7072ef576cc967fe600d4bc561bc1f5f8e0e451d2903288655650eaf"></a>
-### [mongodb-ns](https://www.npmjs.com/package/mongodb-ns) (version 3.1.6)
-License tags: Apache-2.0
-
-
-<a id="0d0f8f4e555e3b1ef8a1b40798f42de87bf20699f4b7fb4fab2716eaa2f315b0"></a>
-### [mongodb-redact](https://www.npmjs.com/package/mongodb-redact) (version 1.4.7)
-License tags: Apache-2.0
-
-
-<a id="e0300e77409789ae795961e8ed90b479d8816c8b4c2e078c0c8679293eae5c9d"></a>
-### [mongodb-schema](https://www.npmjs.com/package/mongodb-schema) (version 12.7.0)
 License tags: Apache-2.0
 
 

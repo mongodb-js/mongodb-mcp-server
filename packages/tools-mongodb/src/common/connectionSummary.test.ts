@@ -8,6 +8,7 @@ import { summarizeConnection } from "./connectionSummary.js";
 import { FakeConnectionManager } from "./mocks/connectionManager.js";
 
 const defaultTestConfig: ConnectionStoreConfig = {
+    connectionStrings: {},
     maxActiveConnections: 10,
     connectionIdleTimeoutMs: 600_000,
     transport: "stdio",

@@ -39,7 +39,7 @@
     "@modelcontextprotocol/server": "^2.3.1",
     "@mongosh/service-provider-node-driver": "^5.0.2",
     "mongodb": "^7.1.1",
-    "mongodb-schema": "^12.7.0",
+    "@mongodb-js/mongodb-schema": "^12.8.12",
     "node-machine-id": "1.1.12",
     "bson": "^7.2.0",
     "zod": "^4.4.2",
