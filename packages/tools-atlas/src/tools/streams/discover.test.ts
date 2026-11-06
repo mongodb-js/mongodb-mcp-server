@@ -524,6 +524,40 @@ describe("StreamsDiscoverTool", () => {
             });
         });
 
+        it("should expose Azure Blob Storage config and PrivateLink access in the structured summary", async () => {
+            mockApiClient.getStreamConnection!.mockResolvedValue({
+                name: "blob-out",
+                type: "AzureBlobStorage",
+                azure: {
+                    servicePrincipalId: "11111111-2222-3333-4444-555555555555",
+                    storageAccountName: "acmestorage",
+                },
+                publicPrivateNetworking: {
+                    access: { type: "PRIVATE_LINK", connectionId: "64b7e9f1a2c3d4e5f6a7b8c9" },
+                },
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "inspect-connection",
+                workspaceName: "ws1",
+                resourceName: "blob-out",
+            });
+
+            expect(result.structuredContent).toEqual({
+                connection: {
+                    type: "AzureBlobStorage",
+                    azure: {
+                        servicePrincipalId: "11111111-2222-3333-4444-555555555555",
+                        storageAccountName: "acmestorage",
+                    },
+                    publicPrivateNetworking: {
+                        access: { type: "PRIVATE_LINK", connectionId: "64b7e9f1a2c3d4e5f6a7b8c9" },
+                    },
+                },
+            });
+        });
+
         it("masks secret-valued authentication fields from the returned content", async () => {
             mockApiClient.getStreamConnection!.mockResolvedValue({
                 name: "kafka-in",
@@ -700,9 +734,6 @@ describe("StreamsDiscoverTool", () => {
                         state: "AVAILABLE",
                         vendor: "PUBSUB",
                         dnsDomain: "pubsub-abc123.us-central1.p.iam.gserviceaccount.com",
-                        interfaceEndpointId: "iface-1",
-                        interfaceEndpointName: "atlas-pl-pubsub",
-                        providerAccountId: "my-project",
                     },
                 ],
             });
@@ -721,9 +752,6 @@ describe("StreamsDiscoverTool", () => {
                         state: "AVAILABLE",
                         vendor: "PUBSUB",
                         dnsDomain: "pubsub-abc123.us-central1.p.iam.gserviceaccount.com",
-                        interfaceEndpointId: "iface-1",
-                        interfaceEndpointName: "atlas-pl-pubsub",
-                        providerAccountId: "my-project",
                     },
                 ],
             });
@@ -810,8 +838,14 @@ describe("StreamsDiscoverTool", () => {
     describe("review regressions", () => {
         it("projects only known fields from nested connection config", async () => {
             mockApiClient.getStreamConnection!.mockResolvedValue({
-                name: "pubsub-out",
-                type: "GCPPubSub",
+                name: "blob-out",
+                type: "AzureBlobStorage",
+                azure: {
+                    servicePrincipalId: "11111111-2222-3333-4444-555555555555",
+                    storageAccountName: "acmestorage",
+                    region: null,
+                    links: [{ href: "https://example.com" }],
+                },
                 gcp: {
                     serviceAccountId: "atlas-streams@my-project.iam.gserviceaccount.com",
                     links: [{ href: "https://example.com" }],
@@ -830,12 +864,16 @@ describe("StreamsDiscoverTool", () => {
                 ...baseArgs,
                 action: "inspect-connection",
                 workspaceName: "ws1",
-                resourceName: "pubsub-out",
+                resourceName: "blob-out",
             });
 
             expect(result.structuredContent).toEqual({
                 connection: {
-                    type: "GCPPubSub",
+                    type: "AzureBlobStorage",
+                    azure: {
+                        servicePrincipalId: "11111111-2222-3333-4444-555555555555",
+                        storageAccountName: "acmestorage",
+                    },
                     gcp: { serviceAccountId: "atlas-streams@my-project.iam.gserviceaccount.com" },
                     publicPrivateNetworking: {
                         access: { type: "PRIVATE_LINK", connectionId: "64b7e9f1a2c3d4e5f6a7b8c9" },
@@ -865,6 +903,49 @@ describe("StreamsDiscoverTool", () => {
 
             expect(result.structuredContent).toEqual({
                 privateLinks: [{ id: "pl-null", state: "AVAILABLE" }],
+            });
+        });
+
+        it("should include the Azure Blob Storage service endpoint ID", async () => {
+            mockApiClient.listPrivateLinkConnections!.mockResolvedValue({
+                results: [
+                    {
+                        _id: "pl-blob",
+                        provider: "AZURE",
+                        region: "eastus2",
+                        state: "AVAILABLE",
+                        vendor: "AZURE_BLOB_STORAGE",
+                        dnsDomain: "acmestorage.blob.core.windows.net",
+                        serviceEndpointId:
+                            "/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.Storage/storageAccounts/acmestorage",
+                        interfaceEndpointId: "iface-1",
+                        interfaceEndpointName: "atlas-pl-acmestorage",
+                        providerAccountId: "sub1",
+                    },
+                ],
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "get-networking",
+            });
+
+            expect(result.structuredContent).toEqual({
+                privateLinks: [
+                    {
+                        id: "pl-blob",
+                        provider: "AZURE",
+                        region: "eastus2",
+                        state: "AVAILABLE",
+                        vendor: "AZURE_BLOB_STORAGE",
+                        dnsDomain: "acmestorage.blob.core.windows.net",
+                        serviceEndpointId:
+                            "/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.Storage/storageAccounts/acmestorage",
+                        interfaceEndpointId: "iface-1",
+                        interfaceEndpointName: "atlas-pl-acmestorage",
+                        providerAccountId: "sub1",
+                    },
+                ],
             });
         });
     });
