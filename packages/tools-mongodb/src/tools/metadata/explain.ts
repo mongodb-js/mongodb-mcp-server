@@ -6,7 +6,7 @@ import {
 } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
-import { formatUntrustedData, ToolArgumentValidationError } from "@mongodb-js/mcp-core";
+import { ANY_ADDITIONAL_PROPERTIES, formatUntrustedData, ToolArgumentValidationError } from "@mongodb-js/mcp-core";
 import { z } from "zod";
 import type { Document } from "mongodb";
 import { AggregateArgs } from "../read/aggregate.js";
@@ -16,7 +16,7 @@ import { CountArgs } from "../read/count.js";
 const verbosityEnum = z.enum(["queryPlanner", "queryPlannerExtended", "executionStats", "allPlansExecution"]);
 
 const ExplainOutputSchema = {
-    explainResult: z.record(z.string(), z.unknown()),
+    explainResult: z.record(z.string(), z.unknown()).meta(ANY_ADDITIONAL_PROPERTIES),
     method: z.enum(["aggregate", "find", "count"]),
     verbosity: verbosityEnum,
 };

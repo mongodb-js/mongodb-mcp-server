@@ -7,7 +7,7 @@ import {
 } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
-import { formatUntrustedData } from "@mongodb-js/mcp-core";
+import { ANY_ADDITIONAL_PROPERTIES, ANY_ARRAY_ITEMS, formatUntrustedData } from "@mongodb-js/mcp-core";
 import type { FindCursor } from "mongodb";
 import { checkIndexUsage } from "../../helpers/indexCheck.js";
 import { collectCursorUntilMaxBytesLimit } from "../../helpers/collectCursorUntilMaxBytes.js";
@@ -25,6 +25,7 @@ export const FindArgs = {
     projection: z
         .object({})
         .passthrough()
+        .meta(ANY_ADDITIONAL_PROPERTIES)
         .optional()
         .describe("The projection, matching the syntax of the projection argument of db.collection.find()"),
     limit: z.number().optional().default(10).describe("The maximum number of documents to return"),
@@ -37,7 +38,7 @@ export const FindArgs = {
 };
 
 export const FindOutputSchema = {
-    documents: z.array(z.unknown()).describe("The documents returned by the find query"),
+    documents: z.array(z.unknown()).meta(ANY_ARRAY_ITEMS).describe("The documents returned by the find query"),
     queryResultsCount: z.number().optional().describe("The total number of documents returned by the find query"),
     appliedLimits: z.array(CURSOR_LIMIT_KEYS).describe("The limits applied to the find query"),
 };
