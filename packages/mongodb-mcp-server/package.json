@@ -79,7 +79,7 @@
     "ts-levenshtein": "^1.0.7",
     "tsx": "^4.23.12",
     "type-fest": "^5.10.0",
-    "typescript": "^5.9.2",
+    "typescript": "^6.0.3",
     "vitest": "^4.1.11"
   },
   "dependencies": {
