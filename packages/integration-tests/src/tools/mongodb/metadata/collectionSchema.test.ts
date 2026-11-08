@@ -284,6 +284,46 @@ describeWithMongoDB({
                 });
             });
 
+            it("merges nested fields when only the root of the validator is closed", async () => {
+                await createCollection({
+                    validator: {
+                        $jsonSchema: {
+                            bsonType: "object",
+                            additionalProperties: false,
+                            properties: {
+                                _id: { bsonType: "objectId" },
+                                address: { bsonType: "object", properties: { city: { bsonType: "string" } } },
+                            },
+                        },
+                    },
+                });
+                await integration
+                    .mongoClient()
+                    .db(integration.randomDbName())
+                    .collection("foo")
+                    .insertOne({ address: { city: "London", zip: "N1" } });
+
+                const { structuredContent } = await callTool();
+                expect(structuredContent).toEqual({
+                    schema: {
+                        _id: { types: [{ bsonType: "ObjectId" }] },
+                        address: {
+                            types: [
+                                {
+                                    bsonType: "Document",
+                                    fields: {
+                                        city: { types: [{ bsonType: "String" }] },
+                                        zip: { types: [{ bsonType: "String" }] },
+                                    },
+                                },
+                            ],
+                        },
+                    },
+                    fieldsCount: 2,
+                    source: "merged",
+                });
+            });
+
             it("samples documents when the validator is not strictly enforced", async () => {
                 await createCollection({ validator: { $jsonSchema: closedSchema }, validationAction: "warn" });
                 await integration

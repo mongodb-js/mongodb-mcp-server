@@ -18,7 +18,11 @@ import { ONE_MB } from "../../helpers/constants.js";
 import { collectCursorUntilMaxBytesLimit } from "../../helpers/collectCursorUntilMaxBytes.js";
 import { isObjectEmpty } from "../../helpers/isObjectEmpty.js";
 import { operationWithFallback } from "../../helpers/operationWithFallback.js";
-import { getJsonSchemaValidator, type JsonSchemaValidator } from "../../helpers/collectionValidator.js";
+import {
+    getJsonSchemaValidator,
+    mergeSimplifiedSchemas,
+    type JsonSchemaValidator,
+} from "../../helpers/collectionValidator.js";
 
 const MAXIMUM_SAMPLE_SIZE_HARD_LIMIT = 50_000;
 const SAMPLE_INSTEAD_HINT = "Use schemaSource 'sample' to infer the schema from documents instead.";
@@ -120,10 +124,7 @@ export class CollectionSchemaTool extends MongoDBToolBase {
 
         let schema: SimplifiedSchema;
         let source: CollectionSchemaOutput["source"];
-        if (
-            schemaSource === "validator" ||
-            (hasValidatorSchema && validator?.jsonSchema.additionalProperties === false)
-        ) {
+        if (schemaSource === "validator" || (hasValidatorSchema && validator?.isExhaustive)) {
             schema = validatorSchema;
             source = "validator";
         } else {
@@ -143,8 +144,8 @@ export class CollectionSchemaTool extends MongoDBToolBase {
             });
             const sampledSchema = await getSimplifiedSchema(documents);
 
-            // The validator only declares some fields, so fill in the rest from the sample.
-            schema = hasValidatorSchema ? { ...sampledSchema, ...validatorSchema } : sampledSchema;
+            // The validator leaves some fields open, so fill them in from the sample.
+            schema = hasValidatorSchema ? mergeSimplifiedSchemas(sampledSchema, validatorSchema) : sampledSchema;
             source = hasValidatorSchema ? "merged" : "sample";
         }
 

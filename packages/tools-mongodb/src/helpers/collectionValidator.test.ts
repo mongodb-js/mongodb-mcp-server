@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { convertMongoDBJSONSchemaToSimplified } from "@mongodb-js/mongodb-schema";
-import { getJsonSchemaValidator } from "./collectionValidator.js";
+import { getJsonSchemaValidator, mergeSimplifiedSchemas } from "./collectionValidator.js";
 
 describe("getJsonSchemaValidator", () => {
     const jsonSchema = {
@@ -25,6 +25,7 @@ describe("getJsonSchemaValidator", () => {
             validationLevel: "strict",
             validationAction: "error",
             isEnforced: true,
+            isExhaustive: false,
         });
     });
 
@@ -54,11 +55,20 @@ describe("getJsonSchemaValidator", () => {
         });
     });
 
+    it("is enforced with validationLevel=strict and validationAction=errorAndLog", () => {
+        expect(
+            getJsonSchemaValidator({
+                validator: { $jsonSchema: jsonSchema },
+                validationLevel: "strict",
+                validationAction: "errorAndLog",
+            })?.isEnforced
+        ).toBe(true);
+    });
+
     it.each([
         { validationLevel: "moderate", validationAction: "error" },
         { validationLevel: "off", validationAction: "error" },
         { validationLevel: "strict", validationAction: "warn" },
-        { validationLevel: "strict", validationAction: "errorAndLog" },
     ])(
         "is not enforced with validationLevel=$validationLevel and validationAction=$validationAction",
         ({ validationLevel, validationAction }) => {
@@ -69,7 +79,172 @@ describe("getJsonSchemaValidator", () => {
                 validationLevel,
                 validationAction,
                 isEnforced: false,
+                isExhaustive: false,
             });
         }
     );
+
+    describe("isExhaustive", () => {
+        const closed = (properties: Record<string, unknown>): Record<string, unknown> => ({
+            bsonType: "object",
+            additionalProperties: false,
+            properties,
+        });
+
+        it.each([
+            { name: "closed object with scalar fields", schema: closed({ a: { bsonType: "string" } }) },
+            {
+                name: "closed object with closed nested object",
+                schema: closed({ address: closed({ city: { bsonType: "string" } }) }),
+            },
+            {
+                name: "closed object with array of closed objects",
+                schema: closed({ tags: { bsonType: "array", items: closed({ name: { bsonType: "string" } }) } }),
+            },
+            { name: "closed object with enum field", schema: closed({ status: { enum: ["a", "b"] } }) },
+            {
+                name: "closed object with closed tuple",
+                schema: closed({
+                    pair: { bsonType: "array", items: [{ bsonType: "int" }], additionalItems: false },
+                }),
+            },
+            {
+                name: "anyOf with closed branches",
+                schema: { anyOf: [closed({ a: { bsonType: "int" } }), closed({ b: { bsonType: "int" } })] },
+            },
+        ])("is true for $name", ({ schema }) => {
+            expect(getJsonSchemaValidator({ validator: { $jsonSchema: schema } })?.isExhaustive).toBe(true);
+        });
+
+        it.each([
+            { name: "open object", schema: { bsonType: "object", properties: { a: { bsonType: "string" } } } },
+            {
+                name: "closed object with open nested object",
+                schema: closed({ address: { bsonType: "object", properties: { city: { bsonType: "string" } } } }),
+            },
+            {
+                name: "closed object with array of open objects",
+                schema: closed({ tags: { bsonType: "array", items: { bsonType: "object" } } }),
+            },
+            { name: "closed object with untyped field", schema: closed({ anything: {} }) },
+            {
+                name: "closed object with unconstrained array",
+                schema: closed({ tags: { bsonType: "array" } }),
+            },
+            {
+                name: "closed object with tuple allowing additional items",
+                schema: closed({ pair: { bsonType: "array", items: [{ bsonType: "int" }] } }),
+            },
+            {
+                name: "closed object with patternProperties",
+                schema: { ...closed({}), patternProperties: { "^x_": { bsonType: "string" } } },
+            },
+            {
+                name: "anyOf with an open branch",
+                schema: { anyOf: [closed({ a: { bsonType: "int" } }), { bsonType: "object" }] },
+            },
+        ])("is false for $name", ({ schema }) => {
+            expect(getJsonSchemaValidator({ validator: { $jsonSchema: schema } })?.isExhaustive).toBe(false);
+        });
+    });
+});
+
+describe("mergeSimplifiedSchemas", () => {
+    it("keeps sampled fields and prefers declared types at the top level", () => {
+        expect(
+            mergeSimplifiedSchemas(
+                { a: { types: [{ bsonType: "String" }] }, b: { types: [{ bsonType: "Boolean" }] } },
+                { a: { types: [{ bsonType: "Int32" }] }, c: { types: [{ bsonType: "Date" }] } }
+            )
+        ).toEqual({
+            a: { types: [{ bsonType: "Int32" }] },
+            b: { types: [{ bsonType: "Boolean" }] },
+            c: { types: [{ bsonType: "Date" }] },
+        });
+    });
+
+    it("merges nested document fields", () => {
+        expect(
+            mergeSimplifiedSchemas(
+                {
+                    address: {
+                        types: [
+                            {
+                                bsonType: "Document",
+                                fields: {
+                                    city: { types: [{ bsonType: "String" }] },
+                                    zip: { types: [{ bsonType: "String" }] },
+                                },
+                            },
+                        ],
+                    },
+                },
+                {
+                    address: {
+                        types: [{ bsonType: "Document", fields: { city: { types: [{ bsonType: "String" }] } } }],
+                    },
+                }
+            )
+        ).toEqual({
+            address: {
+                types: [
+                    {
+                        bsonType: "Document",
+                        fields: {
+                            city: { types: [{ bsonType: "String" }] },
+                            zip: { types: [{ bsonType: "String" }] },
+                        },
+                    },
+                ],
+            },
+        });
+    });
+
+    it("merges documents nested in arrays", () => {
+        expect(
+            mergeSimplifiedSchemas(
+                {
+                    tags: {
+                        types: [
+                            {
+                                bsonType: "Array",
+                                types: [
+                                    { bsonType: "Document", fields: { extra: { types: [{ bsonType: "Int32" }] } } },
+                                ],
+                            },
+                        ],
+                    },
+                },
+                {
+                    tags: {
+                        types: [
+                            {
+                                bsonType: "Array",
+                                types: [
+                                    { bsonType: "Document", fields: { name: { types: [{ bsonType: "String" }] } } },
+                                ],
+                            },
+                        ],
+                    },
+                }
+            )
+        ).toEqual({
+            tags: {
+                types: [
+                    {
+                        bsonType: "Array",
+                        types: [
+                            {
+                                bsonType: "Document",
+                                fields: {
+                                    extra: { types: [{ bsonType: "Int32" }] },
+                                    name: { types: [{ bsonType: "String" }] },
+                                },
+                            },
+                        ],
+                    },
+                ],
+            },
+        });
+    });
 });
