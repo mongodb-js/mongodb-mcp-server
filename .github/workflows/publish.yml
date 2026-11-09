@@ -6,6 +6,11 @@ on:
       - main
       - rmcp-ga-release
 
+# Held while a run waits on the Production approval, so a second push cannot publish the same version.
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -138,6 +143,22 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # A retried `publish` job reuses the earlier `check` result, so verify here.
+      - name: Verify release packages provenance
+        if: needs.check.outputs.VERSION_EXISTS == 'false'
+        env:
+          NPM_VERSION: ${{ needs.check.outputs.NPM_VERSION }}
+          EXPECTED_COMMIT: ${{ github.sha }}
+        shell: bash
+        run: node .github/scripts/verify-npm-version.mjs --workspace "$NPM_VERSION" "$EXPECTED_COMMIT"
+      - name: Verify atlas-mcp-remote provenance
+        if: needs.check.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION != '0.0.0'
+        env:
+          NPM_VERSION: ${{ needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION }}
+          EXPECTED_COMMIT: ${{ github.sha }}
+        shell: bash
+        run: node .github/scripts/verify-npm-version.mjs mongodb-atlas-mcp-remote "$NPM_VERSION" "$EXPECTED_COMMIT"
 
       # Published before the recursive publish below so pnpm skips it there (it skips
       # versions already on the registry). The `!= '0.0.0'` guard skips the placeholder
