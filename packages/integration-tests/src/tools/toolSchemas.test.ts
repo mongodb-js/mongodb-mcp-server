@@ -7,7 +7,7 @@ const projectRoot = path.resolve(import.meta.dirname, "../../../..");
 const serverPath = path.resolve(projectRoot, "packages/mongodb-mcp-server/dist/esm/index.js");
 // Run with `pnpm dlx` rather than installed as a dependency: the Inspector pulls in React 19, which would change how
 // the lockfile resolves React for @mongodb-js/mcp-core's @mcp-ui/server dependency.
-const INSPECTOR = "@modelcontextprotocol/inspector@2.12.0";
+const INSPECTOR = "@modelcontextprotocol/inspector@2.14.0";
 
 // Allows for downloading the Inspector on the first run.
 const INSPECTOR_TIMEOUT_MS = 180_000;
