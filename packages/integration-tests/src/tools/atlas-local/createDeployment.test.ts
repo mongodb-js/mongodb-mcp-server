@@ -100,7 +100,7 @@ describeWithAtlasLocal({
                 expect.objectContaining({
                     deploymentName,
                     loadSampleData: false,
-                    imageTag: "preview",
+                    imageTag: "latest",
                 })
             );
             // List the deployments
