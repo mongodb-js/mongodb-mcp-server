@@ -176,6 +176,10 @@ export default defineConfig({
                     setupFiles: ["./src/test-setup.ts"],
                     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
                 },
+                // LeafyGreen packages import react without declaring it, so resolve it from packages/ui.
+                resolve: {
+                    dedupe: ["react", "react-dom"],
+                },
             },
         ],
     },

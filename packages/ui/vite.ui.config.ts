@@ -186,5 +186,7 @@ export default defineConfig({
         alias: {
             "@ui": resolve(__dirname, "src"),
         },
+        // LeafyGreen packages import react without declaring it, so resolve it from this package.
+        dedupe: ["react", "react-dom"],
     },
 });

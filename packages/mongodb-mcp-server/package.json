@@ -60,7 +60,7 @@
     "build:cjs": "tsc --project tsconfig.cjs.json",
     "build": "concurrently \"pnpm run build:esm\" \"pnpm run build:cjs\" && pnpm run build:universal-package",
     "build:universal-package": "tsx scripts/createUniversalPackage.ts",
-    "inspect": "pnpm run build && mcp-inspector -- dist/esm/index.js",
+    "inspect": "pnpm run build && pnpm dlx @modelcontextprotocol/inspector@2.14.0 -- node dist/esm/index.js",
     "check:api-report": "concurrently \"api-extractor run --config api-extractor.json\" \"api-extractor run --config api-extractor/api-extractor-web.json\" \"api-extractor run --config api-extractor/api-extractor-tools.json\"",
     "check:api": "pnpm run check:api-report || (printf \"\\nPublic API check failed. If you intended to change the public API, run:\\n\\n  pnpm run update:api\\n\" && exit 1)",
     "update:api": "concurrently \"api-extractor run --local --config api-extractor.json\" \"api-extractor run --local --config api-extractor/api-extractor-web.json\" \"api-extractor run --local --config api-extractor/api-extractor-tools.json\"",
@@ -72,7 +72,6 @@
   "devDependencies": {
     "@anthropic-ai/mcpb": "2.1.2",
     "@microsoft/api-extractor": "^7.59.0",
-    "@modelcontextprotocol/inspector": "^0.21.2",
     "@types/node": "^25.6.0",
     "concurrently": "^10.0.6",
     "openapi-typescript-helpers": "^0.1.0",
