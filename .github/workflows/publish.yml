@@ -30,9 +30,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
-        with:
-          node-version: "24"
       - name: Get version
         id: get-version
         shell: bash
@@ -126,22 +123,6 @@ jobs:
       - name: Output atlas-mcp-remote deployment info
         run: echo "::notice title=atlas-mcp-remote Deployment Info::Deploying version ${{ steps.get-remote-version.outputs.ATLAS_MCP_REMOTE_GIT_TAG_VERSION }} to channel ${{ steps.remote-npm-tag.outputs.ATLAS_MCP_REMOTE_RELEASE_CHANNEL }}"
 
-      # Only runs when there is no tag yet, i.e. when this run is actually releasing.
-      - name: Verify release packages are not already published from a different commit
-        if: steps.check-version.outputs.VERSION_EXISTS == 'false'
-        env:
-          NPM_VERSION: ${{ steps.get-version.outputs.NPM_VERSION }}
-          EXPECTED_COMMIT: ${{ github.sha }}
-        shell: bash
-        run: node .github/scripts/verify-npm-version.mjs --workspace "$NPM_VERSION" "$EXPECTED_COMMIT"
-      - name: Verify mongodb-atlas-mcp-remote is not already published from a different commit
-        if: steps.check-remote-version.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS == 'false' && steps.get-remote-version.outputs.ATLAS_MCP_REMOTE_NPM_VERSION != '0.0.0'
-        env:
-          NPM_VERSION: ${{ steps.get-remote-version.outputs.ATLAS_MCP_REMOTE_NPM_VERSION }}
-          EXPECTED_COMMIT: ${{ github.sha }}
-        shell: bash
-        run: node .github/scripts/verify-npm-version.mjs mongodb-atlas-mcp-remote "$NPM_VERSION" "$EXPECTED_COMMIT"
-
   # Publishes both npm packages from a single job. npm trusted publishing is bound to
   # the `Production` environment, and GitHub prompts required reviewers once per job
   # that references an environment, so publishing both here keeps it to one approval.
@@ -163,6 +144,23 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # The authoritative provenance check: a retried `publish` job reuses the earlier
+      # `check` result, so verify here, before anything is published or released.
+      - name: Verify release packages provenance
+        if: needs.check.outputs.VERSION_EXISTS == 'false'
+        env:
+          NPM_VERSION: ${{ needs.check.outputs.NPM_VERSION }}
+          EXPECTED_COMMIT: ${{ github.sha }}
+        shell: bash
+        run: node .github/scripts/verify-npm-version.mjs --workspace "$NPM_VERSION" "$EXPECTED_COMMIT"
+      - name: Verify atlas-mcp-remote provenance
+        if: needs.check.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION != '0.0.0'
+        env:
+          NPM_VERSION: ${{ needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION }}
+          EXPECTED_COMMIT: ${{ github.sha }}
+        shell: bash
+        run: node .github/scripts/verify-npm-version.mjs mongodb-atlas-mcp-remote "$NPM_VERSION" "$EXPECTED_COMMIT"
 
       # Published before the recursive publish below so pnpm skips it there (it skips
       # versions already on the registry). The `!= '0.0.0'` guard skips the placeholder
@@ -188,20 +186,6 @@ jobs:
           fi
 
           pnpm --filter 'mongodb-atlas-mcp-remote' publish --tag "${RELEASE_CHANNEL}" --no-git-checks
-      - name: Wait for atlas-mcp-remote to be available on npm
-        if: needs.check.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION != '0.0.0'
-        uses: ./.github/actions/wait-for-npm
-        with:
-          package-name: mongodb-atlas-mcp-remote
-          package-version: ${{ needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION }}
-      # Re-verify after publication: a retried `publish` job reuses the stale `check` result.
-      - name: Verify atlas-mcp-remote provenance before release
-        if: needs.check.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION != '0.0.0'
-        env:
-          NPM_VERSION: ${{ needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION }}
-          EXPECTED_COMMIT: ${{ github.sha }}
-        shell: bash
-        run: node .github/scripts/verify-npm-version.mjs mongodb-atlas-mcp-remote "$NPM_VERSION" "$EXPECTED_COMMIT"
       - name: Publish atlas-mcp-remote GitHub release
         if: needs.check.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION != '0.0.0'
         env:
@@ -221,6 +205,12 @@ jobs:
             --generate-notes \
             --target ${{ github.sha }} \
             ${{ (needs.check.outputs.ATLAS_MCP_REMOTE_RELEASE_CHANNEL != 'latest' && '--prerelease') || ''}}
+      - name: Wait for atlas-mcp-remote to be available on npm
+        if: needs.check.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION != '0.0.0'
+        uses: ./.github/actions/wait-for-npm
+        with:
+          package-name: mongodb-atlas-mcp-remote
+          package-version: ${{ needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION }}
 
       - name: Build
         if: needs.check.outputs.VERSION_EXISTS == 'false'
@@ -237,13 +227,6 @@ jobs:
         with:
           package-name: mongodb-mcp-server
           package-version: ${{ needs.check.outputs.NPM_VERSION }}
-      - name: Verify release packages provenance before release
-        if: needs.check.outputs.VERSION_EXISTS == 'false'
-        env:
-          NPM_VERSION: ${{ needs.check.outputs.NPM_VERSION }}
-          EXPECTED_COMMIT: ${{ github.sha }}
-        shell: bash
-        run: node .github/scripts/verify-npm-version.mjs --workspace "$NPM_VERSION" "$EXPECTED_COMMIT"
       - name: Build .mcpb
         if: needs.check.outputs.VERSION_EXISTS == 'false'
         run: pnpm run build:mcpb
