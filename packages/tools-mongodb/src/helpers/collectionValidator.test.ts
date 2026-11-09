@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
     convertMongoDBJSONSchemaToSimplified,
+    type JSONSchema,
     type SimplifiedSchema,
     type SimplifiedSchemaType,
 } from "@mongodb-js/mongodb-schema";
@@ -164,10 +165,10 @@ describe("getJsonSchemaValidator", () => {
 describe("mergeSimplifiedSchemas", () => {
     it("keeps sampled fields and prefers declared types at the top level", () => {
         expect(
-            mergeSimplifiedSchemas(
-                { a: { types: [{ bsonType: "String" }] }, b: { types: [{ bsonType: "Boolean" }] } },
-                { a: { types: [{ bsonType: "Int32" }] }, c: { types: [{ bsonType: "Date" }] } }
-            )
+            mergeSimplifiedSchemas({
+                sampled: { a: { types: [{ bsonType: "String" }] }, b: { types: [{ bsonType: "Boolean" }] } },
+                declared: { a: { types: [{ bsonType: "Int32" }] }, c: { types: [{ bsonType: "Date" }] } },
+            })
         ).toEqual({
             a: { types: [{ bsonType: "Int32" }] },
             b: { types: [{ bsonType: "Boolean" }] },
@@ -177,8 +178,8 @@ describe("mergeSimplifiedSchemas", () => {
 
     it("merges nested document fields", () => {
         expect(
-            mergeSimplifiedSchemas(
-                {
+            mergeSimplifiedSchemas({
+                sampled: {
                     address: {
                         types: [
                             {
@@ -191,12 +192,12 @@ describe("mergeSimplifiedSchemas", () => {
                         ],
                     },
                 },
-                {
+                declared: {
                     address: {
                         types: [{ bsonType: "Document", fields: { city: { types: [{ bsonType: "String" }] } } }],
                     },
-                }
-            )
+                },
+            })
         ).toEqual({
             address: {
                 types: [
@@ -212,10 +213,55 @@ describe("mergeSimplifiedSchemas", () => {
         });
     });
 
+    it("does not merge sampled fields into a nested object that forbids additional properties", () => {
+        const validator = {
+            bsonType: "object",
+            properties: {
+                address: {
+                    bsonType: "object",
+                    additionalProperties: false,
+                    properties: { city: { bsonType: "string" } },
+                },
+            },
+        };
+        const declared = convertMongoDBJSONSchemaToSimplified(validator);
+
+        expect(
+            mergeSimplifiedSchemas({
+                sampled: {
+                    address: {
+                        types: [
+                            {
+                                bsonType: "Document",
+                                fields: {
+                                    city: { types: [{ bsonType: "String" }] },
+                                    legacy: { types: [{ bsonType: "String" }] },
+                                },
+                            },
+                        ],
+                    },
+                    sampledRootField: { types: [{ bsonType: "Boolean" }] },
+                },
+                declared,
+                schema: validator,
+            })
+        ).toEqual({
+            address: {
+                types: [
+                    {
+                        bsonType: "Document",
+                        fields: { city: { types: [{ bsonType: "String" }] } },
+                    },
+                ],
+            },
+            sampledRootField: { types: [{ bsonType: "Boolean" }] },
+        });
+    });
+
     it("merges documents nested in arrays", () => {
         expect(
-            mergeSimplifiedSchemas(
-                {
+            mergeSimplifiedSchemas({
+                sampled: {
                     tags: {
                         types: [
                             {
@@ -227,7 +273,7 @@ describe("mergeSimplifiedSchemas", () => {
                         ],
                     },
                 },
-                {
+                declared: {
                     tags: {
                         types: [
                             {
@@ -238,8 +284,8 @@ describe("mergeSimplifiedSchemas", () => {
                             },
                         ],
                     },
-                }
-            )
+                },
+            })
         ).toEqual({
             tags: {
                 types: [
@@ -265,11 +311,135 @@ describe("mergeSimplifiedSchemas", () => {
             { bsonType: "Document", fields: { name: { types: [{ bsonType: "String" }] } } },
         ];
         expect(
-            mergeSimplifiedSchemas(
-                { tags: { types: [{ bsonType: "Array", types: sampledItems }] } },
-                { tags: { types: [{ bsonType: "Array", types: [] }] } }
-            )
+            mergeSimplifiedSchemas({
+                sampled: { tags: { types: [{ bsonType: "Array", types: sampledItems }] } },
+                declared: { tags: { types: [{ bsonType: "Array", types: [] }] } },
+            })
         ).toEqual({ tags: { types: [{ bsonType: "Array", types: sampledItems }] } });
+    });
+
+    const documentWith = (fields: string[]): SimplifiedSchemaType => ({
+        bsonType: "Document",
+        fields: Object.fromEntries(fields.map((field) => [field, { types: [{ bsonType: "String" }] }])),
+    });
+
+    it("keeps sampled fields allowed by any anyOf branch", () => {
+        const validator = {
+            bsonType: "object",
+            anyOf: [
+                {
+                    properties: {
+                        address: {
+                            bsonType: "object",
+                            additionalProperties: false,
+                            properties: { city: { bsonType: "string" } },
+                        },
+                    },
+                },
+                { properties: { address: { bsonType: "object", properties: { city: { bsonType: "string" } } } } },
+            ],
+        };
+
+        expect(
+            mergeSimplifiedSchemas({
+                sampled: { address: { types: [documentWith(["city", "zip"])] } },
+                declared: convertMongoDBJSONSchemaToSimplified(validator),
+                schema: validator,
+            })
+        ).toEqual({ address: { types: [documentWith(["city", "zip"])] } });
+    });
+
+    it("drops sampled fields forbidden by every anyOf branch", () => {
+        const closedAddress = {
+            bsonType: "object",
+            additionalProperties: false,
+            properties: { city: { bsonType: "string" } },
+        };
+        const validator = {
+            bsonType: "object",
+            anyOf: [{ properties: { address: closedAddress } }, { properties: { address: closedAddress } }],
+        };
+
+        expect(
+            mergeSimplifiedSchemas({
+                sampled: { address: { types: [documentWith(["city", "zip"])] } },
+                declared: convertMongoDBJSONSchemaToSimplified(validator),
+                schema: validator,
+            })
+        ).toEqual({ address: { types: [documentWith(["city"])] } });
+    });
+
+    it("does not treat an anyOf branch that forbids the parent property as allowing its nested fields", () => {
+        const validator: JSONSchema = {
+            bsonType: "object",
+            anyOf: [
+                { additionalProperties: false, properties: { other: { bsonType: "string" } } },
+                {
+                    properties: {
+                        address: {
+                            bsonType: "object",
+                            additionalProperties: false,
+                            properties: { city: { bsonType: "string" } },
+                        },
+                    },
+                },
+            ],
+        };
+
+        expect(
+            mergeSimplifiedSchemas({
+                sampled: { address: { types: [documentWith(["city", "zip"])] } },
+                declared: convertMongoDBJSONSchemaToSimplified(validator),
+                schema: validator,
+            }).address
+        ).toEqual({ types: [documentWith(["city"])] });
+    });
+
+    it("keeps sampled tuple item fields allowed by any position", () => {
+        const validator = {
+            bsonType: "object",
+            properties: {
+                pair: {
+                    bsonType: "array",
+                    additionalItems: false,
+                    items: [
+                        { bsonType: "object", additionalProperties: false, properties: { a: { bsonType: "string" } } },
+                        { bsonType: "object", properties: { b: { bsonType: "string" } } },
+                    ],
+                },
+            },
+        };
+        const declared = convertMongoDBJSONSchemaToSimplified(validator);
+
+        const merged = mergeSimplifiedSchemas({
+            sampled: { pair: { types: [{ bsonType: "Array", types: [documentWith(["a", "b", "extra"])] }] } },
+            declared,
+            schema: validator,
+        });
+        const [pairType] = merged.pair?.types ?? [];
+        const [itemType] = pairType && "types" in pairType ? pairType.types : [];
+        expect(itemType && "fields" in itemType ? Object.keys(itemType.fields).sort() : []).toEqual([
+            "a",
+            "b",
+            "extra",
+        ]);
+    });
+
+    it("filters sampled item fields when the declared array items are closed but untyped", () => {
+        const validator = {
+            bsonType: "object",
+            properties: {
+                tags: { bsonType: "array", items: { additionalProperties: false, properties: {} } },
+            },
+        };
+
+        expect(
+            mergeSimplifiedSchemas({
+                sampled: { tags: { types: [{ bsonType: "Array", types: [documentWith(["legacy"])] }] } },
+                declared: { tags: { types: [{ bsonType: "Array", types: [] }] } },
+                schema: validator,
+            })
+        ).toEqual({ tags: { types: [{ bsonType: "Array", types: [documentWith([])] }] } });
     });
 
     it("treats Object.prototype names as plain fields", () => {
@@ -277,7 +447,7 @@ describe("mergeSimplifiedSchemas", () => {
             '{"constructor":{"types":[{"bsonType":"String"}]},"toString":{"types":[{"bsonType":"Int32"}]},"__proto__":{"types":[{"bsonType":"Boolean"}]}}'
         ) as SimplifiedSchema;
 
-        const merged = mergeSimplifiedSchemas({}, declared);
+        const merged = mergeSimplifiedSchemas({ sampled: {}, declared });
         expect(Object.getPrototypeOf(merged)).toBe(Object.prototype);
         expect(Object.keys(merged)).toEqual(["constructor", "toString", "__proto__"]);
         expect(Object.getOwnPropertyDescriptor(merged, "__proto__")?.value).toEqual({

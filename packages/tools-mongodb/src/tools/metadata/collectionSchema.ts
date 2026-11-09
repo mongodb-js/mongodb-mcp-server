@@ -145,7 +145,14 @@ export class CollectionSchemaTool extends MongoDBToolBase {
             const sampledSchema = await getSimplifiedSchema(documents);
 
             // The validator leaves some fields open, so fill them in from the sample.
-            schema = hasValidatorSchema ? mergeSimplifiedSchemas(sampledSchema, validatorSchema) : sampledSchema;
+            schema =
+                hasValidatorSchema && validator
+                    ? mergeSimplifiedSchemas({
+                          sampled: sampledSchema,
+                          declared: validatorSchema,
+                          schema: validator.jsonSchema,
+                      })
+                    : sampledSchema;
             source = hasValidatorSchema ? "merged" : "sample";
         }
 
