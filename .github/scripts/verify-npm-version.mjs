@@ -5,6 +5,9 @@
  * mislabeled. The source commit comes from the npm provenance attestation.
  */
 
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
 const REGISTRY = "https://registry.npmjs.org";
 const SLSA_PROVENANCE = "https://slsa.dev/provenance/v1";
 
@@ -61,11 +64,7 @@ async function getPublishedCommit(packageName, packageVersion) {
     return commit;
 }
 
-async function main() {
-    const [packageName, packageVersion, expectedCommit] = process.argv.slice(2);
-    if (!packageName || !packageVersion || !expectedCommit) {
-        throw new Error("usage: verify-npm-version.mjs <package-name> <package-version> <expected-commit>");
-    }
+async function verifyPackageVersion(packageName, packageVersion, expectedCommit) {
     if (packageVersion === "0.0.0") {
         console.log(`Skipping ${packageName}@${packageVersion}: placeholder version`);
         return;
@@ -83,6 +82,51 @@ async function main() {
         );
     }
     console.log(`✓ ${packageName}@${packageVersion} is already published from ${expectedCommit} (idempotent re-run)`);
+}
+
+function findPublicWorkspacePackages(version) {
+    const packageNames = [];
+    for (const entry of readdirSync("packages", { withFileTypes: true })) {
+        if (!entry.isDirectory()) {
+            continue;
+        }
+        let manifest;
+        try {
+            manifest = JSON.parse(readFileSync(join("packages", entry.name, "package.json"), "utf8"));
+        } catch {
+            continue;
+        }
+        if (manifest.private !== true && manifest.name && manifest.version === version) {
+            packageNames.push(manifest.name);
+        }
+    }
+    return packageNames.sort();
+}
+
+async function main() {
+    const [command, ...args] = process.argv.slice(2);
+
+    if (command === "--workspace") {
+        const [version, expectedCommit] = args;
+        if (!version || !expectedCommit) {
+            throw new Error("usage: verify-npm-version.mjs --workspace <version> <expected-commit>");
+        }
+        const packageNames = findPublicWorkspacePackages(version);
+        if (packageNames.length === 0) {
+            throw new Error(`no public workspace packages found at version ${version}`);
+        }
+        console.log(`Verifying ${packageNames.length} public workspace package(s) at ${version}`);
+        for (const packageName of packageNames) {
+            await verifyPackageVersion(packageName, version, expectedCommit);
+        }
+        return;
+    }
+
+    const [packageName, packageVersion, expectedCommit] = process.argv.slice(2);
+    if (!packageName || !packageVersion || !expectedCommit) {
+        throw new Error("usage: verify-npm-version.mjs <package-name> <package-version> <expected-commit>");
+    }
+    await verifyPackageVersion(packageName, packageVersion, expectedCommit);
 }
 
 main().catch((error) => {

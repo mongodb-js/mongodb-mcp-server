@@ -121,13 +121,13 @@ jobs:
         run: echo "::notice title=atlas-mcp-remote Deployment Info::Deploying version ${{ steps.get-remote-version.outputs.ATLAS_MCP_REMOTE_GIT_TAG_VERSION }} to channel ${{ steps.remote-npm-tag.outputs.ATLAS_MCP_REMOTE_RELEASE_CHANNEL }}"
 
       # Only runs when there is no tag yet, i.e. when this run is actually releasing.
-      - name: Verify mongodb-mcp-server is not already published from a different commit
+      - name: Verify release packages are not already published from a different commit
         if: steps.check-version.outputs.VERSION_EXISTS == 'false'
         env:
           NPM_VERSION: ${{ steps.get-version.outputs.NPM_VERSION }}
           EXPECTED_COMMIT: ${{ github.sha }}
         shell: bash
-        run: node .github/scripts/verify-npm-version.mjs mongodb-mcp-server "$NPM_VERSION" "$EXPECTED_COMMIT"
+        run: node .github/scripts/verify-npm-version.mjs --workspace "$NPM_VERSION" "$EXPECTED_COMMIT"
       - name: Verify mongodb-atlas-mcp-remote is not already published from a different commit
         if: steps.check-remote-version.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS == 'false' && steps.get-remote-version.outputs.ATLAS_MCP_REMOTE_NPM_VERSION != '0.0.0'
         env:
