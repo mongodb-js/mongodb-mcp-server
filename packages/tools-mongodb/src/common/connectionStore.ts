@@ -45,13 +45,10 @@ export type ConnectionStoreConfig = ConnectionDriverConfig & {
     connectionIdleTimeoutMs: number;
     /**
      * Milliseconds a connection may stay in the `connecting` state before the
-     * reaper closes it. Bounds a dial that never settles (e.g. a stalled OIDC
-     * flow) so it cannot pin a connection forever. `0` disables it. Kept
-     * separate from `connectionIdleTimeoutMs` so lowering the idle timeout
-     * does not abort legitimate multi-minute auth flows.
-     *
-     * Optional so directly-constructed embedder configs keep working; defaults
-     * to {@link DEFAULT_CONNECTION_CONNECT_TIMEOUT_MS}.
+     * reaper closes it, so a stalled dial cannot pin a connection forever. `0`
+     * disables it. Separate from `connectionIdleTimeoutMs` so lowering the idle
+     * timeout does not abort a legitimate multi-minute OIDC flow. Optional;
+     * defaults to {@link DEFAULT_CONNECTION_CONNECT_TIMEOUT_MS}.
      */
     connectionConnectTimeoutMs?: number;
     transport: "stdio" | "http";
@@ -63,10 +60,8 @@ export type ConnectionStoreConfig = ConnectionDriverConfig & {
 };
 
 /**
- * Default deadline (ms) a connection may remain in the `connecting` state
- * before the reaper closes it. Mirrors the default idle timeout so a stalled
- * dial is bounded, while still allowing a multi-minute OIDC flow. Shared with
- * the CLI's `connectionConnectTimeoutMs` schema default.
+ * Default deadline (ms) a connection may stay `connecting` before the reaper
+ * closes it. Shared with the CLI's `connectionConnectTimeoutMs` schema default.
  */
 export const DEFAULT_CONNECTION_CONNECT_TIMEOUT_MS = 600_000;
 
@@ -365,9 +360,7 @@ export class MCPConnectionStore {
      * revocation log behave exactly as an LRU overflow.
      *
      * The preconfigured connection is pinned (auto-redials on next resolve).
-     * An in-progress dial is left alone until it exceeds
-     * {@link connectionConnectTimeoutMs}, so a legitimate multi-minute OIDC
-     * flow is not aborted but a stalled one cannot pin memory forever.
+     * A dial is left alone until it exceeds {@link connectionConnectTimeoutMs}.
      */
     private async sweepIdleConnections(): Promise<void> {
         const now = Date.now();
@@ -394,9 +387,7 @@ export class MCPConnectionStore {
     }
 
     private startSweeper(): void {
-        // Reap on the shortest enabled timeout's cadence, so an entry is released
-        // within one interval of crossing its threshold. A `0` timeout disables
-        // its rule; with both disabled there is nothing to sweep.
+        // Reap on the shortest enabled timeout's cadence; a `0` timeout disables its rule.
         const cadences = [this.connectionIdleTimeoutMs, this.connectionConnectTimeoutMs].filter((ms) => ms > 0);
         if (cadences.length === 0) {
             return;

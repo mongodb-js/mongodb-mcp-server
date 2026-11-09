@@ -166,8 +166,6 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
             // via `req.auth`. Absent when the host supplied none.
             authInfo: (req as express.Request & { auth?: RequestAuthInfo }).auth,
             mcp_client_protocol: this.resolveClientProtocol(req),
-            // This handler owns a server per session, so a scope the server
-            // creates here belongs to the session and is reaped when it ends.
             sessionful: true,
         };
     }

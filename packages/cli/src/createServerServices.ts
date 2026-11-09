@@ -335,17 +335,11 @@ export function createServerFromConfig({
     // yields an ephemeral scope with no cross-request state. Non-HTTP (no
     // request): the shared registry.
     //
-    // `owned` decides what happens when the request-scoped server closes:
-    //   - An ephemeral scope (the policy returned `undefined`) exists only for
-    //     this server, so it is owned and `close()` reaps its connections.
-    //   - A named scope on a sessionful transport (legacy 2025-era HTTP: one
-    //     server per session) belongs to that session, so it is owned too — its
-    //     connections are reaped when the session ends, restoring the documented
-    //     `connectionScope: "session"` behavior instead of leaving them to the
-    //     idle reaper.
-    //   - A named scope on a stateless transport (2026-era HTTP: one server per
-    //     request) must outlive the request that created the view, so it is
-    //     unowned and `close()` leaves the connections alone.
+    // `owned` decides what happens when the request-scoped server closes: an
+    // ephemeral scope, or any named scope on a sessionful transport (legacy
+    // 2025-era HTTP, one server per session), is owned and reaped on close; a
+    // named scope on a stateless transport (2026-era HTTP, one server per
+    // request) must outlive the request, so it is unowned.
     let requestConnectionRegistry: ConnectionRegistry = connectionRegistry;
     if (request) {
         if (!connectionScope) {

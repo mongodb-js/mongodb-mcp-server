@@ -760,9 +760,7 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
     });
 
     it("reaps a named scope when a sessionful server closes (legacy session end)", async () => {
-        // On the sessionful (legacy) path the server lives for the whole
-        // session, so a scope it owns dies with the session instead of waiting
-        // for the idle reaper.
+        // The server lives for the whole session, so its scopes die with it.
         const config = UserConfigSchema.parse({
             transport: "http",
             telemetry: "disabled",

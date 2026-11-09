@@ -60,14 +60,10 @@ export type TransportRequestContext = {
     /** The exact MCP protocol revision this request named, or `"legacy"` when unset. */
     mcp_client_protocol?: McpProtocol;
     /**
-     * Whether the server serving this request lives for a whole session
-     * (legacy 2025-era HTTP: one request-scoped server per session) rather
-     * than for a single request (stateless 2026-era HTTP: a fresh server per
-     * request). Connection scopes created through a sessionful server are
-     * owned by it and are reaped when the session ends; a stateless server's
-     * scopes must survive the request that created the view, so they are not.
-     * Absent is treated as not sessionful (stateless), preserving the previous
-     * behavior for embedders that build this context themselves.
+     * Whether the server serving this request lives for a whole session (legacy
+     * 2025-era HTTP) rather than a single request (stateless 2026-era HTTP). A
+     * sessionful server's connection scopes are reaped when the session ends; a
+     * stateless server's outlive the request. Absent means stateless.
      */
     sessionful?: boolean;
 };
