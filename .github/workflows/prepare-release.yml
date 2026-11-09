@@ -13,7 +13,7 @@ permissions: {}
 
 jobs:
   create-pr:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: mongodb-js/devtools-shared/actions/setup-bot-token@main

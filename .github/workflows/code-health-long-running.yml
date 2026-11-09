@@ -11,7 +11,7 @@ permissions: {}
 jobs:
   run-long-running-tests:
     name: Run long running tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v7.0.1

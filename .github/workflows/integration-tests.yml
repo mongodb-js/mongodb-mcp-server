@@ -13,7 +13,7 @@ jobs:
   run-integration-tests:
     name: Run Integration tests
     if: github.event_name == 'push' || (github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
@@ -48,7 +48,7 @@ jobs:
   run-atlas-tests:
     name: Run Atlas tests
     if: github.event_name == 'push' || (github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
@@ -87,7 +87,7 @@ jobs:
   run-atlas-streams-tests:
     name: Run Atlas Streams tests
     if: github.event_name == 'push' || (github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 120
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
@@ -126,7 +126,7 @@ jobs:
   run-atlas-clusters-tests:
     name: Run Atlas Clusters tests
     if: false
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 120
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
@@ -158,7 +158,7 @@ jobs:
   run-atlas-local-tests:
     name: Run Atlas Local tests
     if: github.event_name == 'push' || (github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v7.0.1
