@@ -6,6 +6,12 @@ on:
       - main
       - rmcp-ga-release
 
+# Serializes releases: a run holds this group while it waits on the Production approval,
+# so a second push cannot publish the same version from another commit in the meantime.
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -182,6 +188,20 @@ jobs:
           fi
 
           pnpm --filter 'mongodb-atlas-mcp-remote' publish --tag "${RELEASE_CHANNEL}" --no-git-checks
+      - name: Wait for atlas-mcp-remote to be available on npm
+        if: needs.check.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION != '0.0.0'
+        uses: ./.github/actions/wait-for-npm
+        with:
+          package-name: mongodb-atlas-mcp-remote
+          package-version: ${{ needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION }}
+      # Re-verify after publication: a retried `publish` job reuses the stale `check` result.
+      - name: Verify atlas-mcp-remote provenance before release
+        if: needs.check.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION != '0.0.0'
+        env:
+          NPM_VERSION: ${{ needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION }}
+          EXPECTED_COMMIT: ${{ github.sha }}
+        shell: bash
+        run: node .github/scripts/verify-npm-version.mjs mongodb-atlas-mcp-remote "$NPM_VERSION" "$EXPECTED_COMMIT"
       - name: Publish atlas-mcp-remote GitHub release
         if: needs.check.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION != '0.0.0'
         env:
@@ -201,12 +221,6 @@ jobs:
             --generate-notes \
             --target ${{ github.sha }} \
             ${{ (needs.check.outputs.ATLAS_MCP_REMOTE_RELEASE_CHANNEL != 'latest' && '--prerelease') || ''}}
-      - name: Wait for atlas-mcp-remote to be available on npm
-        if: needs.check.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION != '0.0.0'
-        uses: ./.github/actions/wait-for-npm
-        with:
-          package-name: mongodb-atlas-mcp-remote
-          package-version: ${{ needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION }}
 
       - name: Build
         if: needs.check.outputs.VERSION_EXISTS == 'false'
@@ -223,6 +237,13 @@ jobs:
         with:
           package-name: mongodb-mcp-server
           package-version: ${{ needs.check.outputs.NPM_VERSION }}
+      - name: Verify release packages provenance before release
+        if: needs.check.outputs.VERSION_EXISTS == 'false'
+        env:
+          NPM_VERSION: ${{ needs.check.outputs.NPM_VERSION }}
+          EXPECTED_COMMIT: ${{ github.sha }}
+        shell: bash
+        run: node .github/scripts/verify-npm-version.mjs --workspace "$NPM_VERSION" "$EXPECTED_COMMIT"
       - name: Build .mcpb
         if: needs.check.outputs.VERSION_EXISTS == 'false'
         run: pnpm run build:mcpb
