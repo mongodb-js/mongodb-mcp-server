@@ -6,8 +6,7 @@ on:
       - main
       - rmcp-ga-release
 
-# Serializes releases: a run holds this group while it waits on the Production approval,
-# so a second push cannot publish the same version from another commit in the meantime.
+# Held while a run waits on the Production approval, so a second push cannot publish the same version.
 concurrency:
   group: publish
   cancel-in-progress: false
@@ -145,8 +144,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # The authoritative provenance check: a retried `publish` job reuses the earlier
-      # `check` result, so verify here, before anything is published or released.
+      # A retried `publish` job reuses the earlier `check` result, so verify here.
       - name: Verify release packages provenance
         if: needs.check.outputs.VERSION_EXISTS == 'false'
         env:
