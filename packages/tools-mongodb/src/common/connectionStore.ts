@@ -43,6 +43,17 @@ export type ConnectionStoreConfig = ConnectionDriverConfig & {
      * it. `0` disables reaping (default 600_000 / 10 minutes).
      */
     connectionIdleTimeoutMs: number;
+    /**
+     * Milliseconds a connection may stay in the `connecting` state before the
+     * reaper closes it. Bounds a dial that never settles (e.g. a stalled OIDC
+     * flow) so it cannot pin a connection forever. `0` disables it. Kept
+     * separate from `connectionIdleTimeoutMs` so lowering the idle timeout
+     * does not abort legitimate multi-minute auth flows.
+     *
+     * Optional so directly-constructed embedder configs keep working; defaults
+     * to {@link DEFAULT_CONNECTION_CONNECT_TIMEOUT_MS}.
+     */
+    connectionConnectTimeoutMs?: number;
     transport: "stdio" | "http";
     httpHost: string;
     /** Client-side operation timeout (CSOT) applied as the driver `timeoutMS`. */
@@ -50,6 +61,14 @@ export type ConnectionStoreConfig = ConnectionDriverConfig & {
     /** @deprecated Use `timeoutMs`. Resolved here so directly-constructed configs keep working. */
     maxTimeMS?: number;
 };
+
+/**
+ * Default deadline (ms) a connection may remain in the `connecting` state
+ * before the reaper closes it. Mirrors the default idle timeout so a stalled
+ * dial is bounded, while still allowing a multi-minute OIDC flow. Shared with
+ * the CLI's `connectionConnectTimeoutMs` schema default.
+ */
+export const DEFAULT_CONNECTION_CONNECT_TIMEOUT_MS = 600_000;
 
 /**
  * Fallback server metadata used when the embedder does not supply any. The cli
@@ -104,6 +123,7 @@ export class MCPConnectionStore {
     private readonly deviceId: DeviceId;
     private readonly serverMetadata: ServerMetadata;
     private readonly connectionIdleTimeoutMs: number;
+    private readonly connectionConnectTimeoutMs: number;
     private readonly keychain: Keychain;
     /** In-flight dial per pinned entry, keyed by connectionId, so concurrent resolves share one dial. */
     private readonly preconfiguredDials = new Map<string, Promise<void>>();
@@ -116,6 +136,7 @@ export class MCPConnectionStore {
         this.deviceId = deviceId;
         this.serverMetadata = serverMetadata ?? DEFAULT_SERVER_METADATA;
         this.connectionIdleTimeoutMs = config.connectionIdleTimeoutMs;
+        this.connectionConnectTimeoutMs = config.connectionConnectTimeoutMs ?? DEFAULT_CONNECTION_CONNECT_TIMEOUT_MS;
         this.keychain = keychain;
 
         this.startSweeper();
@@ -343,43 +364,47 @@ export class MCPConnectionStore {
      * {@link revoke} so temp-user cleanup, list-connections removal, and the
      * revocation log behave exactly as an LRU overflow.
      *
-     * The preconfigured connection is pinned (auto-redials on next resolve) and
-     * an in-progress dial is left alone (it may take minutes).
+     * The preconfigured connection is pinned (auto-redials on next resolve).
+     * An in-progress dial is left alone until it exceeds
+     * {@link connectionConnectTimeoutMs}, so a legitimate multi-minute OIDC
+     * flow is not aborted but a stalled one cannot pin memory forever.
      */
     private async sweepIdleConnections(): Promise<void> {
-        if (this.connectionIdleTimeoutMs <= 0) {
-            return;
-        }
         const now = Date.now();
-        const idle: ConnectionEntry[] = [];
+        const expired: ConnectionEntry[] = [];
         for (const { entry } of this.entries.values()) {
             if (entry.source === "preconfigured") {
                 continue;
             }
+            const age = now - entry.lastUsedAt.getTime();
             if (entry.state.tag === "connecting") {
+                if (this.connectionConnectTimeoutMs > 0 && age > this.connectionConnectTimeoutMs) {
+                    expired.push(entry);
+                }
                 continue;
             }
-            if (now - entry.lastUsedAt.getTime() > this.connectionIdleTimeoutMs) {
-                idle.push(entry);
+            if (this.connectionIdleTimeoutMs > 0 && age > this.connectionIdleTimeoutMs) {
+                expired.push(entry);
             }
         }
-        for (const entry of idle) {
+        for (const entry of expired) {
             this.entries.delete(entry.connectionId);
             await this.revoke(entry);
         }
     }
 
     private startSweeper(): void {
-        if (this.connectionIdleTimeoutMs <= 0) {
+        // Reap on the shortest enabled timeout's cadence, so an entry is released
+        // within one interval of crossing its threshold. A `0` timeout disables
+        // its rule; with both disabled there is nothing to sweep.
+        const cadences = [this.connectionIdleTimeoutMs, this.connectionConnectTimeoutMs].filter((ms) => ms > 0);
+        if (cadences.length === 0) {
             return;
         }
-        // Reap on the timeout cadence itself, so an entry is released within one
-        // interval of crossing the threshold. 0 (handled above) disables; the
-        // connectionIdleTimeoutMs schema rejects negatives, so a tiny but positive
-        // value here simply makes the reaper run more often.
+        const cadence = Math.min(...cadences);
         this.sweepTimer = setInterval(() => {
             void this.sweepIdleConnections();
-        }, this.connectionIdleTimeoutMs);
+        }, cadence);
         // Browser-safe: unref() is a Node-only method that keeps the timer from
         // holding the process open; skip it when unavailable (e.g. in a web build).
         if (typeof this.sweepTimer?.unref === "function") {

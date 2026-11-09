@@ -19,6 +19,7 @@ import {
     previewFeatureValues,
     QUERY_COUNT_MAX_TIME_MS_CAP,
     AGG_COUNT_MAX_TIME_MS_CAP,
+    DEFAULT_CONNECTION_CONNECT_TIMEOUT_MS,
 } from "@mongodb-js/mcp-tools-mongodb";
 import { argMetadata, CliOptionsSchema as MongoshCliOptionsSchema } from "@mongosh/arg-parser/arg-parser";
 import {
@@ -245,6 +246,15 @@ const ServerConfigSchema = z.object({
         .default(600_000)
         .describe(
             "Milliseconds a MongoDB connection may stay unused (no tool call touching it) before it is closed to release the underlying connection pool and its server-side state. Applied per connection regardless of its connection scope; the preconfigured connection is excluded, and the reaper runs on this cadence. Set to 0 to disable reaping; must not be negative."
+        )
+        .register(configRegistry, { overrideBehavior: onlyLowerThanBaseValueOverride() }),
+    connectionConnectTimeoutMs: z.coerce
+        .number()
+        .int()
+        .min(0, "Invalid connectionConnectTimeoutMs: must be a non-negative integer")
+        .default(DEFAULT_CONNECTION_CONNECT_TIMEOUT_MS)
+        .describe(
+            "Milliseconds a MongoDB connection may stay in the 'connecting' state (e.g. an in-progress OIDC flow) before it is closed. Bounds a dial that never settles so it cannot pin a connection indefinitely. Kept separate from connectionIdleTimeoutMs so lowering the idle timeout does not abort legitimate multi-minute auth flows. Set to 0 to disable; must not be negative."
         )
         .register(configRegistry, { overrideBehavior: onlyLowerThanBaseValueOverride() }),
     /**

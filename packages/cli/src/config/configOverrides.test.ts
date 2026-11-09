@@ -299,6 +299,7 @@ describe("configOverrides", () => {
                     "indexCheck",
                     "disableServerSideJs",
                     "connectionIdleTimeoutMs",
+                    "connectionConnectTimeoutMs",
                     "idleTimeoutMs",
                     "notificationTimeoutMs",
                     "exportTimeoutMs",

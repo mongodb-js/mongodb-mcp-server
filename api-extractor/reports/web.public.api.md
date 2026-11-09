@@ -850,6 +850,7 @@ export type TransportRequestContext = {
     query?: Record<string, string | string[] | undefined>;
     authInfo?: RequestAuthInfo;
     mcp_client_protocol?: McpProtocol;
+    sessionful?: boolean;
 };
 
 // @public

@@ -759,6 +759,37 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
         expect(await server.connectionRegistry.get(created.connectionId)).toBeUndefined();
     });
 
+    it("reaps a named scope when a sessionful server closes (legacy session end)", async () => {
+        // On the sessionful (legacy) path the server lives for the whole
+        // session, so a scope it owns dies with the session instead of waiting
+        // for the idle reaper.
+        const config = UserConfigSchema.parse({
+            transport: "http",
+            telemetry: "disabled",
+            connectionScope: "session",
+        });
+
+        const sharedServices = await makeSharedServerServices(config);
+        const server = createServerFromConfig({
+            config,
+            sharedServices,
+            request: {
+                headers: { [SESSION_ID_HEADER]: "sess-1" },
+                query: {},
+                mcp_client_protocol: "2025-06-18",
+                sessionful: true,
+            },
+            connectionScope: connectionScopeFromConfig(config),
+        });
+
+        const created = await server.connectionRegistry.createEntry({ name: "session-conn" });
+        expect(await sharedServices.connectionRegistry.get(created.connectionId)).toBe(created);
+
+        await server.close();
+
+        expect(await sharedServices.connectionRegistry.get(created.connectionId)).toBeUndefined();
+    });
+
     it("stable-scope connections survive the request-scoped server closing", async () => {
         // Session-keyed (and auth-keyed) scopes are shared across requests, so
         // closing one request's server must not reap them.

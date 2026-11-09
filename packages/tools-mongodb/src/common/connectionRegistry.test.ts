@@ -851,6 +851,26 @@ describe("ConnectionRegistry", () => {
             expect(entry.state.tag).toBe("connecting");
         });
 
+        it("reaps a connecting entry once it exceeds the connect deadline (a stalled dial)", async () => {
+            const store = makeStore({
+                options: {
+                    ...defaultTestConfig,
+                    // Idle reaping off: only the connect deadline can reap here.
+                    connectionIdleTimeoutMs: 0,
+                    connectionConnectTimeoutMs: 1000,
+                },
+            });
+            managerFactory = (): ConnectionManager => new ConnectingManager();
+            const registry = store.view();
+            const entry = await registry.connect({
+                settings: { connectionString: "mongodb://host:27017" },
+            });
+
+            await vi.advanceTimersByTimeAsync(60_000);
+
+            await expect(registry.peek(entry.connectionId)).resolves.toBeUndefined();
+        });
+
         it("stops reaping after closeAll", async () => {
             const store = makeStore({
                 options: { ...defaultTestConfig, connectionIdleTimeoutMs: 1000 },

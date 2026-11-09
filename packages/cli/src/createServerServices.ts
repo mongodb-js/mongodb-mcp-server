@@ -335,13 +335,17 @@ export function createServerFromConfig({
     // yields an ephemeral scope with no cross-request state. Non-HTTP (no
     // request): the shared registry.
     //
-    // `owned` decides what happens when the request-scoped server closes (for
-    // the legacy sessionful path: when the session ends). An ephemeral scope
-    // dies with its session, so its view is owned and `close()` reaps its
-    // connections (the v2.x `connectionScope: "session"` behavior). A stable
-    // scope key (a named client, a verified principal, the global scope) is
-    // meant to survive the request/session that created the view, so its view
-    // is unowned and `close()` leaves the connections alone.
+    // `owned` decides what happens when the request-scoped server closes:
+    //   - An ephemeral scope (the policy returned `undefined`) exists only for
+    //     this server, so it is owned and `close()` reaps its connections.
+    //   - A named scope on a sessionful transport (legacy 2025-era HTTP: one
+    //     server per session) belongs to that session, so it is owned too — its
+    //     connections are reaped when the session ends, restoring the documented
+    //     `connectionScope: "session"` behavior instead of leaving them to the
+    //     idle reaper.
+    //   - A named scope on a stateless transport (2026-era HTTP: one server per
+    //     request) must outlive the request that created the view, so it is
+    //     unowned and `close()` leaves the connections alone.
     let requestConnectionRegistry: ConnectionRegistry = connectionRegistry;
     if (request) {
         if (!connectionScope) {
@@ -350,10 +354,8 @@ export function createServerFromConfig({
             );
         }
         const scope = connectionScope(request);
-        requestConnectionRegistry =
-            scope !== undefined
-                ? connectionStore.view({ scope, owned: false })
-                : connectionStore.view({ scope: ephemeralClientScope(), owned: true });
+        const owned = scope === undefined || request.sessionful === true;
+        requestConnectionRegistry = connectionStore.view({ scope: scope ?? ephemeralClientScope(), owned });
     }
 
     const mcpServer = new McpServer({

@@ -1063,6 +1063,7 @@ export type TransportRequestContext = {
     query?: Record<string, string | string[] | undefined>;
     authInfo?: RequestAuthInfo;
     mcp_client_protocol?: McpProtocol;
+    sessionful?: boolean;
 };
 
 // @public
@@ -1124,9 +1125,10 @@ export const UserConfigSchema: z.ZodObject<{
     httpBodyLimit: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxActiveConnections: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     connectionIdleTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    connectionConnectTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     connectionScope: z.ZodDefault<z.ZodEnum<{
-        session: "session";
         global: "global";
+        session: "session";
     }>>;
     maxSessions: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     idleTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
