@@ -73,22 +73,15 @@ function isExhaustive(schema: JSONSchema): boolean {
     }
 
     const branches = [...(schema.anyOf ?? []), ...(schema.oneOf ?? []), ...(schema.allOf ?? [])];
-    if (!branches.every(isExhaustive)) {
-        return false;
+    if (branches.length > 0) {
+        // Every value must match the branches, so sibling keywords can only narrow it further.
+        return branches.every(isExhaustive);
     }
 
+    // Without a declared type, object and array keywords don't rule out the other shape.
     const types = getDeclaredTypes(schema);
-    const mayBeObject = types
-        ? types.includes("object")
-        : schema.properties !== undefined ||
-          schema.additionalProperties !== undefined ||
-          schema.patternProperties !== undefined;
-    const mayBeArray = types ? types.includes("array") : schema.items !== undefined;
-
-    if (!types && !mayBeObject && !mayBeArray) {
-        // An untyped schema accepts any value unless its branches constrain it.
-        return branches.length > 0;
-    }
+    const mayBeObject = !types || types.includes("object");
+    const mayBeArray = !types || types.includes("array");
 
     return (!mayBeObject || isObjectExhaustive(schema)) && (!mayBeArray || isArrayExhaustive(schema));
 }
@@ -123,6 +116,11 @@ export function getJsonSchemaValidator(collectionOptions: Document | undefined):
 }
 
 function mergeTypes(sampled: SimplifiedSchemaType[], declared: SimplifiedSchemaType[]): SimplifiedSchemaType[] {
+    // An empty declared list means the validator doesn't constrain the type, e.g. an array without `items`.
+    if (declared.length === 0) {
+        return sampled;
+    }
+
     return declared.map((declaredType) => {
         const sampledType = sampled.find((type) => type.bsonType === declaredType.bsonType);
         if (sampledType && "fields" in sampledType && "fields" in declaredType) {
@@ -142,11 +140,11 @@ function mergeTypes(sampled: SimplifiedSchemaType[], declared: SimplifiedSchemaT
  * the validator take precedence, while fields only found in the sample are kept at every nesting level.
  */
 export function mergeSimplifiedSchemas(sampled: SimplifiedSchema, declared: SimplifiedSchema): SimplifiedSchema {
-    const merged: SimplifiedSchema = { ...sampled };
-    for (const [name, declaredField] of Object.entries(declared)) {
-        const sampledField = sampled[name];
-        merged[name] = sampledField ? { types: mergeTypes(sampledField.types, declaredField.types) } : declaredField;
-    }
+    // Own-property lookups and Object.fromEntries keep names like `constructor` and `__proto__` as plain fields.
+    const declaredEntries = Object.entries(declared).map(([name, declaredField]) => {
+        const sampledField = Object.hasOwn(sampled, name) ? sampled[name] : undefined;
+        return [name, sampledField ? { types: mergeTypes(sampledField.types, declaredField.types) } : declaredField];
+    });
 
-    return merged;
+    return Object.fromEntries([...Object.entries(sampled), ...declaredEntries]) as SimplifiedSchema;
 }

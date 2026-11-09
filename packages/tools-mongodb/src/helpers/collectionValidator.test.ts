@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { convertMongoDBJSONSchemaToSimplified } from "@mongodb-js/mongodb-schema";
+import {
+    convertMongoDBJSONSchemaToSimplified,
+    type SimplifiedSchema,
+    type SimplifiedSchemaType,
+} from "@mongodb-js/mongodb-schema";
 import { getJsonSchemaValidator, mergeSimplifiedSchemas } from "./collectionValidator.js";
 
 describe("getJsonSchemaValidator", () => {
@@ -143,6 +147,14 @@ describe("getJsonSchemaValidator", () => {
                 name: "anyOf with an open branch",
                 schema: { anyOf: [closed({ a: { bsonType: "int" } }), { bsonType: "object" }] },
             },
+            {
+                name: "closed object with untyped field using array keywords",
+                schema: closed({ payload: { items: { bsonType: "int" } } }),
+            },
+            {
+                name: "closed object with untyped field using object keywords",
+                schema: closed({ payload: { additionalProperties: false, properties: {} } }),
+            },
         ])("is false for $name", ({ schema }) => {
             expect(getJsonSchemaValidator({ validator: { $jsonSchema: schema } })?.isExhaustive).toBe(false);
         });
@@ -245,6 +257,31 @@ describe("mergeSimplifiedSchemas", () => {
                     },
                 ],
             },
+        });
+    });
+
+    it("keeps sampled item types when the declared array has no item constraints", () => {
+        const sampledItems: SimplifiedSchemaType[] = [
+            { bsonType: "Document", fields: { name: { types: [{ bsonType: "String" }] } } },
+        ];
+        expect(
+            mergeSimplifiedSchemas(
+                { tags: { types: [{ bsonType: "Array", types: sampledItems }] } },
+                { tags: { types: [{ bsonType: "Array", types: [] }] } }
+            )
+        ).toEqual({ tags: { types: [{ bsonType: "Array", types: sampledItems }] } });
+    });
+
+    it("treats Object.prototype names as plain fields", () => {
+        const declared = JSON.parse(
+            '{"constructor":{"types":[{"bsonType":"String"}]},"toString":{"types":[{"bsonType":"Int32"}]},"__proto__":{"types":[{"bsonType":"Boolean"}]}}'
+        ) as SimplifiedSchema;
+
+        const merged = mergeSimplifiedSchemas({}, declared);
+        expect(Object.getPrototypeOf(merged)).toBe(Object.prototype);
+        expect(Object.keys(merged)).toEqual(["constructor", "toString", "__proto__"]);
+        expect(Object.getOwnPropertyDescriptor(merged, "__proto__")?.value).toEqual({
+            types: [{ bsonType: "Boolean" }],
         });
     });
 });
