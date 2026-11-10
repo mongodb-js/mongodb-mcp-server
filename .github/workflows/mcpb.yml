@@ -16,6 +16,12 @@ jobs:
     name: Validate manifest
     runs-on: ubuntu-latest
     steps:
+      - name: Set up Python for permissions monitor
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Expose Python to permissions monitor's sudo PATH
+        run: sudo -n ln -sf "$pythonLocation/bin/python3.12" /usr/local/bin/python3.12
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v7.0.1
         with:
