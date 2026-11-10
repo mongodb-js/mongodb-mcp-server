@@ -25,6 +25,14 @@ jobs:
         with:
           config: ${{ vars.PERMISSIONS_CONFIG }}
 
+      - name: Prepare JIRA summary
+        uses: actions/github-script@v9
+        id: summary
+        with:
+          script: |
+            const summary = `GitHub Issue #${context.payload.issue.number}: ${context.payload.issue.title}`;
+            core.setOutput('summary', summary.slice(0, 255));
+
       - name: Create JIRA ticket
         uses: mongodb/apix-action/create-jira@v16
         id: create
@@ -32,7 +40,7 @@ jobs:
         with:
           token: ${{ secrets.JIRA_API_TOKEN }}
           project-key: MCP
-          summary: "GitHub Issue n. ${{ github.event.issue.number }}"
+          summary: ${{ steps.summary.outputs.summary }}
           issuetype: Bug
           description: "This ticket tracks the following GitHub issue: ${{ github.event.issue.html_url }}."
           extra-data: |
