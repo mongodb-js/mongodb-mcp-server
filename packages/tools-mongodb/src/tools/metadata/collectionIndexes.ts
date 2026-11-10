@@ -121,24 +121,21 @@ export class CollectionIndexesTool extends MongoDBToolBase {
     }
 
     /**
-     * Resolves the search index type from the index document. The field
-     * definitions are the most reliable signal, so they are checked first: the
-     * server-provided top-level `type` can report auto-embed indexes as plain
-     * `vectorSearch`. The server type and definition type are used as fallbacks
-     * for definitions without a `fields` array (e.g. Atlas Search indexes).
+     * Resolves the search index type from the index document, falling back to
+     * definition structure inference when the server doesn't provide a top-level
+     * `type` field. Auto-embed indexes are detected from their field definitions
+     * first, because the server may report them as plain `vectorSearch` indexes.
+     * All other indexes keep resolving exactly as before.
      */
     private static resolveIndexType(index: Record<string, unknown>): string {
         const definition = (index["latestDefinition"] ?? {}) as Record<string, unknown>;
-
-        // Vector search uses a `fields` array, Atlas search uses `mappings`
         const fields = definition["fields"];
-        if (Array.isArray(fields)) {
-            // Auto-embed indexes have an autoEmbed field type
-            if (fields.some((field: Record<string, unknown>) => field["type"] === "autoEmbed")) {
-                return "autoEmbed";
-            }
-            // Regular vector search indexes, including ones mixed with filter fields
-            return "vectorSearch";
+
+        // Auto-embed indexes have an autoEmbed field type (see the
+        // @mongodb-js/search-index-schema vector search schemas). Check this
+        // before the server-provided type, which can be `vectorSearch` for them.
+        if (Array.isArray(fields) && fields.some((field: Record<string, unknown>) => field["type"] === "autoEmbed")) {
+            return "autoEmbed";
         }
 
         // Direct type from server response.
@@ -151,6 +148,11 @@ export class CollectionIndexesTool extends MongoDBToolBase {
         const defType = definition["type"];
         if (defType && typeof defType === "string") {
             return defType;
+        }
+
+        // Vector search uses a `fields` array, Atlas search uses `mappings`
+        if (Array.isArray(fields)) {
+            return "vectorSearch";
         }
 
         if (definition["mappings"] !== undefined && definition["mappings"] !== null) {
