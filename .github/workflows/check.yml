@@ -12,6 +12,12 @@ jobs:
   check-style:
     runs-on: ubuntu-latest
     steps:
+      - name: Set up Python for permissions monitor
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Expose Python to permissions monitor's sudo PATH
+        run: sudo -n ln -sf "$pythonLocation/bin/python3.12" /usr/local/bin/python3.12
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v7.0.1
         with:
@@ -31,6 +37,12 @@ jobs:
   check-generate:
     runs-on: ubuntu-latest
     steps:
+      - name: Set up Python for permissions monitor
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Expose Python to permissions monitor's sudo PATH
+        run: sudo -n ln -sf "$pythonLocation/bin/python3.12" /usr/local/bin/python3.12
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v7.0.1
         with:
@@ -50,6 +62,12 @@ jobs:
     name: Check dependencies
     runs-on: ubuntu-latest
     steps:
+      - name: Set up Python for permissions monitor
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Expose Python to permissions monitor's sudo PATH
+        run: sudo -n ln -sf "$pythonLocation/bin/python3.12" /usr/local/bin/python3.12
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v7.0.1
         with:
@@ -69,12 +87,18 @@ jobs:
           pnpm pkg set scripts.prepare="exit 0"
           pnpm install --prod --frozen-lockfile
       - name: List available tools
-        run: pnpm dlx @modelcontextprotocol/inspector@0.16.5 --cli --method tools/list -- node packages/mongodb-mcp-server/dist/esm/index.js
+        run: pnpm dlx @modelcontextprotocol/inspector@2.14.0 --cli --method tools/list -- node packages/mongodb-mcp-server/dist/esm/index.js
 
   check-licenses:
     name: Check third-party notices
     runs-on: ubuntu-latest
     steps:
+      - name: Set up Python for permissions monitor
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Expose Python to permissions monitor's sudo PATH
+        run: sudo -n ln -sf "$pythonLocation/bin/python3.12" /usr/local/bin/python3.12
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v7.0.1
         with:
