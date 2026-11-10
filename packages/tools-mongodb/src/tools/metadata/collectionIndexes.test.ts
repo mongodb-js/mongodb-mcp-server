@@ -14,33 +14,10 @@ const extractTypes = (indexes: Record<string, unknown>[]): SearchIndexDetails[] 
 
 const resolveType = (index: Record<string, unknown>): string | undefined => extractTypes([index])[0]?.type;
 
-const autoEmbedFields = [{ type: "autoEmbed", path: "plot", model: "voyage-4-large", modality: "text" }];
 const vectorFields = [{ type: "vector", path: "embedding", numDimensions: 4, similarity: "euclidean" }];
 
 describe("CollectionIndexesTool search index type resolution", () => {
-    describe("auto-embed indexes", () => {
-        it("reports autoEmbed when the server returns no top-level type", () => {
-            expect(resolveType({ name: "auto", latestDefinition: { fields: autoEmbedFields } })).toBe("autoEmbed");
-        });
-
-        it("reports autoEmbed even when the server reports the index as vectorSearch", () => {
-            expect(
-                resolveType({ name: "auto", type: "vectorSearch", latestDefinition: { fields: autoEmbedFields } })
-            ).toBe("autoEmbed");
-        });
-
-        it("reports autoEmbed for a mixed autoEmbed and filter definition", () => {
-            expect(
-                resolveType({
-                    name: "auto",
-                    type: "vectorSearch",
-                    latestDefinition: { fields: [...autoEmbedFields, { type: "filter", path: "age" }] },
-                })
-            ).toBe("autoEmbed");
-        });
-    });
-
-    describe("other indexes resolve as before", () => {
+    describe("search index types", () => {
         it("keeps the server-provided type for regular vector indexes", () => {
             expect(resolveType({ name: "vec", type: "vectorSearch", latestDefinition: { fields: vectorFields } })).toBe(
                 "vectorSearch"
@@ -77,6 +54,15 @@ describe("CollectionIndexesTool search index type resolution", () => {
 
         it("infers search from mappings when the server provides no type", () => {
             expect(resolveType({ name: "lex", latestDefinition: { mappings: { dynamic: true } } })).toBe("search");
+        });
+
+        it("treats an autoEmbed definition as vectorSearch", () => {
+            expect(
+                resolveType({
+                    name: "auto",
+                    latestDefinition: { fields: [{ type: "autoEmbed", path: "plot", model: "voyage-4-large" }] },
+                })
+            ).toBe("vectorSearch");
         });
 
         it("returns UNKNOWN for an unrecognizable definition", () => {
