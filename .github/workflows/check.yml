@@ -10,7 +10,7 @@ permissions: {}
 
 jobs:
   check-style:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v7.0.1
@@ -29,7 +29,7 @@ jobs:
         run: pnpm run check
 
   check-generate:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v7.0.1
@@ -48,7 +48,7 @@ jobs:
 
   check-dep:
     name: Check dependencies
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v7.0.1
@@ -73,7 +73,7 @@ jobs:
 
   check-licenses:
     name: Check third-party notices
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v7.0.1

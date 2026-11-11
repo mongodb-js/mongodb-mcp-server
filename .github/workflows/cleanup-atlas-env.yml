@@ -9,7 +9,7 @@ permissions: {}
 
 jobs:
   cleanup-envs:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v7.0.1

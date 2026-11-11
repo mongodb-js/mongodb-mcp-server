@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   check:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     permissions: {}
     outputs:
       VERSION_EXISTS: ${{ steps.check-version.outputs.VERSION_EXISTS }}
@@ -126,7 +126,7 @@ jobs:
   # the `Production` environment, and GitHub prompts required reviewers once per job
   # that references an environment, so publishing both here keeps it to one approval.
   publish:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     environment: Production
     permissions:
       contents: write
@@ -321,7 +321,7 @@ jobs:
           retention-days: 7
 
   handle-sbom-failure:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       issues: write

@@ -14,23 +14,23 @@ jobs:
     if: github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.head.repo.full_name != github.repository
     strategy:
       matrix:
-        os: [ubuntu-24.04, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         node-version: ["22"]
         include:
-          - os: ubuntu-24.04
+          - os: ubuntu-latest
             node-version: "24"
-          - os: ubuntu-24.04
+          - os: ubuntu-latest
             node-version: "26"
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-        if: matrix.os == 'ubuntu-24.04'
+        if: matrix.os == 'ubuntu-latest'
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - uses: docker/setup-docker-action@v5
-        if: matrix.os == 'ubuntu-24.04'
+        if: matrix.os == 'ubuntu-latest'
         name: Setup Docker Environment
         with:
           set-host: true
@@ -48,7 +48,7 @@ jobs:
   run-atlas-local-tests:
     name: Run Atlas Local tests
     if: github.event.pull_request.user.login == 'dependabot[bot]'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       - uses: actions/checkout@v7.0.1
