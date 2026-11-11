@@ -383,7 +383,7 @@ NOTE: atlas tools are only available when you set credentials on [configuration]
 #### MongoDB Atlas Local Tools
 
 - `atlas-local-connect-deployment` - Connect to a MongoDB Atlas Local deployment and get back a connectionId to pass to the other MongoDB tools
-- `atlas-local-create-deployment` - Create a MongoDB Atlas local deployment. Default image is preview. When the user does not specify an image tag, inform them that preview is used by default and provide this link for more information: https://hub.docker.com/r/mongodb/mongodb-atlas-local
+- `atlas-local-create-deployment` - Create a MongoDB Atlas local deployment. Default image is latest. When the user does not specify an image tag, inform them that latest is used by default and provide this link for more information: https://hub.docker.com/r/mongodb/mongodb-atlas-local
 - `atlas-local-delete-deployment` - Delete a MongoDB Atlas local deployment
 - `atlas-local-list-deployments` - List MongoDB Atlas local deployments
 
