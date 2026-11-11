@@ -538,6 +538,18 @@ In addition, the `aggregate` and `aggregate-db` tools always request confirmatio
 
 Adding either tool to `confirmationRequiredTools` is broader: every call is then confirmed up front with the standard tool-level message, and a write stage does not raise a second prompt.
 
+##### Unattended and CI agents
+
+Some clients advertise elicitation support but have no user to answer the prompt, for example when running non-interactively (such as `codex exec`) or in CI. In that case the elicitation is not accepted, the server treats it as a decline, and the tool returns ``User did not confirm the execution of the `<tool>` tool so the operation was not performed.`` Nothing is changed, and the agent run may still exit successfully, so the failure is easy to miss.
+
+If you run the server with an unattended agent and want confirmation-gated tools (such as `delete-many`) to execute, disable the confirmation prompts by setting `confirmationRequiredTools` to an empty value:
+
+```shell
+MDB_MCP_CONFIRMATION_REQUIRED_TOOLS="" npx -y mongodb-mcp-server
+```
+
+or pass `--confirmationRequiredTools ""`. Only do this when the agent is trusted to run destructive operations without a human in the loop. Consider combining it with a [read-only](#read-only-mode) or [disabled tools](#disabled-tools) configuration, or with a database user that has limited privileges.
+
 #### Read-Only Mode
 
 The `readOnly` configuration option allows you to restrict the MCP server to only use tools with "read", "connect", and "metadata" operation types. When enabled, all tools that have "create", "update" or "delete" operation types will not be registered with the server.
