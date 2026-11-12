@@ -859,6 +859,44 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
             expect(await another.connectionRegistry.get(created.connectionId)).toBe(created);
         });
 
+        it("does not reap a shared (global) scope when one sessionful server closes", async () => {
+            // Regression: a sessionful server must not own a scope it shares
+            // with other sessions/clients, or closing it revokes their
+            // connections.
+            const config = UserConfigSchema.parse({
+                transport: "http",
+                telemetry: "disabled",
+                connectionScope: "global",
+            });
+            const sharedServices = await makeSharedServerServices(config);
+            const policy = connectionScopeFromConfig(config);
+            const sessionfulRequest = (): TransportRequestContext => ({
+                headers: {},
+                query: {},
+                mcp_client_protocol: "2025-06-18",
+                sessionful: true,
+            });
+
+            const first = createServerFromConfig({
+                config,
+                sharedServices,
+                request: sessionfulRequest(),
+                connectionScope: policy,
+            });
+            const second = createServerFromConfig({
+                config,
+                sharedServices,
+                request: sessionfulRequest(),
+                connectionScope: policy,
+            });
+
+            const created = await first.connectionRegistry.createEntry({ name: "global-conn" });
+            await first.close();
+
+            expect(await second.connectionRegistry.get(created.connectionId)).toBe(created);
+            expect(await sharedServices.connectionRegistry.get(created.connectionId)).toBe(created);
+        });
+
         it("'session' keys on mcp-session-id; without one the sessionless path falls back to global", () => {
             const config = UserConfigSchema.parse({
                 transport: "http",
@@ -867,12 +905,16 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
             });
 
             const policy = connectionScopeFromConfig(config);
-            // A request carrying an mcp-session-id resolves to that id.
+            // A request carrying an mcp-session-id resolves to that id; on the
+            // stateless path it is client-supplied, so it stays shared.
             expect(
                 policy({ headers: { [SESSION_ID_HEADER]: "sess-1" }, query: {}, mcp_client_protocol: "2026-07-28" })
-            ).toBe("sess-1");
+            ).toEqual({ scope: "sess-1", owned: false });
             // Sessionless request without an id → shared (global) scope.
-            expect(policy({ headers: {}, query: {}, mcp_client_protocol: "2026-07-28" })).toBe(GLOBAL_CONNECTION_SCOPE);
+            expect(policy({ headers: {}, query: {}, mcp_client_protocol: "2026-07-28" })).toEqual({
+                scope: GLOBAL_CONNECTION_SCOPE,
+                owned: false,
+            });
             // Legacy sessionful request without an id → ephemeral (undefined).
             expect(policy({ headers: {}, query: {}, mcp_client_protocol: "legacy" })).toBeUndefined();
             // Oversized / non-string ids fail closed (no session id, so global on sessionless).
@@ -882,10 +924,10 @@ describe("CliMcpHttpServer (per-request HTTP server)", () => {
                     query: {},
                     mcp_client_protocol: "2026-07-28",
                 })
-            ).toBe(GLOBAL_CONNECTION_SCOPE);
+            ).toEqual({ scope: GLOBAL_CONNECTION_SCOPE, owned: false });
             expect(
                 policy({ headers: { [SESSION_ID_HEADER]: ["a", "b"] }, query: {}, mcp_client_protocol: "2026-07-28" })
-            ).toBe(GLOBAL_CONNECTION_SCOPE);
+            ).toEqual({ scope: GLOBAL_CONNECTION_SCOPE, owned: false });
         });
 
         it("stateless requests sharing an mcp-session-id see each other's connections", async () => {

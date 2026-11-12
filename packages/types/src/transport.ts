@@ -24,10 +24,23 @@ export type RequestAuthInfo = {
 };
 
 /**
+ * A resolved connection scope: the scope key plus whether the scope is owned
+ * by the server that created the view. An owned scope is reaped when that
+ * server closes (a sessionful server's session-private scope); an unowned one
+ * outlives it (a shared scope, or a stateless server's named scope that must
+ * persist across requests). `owned` defaults to `false` (shared).
+ */
+export type ConnectionScope = {
+    scope: string;
+    owned?: boolean;
+};
+
+/**
  * Decides which connection scope a request gets — i.e. which connections it
  * can see and where connections it creates are stored. Returns the scope key,
- * or `undefined` for an ephemeral scope (no cross-request state, isolated
- * from every other request).
+ * a {@link ConnectionScope} to also mark the scope owned, or `undefined` for
+ * an ephemeral scope (no cross-request state, isolated from every other
+ * request; always owned).
  *
  * This is the knob that controls connection isolation: it must be keyed on
  * whatever actually distinguishes the calling principals (per-user principal,
@@ -36,8 +49,14 @@ export type RequestAuthInfo = {
  * user of one client registration together — fine for service accounts,
  * wrong for a multi-user OIDC deployment. Returning `undefined` declines
  * cross-request state for a request entirely.
+ *
+ * A bare string is treated as an unowned (shared) scope. Mark a scope `owned`
+ * only when it is private to the server instance that creates it (e.g. a
+ * session id on a sessionful transport): an owned scope is reaped when that
+ * server closes, so marking a shared scope owned would revoke connections
+ * other servers still use.
  */
-export type ConnectionScopePolicy = (request: TransportRequestContext) => string | undefined;
+export type ConnectionScopePolicy = (request: TransportRequestContext) => string | ConnectionScope | undefined;
 
 /**
  * The MCP protocol revision a client is using: the exact revision string the

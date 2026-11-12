@@ -263,15 +263,25 @@ function connectionScopeBySessionId(request: TransportRequestContext): string | 
  */
 export function connectionScopeFromConfig(config: UserConfig): ConnectionScopePolicy {
     if (config.connectionScope === "global") {
-        return () => GLOBAL_CONNECTION_SCOPE;
+        // One scope shared across every client: never owned, so it survives a
+        // session closing.
+        return () => ({ scope: GLOBAL_CONNECTION_SCOPE, owned: false });
     }
     return (request) => {
         const id = connectionScopeBySessionId(request);
+        if (id) {
+            // A session id names a session-private scope on the sessionful path
+            // (reaped when that session ends). On the stateless path the id is
+            // client-supplied and must outlive the request, so it stays shared.
+            return { scope: id, owned: request.sessionful === true };
+        }
         // No usable session id. On the sessionless (2026-07-28) path this server
         // has no session machinery, so share the global scope so anonymous
         // clients can still persist connections. The legacy sessionful path
         // always has a server-issued session; leave it ephemeral (undefined).
-        return id ?? (request.mcp_client_protocol === "2026-07-28" ? GLOBAL_CONNECTION_SCOPE : undefined);
+        return request.mcp_client_protocol === "2026-07-28"
+            ? { scope: GLOBAL_CONNECTION_SCOPE, owned: false }
+            : undefined;
     };
 }
 
@@ -336,10 +346,10 @@ export function createServerFromConfig({
     // request): the shared registry.
     //
     // `owned` decides what happens when the request-scoped server closes: an
-    // ephemeral scope, or any named scope on a sessionful transport (legacy
-    // 2025-era HTTP, one server per session), is owned and reaped on close; a
-    // named scope on a stateless transport (2026-era HTTP, one server per
-    // request) must outlive the request, so it is unowned.
+    // ephemeral scope is owned (it exists only for this server), and a named
+    // scope is owned only when the policy says so — so a scope shared across
+    // servers (the global scope, an embedder's per-user scope) survives one of
+    // them closing.
     let requestConnectionRegistry: ConnectionRegistry = connectionRegistry;
     if (request) {
         if (!connectionScope) {
@@ -347,8 +357,9 @@ export function createServerFromConfig({
                 "createServerFromConfig: an HTTP request was provided but no connectionScope policy was set."
             );
         }
-        const scope = connectionScope(request);
-        const owned = scope === undefined || request.sessionful === true;
+        const resolved = connectionScope(request);
+        const scope = typeof resolved === "object" ? resolved.scope : resolved;
+        const owned = scope === undefined || (typeof resolved === "object" && resolved.owned === true);
         requestConnectionRegistry = connectionStore.view({ scope: scope ?? ephemeralClientScope(), owned });
     }
 
