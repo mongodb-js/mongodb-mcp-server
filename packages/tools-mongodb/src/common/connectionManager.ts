@@ -198,6 +198,8 @@ export interface ConnectionStateConnecting extends ConnectionState {
     oidcConnectionType: OIDCConnectionAuthType;
     oidcLoginUrl?: string;
     oidcUserCode?: string;
+    /** Epoch ms the dial entered `connecting`; drives the connect deadline. */
+    startedAt: number;
 }
 
 export interface ConnectionStateDisconnected extends ConnectionState {
@@ -517,6 +519,7 @@ export class MCPConnectionManager extends ConnectionManager {
                     serviceProvider,
                     connectionStringInfo,
                     oidcConnectionType: connectionStringInfo.authType as OIDCConnectionAuthType,
+                    startedAt: Date.now(),
                 });
             }
 

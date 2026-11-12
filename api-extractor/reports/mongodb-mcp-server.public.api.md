@@ -495,6 +495,7 @@ export interface ConnectionStateConnecting extends ConnectionState {
     oidcUserCode?: string;
     // (undocumented)
     serviceProvider: Promise<NodeDriverServiceProvider>;
+    startedAt: number;
     // (undocumented)
     tag: "connecting";
 }

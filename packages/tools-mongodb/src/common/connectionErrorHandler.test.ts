@@ -65,6 +65,7 @@ describe("connectionErrorHandler", () => {
                     tag: "connecting",
                     serviceProvider: Promise.resolve({}) as never,
                     oidcConnectionType: "oidc-auth-flow",
+                    startedAt: Date.now(),
                 } satisfies ConnectionStateConnecting,
             }
         );
@@ -85,6 +86,7 @@ describe("connectionErrorHandler", () => {
                     tag: "connecting",
                     serviceProvider: Promise.resolve({}) as never,
                     oidcConnectionType: "oidc-device-flow",
+                    startedAt: Date.now(),
                 } satisfies ConnectionStateConnecting,
             }
         );
@@ -107,6 +109,7 @@ describe("connectionErrorHandler", () => {
                     oidcConnectionType: "oidc-device-flow",
                     oidcLoginUrl: "https://example.com/device",
                     oidcUserCode: "ABCD-1234",
+                    startedAt: Date.now(),
                 } satisfies ConnectionStateConnecting,
             }
         );

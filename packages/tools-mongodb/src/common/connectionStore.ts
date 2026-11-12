@@ -369,14 +369,19 @@ export class MCPConnectionStore {
             if (entry.source === "preconfigured") {
                 continue;
             }
-            const age = now - entry.lastUsedAt.getTime();
             if (entry.state.tag === "connecting") {
-                if (this.connectionConnectTimeoutMs > 0 && age > this.connectionConnectTimeoutMs) {
+                // Measure from when the dial started, not lastUsedAt: resolving
+                // a stalled connection refreshes lastUsedAt and would reset the
+                // deadline.
+                if (
+                    this.connectionConnectTimeoutMs > 0 &&
+                    now - entry.state.startedAt > this.connectionConnectTimeoutMs
+                ) {
                     expired.push(entry);
                 }
                 continue;
             }
-            if (this.connectionIdleTimeoutMs > 0 && age > this.connectionIdleTimeoutMs) {
+            if (this.connectionIdleTimeoutMs > 0 && now - entry.lastUsedAt.getTime() > this.connectionIdleTimeoutMs) {
                 expired.push(entry);
             }
         }
