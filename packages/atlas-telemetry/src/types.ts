@@ -63,6 +63,7 @@ export type CreateClusterMetadata = AtlasMetadata & {
     disk_size_gb?: number;
     mongodb_version?: string;
     encryption_at_rest_provider?: "AWS" | "AZURE" | "GCP" | "NONE";
+    database_edition?: "CORE" | "INFINITE";
 };
 
 /**
