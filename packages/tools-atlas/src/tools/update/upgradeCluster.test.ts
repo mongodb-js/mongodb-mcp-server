@@ -1219,4 +1219,264 @@ describe("UpgradeClusterTool", () => {
             expect(metadata.target_tier).toBeUndefined();
         });
     });
+
+    describe("Atlas Infinite (targetEdition INFINITE)", () => {
+        const INFINITE_CLUSTER_RAW = {
+            ...DEDICATED_CLUSTER_RAW,
+            effectiveDatabaseEdition: "INFINITE",
+            replicationSpecs: [
+                {
+                    regionConfigs: [
+                        {
+                            providerName: "AWS",
+                            regionName: "US_EAST_1",
+                            electableSpecs: { instanceSize: "M40", nodeCount: 2 },
+                        },
+                    ],
+                },
+            ],
+        };
+
+        // The common shape: atlas-create-cluster enables compute autoscaling by default.
+        const INFINITE_CLUSTER_WITH_AUTOSCALING_RAW = {
+            ...INFINITE_CLUSTER_RAW,
+            replicationSpecs: [
+                {
+                    regionConfigs: [
+                        {
+                            providerName: "AWS",
+                            regionName: "US_EAST_1",
+                            electableSpecs: { instanceSize: "M40", nodeCount: 2 },
+                            autoScaling: {
+                                compute: { enabled: true, minInstanceSize: "M40", maxInstanceSize: "M60" },
+                                diskGB: { enabled: true },
+                            },
+                        },
+                    ],
+                },
+            ],
+        };
+
+        type ComputeBody = {
+            body: {
+                replicationSpecs: Array<{
+                    regionConfigs: Array<{
+                        autoScaling: { compute: { minInstanceSize?: string; maxInstanceSize?: string } };
+                    }>;
+                }>;
+            };
+        };
+        const sentCompute = (mock: ReturnType<typeof vi.fn>): { minInstanceSize?: string; maxInstanceSize?: string } =>
+            (mock.mock.calls[0]![0] as ComputeBody).body.replicationSpecs[0]!.regionConfigs[0]!.autoScaling.compute;
+
+        it("upgrades FLEX to Atlas Infinite M10 by default with 2 electable nodes", async () => {
+            mockApiClient.getCluster!.mockRejectedValue(notFoundError());
+            mockApiClient.getFlexCluster!.mockResolvedValue(FLEX_CLUSTER_RAW);
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetEdition: "INFINITE" });
+
+            expect(result.isError).toBeFalsy();
+            expect(mockApiClient.tenantUpgrade).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1" } },
+                    body: {
+                        name: "MyCluster",
+                        clusterType: "REPLICASET",
+                        databaseEdition: "INFINITE",
+                        replicationSpecs: [
+                            {
+                                regionConfigs: [
+                                    {
+                                        providerName: "AWS",
+                                        regionName: "US_EAST_1",
+                                        priority: 7,
+                                        electableSpecs: { instanceSize: "M10", nodeCount: 2 },
+                                        autoScaling: {
+                                            compute: {
+                                                enabled: true,
+                                                scaleDownEnabled: true,
+                                                minInstanceSize: "M10",
+                                                maxInstanceSize: "M30",
+                                            },
+                                            diskGB: { enabled: true },
+                                        },
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                },
+                expect.anything()
+            );
+        });
+
+        it("upgrades FLEX to Atlas Infinite at the requested instance size", async () => {
+            mockApiClient.getCluster!.mockRejectedValue(notFoundError());
+            mockApiClient.getFlexCluster!.mockResolvedValue(FLEX_CLUSTER_RAW);
+
+            const result = await exec({
+                projectId: "proj1",
+                clusterName: "MyCluster",
+                targetEdition: "INFINITE",
+                targetTier: "M50",
+            });
+
+            expect(result.isError).toBeFalsy();
+            const call = mockApiClient.tenantUpgrade!.mock.calls[0]![0] as {
+                body: {
+                    databaseEdition?: string;
+                    replicationSpecs: Array<{ regionConfigs: Array<{ electableSpecs: { instanceSize: string } }> }>;
+                };
+            };
+            expect(call.body.databaseEdition).toBe("INFINITE");
+            expect(call.body.replicationSpecs[0]!.regionConfigs[0]!.electableSpecs.instanceSize).toBe("M50");
+        });
+
+        it("upgrades FREE to Atlas Infinite via the shared-tier upgrade path", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetEdition: "INFINITE" });
+
+            expect(result.isError).toBeFalsy();
+            expect(mockApiClient.upgradeTenantUpgrade).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1" } },
+                    body: {
+                        name: "MyCluster",
+                        databaseEdition: "INFINITE",
+                        providerSettings: {
+                            providerName: "AWS",
+                            instanceSizeName: "M10",
+                            regionName: "US_EAST_1",
+                            autoScaling: {
+                                compute: {
+                                    minInstanceSize: "M10",
+                                    maxInstanceSize: "M30",
+                                },
+                            },
+                        },
+                        autoScaling: {
+                            compute: {
+                                enabled: true,
+                                scaleDownEnabled: true,
+                            },
+                            diskGBEnabled: true,
+                        },
+                    },
+                },
+                expect.anything()
+            );
+        });
+
+        it("rejects upgrading a Dedicated Atlas Core cluster to Infinite", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(DEDICATED_CLUSTER_RAW);
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetEdition: "INFINITE" });
+
+            expect(result.isError).toBe(true);
+            expect((result.content[0] as { text: string }).text).toContain(
+                "create a new Atlas Infinite cluster with the atlas-create-cluster tool"
+            );
+        });
+
+        it("scales an Atlas Infinite cluster in place without an edition argument", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(INFINITE_CLUSTER_RAW);
+
+            const result = await exec({
+                projectId: "proj1",
+                clusterName: "MyCluster",
+                targetTier: "M60",
+                computeAutoScaling: true,
+            });
+
+            expect(result.isError).toBeFalsy();
+            const call = mockApiClient.updateCluster!.mock.calls[0]![0] as {
+                body: {
+                    replicationSpecs: Array<{
+                        regionConfigs: Array<{ autoScaling: { compute: { maxInstanceSize?: string } } }>;
+                    }>;
+                };
+            };
+            // Default autoscaling max for M60 would be M140 on Atlas Core; Infinite clamps it to M60.
+            expect(call.body.replicationSpecs[0]!.regionConfigs[0]!.autoScaling.compute.maxInstanceSize).toBe("M60");
+            expect(result.structuredContent).toMatchObject({
+                originalTier: "M40",
+                targetTier: "M60",
+                databaseEdition: "INFINITE",
+            });
+        });
+
+        it("rejects changing the edition of an Atlas Infinite cluster", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(INFINITE_CLUSTER_RAW);
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetEdition: "CORE" });
+
+            expect(result.isError).toBe(true);
+            expect((result.content[0] as { text: string }).text).toContain(
+                "Clusters cannot change their database edition"
+            );
+        });
+
+        it("passes preview-constraint violations (e.g. M80) through to the API instead of rejecting them client-side", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(INFINITE_CLUSTER_RAW);
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M80" });
+
+            expect(result.isError).toBeFalsy();
+            expect(mockApiClient.updateCluster).toHaveBeenCalledTimes(1);
+        });
+
+        it("scales an autoscaling-enabled Infinite cluster to M80 without a spurious min/max conflict", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(INFINITE_CLUSTER_WITH_AUTOSCALING_RAW);
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M80" });
+
+            // Previously threw `minInstanceSize "M80" cannot be higher than maxInstanceSize "M60"`.
+            expect(result.isError).toBeFalsy();
+            expect(sentCompute(mockApiClient.updateCluster!)).toMatchObject({
+                minInstanceSize: "M80",
+                maxInstanceSize: "M200",
+            });
+        });
+
+        it("clamps the default max to M60 when an autoscaling-enabled Infinite cluster scales within range", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(INFINITE_CLUSTER_WITH_AUTOSCALING_RAW);
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", targetTier: "M50" });
+
+            expect(result.isError).toBeFalsy();
+            expect(sentCompute(mockApiClient.updateCluster!)).toMatchObject({
+                minInstanceSize: "M50",
+                maxInstanceSize: "M60",
+            });
+        });
+
+        it("passes an explicit maxInstanceSize above M60 through unchanged", async () => {
+            mockApiClient.getCluster!.mockResolvedValue(INFINITE_CLUSTER_WITH_AUTOSCALING_RAW);
+
+            const result = await exec({ projectId: "proj1", clusterName: "MyCluster", maxInstanceSize: "M80" });
+
+            expect(result.isError).toBeFalsy();
+            expect(sentCompute(mockApiClient.updateCluster!).maxInstanceSize).toBe("M80");
+            expect(result.structuredContent).toMatchObject({ maxInstanceSize: "M80" });
+        });
+
+        it("upgrades FLEX to Atlas Infinite M80 with a self-consistent autoscaling range", async () => {
+            mockApiClient.getCluster!.mockRejectedValue(notFoundError());
+            mockApiClient.getFlexCluster!.mockResolvedValue(FLEX_CLUSTER_RAW);
+
+            const result = await exec({
+                projectId: "proj1",
+                clusterName: "MyCluster",
+                targetEdition: "INFINITE",
+                targetTier: "M80",
+            });
+
+            expect(result.isError).toBeFalsy();
+            expect(sentCompute(mockApiClient.tenantUpgrade!)).toMatchObject({
+                minInstanceSize: "M80",
+                maxInstanceSize: "M200",
+            });
+        });
+    });
 });
