@@ -102,12 +102,17 @@ export type IndexMetadata = ConnectionMetadata & {
     index_type: "classic" | "vectorSearch" | "search";
 };
 
+export type CollectionSchemaMetadata = ConnectionMetadata & {
+    schema_source?: "validator" | "sample" | "merged";
+};
+
 export type TelemetryToolMetadata =
     | AtlasMetadata
     | ConnectionMetadata
     | PerfAdvisorToolMetadata
     | StreamsToolMetadata
-    | IndexMetadata;
+    | IndexMetadata
+    | CollectionSchemaMetadata;
 
 export type ToolEventProperties = {
     command: string;

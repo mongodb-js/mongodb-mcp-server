@@ -1097,8 +1097,8 @@ importers:
         specifier: ^1.9.19
         version: 1.9.19
       '@mongodb-js/mongodb-schema':
-        specifier: ^12.8.12
-        version: 12.8.12(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9)
+        specifier: ^12.8.16
+        version: 12.8.16(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9)
       '@mongosh/arg-parser':
         specifier: ^5.0.2
         version: 5.0.2(zod@4.6.6)
@@ -2633,6 +2633,10 @@ packages:
 
   '@mongodb-js/mongodb-schema@12.8.12':
     resolution: {integrity: sha512-mDg38J6UddSGh9992pphK3AvqjI4jhTRbZojFZzF4TwADD5eL2Rds8oj3eqvk2OCyxRCoI3lfMUvz8i0BFSnTg==}
+    hasBin: true
+
+  '@mongodb-js/mongodb-schema@12.8.16':
+    resolution: {integrity: sha512-gtdmNsX8jwn0nljZ1+QdxDXkQevKJItoDhwfynrAB2vE2Mkh4CWYLtYFy2WfZy/r3ZxJkDkQwYlJ3IGDHL+9QQ==}
     hasBin: true
 
   '@mongodb-js/oidc-http-server-pages@1.2.6':
@@ -9428,6 +9432,28 @@ snapshots:
       - supports-color
 
   '@mongodb-js/mongodb-schema@12.8.12(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9)':
+    dependencies:
+      reservoir: 0.1.2
+    optionalDependencies:
+      '@mongodb-js/mongodb-ns': 3.2.9
+      bson: 7.3.1
+      cli-table: 0.3.11
+      js-yaml: 5.5.0
+      mongodb: 7.2.0(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9)
+      numeral: 2.0.6
+      progress: 2.0.3
+      stats-lite: 2.2.0
+      yargs: 18.2.0
+    transitivePeerDependencies:
+      - '@aws-sdk/credential-providers'
+      - '@mongodb-js/zstd'
+      - gcp-metadata
+      - kerberos
+      - mongodb-client-encryption
+      - snappy
+      - socks
+
+  '@mongodb-js/mongodb-schema@12.8.16(@aws-sdk/credential-providers@3.1003.0)(gcp-metadata@7.0.1)(kerberos@7.0.0)(mongodb-client-encryption@7.0.0)(socks@2.8.9)':
     dependencies:
       reservoir: 0.1.2
     optionalDependencies:
