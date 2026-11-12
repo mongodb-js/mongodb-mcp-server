@@ -22,6 +22,9 @@ function createMockSession(): { logger: ICompositeLogger } {
     return { logger: createMockLogger() as unknown as ICompositeLogger };
 }
 
+/** The metrics a session store emits through. */
+const sessionScope = ["sessionCreated", "sessionClosed", "sessionsActive"] as const;
+
 describe("SessionStore<CloseableTransport> metrics", () => {
     let metrics: MockMetrics;
     let logger: ILogger;
@@ -114,7 +117,7 @@ describe("SessionStore<CloseableTransport> metrics", () => {
                 sessionId,
                 transport: createMockTransport(),
                 logger: createMockLogger(),
-                metrics: baseMetrics.withLabels({ tenant }),
+                metrics: baseMetrics.withLabels({ tenant }, { scope: sessionScope }),
             });
         const valueFor = async (
             metric: Counter<string> | Gauge<string>,
@@ -157,7 +160,8 @@ describe("SessionStore<CloseableTransport> metrics", () => {
         const labelledStore = new SessionStore<CloseableTransport>({
             options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 100 },
             logger,
-            metrics: new PrometheusMetrics<typeof definitions>({ definitions, labels: { tenant: "acme" } }),
+            // @ts-expect-error `sessionClosed` declares no `tenant`, so the scope rejects it
+            metrics: new PrometheusMetrics({ definitions }).withLabels({ tenant: "acme" }, { scope: sessionScope }),
         });
 
         // `sessionClosed` declares only `reason`, so the supplied `tenant` is undeclared there.
@@ -193,10 +197,10 @@ describe("SessionStore<CloseableTransport> metrics", () => {
                 registers: [],
             }),
         };
-        const storeMetrics = new PrometheusMetrics<typeof definitions>({
-            definitions,
-            labels: { tenant: "acme" },
-        });
+        const storeMetrics = new PrometheusMetrics({ definitions }).withLabels(
+            { tenant: "acme" },
+            { scope: sessionScope }
+        );
         const labelledStore = new SessionStore<CloseableTransport>({
             options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 100 },
             logger,
@@ -261,7 +265,8 @@ describe("SessionStore<CloseableTransport> metrics", () => {
         const labelledStore = new SessionStore<CloseableTransport>({
             options: { idleTimeoutMS: 60_000, notificationTimeoutMS: 30_000, maxSessions: 100 },
             logger,
-            metrics: new PrometheusMetrics<typeof definitions>({ definitions, labels: { tenant: "acme" } }),
+            // @ts-expect-error `sessionClosed` declares no `tenant`, so the scope rejects it
+            metrics: new PrometheusMetrics({ definitions }).withLabels({ tenant: "acme" }, { scope: sessionScope }),
         });
 
         await expect(
