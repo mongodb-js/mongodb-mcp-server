@@ -228,6 +228,7 @@ describe("configOverrides", () => {
                         "httpHost",
                         "httpHeaders",
                         "httpBodyLimit",
+                        "connectionConnectTimeoutMs",
                         "maxSessions",
                         "evictionIdleGraceMS",
                         "maxBytesPerQuery",
@@ -260,6 +261,15 @@ describe("configOverrides", () => {
                 };
                 expect(() => applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request })).toThrow(
                     "Config key apiBaseUrl is not allowed to be overridden"
+                );
+            });
+
+            it("should reject a connectionConnectTimeoutMs override (enforced by the shared reaper)", () => {
+                const request: TransportRequestContext = {
+                    headers: { "x-mongodb-mcp-connection-connect-timeout-ms": "1000" },
+                };
+                expect(() => applyConfigOverrides({ baseConfig: baseConfig as UserConfig, request })).toThrow(
+                    "Config key connectionConnectTimeoutMs is not allowed to be overridden"
                 );
             });
         });
@@ -299,7 +309,6 @@ describe("configOverrides", () => {
                     "indexCheck",
                     "disableServerSideJs",
                     "connectionIdleTimeoutMs",
-                    "connectionConnectTimeoutMs",
                     "idleTimeoutMs",
                     "notificationTimeoutMs",
                     "exportTimeoutMs",

@@ -254,9 +254,9 @@ const ServerConfigSchema = z.object({
         .min(0, "Invalid connectionConnectTimeoutMs: must be a non-negative integer")
         .default(DEFAULT_CONNECTION_CONNECT_TIMEOUT_MS)
         .describe(
-            "Milliseconds a MongoDB connection may stay in the 'connecting' state (e.g. an in-progress OIDC flow) before it is closed. Bounds a dial that never settles so it cannot pin a connection indefinitely. Kept separate from connectionIdleTimeoutMs so lowering the idle timeout does not abort legitimate multi-minute auth flows. Set to 0 to disable; must not be negative."
+            "Milliseconds a MongoDB connection may stay in the 'connecting' state (e.g. an in-progress OIDC flow) before it is closed. Bounds a dial that never settles so it cannot pin a connection indefinitely. Kept separate from connectionIdleTimeoutMs so lowering the idle timeout does not abort legitimate multi-minute auth flows. Set to 0 to disable; must not be negative. App-level setting, enforced by the shared reaper, so it cannot be overridden per request."
         )
-        .register(configRegistry, { overrideBehavior: onlyLowerThanBaseValueOverride() }),
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
     /**
      * @deprecated The MCP protocol is moving to sessionless, so this option will
      * soon be removed and the connection scope will default to "global". For
