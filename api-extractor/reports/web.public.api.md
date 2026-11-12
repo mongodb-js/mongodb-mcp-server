@@ -392,6 +392,7 @@ export interface ConnectionStateConnecting extends ConnectionState {
     oidcUserCode?: string;
     // (undocumented)
     serviceProvider: Promise<NodeDriverServiceProvider>;
+    startedAt: number;
     // (undocumented)
     tag: "connecting";
 }
@@ -850,6 +851,7 @@ export type TransportRequestContext = {
     query?: Record<string, string | string[] | undefined>;
     authInfo?: RequestAuthInfo;
     mcp_client_protocol?: McpProtocol;
+    sessionful?: boolean;
 };
 
 // @public

@@ -38,6 +38,7 @@ class ConnectingManager extends ConnectionManager {
             tag: "connecting",
             serviceProvider: this.serviceProvider,
             oidcConnectionType: this.oidcConnectionType,
+            startedAt: Date.now(),
         };
         return Promise.resolve(this.changeState("connection-request", connecting));
     }
@@ -849,6 +850,50 @@ describe("ConnectionRegistry", () => {
 
             await expect(registry.peek(entry.connectionId)).resolves.toBe(entry);
             expect(entry.state.tag).toBe("connecting");
+        });
+
+        it("reaps a connecting entry once it exceeds the connect deadline (a stalled dial)", async () => {
+            const store = makeStore({
+                options: {
+                    ...defaultTestConfig,
+                    // Idle reaping off: only the connect deadline can reap here.
+                    connectionIdleTimeoutMs: 0,
+                    connectionConnectTimeoutMs: 1000,
+                },
+            });
+            managerFactory = (): ConnectionManager => new ConnectingManager();
+            const registry = store.view();
+            const entry = await registry.connect({
+                settings: { connectionString: "mongodb://host:27017" },
+            });
+
+            await vi.advanceTimersByTimeAsync(60_000);
+
+            await expect(registry.peek(entry.connectionId)).resolves.toBeUndefined();
+        });
+
+        it("reaps a stalled dial even while it keeps being resolved", async () => {
+            // Resolving refreshes lastUsedAt, so the deadline must be measured
+            // from when the dial started or polling would keep it alive.
+            const store = makeStore({
+                options: {
+                    ...defaultTestConfig,
+                    connectionIdleTimeoutMs: 0,
+                    connectionConnectTimeoutMs: 1000,
+                },
+            });
+            managerFactory = (): ConnectionManager => new ConnectingManager();
+            const registry = store.view();
+            const entry = await registry.connect({
+                settings: { connectionString: "mongodb://host:27017" },
+            });
+
+            for (let i = 0; i < 10; i++) {
+                await registry.get(entry.connectionId);
+                await vi.advanceTimersByTimeAsync(500);
+            }
+
+            await expect(registry.peek(entry.connectionId)).resolves.toBeUndefined();
         });
 
         it("stops reaping after closeAll", async () => {

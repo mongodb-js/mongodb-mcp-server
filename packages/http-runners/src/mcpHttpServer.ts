@@ -189,6 +189,7 @@ export abstract class MCPHttpServer<
                     authInfo: ctx.authInfo,
                     // Modern serving is pinned to the 2026-07-28 revision.
                     mcp_client_protocol: "2026-07-28",
+                    sessionful: false,
                 };
                 const server = await this.createServerForRequest(request);
                 await server.register();
