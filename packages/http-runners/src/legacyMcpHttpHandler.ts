@@ -26,6 +26,22 @@ const JSON_RPC_ERROR_CODE_INVALID_REQUEST = -32004;
 const JSON_RPC_ERROR_CODE_DISALLOWED_EXTERNAL_SESSION = -32005;
 const JSON_RPC_ERROR_CODE_SESSION_LIMIT_EXCEEDED = -32006;
 
+/** Returns the ids of the JSON-RPC requests (not notifications or responses) in a POST body. */
+function getJsonRpcRequestIds(body: unknown): (string | number)[] {
+    const messages: unknown[] = Array.isArray(body) ? body : [body];
+    const ids: (string | number)[] = [];
+    for (const message of messages) {
+        if (typeof message !== "object" || message === null) {
+            continue;
+        }
+        const { id, method } = message as { id?: unknown; method?: unknown };
+        if (typeof method === "string" && (typeof id === "string" || typeof id === "number")) {
+            ids.push(id);
+        }
+    }
+    return ids;
+}
+
 /** Guards against oversized `mcp-session-id` headers (e.g. an abusive client). */
 const MAX_SESSION_ID_LENGTH = 512;
 
@@ -541,7 +557,59 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
             });
             transport = await this.createSession({ req, providedSessionId: sessionId, isImplicitInitialization: true });
         }
+        this.cancelRequestsOnDisconnect({ req, res, transport, sessionId });
         await transport.handleRequest(req, res, req.body);
+    }
+
+    /**
+     * Cancels the JSON-RPC requests carried by a POST if the client disconnects
+     * before their responses are written, so the tool handlers' abort signals
+     * fire and in-flight MongoDB operations are stopped instead of running to
+     * completion on the server.
+     *
+     * The spec asks servers not to treat a disconnect as a cancellation because
+     * clients may resume the stream. This transport has no event store, so a
+     * response whose POST stream is gone can never be delivered; continuing the
+     * work only burns database resources. The cancellation goes through the
+     * same `notifications/cancelled` path a client would use, so requests that
+     * already completed are unaffected.
+     */
+    private cancelRequestsOnDisconnect({
+        req,
+        res,
+        transport,
+        sessionId,
+    }: {
+        req: express.Request;
+        res: express.Response;
+        transport: NodeStreamableHTTPServerTransport;
+        sessionId: string;
+    }): void {
+        if (req.method !== "POST") {
+            return;
+        }
+        const requestIds = getJsonRpcRequestIds(req.body);
+        if (requestIds.length === 0) {
+            return;
+        }
+        res.once("close", () => {
+            if (res.writableFinished) {
+                return;
+            }
+            this.logger.debug({
+                id: LogId.streamableHttpTransportRequestCancelledOnDisconnect,
+                context: "streamableHttpTransport",
+                message: `Client disconnected from session ${sessionId} before the response was sent, cancelling ${requestIds.length} in-flight request(s)`,
+                attributes: { ...requestIdAttr(req.headers) },
+            });
+            for (const requestId of requestIds) {
+                transport.onmessage?.({
+                    jsonrpc: "2.0",
+                    method: "notifications/cancelled",
+                    params: { requestId, reason: "Client disconnected before the response was sent" },
+                });
+            }
+        });
     }
 
     /**
