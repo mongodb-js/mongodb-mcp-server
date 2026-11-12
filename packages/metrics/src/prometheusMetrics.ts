@@ -47,10 +47,7 @@ export class PrometheusMetrics<
         }
     }
 
-    /**
-     * A sibling sharing this instance's `definitions` and `registry`. `labels`
-     * merge onto this instance's own: added or overridden, never removed.
-     */
+    /** A sibling sharing this instance's `definitions` and `registry`. */
     withLabels(labels: InstanceLabels<TMetricsDefinitions>): PrometheusMetrics<TMetricsDefinitions> {
         return new PrometheusMetrics({
             definitions: this.definitions,

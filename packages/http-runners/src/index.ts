@@ -27,6 +27,7 @@ export {
     type CreateSessionStoreFn,
 } from "@mongodb-js/mcp-core";
 export { MonitoringServer, type MonitoringServerOptions } from "./monitoringServer.js";
+export type { SessionTransport } from "./sessionTransport.js";
 
 // Express HTTP Server base
 export { ExpressBasedHttpServer, type ExpressBasedHttpServerOptions } from "./expressBasedHttpServer.js";
