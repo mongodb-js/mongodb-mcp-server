@@ -67,7 +67,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          LATEST_TAG=$(gh release list --exclude-drafts --exclude-pre-releases --limit 100 --json tagName --jq '[.[] | select(.tagName | test("^v[0-9]"))] | .[0].tagName // empty')
+          LATEST_TAG=$(gh release list --exclude-drafts --exclude-pre-releases --limit 100 --json tagName --jq '[.[] | select(.tagName | test("^v[0-9]"))] | .[].tagName' | sort -V | tail -n1)
           if [[ -z "$LATEST_TAG" ]]; then
             exit 0
           fi
@@ -75,7 +75,7 @@ jobs:
           LATEST="${LATEST_TAG#v}"
           NEW="${NEW_VERSION#v}"
 
-          if ! npx semver -r "< $NEW" "$LATEST" > /dev/null; then
+          if ! pnpm dlx semver@7 -r "< $NEW" "$LATEST" > /dev/null; then
             echo "VERSION_WARNING=⚠️ The new version \`${NEW_VERSION}\` is lower than the latest published release \`${LATEST_TAG}\`. Please verify this is intentional." >> "${GITHUB_OUTPUT}"
           fi
 
