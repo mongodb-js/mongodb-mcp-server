@@ -34,7 +34,7 @@ jobs:
             core.setOutput('summary', summary.slice(0, 255));
 
       - name: Create JIRA ticket
-        uses: mongodb/apix-action/create-jira@v16
+        uses: mongodb/apix-action/create-jira@v18
         id: create
         continue-on-error: true
         with:
@@ -113,14 +113,14 @@ jobs:
 
       - name: Find JIRA ticket by GitHub issue number
         id: find_jira
-        uses: mongodb/apix-action/find-jira@v16
+        uses: mongodb/apix-action/find-jira@v18
         with:
           token: ${{ secrets.JIRA_API_TOKEN }}
           jql: "project = MCP AND description ~ '${{ github.event.issue.html_url }}'"
 
       - name: Close JIRA ticket
         if: steps.find_jira.outputs.found == 'true'
-        uses: mongodb/apix-action/transition-jira@v16
+        uses: mongodb/apix-action/transition-jira@v18
         id: close_jira_ticket
         continue-on-error: true
         with:
