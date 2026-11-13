@@ -767,6 +767,39 @@ describe("StreamsManageTool", () => {
             );
         });
 
+        it("should lowercase the Azure storageAccountName when updating an AzureBlobStorage connection", async () => {
+            mockApiClient.getStreamConnection = vi
+                .fn()
+                .mockResolvedValue({ name: "conn1", type: "AzureBlobStorage", state: "READY" });
+            const connectionConfig = {
+                azure: {
+                    servicePrincipalId: "11111111-2222-3333-4444-555555555555",
+                    storageAccountName: "AcmeStorage",
+                },
+            };
+
+            await exec({
+                ...baseArgs,
+                action: "update-connection",
+                resourceName: "conn1",
+                connectionConfig,
+            });
+
+            expect(mockApiClient.updateStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        type: "AzureBlobStorage",
+                        azure: {
+                            servicePrincipalId: "11111111-2222-3333-4444-555555555555",
+                            storageAccountName: "acmestorage",
+                        },
+                    }),
+                }),
+                expect.anything()
+            );
+            expect(connectionConfig.azure.storageAccountName).toBe("AcmeStorage");
+        });
+
         it("should normalize schemaRegistryUrls string to array", async () => {
             await exec({
                 ...baseArgs,
