@@ -306,10 +306,6 @@ export class ConnectClusterTool extends AtlasToolBase {
             )
         )[0];
 
-        const ensureCurrentIp = async (): Promise<boolean> =>
-            (await ensureCurrentIpInAccessList({ apiClient: this.server.apiClient, projectId, context: request })) ===
-            "added";
-
         let ipAccessListUpdated: boolean;
         let atlas = entry?.atlasCluster;
         const createdTemporaryUser = !entry;
@@ -321,7 +317,12 @@ export class ConnectClusterTool extends AtlasToolBase {
             const cluster = await inspectCluster({ apiClient: this.server.apiClient, projectId, clusterName, request });
             this.assertClusterConnectable({ cluster, projectId, clusterName });
 
-            ipAccessListUpdated = await ensureCurrentIp();
+            ipAccessListUpdated =
+                (await ensureCurrentIpInAccessList({
+                    apiClient: this.server.apiClient,
+                    projectId,
+                    context: request,
+                })) === "added";
 
             const prepared = await this.prepareClusterConnection({
                 cluster,
@@ -361,7 +362,12 @@ export class ConnectClusterTool extends AtlasToolBase {
                 });
             });
         } else {
-            ipAccessListUpdated = await ensureCurrentIp();
+            ipAccessListUpdated =
+                (await ensureCurrentIpInAccessList({
+                    apiClient: this.server.apiClient,
+                    projectId,
+                    context: request,
+                })) === "added";
         }
 
         for (let i = 0; i < 60; i++) {
