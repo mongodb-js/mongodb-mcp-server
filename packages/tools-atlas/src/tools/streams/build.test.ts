@@ -913,6 +913,108 @@ describe("StreamsBuildTool", () => {
         });
     });
 
+    describe("createConnection - AzureBlobStorage", () => {
+        it("should create an Azure Blob Storage connection with service principal and storage account", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "blob-out",
+                connectionType: "AzureBlobStorage",
+                connectionConfig: {
+                    azure: {
+                        servicePrincipalId: "11111111-2222-3333-4444-555555555555",
+                        storageAccountName: "acmestorage",
+                    },
+                },
+            });
+
+            expect(mockApiClient.createStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        name: "blob-out",
+                        type: "AzureBlobStorage",
+                        azure: {
+                            servicePrincipalId: "11111111-2222-3333-4444-555555555555",
+                            storageAccountName: "acmestorage",
+                        },
+                    }),
+                }),
+                expect.anything()
+            );
+        });
+
+        it("should lowercase the storageAccountName", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "blob-out",
+                connectionType: "AzureBlobStorage",
+                connectionConfig: {
+                    azure: {
+                        servicePrincipalId: "11111111-2222-3333-4444-555555555555",
+                        storageAccountName: "AcmeStorage",
+                    },
+                },
+            });
+
+            expect(mockApiClient.createStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        azure: expect.objectContaining({ storageAccountName: "acmestorage" }),
+                    }),
+                }),
+                expect.anything()
+            );
+        });
+
+        it("should create an Azure Blob Storage connection with PrivateLink networking", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "blob-out",
+                connectionType: "AzureBlobStorage",
+                connectionConfig: {
+                    azure: {
+                        servicePrincipalId: "11111111-2222-3333-4444-555555555555",
+                        storageAccountName: "acmestorage",
+                    },
+                    publicPrivateNetworking: {
+                        access: { type: "PRIVATE_LINK", connectionId: "64b7e9f1a2c3d4e5f6a7b8c9" },
+                    },
+                },
+            });
+
+            expect(mockApiClient.createStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        type: "AzureBlobStorage",
+                        publicPrivateNetworking: {
+                            access: { type: "PRIVATE_LINK", connectionId: "64b7e9f1a2c3d4e5f6a7b8c9" },
+                        },
+                    }),
+                }),
+                expect.anything()
+            );
+
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("PENDING");
+        });
+
+        it("should trigger elicitation when Azure config is missing", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "blob-out",
+                connectionType: "AzureBlobStorage",
+                connectionConfig: {},
+            });
+
+            const request = mockElicitation.inputRequired.mock.calls[0]![0] as { schema: { required: string[] } };
+            expect(result.resultType).toBe("input_required");
+            expect(request.schema.required).toEqual(["servicePrincipalId", "storageAccountName"]);
+        });
+    });
+
     describe("pipeline structural validation", () => {
         it("should return error when first stage is not $source", async () => {
             const result = await exec({
@@ -1393,6 +1495,36 @@ describe("StreamsBuildTool", () => {
             );
         });
 
+        it("should create an AZURE AZURE_BLOB_STORAGE PrivateLink", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "privatelink",
+                privateLinkConfig: {
+                    provider: "AZURE",
+                    vendor: "AZURE_BLOB_STORAGE",
+                    region: "eastus2",
+                    dnsDomain: "acmestorage.blob.core.windows.net",
+                    serviceEndpointId:
+                        "/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.Storage/storageAccounts/acmestorage",
+                },
+            });
+
+            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1" } },
+                    body: {
+                        provider: "AZURE",
+                        vendor: "AZURE_BLOB_STORAGE",
+                        region: "eastus2",
+                        dnsDomain: "acmestorage.blob.core.windows.net",
+                        serviceEndpointId:
+                            "/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.Storage/storageAccounts/acmestorage",
+                    },
+                },
+                expect.anything()
+            );
+        });
+
         it("should throw when privateLinkConfig is missing", async () => {
             await expect(
                 exec({
@@ -1517,6 +1649,7 @@ describe("StreamsBuildTool", () => {
     describe("review regressions", () => {
         const serviceAccountId = "atlas-streams@my-project.iam.gserviceaccount.com";
         const connectionId = "64b7e9f1a2c3d4e5f6a7b8c9";
+        const servicePrincipalId = "11111111-2222-3333-4444-555555555555";
 
         const lastConnectionBody = (): Record<string, unknown> => {
             const calls = mockApiClient.createStreamConnection!.mock.calls as unknown as [
@@ -1525,17 +1658,19 @@ describe("StreamsBuildTool", () => {
             return calls.at(-1)![0].body;
         };
 
-        it("accepts the new connection type in the advertised arguments schema", () => {
+        it("accepts the new connection types in the advertised arguments schema", () => {
             const argsSchema = z.object(tool.argsShape());
-            const parsed = argsSchema.safeParse({
-                projectId: connectionId,
-                workspaceName: "ws1",
-                resource: "connection",
-                connectionName: "conn1",
-                connectionType: "GCPPubSub",
-                connectionConfig: {},
-            });
-            expect(parsed.success).toBe(true);
+            for (const connectionType of ["GCPPubSub", "AzureBlobStorage"]) {
+                const parsed = argsSchema.safeParse({
+                    projectId: connectionId,
+                    workspaceName: "ws1",
+                    resource: "connection",
+                    connectionName: "conn1",
+                    connectionType,
+                    connectionConfig: {},
+                });
+                expect(parsed.success).toBe(true);
+            }
         });
 
         it("rejects an invalid publicPrivateNetworking access type", () => {
@@ -1556,7 +1691,23 @@ describe("StreamsBuildTool", () => {
 
         it("normalizes and validates the PrivateLink vendor", () => {
             expect(PrivateLinkConfig.parse({ provider: "GCP", vendor: "pubsub" }).vendor).toBe("PUBSUB");
+            expect(PrivateLinkConfig.parse({ provider: "AZURE", vendor: "azure_blob_storage" }).vendor).toBe(
+                "AZURE_BLOB_STORAGE"
+            );
             expect(() => PrivateLinkConfig.parse({ provider: "GCP", vendor: "BOGUS" })).toThrow();
+        });
+
+        it("documents S3 $emit config fields in the pipeline description", () => {
+            const description = tool.argsShape().pipeline.description ?? "";
+            expect(description).toContain("config.outputFormat");
+            expect(description).toContain("config.compression");
+            expect(description).toContain("S3 uses path (not prefix)");
+        });
+
+        it("documents Azure Blob Storage $emit config fields in the pipeline description", () => {
+            const description = tool.argsShape().pipeline.description ?? "";
+            expect(description).toContain("Azure Blob Storage: {$emit: {connectionName, container, path, config:");
+            expect(description).toContain("S3/Azure Blob also accept config.compression");
         });
 
         it("moves Kafka-style networking to publicPrivateNetworking for GCP Pub/Sub", async () => {
@@ -1629,6 +1780,43 @@ describe("StreamsBuildTool", () => {
             });
         });
 
+        it("lowercases an elicited Azure storage account name", async () => {
+            mockElicitation.readInput.mockReturnValue({
+                accepted: true,
+                fields: { servicePrincipalId, storageAccountName: "AcmeStorage" },
+            });
+
+            await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "blob-out",
+                connectionType: "AzureBlobStorage",
+                connectionConfig: {},
+            });
+
+            expect(lastConnectionBody().azure).toEqual({
+                servicePrincipalId,
+                storageAccountName: "acmestorage",
+            });
+        });
+
+        it("requires connectionId for an Azure PrivateLink connection", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "blob-out",
+                connectionType: "AzureBlobStorage",
+                connectionConfig: {
+                    azure: { servicePrincipalId, storageAccountName: "acmestorage" },
+                    publicPrivateNetworking: { access: { type: "PRIVATE_LINK" } },
+                },
+            });
+
+            const request = mockElicitation.inputRequired.mock.calls[0]![0] as { schema: { required: string[] } };
+            expect(result.resultType).toBe("input_required");
+            expect(request.schema.required).toEqual(["connectionId"]);
+        });
+
         it("requires connectionId for an AWS Lambda PrivateLink connection", async () => {
             const result = await exec({
                 ...baseArgs,
@@ -1684,6 +1872,16 @@ describe("StreamsBuildTool", () => {
                     privateLinkConfig: { provider: "GCP", vendor: "PUBSUB" },
                 })
             ).rejects.toThrow("privateLinkConfig.region is required for vendor 'PUBSUB'");
+        });
+
+        it("requires region, serviceEndpointId, and dnsDomain for an Azure Blob Storage PrivateLink", async () => {
+            await expect(
+                exec({
+                    ...baseArgs,
+                    resource: "privatelink",
+                    privateLinkConfig: { provider: "AZURE", vendor: "AZURE_BLOB_STORAGE" },
+                })
+            ).rejects.toThrow(/missing required field\(s\).*region, serviceEndpointId, dnsDomain/);
         });
 
         it("omits an empty dnsDomain for a GCP PUBSUB PrivateLink", async () => {
