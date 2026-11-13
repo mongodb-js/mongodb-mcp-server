@@ -12,7 +12,7 @@ import { SHARED_TIER_METRIC_NAMES } from "@mongodb-js/mcp-types";
 import type { ConnectionMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import { AtlasToolBase, type IAtlasConfig } from "../../atlasTool.js";
 import { generateSecurePassword } from "../../helpers/generatePassword.js";
-import { getConnectionString, inspectCluster } from "../../helpers/cluster.js";
+import { getConnectionString, inspectCluster, type Cluster } from "../../helpers/cluster.js";
 import { ensureCurrentIpInAccessList, ACCESS_LIST_ADDED_NOTE } from "../../helpers/accessListUtils.js";
 import { getDefaultRoleFromConfig } from "../../helpers/roles.js";
 import { runSharedTierAlertsHook } from "../../helpers/sharedTierAlertsHook.js";
@@ -58,24 +58,61 @@ export class ConnectClusterTool extends AtlasToolBase {
         return ConnectClusterOutputSchema;
     }
 
+    /**
+     * Only a running (IDLE, not paused) cluster is worth connecting to. A
+     * paused cluster never accepts connections and nothing here resumes it; a
+     * cluster that is still being created, updated or repaired may not be
+     * reachable yet. Dialling either would only burn the retry window and hand
+     * the agent a misleading "connecting" result, so fail early instead. Free
+     * (M0) clusters cannot be resumed through the Atlas API, so those are sent
+     * to the Atlas UI.
+     */
+    private assertClusterConnectable({
+        cluster,
+        projectId,
+        clusterName,
+    }: {
+        cluster: Cluster;
+        projectId: string;
+        clusterName: string;
+    }): void {
+        if (!cluster.paused) {
+            // A paused cluster also reports IDLE, which is why paused is
+            // handled separately below with a more actionable message.
+            if (cluster.state !== "IDLE") {
+                throw new Error(
+                    `Cluster "${clusterName}" in project "${projectId}" is not ready to connect to: its state is ${cluster.state ?? "unknown"}. ` +
+                        `Poll atlas-inspect-cluster until its state is IDLE, then retry.`
+                );
+            }
+            return;
+        }
+
+        if (cluster.instanceType === "FREE") {
+            throw new Error(
+                `Cluster "${clusterName}" in project "${projectId}" is paused. Free (M0) clusters cannot be resumed through the Atlas API. ` +
+                    `Ask the user to resume the cluster in the Atlas UI, wait until it is running, then retry.`
+            );
+        }
+
+        throw new Error(
+            `Cluster "${clusterName}" in project "${projectId}" is paused and cannot be connected to. ` +
+                `Use the atlas-pause-resume-cluster tool with action "RESUME" to resume it, ` +
+                `poll atlas-inspect-cluster until its state is IDLE, then retry.`
+        );
+    }
+
     private async prepareClusterConnection({
+        cluster,
         projectId,
         clusterName,
         connectionType = "standard",
-        request,
     }: {
+        cluster: Cluster;
         projectId: string;
         clusterName: string;
         connectionType?: "standard" | "private" | "privateEndpoint" | undefined;
-        request: ToolRequest<IAtlasConfig>;
     }): Promise<{ connectionString: string; atlas: AtlasClusterConnectionInfo; temporaryUser: TemporaryDatabaseUser }> {
-        const cluster = await inspectCluster({
-            apiClient: this.server.apiClient,
-            projectId,
-            clusterName,
-            request,
-        });
-
         if (cluster.clusterId === undefined) {
             throw new Error(`Atlas did not return an id for cluster "${clusterName}" in project "${projectId}"`);
         }
@@ -256,10 +293,6 @@ export class ConnectClusterTool extends AtlasToolBase {
         { projectId, clusterName, connectionType }: ToolArgs<ReturnType<typeof this.argsShape>>,
         { request }: ToolExecutionContext
     ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
-        const ipAccessListUpdated =
-            (await ensureCurrentIpInAccessList({ apiClient: this.server.apiClient, projectId, context: request })) ===
-            "added";
-
         // Models are expected to poll this tool while a dial is in progress, so
         // a repeat call for a cluster that is already connecting or connected
         // reuses the in-flight entry: every sibling entry would provision
@@ -272,11 +305,31 @@ export class ConnectClusterTool extends AtlasToolBase {
                     candidate.atlasCluster?.clusterName === clusterName
             )
         )[0];
+
+        let ipAccessListUpdated: boolean;
         let atlas = entry?.atlasCluster;
         const createdTemporaryUser = !entry;
 
         if (!entry) {
-            const prepared = await this.prepareClusterConnection({ projectId, clusterName, connectionType, request });
+            // Inspect (and reject paused clusters) before touching the project's
+            // access list or creating a temporary user, so a paused cluster
+            // leaves no side effects behind.
+            const cluster = await inspectCluster({ apiClient: this.server.apiClient, projectId, clusterName, request });
+            this.assertClusterConnectable({ cluster, projectId, clusterName });
+
+            ipAccessListUpdated =
+                (await ensureCurrentIpInAccessList({
+                    apiClient: this.server.apiClient,
+                    projectId,
+                    context: request,
+                })) === "added";
+
+            const prepared = await this.prepareClusterConnection({
+                cluster,
+                projectId,
+                clusterName,
+                connectionType,
+            });
             atlas = prepared.atlas;
 
             // Cluster names are only unique within a project, so the slug includes
@@ -308,6 +361,13 @@ export class ConnectClusterTool extends AtlasToolBase {
                     message: `error connecting to cluster: ${error.message}`,
                 });
             });
+        } else {
+            ipAccessListUpdated =
+                (await ensureCurrentIpInAccessList({
+                    apiClient: this.server.apiClient,
+                    projectId,
+                    context: request,
+                })) === "added";
         }
 
         for (let i = 0; i < 60; i++) {

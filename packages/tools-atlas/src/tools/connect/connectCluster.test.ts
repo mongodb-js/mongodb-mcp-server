@@ -60,6 +60,8 @@ describe("ConnectClusterTool", () => {
         mockApiClient = {
             getCluster: vi.fn().mockResolvedValue(CLUSTER_DESCRIPTION),
             createDatabaseUser: vi.fn().mockResolvedValue({}),
+            createAccessListEntry: vi.fn().mockResolvedValue({}),
+            getIpInfo: vi.fn().mockResolvedValue({ currentIpv4Address: "1.2.3.4" }),
             getGroup: vi.fn().mockResolvedValue({ name: "Test Project" }),
         };
 
@@ -174,6 +176,83 @@ describe("ConnectClusterTool", () => {
                 'Atlas did not return an id for cluster "cluster1" in project "proj1"'
             );
             expect(mockApiClient.createDatabaseUser).not.toHaveBeenCalled();
+        });
+
+        describe("clusters that are not running", () => {
+            const ctx = { request: { signal: new AbortController().signal } };
+
+            it.each(["CREATING", "UPDATING", "REPAIRING", "DELETING"])(
+                "rejects a cluster in state %s and points to atlas-inspect-cluster",
+                async (stateName) => {
+                    mockApiClient.getCluster?.mockResolvedValue({ ...CLUSTER_DESCRIPTION, stateName });
+
+                    await expect(tool["execute"](args, ctx)).rejects.toThrow(
+                        new RegExp(`state is ${stateName}.*atlas-inspect-cluster`, "s")
+                    );
+                    expect(mockApiClient.createDatabaseUser).not.toHaveBeenCalled();
+                    expect(mockApiClient.createAccessListEntry).not.toHaveBeenCalled();
+                }
+            );
+
+            it("rejects a cluster whose state is absent", async () => {
+                const { stateName: _state, ...withoutState } = CLUSTER_DESCRIPTION;
+                void _state;
+                mockApiClient.getCluster?.mockResolvedValue(withoutState);
+
+                await expect(tool["execute"](args, ctx)).rejects.toThrow(/state is unknown/);
+            });
+        });
+
+        describe("paused clusters", () => {
+            const ctx = { request: { signal: new AbortController().signal } };
+
+            it("rejects a paused dedicated cluster and points to atlas-pause-resume-cluster", async () => {
+                mockApiClient.getCluster?.mockResolvedValue({ ...CLUSTER_DESCRIPTION, paused: true });
+
+                await expect(tool["execute"](args, ctx)).rejects.toThrow(/is paused.*atlas-pause-resume-cluster/s);
+            });
+
+            it("rejects a paused free (M0) cluster and points to the Atlas UI", async () => {
+                mockApiClient.getCluster?.mockResolvedValue({
+                    ...CLUSTER_DESCRIPTION,
+                    paused: true,
+                    replicationSpecs: [
+                        {
+                            regionConfigs: [
+                                {
+                                    providerName: "TENANT",
+                                    backingProviderName: "AWS",
+                                    regionName: "US_EAST_1",
+                                    electableSpecs: { instanceSize: "M0" },
+                                },
+                            ],
+                        },
+                    ],
+                });
+
+                const result = tool["execute"](args, ctx);
+                await expect(result).rejects.toThrow(/cannot be resumed through the Atlas API.*Atlas UI/s);
+                await expect(result).rejects.not.toThrow(/atlas-pause-resume-cluster/);
+            });
+
+            it("has no side effects when the cluster is paused", async () => {
+                mockApiClient.getCluster?.mockResolvedValue({ ...CLUSTER_DESCRIPTION, paused: true });
+
+                await expect(tool["execute"](args, ctx)).rejects.toThrow();
+
+                expect(mockApiClient.createDatabaseUser).not.toHaveBeenCalled();
+                expect(mockApiClient.createAccessListEntry).not.toHaveBeenCalled();
+                expect(mockApiClient.getIpInfo).not.toHaveBeenCalled();
+                expect(await connectionRegistry.find(() => true)).toHaveLength(0);
+            });
+
+            it("connects to a cluster whose paused flag is false", async () => {
+                mockApiClient.getCluster?.mockResolvedValue({ ...CLUSTER_DESCRIPTION, paused: false });
+
+                const result = await tool["execute"](args, ctx);
+
+                expect(result.structuredContent?.createdTemporaryUser).toBe(true);
+            });
         });
 
         it("falls back to the cluster name alone when the project lookup fails", async () => {
