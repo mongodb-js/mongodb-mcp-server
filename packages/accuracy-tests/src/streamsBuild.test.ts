@@ -770,6 +770,46 @@ describeAccuracyTests(
             },
         },
         {
+            // Verifies the $throttle guidance in the atlas-streams-build tool description:
+            // when the user asks for a rate limit, the agent should add a $throttle stage
+            // in the main pipeline, after $source and before the sink.
+            prompt:
+                `Deploy a processor named 'throttled-sink' in workspace '${workspaceName}' that reads from 'events' ` +
+                `and writes to the Atlas cluster connection 'mycluster' collection 'output.data', limited to at most 500 messages per second`,
+            systemPrompt: projectContext,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-build",
+                    parameters: {
+                        ...optionalProcessorParams,
+                        projectId,
+                        resource: "processor",
+                        workspaceName,
+                        processorName: "throttled-sink",
+                        pipeline: Matcher.anyValue,
+                    },
+                },
+            ],
+            mockedTools,
+            customScorer: (baselineScore: number, actualToolCalls: LLMToolCall[]): number => {
+                const build = actualToolCalls.find(
+                    (call) => call.toolName === "atlas-streams-build" && call.parameters.resource === "processor"
+                );
+                const pipeline = build?.parameters.pipeline;
+                if (!Array.isArray(pipeline)) {
+                    return 0;
+                }
+                const stages = pipeline as Array<Record<string, unknown>>;
+                const throttleIndex = stages.findIndex((stage) => "$throttle" in stage);
+                if (throttleIndex <= 0 || throttleIndex === stages.length - 1) {
+                    return 0;
+                }
+                const throttle = stages[throttleIndex]?.["$throttle"] as Record<string, unknown> | undefined;
+                return "$source" in (stages[0] ?? {}) && throttle?.messagesPerSec === 500 ? baselineScore : 0;
+            },
+        },
+        {
             prompt: `Create processor 'autoscale-orders' in workspace '${workspaceName}' at SP10 with autoscaling between SP5 and SP30. Use the existing 'events' source and 'output' sink.`,
             systemPrompt: projectContext,
             expectedToolCalls: [

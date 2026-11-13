@@ -31,7 +31,7 @@ const PUBLIC_PRIVATE_NETWORKING_VENDORS = new Set(["PUBSUB", "AZURE_BLOB_STORAGE
 const AZURE_BLOB_STORAGE_REQUIRED_FIELDS = ["region", "serviceEndpointId", "dnsDomain"] as const;
 
 /** System variables that are not available in streaming requests. */
-const UNSUPPORTED_STREAM_VARIABLES = ["$$NOW", "$$ROOT", "$$CURRENT"] as const;
+const UNSUPPORTED_STREAM_VARIABLES = ["$$NOW", "$$CURRENT"] as const;
 
 const ConnectionType = z.enum([
     "Kafka",
@@ -249,13 +249,16 @@ const StreamsBuildArgsShape = {
                 "Kafka/Kinesis/S3/Azure Blob $emit accept config.outputFormat; S3/Azure Blob also accept config.compression. " +
                 "S3 uses path (not prefix); there is no top-level format field. " +
                 "$emit does not work with Https connections — use $https instead. " +
+                "Use $throttle to rate-limit the pipeline: {$throttle: {messagesPerSec: <int>, bytesPerSec: <int>}} — at least one of the two limits is required and each must be a positive integer. " +
+                "$throttle can appear anywhere after $source in the main pipeline (it cannot be nested inside another stage), and you may use multiple $throttle stages. " +
+                "Use $throttle when a downstream system enforces rate limits; a limit below the source's sustained rate makes the processor fall behind and lag grow. " +
                 "Use $https to POST data to an Https connection: {$https: {connectionName}}. " +
                 "Use $externalFunction for Lambda: {$externalFunction: {connectionName, functionName, execution: 'async', as: 'result'}}. Lambda does NOT use $emit — use $externalFunction with execution='async' as a sink stage or execution='sync' for mid-pipeline enrichment. " +
                 "By default $https.onError is 'dlq', which requires a DLQ (see dlq parameter). Set {$https: {connectionName, onError: 'ignore'}} to skip DLQ. " +
                 "For Kafka $emit with Schema Registry: {$emit: {connectionName, topic, schemaRegistry: {connectionName: '<sr-connection>', valueSchema: {type: 'avro', schema: {<avro-schema>}, options: {subjectNameStrategy: 'TopicNameStrategy', autoRegisterSchemas: true}}}}}. " +
                 "Note: valueSchema.type must be lowercase 'avro'. valueSchema.schema (Avro schema definition) is always required even with autoRegisterSchemas. " +
                 "Kafka/Kinesis $source must include a 'topic'/'stream' field. Cluster $source must include db and coll: {$source: {connectionName, db, coll}}. " +
-                "$$NOW, $$ROOT, and $$CURRENT are not available in streaming request. " +
+                "$$NOW and $$CURRENT are not available in streaming request. " +
                 "Connections referenced in $source/$merge/$emit/$iceberg/$https/$externalFunction must already exist in the workspace."
         ),
     dlq: z

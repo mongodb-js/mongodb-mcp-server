@@ -283,6 +283,59 @@ describe("StreamsBuildTool", () => {
                 resource: "processor",
             });
         });
+
+        it("should deploy a pipeline that includes a $throttle stage", async () => {
+            mockApiClient.listStreamConnections!.mockResolvedValue({
+                results: [
+                    { name: "src", type: "Kafka" },
+                    { name: "sink", type: "AzureBlobStorage" },
+                ],
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "blob-etl",
+                pipeline: [
+                    { $source: { connectionName: "src", topic: "in" } },
+                    { $throttle: { messagesPerSec: 1000 } },
+                    { $emit: { connectionName: "sink", container: "c", path: "out" } },
+                ],
+            });
+
+            expect(result.isError).toBeFalsy();
+            expect(mockApiClient.createStreamProcessor).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        pipeline: expect.arrayContaining([{ $throttle: { messagesPerSec: 1000 } }]),
+                    }),
+                }),
+                expect.anything()
+            );
+        });
+
+        it("should not recommend $throttle for an external sink that has no throttle stage", async () => {
+            mockApiClient.listStreamConnections!.mockResolvedValue({
+                results: [
+                    { name: "src", type: "Kafka" },
+                    { name: "sink", type: "GCPPubSub" },
+                ],
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "pubsub-etl",
+                pipeline: [
+                    { $source: { connectionName: "src", topic: "in" } },
+                    { $emit: { connectionName: "sink", topic: "out", projectId: "p", region: "us-central1" } },
+                ],
+            });
+
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).not.toContain("$throttle");
+            expect(text).not.toContain("rate limit");
+        });
     });
 
     describe("createConnection", () => {
@@ -1103,7 +1156,11 @@ describe("StreamsBuildTool", () => {
             expect(mockApiClient.createStreamProcessor).not.toHaveBeenCalled();
         });
 
-        it("should return error when pipeline contains $$ROOT", async () => {
+        it("should allow $$ROOT in a pipeline", async () => {
+            mockApiClient.listStreamConnections!.mockResolvedValue({
+                results: [{ name: "src" }, { name: "sink" }],
+            });
+
             const result = await exec({
                 ...baseArgs,
                 resource: "processor",
@@ -1115,8 +1172,34 @@ describe("StreamsBuildTool", () => {
                 ],
             });
 
+            expect(result.isError).toBeUndefined();
+            expect(mockApiClient.createStreamProcessor).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        pipeline: expect.arrayContaining([{ $replaceRoot: { newRoot: "$$ROOT" } }]),
+                    }),
+                }),
+                expect.anything()
+            );
+        });
+
+        it("should return error when pipeline contains $$CURRENT", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "proc1",
+                pipeline: [
+                    { $source: { connectionName: "src" } },
+                    { $addFields: { doc: "$$CURRENT" } },
+                    { $merge: { into: { connectionName: "sink", db: "db1", coll: "c1" } } },
+                ],
+            });
+
             expect(result.isError).toBe(true);
-            expect((result.content[0] as { text: string }).text).toContain("$$ROOT");
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("$$CURRENT");
+            expect(text).toContain("not available in streaming request");
+            expect(mockApiClient.createStreamProcessor).not.toHaveBeenCalled();
         });
 
         it("should accept $emit as a valid sink stage", async () => {
@@ -2082,6 +2165,24 @@ describe("StreamsBuildTool", () => {
             const text = (result.content[0] as { text: string }).text;
             expect(text).toContain(connectionId);
             expect(text).toContain(`connectionId='${connectionId}'`);
+        });
+
+        it("still rejects $$NOW when the pipeline also uses $$ROOT", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "proc1",
+                pipeline: [
+                    { $source: { connectionName: "src" } },
+                    { $addFields: { root: "$$ROOT", ts: "$$NOW" } },
+                    { $merge: { into: { connectionName: "sink", db: "db1", coll: "c1" } } },
+                ],
+            });
+
+            expect(result.isError).toBe(true);
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("$$NOW");
+            expect(text).not.toContain("$$ROOT");
         });
     });
 });
