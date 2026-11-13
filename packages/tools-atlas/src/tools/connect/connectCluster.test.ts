@@ -178,6 +178,31 @@ describe("ConnectClusterTool", () => {
             expect(mockApiClient.createDatabaseUser).not.toHaveBeenCalled();
         });
 
+        describe("clusters that are not running", () => {
+            const ctx = { request: { signal: new AbortController().signal } };
+
+            it.each(["CREATING", "UPDATING", "REPAIRING", "DELETING"])(
+                "rejects a cluster in state %s and points to atlas-inspect-cluster",
+                async (stateName) => {
+                    mockApiClient.getCluster?.mockResolvedValue({ ...CLUSTER_DESCRIPTION, stateName });
+
+                    await expect(tool["execute"](args, ctx)).rejects.toThrow(
+                        new RegExp(`state is ${stateName}.*atlas-inspect-cluster`, "s")
+                    );
+                    expect(mockApiClient.createDatabaseUser).not.toHaveBeenCalled();
+                    expect(mockApiClient.createAccessListEntry).not.toHaveBeenCalled();
+                }
+            );
+
+            it("rejects a cluster whose state is absent", async () => {
+                const { stateName: _state, ...withoutState } = CLUSTER_DESCRIPTION;
+                void _state;
+                mockApiClient.getCluster?.mockResolvedValue(withoutState);
+
+                await expect(tool["execute"](args, ctx)).rejects.toThrow(/state is unknown/);
+            });
+        });
+
         describe("paused clusters", () => {
             const ctx = { request: { signal: new AbortController().signal } };
 

@@ -59,12 +59,15 @@ export class ConnectClusterTool extends AtlasToolBase {
     }
 
     /**
-     * A paused cluster never accepts connections, and nothing here resumes it,
-     * so dialling it would only burn the retry window. Fail early with a hint
-     * on how to resume it. Free (M0) clusters cannot be resumed through the
-     * Atlas API, so those are sent to the Atlas UI instead.
+     * Only a running (IDLE, not paused) cluster is worth connecting to. A
+     * paused cluster never accepts connections and nothing here resumes it; a
+     * cluster that is still being created, updated or repaired may not be
+     * reachable yet. Dialling either would only burn the retry window and hand
+     * the agent a misleading "connecting" result, so fail early instead. Free
+     * (M0) clusters cannot be resumed through the Atlas API, so those are sent
+     * to the Atlas UI.
      */
-    private assertClusterNotPaused({
+    private assertClusterConnectable({
         cluster,
         projectId,
         clusterName,
@@ -74,6 +77,14 @@ export class ConnectClusterTool extends AtlasToolBase {
         clusterName: string;
     }): void {
         if (!cluster.paused) {
+            // A paused cluster also reports IDLE, which is why paused is
+            // handled separately below with a more actionable message.
+            if (cluster.state !== "IDLE") {
+                throw new Error(
+                    `Cluster "${clusterName}" in project "${projectId}" is not ready to connect to: its state is ${cluster.state ?? "unknown"}. ` +
+                        `Poll atlas-inspect-cluster until its state is IDLE, then retry.`
+                );
+            }
             return;
         }
 
@@ -308,7 +319,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             // access list or creating a temporary user, so a paused cluster
             // leaves no side effects behind.
             const cluster = await inspectCluster({ apiClient: this.server.apiClient, projectId, clusterName, request });
-            this.assertClusterNotPaused({ cluster, projectId, clusterName });
+            this.assertClusterConnectable({ cluster, projectId, clusterName });
 
             ipAccessListUpdated = await ensureCurrentIp();
 
