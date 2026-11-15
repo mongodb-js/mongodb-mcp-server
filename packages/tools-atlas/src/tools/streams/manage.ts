@@ -8,7 +8,10 @@ import {
     ConnectionConfig,
     StreamsArgs,
     StreamsAutoscaling,
+    StreamsPipeline,
     StreamsTier,
+    type DataCatalogProviderValue,
+    dataCatalogUrlValidationError,
     toStreamsAutoscaling,
 } from "../../streams/streamsArgs.js";
 import { StreamsInvalidArgumentError } from "../../streams/errors.js";
@@ -83,15 +86,12 @@ const StreamsManageArgsShape = {
         .describe("ISO 8601 timestamp to resume from. Only for 'start-processor'."),
 
     // modify-processor options
-    pipeline: z
-        .array(z.record(z.string(), z.unknown()))
-        .optional()
-        .describe(
-            "New pipeline stages as an array of objects, e.g. " +
-                "[{$source: {connectionName: 'src'}}, {$match: {status: 'active'}}, {$merge: {into: {connectionName: 'dest', db: 'db', coll: 'coll'}}}]. " +
-                "Only for 'modify-processor'. Processor must be stopped first. " +
-                "If changing a window stage interval, the processor must be restarted with resumeFromCheckpoint=false."
-        ),
+    pipeline: StreamsPipeline.optional().describe(
+        "New pipeline stages as an array of objects, e.g. " +
+            "[{$source: {connectionName: 'src'}}, {$match: {status: 'active'}}, {$merge: {into: {connectionName: 'dest', db: 'db', coll: 'coll'}}}]. " +
+            "Only for 'modify-processor'. Processor must be stopped first. " +
+            "If changing a window stage interval, the processor must be restarted with resumeFromCheckpoint=false."
+    ),
     dlq: z
         .object({
             connectionName: z.string(),
@@ -115,6 +115,7 @@ const StreamsManageArgsShape = {
     connectionConfig: ConnectionConfig.optional().describe(
         "Updated connection configuration. Only for 'update-connection'. " +
             "Provide only the fields to change. " +
+            "For DataCatalog, the provider cannot change; blank/omitted secrets preserve stored credentials only when catalogUrl is unchanged. " +
             "Note: networking config and connection type cannot be modified after creation — to change these, delete and recreate the connection."
     ),
 
@@ -584,14 +585,78 @@ export class StreamsManageTool extends StreamsToolBase {
                 params: { path: { groupId: args.projectId, tenantName: args.workspaceName, connectionName: name } },
             },
             request
-        )) as { type?: string; state?: string };
+        )) as {
+            type?: string;
+            state?: string;
+            catalogProvider?: DataCatalogProviderValue;
+            catalogUrl?: string;
+            databricks?: { authentication?: { clientId?: string } };
+            snowflake?: { authentication?: { account?: string; user?: string; role?: string } };
+        };
 
         const normalizedConfig = ConnectionConfig.parse(args.connectionConfig);
+        let updateConfig: Record<string, unknown> = normalizedConfig;
+        if (connection.type === "DataCatalog") {
+            const provider = connection.catalogProvider;
+            if (!provider) {
+                throw new StreamsInvalidArgumentError(
+                    "Atlas did not return catalogProvider for this DataCatalog connection; inspect it and retry."
+                );
+            }
+            if (normalizedConfig.catalogProvider !== undefined && normalizedConfig.catalogProvider !== provider) {
+                throw new StreamsInvalidArgumentError(
+                    `Catalog provider is immutable. This connection uses '${provider}' and cannot be changed.`
+                );
+            }
+
+            const settingsKey = provider === "DATABRICKS_UNITY" ? "databricks" : "snowflake";
+            const otherSettingsKey = provider === "DATABRICKS_UNITY" ? "snowflake" : "databricks";
+            if (normalizedConfig[otherSettingsKey] !== undefined) {
+                throw new StreamsInvalidArgumentError(
+                    `Do not include '${otherSettingsKey}' with catalogProvider '${provider}'.`
+                );
+            }
+
+            const currentSettings = connection[settingsKey];
+            const incomingSettings = normalizedConfig[settingsKey] as
+                | { authentication?: Record<string, string | undefined> }
+                | undefined;
+            const currentAuthentication = currentSettings?.authentication ?? {};
+            const incomingAuthentication = incomingSettings?.authentication ?? {};
+            const catalogUrl = normalizedConfig.catalogUrl ?? connection.catalogUrl;
+            const catalogUrlChanged =
+                typeof normalizedConfig.catalogUrl === "string" &&
+                normalizedConfig.catalogUrl !== connection.catalogUrl;
+            if (catalogUrlChanged) {
+                const urlError = dataCatalogUrlValidationError(normalizedConfig.catalogUrl as string, provider);
+                if (urlError) throw new StreamsInvalidArgumentError(urlError);
+            }
+            const secretField = provider === "DATABRICKS_UNITY" ? "clientSecret" : "privateKey";
+            const incomingSecret = incomingAuthentication[secretField];
+            if (catalogUrlChanged && (!incomingSecret || !incomingSecret.trim())) {
+                throw new StreamsInvalidArgumentError(
+                    `Changing catalogUrl requires a new ${settingsKey}.authentication.${secretField}; Atlas will not reuse credentials for a different URL.`
+                );
+            }
+
+            const authentication = {
+                ...currentAuthentication,
+                ...incomingAuthentication,
+                [secretField]: incomingSecret ?? "",
+            };
+            updateConfig = {
+                ...normalizedConfig,
+                catalogProvider: provider,
+                ...(catalogUrl !== undefined && { catalogUrl }),
+                [settingsKey]: { authentication },
+            };
+        }
+
         const updated = (await this.server.apiClient.updateStreamConnection(
             {
                 params: { path: { groupId: args.projectId, tenantName: args.workspaceName, connectionName: name } },
                 body: {
-                    ...normalizedConfig,
+                    ...updateConfig,
                     ...(connection.type !== undefined ? { type: connection.type } : {}),
                     name,
                 } as never,

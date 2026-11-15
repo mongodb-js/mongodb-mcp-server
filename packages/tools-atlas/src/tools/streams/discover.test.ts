@@ -554,6 +554,37 @@ describe("StreamsDiscoverTool", () => {
             });
         });
 
+        it("exposes DataCatalog metadata while redacting provider credentials", async () => {
+            mockApiClient.getStreamConnection!.mockResolvedValue({
+                name: "unity-catalog",
+                type: "DataCatalog",
+                catalogProvider: "DATABRICKS_UNITY",
+                catalogUrl: "https://workspace.cloud.databricks.com",
+                databricks: {
+                    authentication: { clientId: "unity-client", clientSecret: "unity-secret-value" },
+                },
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "inspect-connection",
+                workspaceName: "ws1",
+                resourceName: "unity-catalog",
+            });
+
+            const output = result.content.map((item) => (item as { text: string }).text).join("\n");
+            expect(output).toContain("DATABRICKS_UNITY");
+            expect(output).toContain("<redacted>");
+            expect(output).not.toContain("unity-secret-value");
+            expect(result.structuredContent).toEqual({
+                connection: {
+                    type: "DataCatalog",
+                    catalogProvider: "DATABRICKS_UNITY",
+                    catalogUrl: "https://workspace.cloud.databricks.com",
+                },
+            });
+        });
+
         it("should throw when resourceName is missing", async () => {
             await expect(exec({ ...baseArgs, action: "inspect-connection", workspaceName: "ws1" })).rejects.toThrow(
                 "resourceName is required"

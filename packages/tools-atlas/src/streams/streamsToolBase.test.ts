@@ -174,6 +174,21 @@ describe("StreamsToolBase", () => {
             expect((result.content[0] as { text: string }).text).toContain("invalid configuration");
         });
 
+        it("redacts submitted DataCatalog secrets from Atlas error messages", () => {
+            const privateKey = "private-key-that-must-not-echo";
+            const error = createApiClientError(400, `Invalid privateKey: ${privateKey}`);
+            const result = tool.testHandleError(error, {
+                projectId: "proj1",
+                connectionConfig: {
+                    snowflake: { authentication: { privateKey } },
+                },
+            } as never) as CallToolResult;
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("Invalid privateKey: <redacted>");
+            expect(text).toContain("Bad Request");
+            expect(text).not.toContain(privateKey);
+        });
+
         it("should handle 409 conflict", () => {
             const error = createApiClientError(409, "Resource already exists");
             const result = tool.testHandleError(error, defaultArgs) as CallToolResult;

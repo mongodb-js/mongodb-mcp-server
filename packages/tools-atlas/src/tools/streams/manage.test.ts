@@ -749,6 +749,121 @@ describe("StreamsManageTool", () => {
             expect(result.structuredContent).toEqual({});
         });
 
+        it.each([
+            {
+                provider: "DATABRICKS_UNITY",
+                url: "https://workspace.cloud.databricks.com",
+                settings: { databricks: { authentication: { clientId: "unity-client" } } },
+                secretField: "clientSecret",
+                settingsKey: "databricks",
+            },
+            {
+                provider: "SNOWFLAKE_HORIZON",
+                url: "https://myorg-myaccount.snowflakecomputing.com",
+                settings: {
+                    snowflake: { authentication: { account: "myorg-myaccount", user: "svc", role: "ICEBERG_ROLE" } },
+                },
+                secretField: "privateKey",
+                settingsKey: "snowflake",
+            },
+        ])("preserves stored $provider credentials without returning secrets", async (testCase) => {
+            mockApiClient.getStreamConnection = vi.fn().mockResolvedValue({
+                name: "catalog",
+                type: "DataCatalog",
+                state: "READY",
+                catalogProvider: testCase.provider,
+                catalogUrl: testCase.url,
+                ...testCase.settings,
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "update-connection",
+                resourceName: "catalog",
+                connectionConfig: { catalogUrl: testCase.url },
+            });
+
+            const updateCall = mockApiClient.updateStreamConnection!.mock.calls[0]?.[0] as {
+                body: Record<string, unknown>;
+            };
+            const providerSettings = updateCall.body[testCase.settingsKey] as {
+                authentication: Record<string, unknown>;
+            };
+            expect(updateCall.body).toMatchObject({
+                type: "DataCatalog",
+                catalogProvider: testCase.provider,
+                catalogUrl: testCase.url,
+            });
+            expect(providerSettings.authentication[testCase.secretField]).toBe("");
+            expect((result.content[0] as { text: string }).text).not.toContain("-----BEGIN PRIVATE KEY-----");
+            expect((result.content[0] as { text: string }).text).not.toContain("clientSecret");
+        });
+
+        it("requires fresh credentials when a DataCatalog URL changes", async () => {
+            mockApiClient.getStreamConnection = vi.fn().mockResolvedValue({
+                name: "catalog",
+                type: "DataCatalog",
+                catalogProvider: "DATABRICKS_UNITY",
+                catalogUrl: "https://old-workspace.cloud.databricks.com",
+                databricks: { authentication: { clientId: "unity-client" } },
+            });
+
+            await expect(
+                exec({
+                    ...baseArgs,
+                    action: "update-connection",
+                    resourceName: "catalog",
+                    connectionConfig: { catalogUrl: "https://new-workspace.cloud.databricks.com" },
+                })
+            ).rejects.toThrow("Changing catalogUrl requires a new databricks.authentication.clientSecret");
+            expect(mockApiClient.updateStreamConnection).not.toHaveBeenCalled();
+        });
+
+        it("rejects an invalid DataCatalog host when updating the URL", async () => {
+            mockApiClient.getStreamConnection = vi.fn().mockResolvedValue({
+                name: "catalog",
+                type: "DataCatalog",
+                catalogProvider: "SNOWFLAKE_HORIZON",
+                catalogUrl: "https://myorg-myaccount.snowflakecomputing.com",
+                snowflake: { authentication: { account: "acct", user: "svc", role: "ICEBERG_ROLE" } },
+            });
+
+            await expect(
+                exec({
+                    ...baseArgs,
+                    action: "update-connection",
+                    resourceName: "catalog",
+                    connectionConfig: {
+                        catalogUrl: "https://example.com",
+                        snowflake: {
+                            authentication: {
+                                privateKey: "-----BEGIN PRIVATE KEY-----\nkey\n-----END PRIVATE KEY-----",
+                            },
+                        },
+                    },
+                })
+            ).rejects.toThrow("catalogUrl host for 'SNOWFLAKE_HORIZON' must end in *.snowflakecomputing.com");
+            expect(mockApiClient.updateStreamConnection).not.toHaveBeenCalled();
+        });
+
+        it("rejects changing the provider of an existing DataCatalog connection", async () => {
+            mockApiClient.getStreamConnection = vi.fn().mockResolvedValue({
+                name: "catalog",
+                type: "DataCatalog",
+                catalogProvider: "DATABRICKS_UNITY",
+            });
+
+            await expect(
+                exec({
+                    ...baseArgs,
+                    action: "update-connection",
+                    resourceName: "catalog",
+                    connectionConfig: { catalogProvider: "SNOWFLAKE_HORIZON" },
+                })
+            ).rejects.toThrow("Catalog provider is immutable");
+            expect(mockApiClient.updateStreamConnection).not.toHaveBeenCalled();
+        });
+
         it("should normalize bootstrapServers array to comma-separated string", async () => {
             await exec({
                 ...baseArgs,

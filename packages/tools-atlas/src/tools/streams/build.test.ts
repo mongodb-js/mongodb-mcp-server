@@ -173,6 +173,44 @@ describe("StreamsBuildTool", () => {
     });
 
     describe("createProcessor", () => {
+        it("validates Unity and Horizon Iceberg catalogs and preserves built-in catalogs", () => {
+            const pipelineSchema = tool.argsShape().pipeline;
+
+            expect(() =>
+                pipelineSchema.parse([
+                    { $source: { connectionName: "src" } },
+                    {
+                        $iceberg: {
+                            connectionName: "s3",
+                            catalog: { type: "unity", connectionName: "unity-cat" },
+                        },
+                    },
+                ])
+            ).toThrow("Catalog warehouse is required for 'unity'");
+
+            expect(() =>
+                pipelineSchema.parse([
+                    { $source: { connectionName: "src" } },
+                    {
+                        $iceberg: {
+                            connectionName: "s3",
+                            catalog: { type: "horizon", warehouse: "ANALYTICS" },
+                        },
+                    },
+                ])
+            ).toThrow("Catalog connectionName is required for 'horizon'");
+
+            expect(
+                pipelineSchema.parse([
+                    { $source: { connectionName: "src" } },
+                    { $iceberg: { connectionName: "s3", catalog: { type: "glue" } } },
+                ])
+            ).toEqual([
+                { $source: { connectionName: "src" } },
+                { $iceberg: { connectionName: "s3", catalog: { type: "glue" } } },
+            ]);
+        });
+
         it("should create processor with pipeline and DLQ config", async () => {
             const pipeline = [
                 { $source: { connectionName: "src" } },
@@ -827,6 +865,147 @@ describe("StreamsBuildTool", () => {
         });
     });
 
+    describe("createConnection - DataCatalog", () => {
+        it.each([
+            {
+                provider: "DATABRICKS_UNITY",
+                catalogUrl: "https://my-workspace.cloud.databricks.com",
+                config: {
+                    databricks: {
+                        authentication: { clientId: "unity-client", clientSecret: "unity-secret-value" },
+                    },
+                },
+                expected: {
+                    databricks: {
+                        authentication: { clientId: "unity-client", clientSecret: "unity-secret-value" },
+                    },
+                },
+                secret: "unity-secret-value",
+            },
+            {
+                provider: "SNOWFLAKE_HORIZON",
+                catalogUrl: "https://myorg-myaccount.snowflakecomputing.com",
+                config: {
+                    snowflake: {
+                        authentication: {
+                            account: "myorg-myaccount",
+                            user: "ICEBERG_SERVICE_USER",
+                            role: "ASP_ICEBERG_ROLE",
+                            privateKey: "-----BEGIN PRIVATE KEY-----\nprivate-key-value\n-----END PRIVATE KEY-----",
+                        },
+                    },
+                },
+                expected: {
+                    snowflake: {
+                        authentication: {
+                            account: "myorg-myaccount",
+                            user: "ICEBERG_SERVICE_USER",
+                            role: "ASP_ICEBERG_ROLE",
+                            privateKey: "-----BEGIN PRIVATE KEY-----\nprivate-key-value\n-----END PRIVATE KEY-----",
+                        },
+                    },
+                },
+                secret: "private-key-value",
+            },
+        ])("creates a $provider connection with its provider-specific credentials", async (testCase) => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "iceberg-catalog",
+                connectionType: "DataCatalog",
+                connectionConfig: {
+                    catalogProvider: testCase.provider,
+                    catalogUrl: testCase.catalogUrl,
+                    ...testCase.config,
+                },
+            });
+
+            expect(mockApiClient.createStreamConnection).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1", tenantName: "ws1" } },
+                    body: {
+                        name: "iceberg-catalog",
+                        type: "DataCatalog",
+                        catalogProvider: testCase.provider,
+                        catalogUrl: testCase.catalogUrl,
+                        ...testCase.expected,
+                    },
+                },
+                expect.anything()
+            );
+            expect((result.content[0] as { text: string }).text).not.toContain(testCase.secret);
+        });
+
+        it("elicits missing catalog settings rather than sending an incomplete connection", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "iceberg-catalog",
+                connectionType: "DataCatalog",
+                connectionConfig: { catalogProvider: "DATABRICKS_UNITY" },
+            });
+
+            expect(result.resultType).toBe("input_required");
+            expect(mockApiClient.createStreamConnection).not.toHaveBeenCalled();
+            expect(mockElicitation.inputRequired).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    schema: expect.objectContaining({
+                        required: ["catalogUrl", "clientId", "clientSecret"],
+                    }),
+                })
+            );
+        });
+
+        it("rejects mixed provider credentials with an actionable error", async () => {
+            await expect(
+                exec({
+                    ...baseArgs,
+                    resource: "connection",
+                    connectionName: "iceberg-catalog",
+                    connectionType: "DataCatalog",
+                    connectionConfig: {
+                        catalogProvider: "DATABRICKS_UNITY",
+                        catalogUrl: "https://my-workspace.cloud.databricks.com",
+                        databricks: { authentication: { clientId: "unity-client", clientSecret: "secret" } },
+                        snowflake: { authentication: { account: "acct" } },
+                    },
+                })
+            ).rejects.toThrow("Do not include 'snowflake' with catalogProvider 'DATABRICKS_UNITY'");
+            expect(mockApiClient.createStreamConnection).not.toHaveBeenCalled();
+        });
+
+        it.each([
+            ["http://myorg-myaccount.snowflakecomputing.com", "HTTPS account/workspace base URL"],
+            ["https://example.com", "must end in *.snowflakecomputing.com"],
+            [
+                "https://myorg-myaccount.snowflakecomputing.com/polaris/api/catalog",
+                "omit credentials, query, fragment, and REST path",
+            ],
+        ])("rejects invalid catalog URL %s", async (catalogUrl, error) => {
+            await expect(
+                exec({
+                    ...baseArgs,
+                    resource: "connection",
+                    connectionName: "iceberg-catalog",
+                    connectionType: "DataCatalog",
+                    connectionConfig: {
+                        catalogProvider: "SNOWFLAKE_HORIZON",
+                        catalogUrl,
+                        snowflake: {
+                            authentication: {
+                                account: "account",
+                                user: "service-user",
+                                role: "iceberg-role",
+                                privateKey: "-----BEGIN PRIVATE KEY-----\nkey\n-----END PRIVATE KEY-----",
+                            },
+                        },
+                    },
+                })
+            ).rejects.toThrow(error);
+            expect(mockApiClient.createStreamConnection).not.toHaveBeenCalled();
+        });
+    });
+
     describe("createConnection - GCPPubSub", () => {
         it("should create a GCP Pub/Sub connection with serviceAccountId", async () => {
             await exec({
@@ -1105,6 +1284,31 @@ describe("StreamsBuildTool", () => {
 
             expect(result.isError).toBeUndefined();
             expect(mockApiClient.createStreamProcessor).toHaveBeenCalledOnce();
+        });
+
+        it("should validate the DataCatalog connection nested under $iceberg.catalog", async () => {
+            mockApiClient.listStreamConnections!.mockResolvedValue({
+                results: [{ name: "src" }, { name: "s3-storage" }],
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "iceberg-proc",
+                pipeline: [
+                    { $source: { connectionName: "src" } },
+                    {
+                        $iceberg: {
+                            connectionName: "s3-storage",
+                            catalog: { type: "unity", connectionName: "missing-catalog", warehouse: "analytics" },
+                        },
+                    },
+                ],
+            });
+
+            expect(result.isError).toBe(true);
+            expect((result.content[0] as { text: string }).text).toContain("missing-catalog");
+            expect(mockApiClient.createStreamProcessor).not.toHaveBeenCalled();
         });
 
         it("should return error when DLQ references non-existent connection", async () => {

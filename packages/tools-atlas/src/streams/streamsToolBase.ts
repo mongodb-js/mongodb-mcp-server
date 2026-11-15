@@ -6,10 +6,52 @@ import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import type { StreamsToolMetadata } from "@mongodb-js/mcp-types";
 
 export abstract class StreamsToolBase extends AtlasToolBase {
+    private static readonly SECRET_ARGUMENT_KEYS = new Set([
+        "password",
+        "apikey",
+        "accesstoken",
+        "token",
+        "clientsecret",
+        "secret",
+        "privatekey",
+        "awssecretaccesskey",
+        "oidcclientsecret",
+        "sharedsecret",
+    ]);
+
+    private static redactSubmittedSecrets(message: string, value: unknown): string {
+        const secrets = new Set<string>();
+        const collect = (item: unknown): void => {
+            if (Array.isArray(item)) {
+                item.forEach(collect);
+                return;
+            }
+            if (item === null || typeof item !== "object") return;
+            for (const [key, nested] of Object.entries(item as Record<string, unknown>)) {
+                const normalizedKey = key.toLowerCase().replace(/[-_]/g, "");
+                if (StreamsToolBase.SECRET_ARGUMENT_KEYS.has(normalizedKey) && typeof nested === "string" && nested) {
+                    secrets.add(nested);
+                } else {
+                    collect(nested);
+                }
+            }
+        };
+        collect(value);
+        return [...secrets]
+            .sort((left, right) => right.length - left.length)
+            .reduce((redacted, secret) => redacted.split(secret).join("<redacted>"), message);
+    }
+
     protected override handleError(
         error: unknown,
         args: ToolArgs<ReturnType<typeof this.argsShape>>
     ): Promise<CallToolResult> | CallToolResult {
+        if (error instanceof Error) {
+            const redactedMessage = StreamsToolBase.redactSubmittedSecrets(error.message, args);
+            if (redactedMessage !== error.message) {
+                error.message = redactedMessage;
+            }
+        }
         if (error instanceof ApiClientError) {
             const statusCode = error.response.status;
 
