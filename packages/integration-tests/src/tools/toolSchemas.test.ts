@@ -42,7 +42,7 @@ async function lintToolSchemas(): Promise<{ toolCount: number; findings: string[
             "--telemetry",
             "disabled",
         ],
-        { cwd: projectRoot, maxBuffer: 64 * 1024 * 1024 }
+        { cwd: projectRoot, maxBuffer: 64 * 1024 * 1024, shell: process.platform === "win32" }
     );
     const output = JSON.parse(stdout) as InspectorOutput;
     return {
