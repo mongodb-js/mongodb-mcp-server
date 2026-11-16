@@ -956,6 +956,61 @@ describe("StreamsBuildTool", () => {
             );
         });
 
+        it.each([
+            {
+                name: "direct",
+                connectionConfig: {
+                    catalogProvider: "DATABRICKS_UNITY",
+                    catalogUrl: "https://my-workspace.cloud.databricks.com",
+                    databricks: { authentication: { clientId: "unity-client", clientSecret: "direct-secret" } },
+                },
+                inputResponses: undefined,
+                secret: "direct-secret",
+            },
+            {
+                name: "elicited",
+                connectionConfig: { catalogProvider: "DATABRICKS_UNITY" },
+                inputResponses: {
+                    "connection-fields": {
+                        action: "accept",
+                        content: {
+                            catalogUrl: "https://my-workspace.cloud.databricks.com",
+                            clientId: "unity-client",
+                            clientSecret: "elicited-secret",
+                        },
+                    },
+                },
+                secret: "elicited-secret",
+            },
+        ])(
+            "redacts $name DataCatalog credentials before logging API errors",
+            async ({ connectionConfig, inputResponses, secret }) => {
+                mockApiClient.createStreamConnection!.mockRejectedValue(new Error(`Invalid clientSecret: ${secret}`));
+                const errorLog = vi.spyOn(server.logger, "error");
+                mockElicitation.readInput.mockImplementation((_responses, key) =>
+                    key === "connection-fields" && inputResponses !== undefined
+                        ? { accepted: true, fields: inputResponses["connection-fields"].content }
+                        : undefined
+                );
+
+                const result = await tool.invoke(
+                    {
+                        ...baseArgs,
+                        resource: "connection",
+                        connectionName: "iceberg-catalog",
+                        connectionType: "DataCatalog",
+                        connectionConfig,
+                    } as never,
+                    { request: { signal: new AbortController().signal, inputResponses } } as never
+                );
+
+                expect(result.isError).toBe(true);
+                expect((result.content[0] as { text: string }).text).not.toContain(secret);
+                expect(JSON.stringify(errorLog.mock.calls)).not.toContain(secret);
+                expect(JSON.stringify(errorLog.mock.calls)).toContain("<redacted>");
+            }
+        );
+
         it("rejects mixed provider credentials with an actionable error", async () => {
             await expect(
                 exec({

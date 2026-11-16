@@ -446,13 +446,20 @@ export class StreamsBuildTool extends StreamsToolBase {
             type: args.connectionType,
         };
 
-        await this.server.apiClient.createStreamConnection(
-            {
-                params: { path: { groupId: args.projectId, tenantName: workspaceName } },
-                body: body as never,
-            },
-            request
-        );
+        try {
+            await this.server.apiClient.createStreamConnection(
+                {
+                    params: { path: { groupId: args.projectId, tenantName: workspaceName } },
+                    body: body as never,
+                },
+                request
+            );
+        } catch (error) {
+            if (error instanceof Error) {
+                error.message = StreamsToolBase.redactSubmittedSecrets(error.message, config);
+            }
+            throw error;
+        }
 
         const networking = config.networking as { access?: { type?: string } } | undefined;
         const publicPrivateNetworking = config.publicPrivateNetworking as { access?: { type?: string } } | undefined;

@@ -19,7 +19,7 @@ export abstract class StreamsToolBase extends AtlasToolBase {
         "sharedsecret",
     ]);
 
-    private static redactSubmittedSecrets(message: string, value: unknown): string {
+    protected static redactSubmittedSecrets(message: string, value: unknown): string {
         const secrets = new Set<string>();
         const collect = (item: unknown): void => {
             if (Array.isArray(item)) {
