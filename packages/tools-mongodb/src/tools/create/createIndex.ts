@@ -5,8 +5,9 @@ import {
     type ToolArgs,
     type ToolResult,
     ToolArgumentValidationError,
+    LogId,
 } from "@mongodb-js/mcp-core";
-import type { OperationType, IndexMetadata } from "@mongodb-js/mcp-types";
+import type { OperationType, IndexMetadata, CallToolResult } from "@mongodb-js/mcp-types";
 import { IndexDirectionSchema, modelsSupportingAutoEmbedIndexes } from "../../mongodbSchemas.js";
 
 const CreateIndexOutputSchema = {
@@ -329,6 +330,85 @@ export class CreateIndexTool extends MongoDBToolBase {
                 indexType: definition.type,
             },
         };
+    }
+
+    protected override async handleError(
+        error: unknown,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>
+    ): Promise<CallToolResult> {
+        const viewError = await this.describeSearchIndexOnViewError(error, args);
+        if (viewError) {
+            return viewError;
+        }
+
+        return super.handleError(error, args);
+    }
+
+    /**
+     * The server reports `NamespaceNotFound` ("Collection 'db.view' does not
+     * exist") when `createSearchIndexes` targets a view it cannot index, which
+     * is misleading because the view does exist. This is the case on
+     * MongoDB < 8.1, where search indexes on views can only be created via
+     * the Atlas UI or Admin API (8.0) or are unsupported (< 8.0).
+     *
+     * Runs only on the failure path. Returns `undefined` (so the original
+     * error is reported unchanged) unless the failure is a search or vector
+     * search index creation on a namespace that is a view on a server older
+     * than 8.1. Any failure while investigating also yields `undefined`.
+     */
+    private async describeSearchIndexOnViewError(
+        error: unknown,
+        args: ToolArgs<ReturnType<typeof this.argsShape>>
+    ): Promise<CallToolResult | undefined> {
+        if (!(error instanceof Error) || !("codeName" in error) || error.codeName !== "NamespaceNotFound") {
+            return undefined;
+        }
+
+        const { connectionId, database, collection, definition } = args;
+        const indexType = definition[0]?.type;
+        if (indexType !== "search" && indexType !== "vectorSearch") {
+            return undefined;
+        }
+
+        try {
+            const provider = await this.resolveConnection(connectionId);
+            const [namespaceInfo] = await provider.listCollections(database, { name: collection });
+            if (namespaceInfo?.type !== "view") {
+                return undefined;
+            }
+
+            const buildInfo = await provider.runCommand("admin", { buildInfo: 1 });
+            const versionArray = buildInfo["versionArray"] as unknown;
+            const [major, minor] = Array.isArray(versionArray) ? (versionArray as unknown[]) : [];
+            if (typeof major !== "number" || typeof minor !== "number") {
+                return undefined;
+            }
+
+            if (major > 8 || (major === 8 && minor >= 1)) {
+                return undefined;
+            }
+
+            const viewOn = (namespaceInfo.options as { viewOn?: unknown } | undefined)?.viewOn;
+            const sourceCollection = typeof viewOn === "string" && viewOn ? viewOn : undefined;
+            const namespace = `${database}.${collection}`;
+            const sourceCollectionPhrase = sourceCollection
+                ? `the source collection "${sourceCollection}"`
+                : "the view's source collection";
+            const text =
+                major === 8
+                    ? `Cannot create a search index on "${namespace}": it is a view, and on MongoDB ${major}.${minor} search and vector search indexes on views cannot be created through this tool. On Atlas, create the index through the Atlas UI or the Atlas Administration API; otherwise upgrade to MongoDB 8.1 or later. Until the cluster is on 8.1+, queries must run against ${sourceCollectionPhrase} and reference the index by name.`
+                    : `Cannot create a search index on "${namespace}": it is a view, and search and vector search indexes on views require MongoDB 8.0 or later (8.1 or later to create them through this tool). This cluster runs MongoDB ${major}.${minor}.`;
+
+            return { content: [{ type: "text", text }], isError: true };
+        } catch (diagnosisError) {
+            // Never mask the original error with a failure from the extra lookups.
+            this.server.logger.debug({
+                id: LogId.mongodbSearchIndexOnViewDiagnosisFailure,
+                context: "create-index tool",
+                message: `Failed to check whether "${database}.${collection}" is a view, reporting the original error: ${diagnosisError instanceof Error ? diagnosisError.message : String(diagnosisError)}`,
+            });
+            return undefined;
+        }
     }
 
     protected override async resolveTelemetryMetadata(
