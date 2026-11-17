@@ -299,6 +299,7 @@ export const LogId: {
     readonly streamableHttpTransportSessionLimitExceeded: MongoLogId;
     readonly streamableHttpTransportClientStateSaveFailure: MongoLogId;
     readonly streamableHttpTransportClientStateRestoreFailure: MongoLogId;
+    readonly streamableHttpTransportRequestCancelledOnDisconnect: MongoLogId;
     readonly httpServerStarted: MongoLogId;
     readonly httpServerStopping: MongoLogId;
     readonly httpServerStopped: MongoLogId;
