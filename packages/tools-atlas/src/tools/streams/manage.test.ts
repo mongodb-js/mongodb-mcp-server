@@ -6,6 +6,7 @@ import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import type { AtlasToolServer } from "../../atlasTool.js";
@@ -708,6 +709,102 @@ describe("StreamsManageTool", () => {
     });
 
     describe("update-connection", () => {
+        describe.each([
+            {
+                provider: "DATABRICKS_UNITY",
+                settingsKey: "databricks",
+                url: "https://old.cloud.databricks.com",
+                newUrl: "https://new.cloud.databricks.com",
+                metadata: { clientId: "service-principal" },
+                secretField: "clientSecret",
+                secret: "unity-rotation-secret",
+            },
+            {
+                provider: "SNOWFLAKE_HORIZON",
+                settingsKey: "snowflake",
+                url: "https://old.snowflakecomputing.com",
+                newUrl: "https://new.snowflakecomputing.com",
+                metadata: { account: "account", user: "service-user", role: "iceberg-role" },
+                secretField: "privateKey",
+                secret: "-----BEGIN PRIVATE KEY-----\ntest-rotation-key\n-----END PRIVATE KEY-----",
+            },
+        ])("DataCatalog $provider", ({ provider, settingsKey, url, newUrl, metadata, secretField, secret }) => {
+            beforeEach(() => {
+                mockApiClient.getStreamConnection!.mockResolvedValue({
+                    type: "DataCatalog",
+                    state: "PENDING",
+                    catalogProvider: provider,
+                    catalogUrl: url,
+                    [settingsKey]: { authentication: metadata },
+                });
+            });
+
+            it.each([false, true])("sends the supplied credential (URL changes: %s)", async (changeUrl) => {
+                mockApiClient.updateStreamConnection!.mockResolvedValue({ state: "READY" });
+                const result = await exec({
+                    ...baseArgs,
+                    action: "update-connection",
+                    resourceName: "catalog",
+                    connectionConfig: {
+                        ...(changeUrl && { catalogUrl: newUrl }),
+                        [settingsKey]: { authentication: { [secretField]: secret } },
+                    },
+                });
+
+                expect(mockApiClient.updateStreamConnection).toHaveBeenCalledExactlyOnceWith(
+                    {
+                        params: { path: { groupId: "proj1", tenantName: "ws1", connectionName: "catalog" } },
+                        body: {
+                            name: "catalog",
+                            type: "DataCatalog",
+                            catalogProvider: provider,
+                            catalogUrl: changeUrl ? newUrl : url,
+                            [settingsKey]: { authentication: { ...metadata, [secretField]: secret } },
+                        },
+                    },
+                    expect.anything()
+                );
+                expect(result.isError).toBeFalsy();
+                expect(result.structuredContent).toEqual({ connectionState: "READY" });
+                expect(JSON.stringify(result)).not.toContain(JSON.stringify(secret).slice(1, -1));
+            });
+
+            it("redacts raw and escaped credentials before logging an Atlas rejection", async () => {
+                const escaped = JSON.stringify(secret).slice(1, -1);
+                mockApiClient.updateStreamConnection!.mockRejectedValue(
+                    ApiClientError.fromError({
+                        response: new Response(null, { status: 400 }),
+                        error: {
+                            reason: `Invalid credentials: ${secret}; JSON: ${escaped}`,
+                            error: 400,
+                            errorCode: "INVALID_ARGUMENT",
+                        },
+                    })
+                );
+
+                const result = await tool.invoke(
+                    {
+                        ...baseArgs,
+                        action: "update-connection",
+                        resourceName: "catalog",
+                        connectionConfig: { [settingsKey]: { authentication: { [secretField]: secret } } },
+                    },
+                    { request: { signal: new AbortController().signal } }
+                );
+
+                expect(mockApiClient.updateStreamConnection).toHaveBeenCalledOnce();
+                expect(result).toMatchObject({
+                    isError: true,
+                    content: [{ text: expect.stringContaining("Bad Request") }],
+                });
+                for (const output of [JSON.stringify(result), JSON.stringify(mockLogger.error!.mock.calls)]) {
+                    expect(output).toContain("<redacted>");
+                    expect(output).not.toContain(escaped);
+                    expect(output).not.toContain(JSON.stringify(escaped).slice(1, -1));
+                }
+            });
+        });
+
         it("should update connection with new config", async () => {
             const result = await exec({
                 ...baseArgs,

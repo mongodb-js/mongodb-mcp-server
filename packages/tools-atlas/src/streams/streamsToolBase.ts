@@ -31,6 +31,7 @@ export abstract class StreamsToolBase extends AtlasToolBase {
                 const normalizedKey = key.toLowerCase().replace(/[-_]/g, "");
                 if (StreamsToolBase.SECRET_ARGUMENT_KEYS.has(normalizedKey) && typeof nested === "string" && nested) {
                     secrets.add(nested);
+                    secrets.add(JSON.stringify(nested).slice(1, -1));
                 } else {
                     collect(nested);
                 }

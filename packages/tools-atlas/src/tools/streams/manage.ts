@@ -652,17 +652,26 @@ export class StreamsManageTool extends StreamsToolBase {
             };
         }
 
-        const updated = (await this.server.apiClient.updateStreamConnection(
-            {
-                params: { path: { groupId: args.projectId, tenantName: args.workspaceName, connectionName: name } },
-                body: {
-                    ...updateConfig,
-                    ...(connection.type !== undefined ? { type: connection.type } : {}),
-                    name,
-                } as never,
-            },
-            request
-        )) as { state?: string } | undefined;
+        const body = {
+            ...updateConfig,
+            ...(connection.type !== undefined ? { type: connection.type } : {}),
+            name,
+        };
+        let updated: { state?: string } | undefined;
+        try {
+            updated = (await this.server.apiClient.updateStreamConnection(
+                {
+                    params: { path: { groupId: args.projectId, tenantName: args.workspaceName, connectionName: name } },
+                    body: body as never,
+                },
+                request
+            )) as { state?: string } | undefined;
+        } catch (error) {
+            if (error instanceof Error) {
+                error.message = StreamsToolBase.redactSubmittedSecrets(error.message, body);
+            }
+            throw error;
+        }
 
         const connectionState = updated?.state ?? connection.state;
         const parsedConnectionState = ConnectionState.safeParse(connectionState);
