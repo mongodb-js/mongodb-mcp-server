@@ -856,7 +856,7 @@ export class StreamsBuildTool extends StreamsToolBase {
         );
 
         if (missingFields.length > 0) {
-            return this.elicitOrReportMissing({
+            const result = this.elicitOrReportMissing({
                 connectionType: "DataCatalog",
                 config,
                 missingFields,
@@ -872,6 +872,18 @@ export class StreamsBuildTool extends StreamsToolBase {
                     cfg[settingsKey] = providerSettings;
                 },
             });
+            if (result) return result;
+
+            const completedAuthentication = (
+                config[settingsKey] as { authentication?: Record<string, unknown> } | undefined
+            )?.authentication;
+            for (const key of keys) {
+                const value = key === "catalogUrl" ? config.catalogUrl : completedAuthentication?.[key];
+                if (typeof value !== "string" || !value.trim()) {
+                    throw new StreamsInvalidArgumentError(`DataCatalog field '${key}' must not be blank.`);
+                }
+            }
+            return this.validateDataCatalogConfig(config, request);
         }
 
         const urlError = dataCatalogUrlValidationError(config.catalogUrl as string, provider);
