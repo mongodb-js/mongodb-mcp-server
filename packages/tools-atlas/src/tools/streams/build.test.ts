@@ -1000,12 +1000,12 @@ describe("StreamsBuildTool", () => {
                         connectionName: "iceberg-catalog",
                         connectionType: "DataCatalog",
                         connectionConfig,
-                    } as never,
-                    { request: { signal: new AbortController().signal, inputResponses } } as never
+                    },
+                    { request: { signal: new AbortController().signal, inputResponses } }
                 );
 
-                expect(result.isError).toBe(true);
-                expect((result.content[0] as { text: string }).text).not.toContain(secret);
+                expect(result).toMatchObject({ isError: true, content: [{ type: "text" }] });
+                expect(JSON.stringify(result)).not.toContain(secret);
                 expect(JSON.stringify(errorLog.mock.calls)).not.toContain(secret);
                 expect(JSON.stringify(errorLog.mock.calls)).toContain("<redacted>");
             }
