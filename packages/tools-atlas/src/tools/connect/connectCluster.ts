@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { type ToolArgs, type ToolResult, LogId, requestIdAttr, sleep } from "@mongodb-js/mcp-core";
+import { type ToolArgs, type ToolResult, LogId, requestIdAttr, sleep, getRandomUUID } from "@mongodb-js/mcp-core";
 import type {
     OperationType,
     AtlasClusterConnectionInfo,
@@ -126,7 +126,7 @@ export class ConnectClusterTool extends AtlasToolBase {
             );
         }
 
-        const username = `mcpUser${Math.floor(Math.random() * 100000)}`;
+        const username = `mcpUser${getRandomUUID()}`;
         const password = await generateSecurePassword();
 
         // 14_400_000ms (4h) is the canonical default also declared by
