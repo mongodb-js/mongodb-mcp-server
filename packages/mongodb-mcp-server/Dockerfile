@@ -11,3 +11,5 @@ LABEL maintainer="MongoDB Inc <info@mongodb.com>"
 LABEL description="MongoDB MCP Server"
 LABEL version=${VERSION}
 LABEL io.modelcontextprotocol.server.name="io.github.mongodb-js/mongodb-mcp-server"
+LABEL org.opencontainers.image.source="https://github.com/mongodb-js/mongodb-mcp-server"
+LABEL org.opencontainers.image.licenses="Apache-2.0"
