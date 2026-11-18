@@ -833,7 +833,7 @@ export class StreamsBuildTool extends StreamsToolBase {
     }): CallToolResult | InputRequiredResult | null {
         // Clients that do not declare elicitation support cannot answer
         // embedded requests: report the missing fields instead of eliciting.
-        if (!this.server.elicitation.supportsElicitation()) {
+        if (!this.server.elicitation.supportsElicitation(request)) {
             return StreamsBuildTool.missingFieldsResponse({ connectionType, missingFields, additionalNote });
         }
 

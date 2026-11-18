@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { Elicitation, CONFIRMATION_INPUT_KEY } from "./elicitation.js";
-import type { McpServer } from "@modelcontextprotocol/server";
+import { CLIENT_CAPABILITIES_META_KEY, type McpServer } from "@modelcontextprotocol/server";
+import type { ElicitationRequestContext } from "@mongodb-js/mcp-types";
 import type { MockedFunction } from "vitest";
 
 type MockClientCapabilities = {
@@ -25,29 +26,77 @@ describe("Elicitation (multi-round-trip builders/readers)", () => {
     });
 
     describe("supportsElicitation", () => {
-        it("should return true when client supports elicitation", () => {
-            mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
+        /** A request whose 2026-07-28 `_meta` envelope declares `capabilities`. */
+        function modernRequest(capabilities: MockClientCapabilities): ElicitationRequestContext {
+            return {
+                raw: { envelope: { [CLIENT_CAPABILITIES_META_KEY]: capabilities } } as never,
+            };
+        }
 
-            const result = elicitation.supportsElicitation();
+        describe("2025-era request (no envelope)", () => {
+            it("should return true when client supports elicitation", () => {
+                mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
 
-            expect(result).toBe(true);
-            expect(mockGetClientCapabilities).toHaveBeenCalledTimes(1);
+                const result = elicitation.supportsElicitation({});
+
+                expect(result).toBe(true);
+                expect(mockGetClientCapabilities).toHaveBeenCalledTimes(1);
+            });
+
+            it("should return false when client does not support elicitation", () => {
+                mockGetClientCapabilities.mockReturnValue({});
+
+                const result = elicitation.supportsElicitation({});
+
+                expect(result).toBe(false);
+            });
+
+            it("should return false when client capabilities are undefined", () => {
+                mockGetClientCapabilities.mockReturnValue(undefined);
+
+                const result = elicitation.supportsElicitation({});
+
+                expect(result).toBe(false);
+            });
+
+            it("falls back to the negotiated capabilities when the envelope does not declare any", () => {
+                mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
+
+                const result = elicitation.supportsElicitation({ raw: { envelope: {} } as never });
+
+                expect(result).toBe(true);
+            });
         });
 
-        it("should return false when client does not support elicitation", () => {
-            mockGetClientCapabilities.mockReturnValue({});
+        describe("2026-07-28 request (capabilities on the envelope)", () => {
+            it.each([{ elicitation: {} }, { elicitation: { form: {} } }])(
+                "returns true when the envelope declares %j and nothing was negotiated",
+                (capabilities) => {
+                    // serveStdio never runs `initialize` on the modern era, so
+                    // the connection-scoped getter stays empty.
+                    mockGetClientCapabilities.mockReturnValue(undefined);
 
-            const result = elicitation.supportsElicitation();
+                    const result = elicitation.supportsElicitation(modernRequest(capabilities));
 
-            expect(result).toBe(false);
-        });
+                    expect(result).toBe(true);
+                }
+            );
 
-        it("should return false when client capabilities are undefined", () => {
-            mockGetClientCapabilities.mockReturnValue(undefined);
+            it("returns false when the envelope declares no elicitation", () => {
+                mockGetClientCapabilities.mockReturnValue(undefined);
 
-            const result = elicitation.supportsElicitation();
+                const result = elicitation.supportsElicitation(modernRequest({}));
 
-            expect(result).toBe(false);
+                expect(result).toBe(false);
+            });
+
+            it("prefers the envelope declaration over the negotiated capabilities", () => {
+                mockGetClientCapabilities.mockReturnValue({ elicitation: {} });
+
+                const result = elicitation.supportsElicitation(modernRequest({}));
+
+                expect(result).toBe(false);
+            });
         });
     });
 
