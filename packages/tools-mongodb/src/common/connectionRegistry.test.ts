@@ -65,6 +65,26 @@ class ConnectingManager extends ConnectionManager {
     }
 }
 
+/**
+ * A FakeConnectionManager whose close waits on a gate before disconnecting, like
+ * MCPConnectionManager, which keeps reporting `connected` until the provider close finishes.
+ */
+class GatedCloseManager extends FakeConnectionManager {
+    public closeStarted = false;
+    private readonly closeGate: Promise<void>;
+
+    constructor(closeGate: Promise<void>) {
+        super();
+        this.closeGate = closeGate;
+    }
+
+    override async close(): Promise<void> {
+        this.closeStarted = true;
+        await this.closeGate;
+        await super.close();
+    }
+}
+
 describe("ConnectionRegistry", () => {
     let managers: FakeConnectionManager[];
     let managerFactory: () => ConnectionManager;
@@ -897,6 +917,78 @@ describe("ConnectionRegistry", () => {
             const entry = await registry.peek("prod");
             expect(entry?.state.tag).toBe("connected");
             expect(managers[0]?.connectCalls).toHaveLength(1);
+        });
+
+        it("makes a tool call that arrives during an idle close wait and redial", async () => {
+            let releaseClose!: () => void;
+            const gate = new Promise<void>((resolve) => {
+                releaseClose = resolve;
+            });
+            const gated = new GatedCloseManager(gate);
+            managerFactory = (): ConnectionManager => gated;
+            const store = makeStore({
+                options: {
+                    ...defaultTestConfig,
+                    connectionStrings: { prod: "mongodb://localhost:27017" },
+                    preconfiguredConnectionIdleTimeoutMs: 1000,
+                },
+            });
+            const registry = store.view();
+            await registry.resolve("prod");
+
+            // The sweep starts closing; the manager still reports "connected" until the close finishes.
+            await vi.advanceTimersByTimeAsync(2_500);
+            expect(gated.closeStarted).toBe(true);
+            expect((await registry.peek("prod"))?.state.tag).toBe("connected");
+
+            let resolved = false;
+            const resolving = registry.resolve("prod").then((provider) => {
+                resolved = true;
+                return provider;
+            });
+            await vi.advanceTimersByTimeAsync(0);
+            expect(resolved).toBe(false);
+
+            releaseClose();
+            await expect(resolving).resolves.toEqual({ fake: true });
+            // It redialed instead of returning the provider that was being closed.
+            expect(gated.connectCalls).toHaveLength(2);
+            expect((await registry.peek("prod"))?.state.tag).toBe("connected");
+        });
+
+        it("does not close a configured connection that was used while the sweep was busy", async () => {
+            let releaseClose!: () => void;
+            const gate = new Promise<void>((resolve) => {
+                releaseClose = resolve;
+            });
+            // "a" closes slowly; "b" is idle in the same sweep snapshot.
+            const slow = new GatedCloseManager(gate);
+            const fast = new GatedCloseManager(Promise.resolve());
+            const queue: ConnectionManager[] = [slow, fast];
+            managerFactory = (): ConnectionManager => queue.shift() ?? new FakeConnectionManager();
+            const store = makeStore({
+                options: {
+                    ...defaultTestConfig,
+                    connectionStrings: { a: "mongodb://localhost:27017", b: "mongodb://localhost:27018" },
+                    preconfiguredConnectionIdleTimeoutMs: 1000,
+                },
+            });
+            const registry = store.view();
+            await registry.resolve("a");
+            await registry.resolve("b");
+
+            // The sweep snapshots both as idle and blocks on closing "a".
+            await vi.advanceTimersByTimeAsync(2_500);
+            expect(slow.closeStarted).toBe(true);
+            expect(fast.closeStarted).toBe(false);
+
+            // A tool call uses "b" while the sweep is still busy with "a".
+            await registry.resolve("b");
+            releaseClose();
+            await vi.advanceTimersByTimeAsync(0);
+
+            expect(fast.closeStarted).toBe(false);
+            expect((await registry.peek("b"))?.state.tag).toBe("connected");
         });
 
         it("closes idle configured connections even when connectionIdleTimeoutMs is 0", async () => {

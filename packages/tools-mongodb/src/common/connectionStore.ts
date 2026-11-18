@@ -115,6 +115,8 @@ export class MCPConnectionStore {
     private readonly keychain: Keychain;
     /** In-flight dial per pinned entry, keyed by connectionId, so concurrent resolves share one dial. */
     private readonly preconfiguredDials = new Map<string, Promise<void>>();
+    /** In-flight close per pinned entry (never rejects), so resolve() waits instead of reusing a closing provider. */
+    private readonly pinnedCloses = new Map<string, Promise<void>>();
     private sweepTimer?: ReturnType<typeof setInterval>;
 
     constructor(options: ConnectionStoreOptions) {
@@ -240,7 +242,7 @@ export class MCPConnectionStore {
                 // otherwise this close is a no-op (the manager is still
                 // disconnected) and the dial's connection survives it.
                 await this.preconfiguredDials.get(entry.connectionId)?.catch(() => undefined);
-                await entry.close();
+                await this.closePinned(entry);
                 return;
             }
             await this.revoke(entry);
@@ -289,6 +291,10 @@ export class MCPConnectionStore {
                 }
 
                 if (entry.source === "preconfigured") {
+                    // The manager reports `connected` until an in-flight close
+                    // finishes; wait for it so we redial instead of handing out
+                    // a provider that is being closed.
+                    await this.pinnedCloses.get(entry.connectionId);
                     if (entry.state.tag === "disconnected" || entry.state.tag === "errored") {
                         await this.dialPreconfigured(entry);
                     }
@@ -364,22 +370,16 @@ export class MCPConnectionStore {
         const idle: ConnectionEntry[] = [];
         const idlePinned: ConnectionEntry[] = [];
         for (const { entry } of this.entries.values()) {
-            if (entry.state.tag === "connecting") {
-                continue;
-            }
-            const idleFor = now - entry.lastUsedAt.getTime();
             if (entry.source === "preconfigured") {
-                if (
-                    this.preconfiguredConnectionIdleTimeoutMs > 0 &&
-                    entry.state.tag === "connected" &&
-                    !this.preconfiguredDials.has(entry.connectionId) &&
-                    idleFor > this.preconfiguredConnectionIdleTimeoutMs
-                ) {
+                if (this.isIdlePinned(entry, now)) {
                     idlePinned.push(entry);
                 }
                 continue;
             }
-            if (this.connectionIdleTimeoutMs > 0 && idleFor > this.connectionIdleTimeoutMs) {
+            if (entry.state.tag === "connecting") {
+                continue;
+            }
+            if (this.connectionIdleTimeoutMs > 0 && now - entry.lastUsedAt.getTime() > this.connectionIdleTimeoutMs) {
                 idle.push(entry);
             }
         }
@@ -388,17 +388,62 @@ export class MCPConnectionStore {
             await this.revoke(entry);
         }
         for (const entry of idlePinned) {
+            // The awaits above (and earlier closes) yield, so a tool call may have
+            // used this entry since the snapshot; re-check right before closing.
+            // From here to closePinned registering the close there is no await,
+            // and resolve() waits on that registered close.
+            if (!this.isIdlePinned(entry, Date.now())) {
+                continue;
+            }
             this.logger.info({
                 id: LogId.connectionRegistryIdleClosed,
                 context: "connectionRegistry",
                 message: `Closing configured connection "${entry.connectionId}" after ${this.preconfiguredConnectionIdleTimeoutMs}ms without use; it reconnects on next use.`,
             });
             try {
-                await entry.close();
+                await this.closePinned(entry);
             } catch {
                 // best-effort: a failed close leaves the entry errored, and the next resolve redials it
             }
         }
+    }
+
+    /**
+     * Whether a configured entry should be closed by the idle reaper now: the
+     * timeout is enabled, the entry is still the stored one, it is connected,
+     * no dial or close is in flight, and it has been unused past the timeout.
+     */
+    private isIdlePinned(entry: ConnectionEntry, now: number): boolean {
+        return (
+            this.preconfiguredConnectionIdleTimeoutMs > 0 &&
+            this.entries.get(entry.connectionId)?.entry === entry &&
+            entry.state.tag === "connected" &&
+            !this.preconfiguredDials.has(entry.connectionId) &&
+            !this.pinnedCloses.has(entry.connectionId) &&
+            now - entry.lastUsedAt.getTime() > this.preconfiguredConnectionIdleTimeoutMs
+        );
+    }
+
+    /**
+     * Closes a configured entry's provider while keeping the entry (it redials
+     * on next resolve). Concurrent callers share one close, and resolve() waits
+     * for it, since the manager keeps reporting `connected` until the provider
+     * close finishes.
+     */
+    private closePinned(entry: ConnectionEntry): Promise<void> {
+        const { connectionId } = entry;
+        const inFlight = this.pinnedCloses.get(connectionId);
+        if (inFlight) {
+            return inFlight;
+        }
+        const closing = entry.close().finally(() => {
+            this.pinnedCloses.delete(connectionId);
+        });
+        this.pinnedCloses.set(
+            connectionId,
+            closing.catch(() => undefined)
+        );
+        return closing;
     }
 
     private startSweeper(): void {
