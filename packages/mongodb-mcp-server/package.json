@@ -1,6 +1,6 @@
 {
   "name": "mongodb-mcp-server",
-  "description": "MongoDB Model Context Protocol Server",
+  "description": "Official MongoDB server to query, analyze, and manage databases and administer MongoDB Atlas",
   "version": "3.3.0",
   "type": "module",
   "mcpName": "io.github.mongodb-js/mongodb-mcp-server",

@@ -213,8 +213,9 @@ function updateServerJsonEnvVars(envVars: ArgumentInfo[]): void {
     const packageJsonPath = join(__dirname, "..", "..", "..", "packages", "mongodb-mcp-server", "package.json");
 
     const content = readFileSync(serverJsonPath, "utf-8");
-    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8")) as { version: string };
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8")) as { version: string; description: string };
     const serverJson = JSON.parse(content) as {
+        description?: string;
         version?: string;
         packages: {
             registryType?: string;
@@ -240,6 +241,9 @@ function updateServerJsonEnvVars(envVars: ArgumentInfo[]): void {
 
     // Generate package arguments (named arguments in camelCase)
     const packageArguments = generatePackageArguments(envVars);
+
+    // The registry description is sourced from package.json so the two cannot drift
+    serverJson.description = packageJson.description;
 
     // Update version at root level
     serverJson.version = process.env.VERSION || version;
