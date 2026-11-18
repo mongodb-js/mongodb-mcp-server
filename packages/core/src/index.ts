@@ -49,12 +49,13 @@ export { StdioRunner } from "./runners/stdioRunner.js";
 
 export { NoopMetrics } from "./metrics/noopMetrics.js";
 export { Elicitation, CONFIRMATION_INPUT_KEY } from "./elicitation.js";
-// ElicitedInputResult / ElicitRequestSchema / IElicitation / ElicitationInputResponses live in @mongodb-js/mcp-types.
+// ElicitedInputResult / ElicitRequestSchema / IElicitation / ElicitationInputResponses / ElicitationRequestContext live in @mongodb-js/mcp-types.
 export type {
     ElicitedInputResult,
     ElicitRequestSchema,
     IElicitation,
     ElicitationInputResponses,
+    ElicitationRequestContext,
 } from "@mongodb-js/mcp-types";
 
 export {

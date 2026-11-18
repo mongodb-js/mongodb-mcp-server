@@ -109,7 +109,7 @@ export type ToolCategory = "mongodb" | "atlas" | "atlas-local" | "assistant" | "
 // TConfig is retained for backward compatibility with existing `ToolRequest<...>`
 // annotations even though the request no longer carries the config-typed server.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export type ToolRequest<TConfig extends IToolConfig = IToolConfig> = {
+export type ToolRequest = {
     /**
      * The original request this request object was built around: the SDK's
      * per-request `mcpReq` object the tool call handler received. Undefined
@@ -169,7 +169,7 @@ export type ToolRequest<TConfig extends IToolConfig = IToolConfig> = {
  */
 export type ToolExecutionContext<TConfig extends IToolConfig = IToolConfig> = {
     /** The request object this execution is built around. */
-    request: ToolRequest<TConfig>;
+    request: ToolRequest;
     /**
      * Optional per-call config override, layered over the server's config for
      * the duration of this execution. Unset fields fall back to

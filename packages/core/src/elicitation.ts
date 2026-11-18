@@ -1,7 +1,18 @@
-import { acceptedContent, inputRequired, inputResponse } from "@modelcontextprotocol/server";
-import type { ElicitRequestFormParams, InputRequiredResult, McpServer } from "@modelcontextprotocol/server";
+import {
+    acceptedContent,
+    CLIENT_CAPABILITIES_META_KEY,
+    inputRequired,
+    inputResponse,
+} from "@modelcontextprotocol/server";
+import type {
+    ClientCapabilities,
+    ElicitRequestFormParams,
+    InputRequiredResult,
+    McpServer,
+} from "@modelcontextprotocol/server";
 import type {
     ElicitationInputResponses,
+    ElicitationRequestContext,
     ElicitedInputResult,
     ElicitInputRequiredParams,
     IElicitation,
@@ -36,12 +47,28 @@ export class Elicitation implements IElicitation {
     }
 
     /**
-     * Checks if the client supports elicitation capabilities.
+     * Checks whether the client that issued `request` supports elicitation.
+     *
+     * A 2026-07-28 request declares the client's capabilities on its own
+     * `_meta` envelope; that declaration is authoritative for the request.
+     * Requests without one fall back to the `initialize`-negotiated
+     * capabilities of a 2025-era connection. `getClientCapabilities()` alone
+     * is not enough: it is populated only by `initialize` (or, on HTTP, by
+     * `createMcpHandler`'s backfill), so it is empty for 2026-07-28 clients
+     * served by `serveStdio`.
+     *
      * @returns True if the client supports elicitation, false otherwise.
      */
-    public supportsElicitation(): boolean {
-        const clientCapabilities = this.server.getClientCapabilities();
+    public supportsElicitation(request: ElicitationRequestContext): boolean {
+        const clientCapabilities =
+            Elicitation.envelopeClientCapabilities(request) ?? this.server.getClientCapabilities();
         return clientCapabilities?.elicitation !== undefined;
+    }
+
+    private static envelopeClientCapabilities(request: ElicitationRequestContext): ClientCapabilities | undefined {
+        const envelope: Record<string, unknown> | undefined = request.raw?.envelope;
+        const declared = envelope?.[CLIENT_CAPABILITIES_META_KEY];
+        return typeof declared === "object" && declared !== null ? declared : undefined;
     }
 
     /**

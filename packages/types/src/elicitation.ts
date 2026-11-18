@@ -1,7 +1,14 @@
 import type { ElicitRequestFormParams, InputRequiredResult, InputResponses } from "@modelcontextprotocol/server";
+import type { ToolRequest } from "./tool.js";
 
 /** Values that can be read back from a retried request's `inputResponses`. */
 export type ElicitationInputResponses = InputResponses | Record<string, unknown> | undefined;
+
+/**
+ * The per-request data {@link IElicitation.supportsElicitation} resolves the
+ * client's declared capabilities from. A tool's `ToolRequest` satisfies it.
+ */
+export type ElicitationRequestContext = Pick<ToolRequest, "raw">;
 
 export type ElicitedInputResult =
     | { accepted: true; fields: Record<string, string> }
@@ -43,10 +50,12 @@ export type ElicitInputRequiredParams = {
  */
 export interface IElicitation {
     /**
-     * Checks if the client supports elicitation capabilities.
+     * Checks whether the client that issued `request` supports elicitation.
+     *
+     * @param request - The request being handled.
      * @returns True if the client supports elicitation, false otherwise.
      */
-    supportsElicitation(): boolean;
+    supportsElicitation(request: ElicitationRequestContext): boolean;
 
     /**
      * Builds the `inputRequired` result asking the user to confirm an
