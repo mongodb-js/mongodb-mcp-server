@@ -138,7 +138,8 @@ describe("ConnectClusterTool", () => {
                 body: { username: string; password: string };
             };
             const { username, password } = createUserCall.body;
-            expect(username).toMatch(/^mcpUser/);
+            // UUID suffix keeps generated usernames unique across temporary users.
+            expect(username).toMatch(/^mcpUser[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
 
             // The temp credentials live only in the connection string handed to
             // the driver. They must not surface in the tool result (content or
