@@ -835,6 +835,92 @@ describe("ConnectionRegistry", () => {
             expect(managers[0]?.closed).toBe(false);
         });
 
+        it("keeps a dialed configured connection open by default", async () => {
+            const store = makeStore({
+                options: {
+                    ...defaultTestConfig,
+                    connectionStrings: { prod: "mongodb://localhost:27017" },
+                    connectionIdleTimeoutMs: 1000,
+                },
+            });
+            const registry = store.view();
+            await registry.resolve("prod");
+
+            await vi.advanceTimersByTimeAsync(120_000);
+
+            const entry = await registry.peek("prod");
+            expect(entry?.state.tag).toBe("connected");
+            expect(managers[0]?.closed).toBe(false);
+        });
+
+        it("closes an idle configured connection after preconfiguredConnectionIdleTimeoutMs, keeping its id", async () => {
+            const store = makeStore({
+                options: {
+                    ...defaultTestConfig,
+                    connectionStrings: { prod: "mongodb://localhost:27017", dev: "mongodb://localhost:27018" },
+                    preconfiguredConnectionIdleTimeoutMs: 1000,
+                },
+            });
+            const registry = store.view();
+            await registry.resolve("prod");
+
+            await vi.advanceTimersByTimeAsync(5_000);
+
+            const entry = await registry.peek("prod");
+            expect(entry).toBeDefined();
+            expect(entry?.state.tag).toBe("disconnected");
+            expect(managers[0]?.closed).toBe(true);
+            // The never-dialed connection is untouched (one manager per configured entry, in seeding order).
+            const [, devManager] = [...new Set(managers)];
+            expect(devManager?.closed).toBe(false);
+            expect(devManager?.connectCalls).toHaveLength(0);
+
+            // The connectionId still works: the next use redials.
+            await expect(registry.resolve("prod")).resolves.toEqual({ fake: true });
+            expect(managers[0]?.connectCalls).toHaveLength(2);
+        });
+
+        it("keeps a configured connection that is used within preconfiguredConnectionIdleTimeoutMs", async () => {
+            const store = makeStore({
+                options: {
+                    ...defaultTestConfig,
+                    connectionStrings: { prod: "mongodb://localhost:27017" },
+                    preconfiguredConnectionIdleTimeoutMs: 60_000,
+                },
+            });
+            const registry = store.view();
+            await registry.resolve("prod");
+            await vi.advanceTimersByTimeAsync(45_000);
+            await registry.resolve("prod");
+            await vi.advanceTimersByTimeAsync(45_000);
+
+            const entry = await registry.peek("prod");
+            expect(entry?.state.tag).toBe("connected");
+            expect(managers[0]?.connectCalls).toHaveLength(1);
+        });
+
+        it("closes idle configured connections even when connectionIdleTimeoutMs is 0", async () => {
+            const store = makeStore({
+                options: {
+                    ...defaultTestConfig,
+                    connectionStrings: { prod: "mongodb://localhost:27017" },
+                    connectionIdleTimeoutMs: 0,
+                    preconfiguredConnectionIdleTimeoutMs: 1000,
+                },
+            });
+            const registry = store.view();
+            await registry.resolve("prod");
+            const explicit = await registry.connect({
+                settings: { connectionString: "mongodb://host:27017" },
+            });
+
+            await vi.advanceTimersByTimeAsync(5_000);
+
+            expect((await registry.peek("prod"))?.state.tag).toBe("disconnected");
+            // connectionIdleTimeoutMs = 0 still disables reaping explicit connections.
+            await expect(registry.peek(explicit.connectionId)).resolves.toBe(explicit);
+        });
+
         it("leaves a connecting entry alone (an in-progress Atlas dial)", async () => {
             const store = makeStore({
                 options: { ...defaultTestConfig, connectionIdleTimeoutMs: 1000 },
