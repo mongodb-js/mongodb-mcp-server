@@ -14,8 +14,8 @@ jobs:
       issues: write
       pull-requests: write
     steps:
-      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-      - uses: actions/stale@v11
+      - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1.0.2-beta9
+      - uses: actions/stale@4391f3da665fdf50b6810c1a66712fb9ba21aa93 # v11.0.0
         id: stale
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}

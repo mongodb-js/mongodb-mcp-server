@@ -15,17 +15,17 @@ jobs:
   create-pr:
     runs-on: ubuntu-latest
     steps:
-      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-      - uses: mongodb-js/devtools-shared/actions/setup-bot-token@main
+      - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1.0.2-beta9
+      - uses: mongodb-js/devtools-shared/actions/setup-bot-token@94872c30ab44483d5d327da9dd764194a211f06b # main
         id: app-token
         with:
           app-id: ${{ vars.DEVTOOLS_BOT_APP_ID }}
           private-key: ${{ secrets.DEVTOOLS_BOT_PRIVATE_KEY }}
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v7
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: package.json
           registry-url: "https://registry.npmjs.org"
@@ -131,7 +131,7 @@ jobs:
           echo "JIRA_STATUS=${status}" >> "${GITHUB_OUTPUT}"
 
       - name: Create release PR
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # 8.1.1
+        uses: peter-evans/create-pull-request@3ffccacd46053766916f087ce41d627c0b8cf2d1 # v8.1.3
         id: create-pr
         env:
           HUSKY: 0
