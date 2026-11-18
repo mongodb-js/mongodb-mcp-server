@@ -184,7 +184,7 @@ describe("StreamsToolBase", () => {
                 },
             } as never) as CallToolResult;
             const text = (result.content[0] as { text: string }).text;
-            expect(text).toContain("Invalid privateKey: <redacted>");
+            expect(text).toContain("Invalid privateKey: <password>");
             expect(text).toContain("Bad Request");
             expect(text).not.toContain(privateKey);
         });

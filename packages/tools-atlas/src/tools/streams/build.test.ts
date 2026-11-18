@@ -209,6 +209,17 @@ describe("StreamsBuildTool", () => {
                 { $source: { connectionName: "src" } },
                 { $iceberg: { connectionName: "s3", catalog: { type: "glue" } } },
             ]);
+
+            const horizonPipeline = [
+                { $source: { connectionName: "src" } },
+                {
+                    $iceberg: {
+                        connectionName: "s3",
+                        catalog: { type: "horizon", connectionName: "horizon-cat", warehouse: "ANALYTICS" },
+                    },
+                },
+            ];
+            expect(pipelineSchema.parse(horizonPipeline)).toEqual(horizonPipeline);
         });
 
         it("should create processor with pipeline and DLQ config", async () => {
@@ -866,6 +877,20 @@ describe("StreamsBuildTool", () => {
     });
 
     describe("createConnection - DataCatalog", () => {
+        it("accepts partial provider config but rejects mixed or unknown credential fields", () => {
+            const schema = tool.argsShape().connectionConfig;
+            const partial = { catalogProvider: "DATABRICKS_UNITY", databricks: { authentication: { clientId: "id" } } };
+            expect(schema.parse(partial)).toEqual(partial);
+            expect(schema.safeParse({ ...partial, snowflake: {} }).success).toBe(false);
+            expect(
+                schema.safeParse({
+                    ...partial,
+                    databricks: { authentication: { clientId: "id", clientSecrett: "placeholder" } },
+                }).success
+            ).toBe(false);
+            expect(z.toJSONSchema(schema.unwrap(), { io: "input" })).toHaveProperty("anyOf");
+        });
+
         it.each([
             {
                 provider: "DATABRICKS_UNITY",
@@ -1007,7 +1032,7 @@ describe("StreamsBuildTool", () => {
                 expect(result).toMatchObject({ isError: true, content: [{ type: "text" }] });
                 expect(JSON.stringify(result)).not.toContain(secret);
                 expect(JSON.stringify(errorLog.mock.calls)).not.toContain(secret);
-                expect(JSON.stringify(errorLog.mock.calls)).toContain("<redacted>");
+                expect(JSON.stringify(errorLog.mock.calls)).toContain("<password>");
             }
         );
 
@@ -1025,7 +1050,7 @@ describe("StreamsBuildTool", () => {
                         snowflake: { authentication: { account: "acct" } },
                     },
                 })
-            ).rejects.toThrow("Do not include 'snowflake' with catalogProvider 'DATABRICKS_UNITY'");
+            ).rejects.toThrow(/Invalid DATABRICKS_UNITY connectionConfig:.*snowflake/s);
             expect(mockApiClient.createStreamConnection).not.toHaveBeenCalled();
         });
 

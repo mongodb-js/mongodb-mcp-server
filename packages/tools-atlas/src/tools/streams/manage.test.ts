@@ -798,7 +798,7 @@ describe("StreamsManageTool", () => {
                     content: [{ text: expect.stringContaining("Bad Request") }],
                 });
                 for (const output of [JSON.stringify(result), JSON.stringify(mockLogger.error!.mock.calls)]) {
-                    expect(output).toContain("<redacted>");
+                    expect(output).toContain("<password>");
                     expect(output).not.toContain(escaped);
                     expect(output).not.toContain(JSON.stringify(escaped).slice(1, -1));
                 }

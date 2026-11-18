@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { AtlasToolBase } from "../atlasTool.js";
-import type { ToolArgs } from "@mongodb-js/mcp-core";
+import { Keychain, type ToolArgs } from "@mongodb-js/mcp-core";
 import type { CallToolResult } from "@mongodb-js/mcp-types";
 import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import type { StreamsToolMetadata } from "@mongodb-js/mcp-types";
@@ -38,9 +38,9 @@ export abstract class StreamsToolBase extends AtlasToolBase {
             }
         };
         collect(value);
-        return [...secrets]
-            .sort((left, right) => right.length - left.length)
-            .reduce((redacted, secret) => redacted.split(secret).join("<redacted>"), message);
+        if (secrets.size === 0) return message;
+        const keychain = new Keychain(Object.fromEntries([...secrets].map((secret) => [secret, "password"])));
+        return keychain.redact(message);
     }
 
     protected override handleError(

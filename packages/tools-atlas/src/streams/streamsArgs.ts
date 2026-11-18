@@ -11,6 +11,57 @@ export type StreamsTierValue = z.infer<typeof StreamsTier>;
 export const DataCatalogProvider = z.enum(["DATABRICKS_UNITY", "SNOWFLAKE_HORIZON"]);
 export type DataCatalogProviderValue = z.infer<typeof DataCatalogProvider>;
 
+const DatabricksCatalogSettings = z.strictObject({
+    authentication: z
+        .strictObject({
+            clientId: z.string().optional().describe("Databricks service principal OAuth client ID."),
+            clientSecret: z.string().optional().describe("Sensitive Databricks OAuth client secret."),
+        })
+        .optional(),
+});
+
+const SnowflakeCatalogSettings = z.strictObject({
+    authentication: z
+        .strictObject({
+            account: z.string().optional().describe("Snowflake account identifier."),
+            user: z.string().optional().describe("Snowflake service user."),
+            role: z.string().optional().describe("Snowflake role for Iceberg catalog access."),
+            privateKey: z.string().optional().describe("Sensitive unencrypted PKCS#8 PEM private key."),
+        })
+        .optional(),
+});
+
+const CatalogUrl = z
+    .string()
+    .describe(
+        "Base HTTPS URL only (no REST path): Databricks *.cloud.databricks.com or *.azuredatabricks.net; Snowflake *.snowflakecomputing.com."
+    );
+
+export const DATA_CATALOG_CONFIG = {
+    DATABRICKS_UNITY: {
+        settingsKey: "databricks",
+        secretField: "clientSecret",
+        suffixes: [".cloud.databricks.com", ".azuredatabricks.net"],
+        authFields: Object.keys(DatabricksCatalogSettings.shape.authentication.unwrap().shape),
+        schema: z.strictObject({
+            catalogProvider: z.literal("DATABRICKS_UNITY").optional(),
+            catalogUrl: CatalogUrl.optional(),
+            databricks: DatabricksCatalogSettings.optional(),
+        }),
+    },
+    SNOWFLAKE_HORIZON: {
+        settingsKey: "snowflake",
+        secretField: "privateKey",
+        suffixes: [".snowflakecomputing.com"],
+        authFields: Object.keys(SnowflakeCatalogSettings.shape.authentication.unwrap().shape),
+        schema: z.strictObject({
+            catalogProvider: z.literal("SNOWFLAKE_HORIZON").optional(),
+            catalogUrl: CatalogUrl.optional(),
+            snowflake: SnowflakeCatalogSettings.optional(),
+        }),
+    },
+} as const;
+
 export function dataCatalogUrlValidationError(
     urlValue: string,
     provider: DataCatalogProviderValue
@@ -32,10 +83,7 @@ export function dataCatalogUrlValidationError(
         return "catalogUrl must be an HTTPS account/workspace base URL only; omit credentials, query, fragment, and REST path.";
     }
 
-    const suffixes =
-        provider === "DATABRICKS_UNITY"
-            ? [".cloud.databricks.com", ".azuredatabricks.net"]
-            : [".snowflakecomputing.com"];
+    const { suffixes } = DATA_CATALOG_CONFIG[provider];
     if (!suffixes.some((suffix) => url.hostname.toLowerCase().endsWith(suffix))) {
         const hosts = suffixes.map((suffix) => `*${suffix}`).join(" or ");
         return `catalogUrl host for '${provider}' must end in ${hosts}.`;
@@ -152,38 +200,13 @@ export const ConnectionConfig = z
         catalogProvider: DataCatalogProvider.optional().describe(
             "Catalog provider for a DataCatalog connection: DATABRICKS_UNITY or SNOWFLAKE_HORIZON."
         ),
-        catalogUrl: z
-            .string()
-            .optional()
-            .describe(
-                "Base HTTPS URL only (no REST path): Databricks *.cloud.databricks.com or *.azuredatabricks.net; Snowflake *.snowflakecomputing.com."
-            ),
-        databricks: z
-            .object({
-                authentication: z
-                    .object({
-                        clientId: z.string().optional().describe("Databricks service principal OAuth client ID."),
-                        clientSecret: z.string().optional().describe("Sensitive Databricks OAuth client secret."),
-                    })
-                    .optional(),
-            })
-            .passthrough()
-            .optional()
-            .describe("Required for catalogProvider DATABRICKS_UNITY; do not combine with snowflake."),
-        snowflake: z
-            .object({
-                authentication: z
-                    .object({
-                        account: z.string().optional().describe("Snowflake account identifier."),
-                        user: z.string().optional().describe("Snowflake service user."),
-                        role: z.string().optional().describe("Snowflake role for Iceberg catalog access."),
-                        privateKey: z.string().optional().describe("Sensitive unencrypted PKCS#8 PEM private key."),
-                    })
-                    .optional(),
-            })
-            .passthrough()
-            .optional()
-            .describe("Required for catalogProvider SNOWFLAKE_HORIZON; do not combine with databricks."),
+        catalogUrl: CatalogUrl.optional(),
+        databricks: DatabricksCatalogSettings.optional().describe(
+            "Required for catalogProvider DATABRICKS_UNITY; do not combine with snowflake."
+        ),
+        snowflake: SnowflakeCatalogSettings.optional().describe(
+            "Required for catalogProvider SNOWFLAKE_HORIZON; do not combine with databricks."
+        ),
         // networking: Kafka, S3, and Kinesis (PUBLIC | VPC | PRIVATE_LINK | TRANSIT_GATEWAY)
         networking: z
             .object({
@@ -228,40 +251,45 @@ export const ConnectionConfig = z
     })
     .passthrough();
 
+export const StreamsConnectionConfig = z.union([
+    DATA_CATALOG_CONFIG.DATABRICKS_UNITY.schema,
+    DATA_CATALOG_CONFIG.SNOWFLAKE_HORIZON.schema,
+    ConnectionConfig.extend({
+        catalogProvider: z.never().optional(),
+        catalogUrl: z.never().optional(),
+        databricks: z.never().optional(),
+        snowflake: z.never().optional(),
+    }),
+]);
+
+const IcebergCatalog = z.discriminatedUnion("type", [
+    z.looseObject({ type: z.enum(["hadoop", "glue"]) }),
+    ...(["unity", "horizon"] as const).map((type) => {
+        const connectionError = `Catalog connectionName is required for '${type}'. Create or inspect a DataCatalog connection first.`;
+        const warehouseError = `Catalog warehouse is required for '${type}' (Unity catalog name or Snowflake database).`;
+        return z.looseObject({
+            type: z.literal(type),
+            connectionName: z.string(connectionError).trim().min(1, connectionError),
+            warehouse: z.string(warehouseError).trim().min(1, warehouseError),
+        });
+    }),
+]);
+
+const IcebergStage = z.looseObject({ catalog: IcebergCatalog.optional() });
+
 export const StreamsPipeline = z.array(z.record(z.string(), z.unknown())).superRefine((pipeline, context) => {
     pipeline.forEach((stage, stageIndex) => {
-        const iceberg = stage.$iceberg;
-        if (typeof iceberg !== "object" || iceberg === null || Array.isArray(iceberg)) return;
-        const catalog = (iceberg as Record<string, unknown>).catalog;
-        if (catalog === undefined) return;
-        const path = [stageIndex, "$iceberg", "catalog"];
-        if (typeof catalog !== "object" || catalog === null || Array.isArray(catalog)) {
-            context.addIssue({ code: "custom", path, message: "$iceberg.catalog must be an object." });
-            return;
-        }
-        const catalogConfig = catalog as Record<string, unknown>;
-        const type = catalogConfig.type;
-        if (type !== "hadoop" && type !== "glue" && type !== "unity" && type !== "horizon") {
+        if (stage.$iceberg === undefined) return;
+        const parsed = IcebergStage.safeParse(stage.$iceberg);
+        if (parsed.success) return;
+        for (const issue of parsed.error.issues) {
             context.addIssue({
                 code: "custom",
-                path: [...path, "type"],
-                message: "Catalog type must be hadoop, glue, unity, or horizon.",
-            });
-            return;
-        }
-        if (type === "hadoop" || type === "glue") return;
-        if (typeof catalogConfig.connectionName !== "string" || !catalogConfig.connectionName.trim()) {
-            context.addIssue({
-                code: "custom",
-                path: [...path, "connectionName"],
-                message: `Catalog connectionName is required for '${type}'. Create or inspect a DataCatalog connection first.`,
-            });
-        }
-        if (typeof catalogConfig.warehouse !== "string" || !catalogConfig.warehouse.trim()) {
-            context.addIssue({
-                code: "custom",
-                path: [...path, "warehouse"],
-                message: `Catalog warehouse is required for '${type}' (Unity catalog name or Snowflake database).`,
+                path: [stageIndex, "$iceberg", ...issue.path],
+                message:
+                    issue.code === "invalid_union"
+                        ? "Catalog type must be hadoop, glue, unity, or horizon."
+                        : issue.message,
             });
         }
     });

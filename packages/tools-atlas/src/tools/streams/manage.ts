@@ -6,8 +6,10 @@ import { LogId, requestIdAttr, type ToolArgs } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
 import {
     ConnectionConfig,
+    DATA_CATALOG_CONFIG,
     StreamsArgs,
     StreamsAutoscaling,
+    StreamsConnectionConfig,
     StreamsPipeline,
     StreamsTier,
     type DataCatalogProviderValue,
@@ -112,7 +114,7 @@ const StreamsManageArgsShape = {
     newTier: StreamsTier.optional().describe("New default tier for workspace. Only for 'update-workspace'."),
 
     // update-connection options
-    connectionConfig: ConnectionConfig.optional().describe(
+    connectionConfig: StreamsConnectionConfig.optional().describe(
         "Updated connection configuration. Only for 'update-connection'. " +
             "Provide only the fields to change. " +
             "For DataCatalog, the provider cannot change; blank/omitted secrets preserve stored credentials only when catalogUrl is unchanged. " +
@@ -609,20 +611,18 @@ export class StreamsManageTool extends StreamsToolBase {
                 );
             }
 
-            const settingsKey = provider === "DATABRICKS_UNITY" ? "databricks" : "snowflake";
-            const otherSettingsKey = provider === "DATABRICKS_UNITY" ? "snowflake" : "databricks";
-            if (normalizedConfig[otherSettingsKey] !== undefined) {
+            const { settingsKey, secretField, schema } = DATA_CATALOG_CONFIG[provider];
+            const parsed = schema.safeParse(normalizedConfig);
+            if (!parsed.success) {
                 throw new StreamsInvalidArgumentError(
-                    `Do not include '${otherSettingsKey}' with catalogProvider '${provider}'.`
+                    `Invalid ${provider} connectionConfig: ${z.prettifyError(parsed.error)}`
                 );
             }
 
             const currentSettings = connection[settingsKey];
-            const incomingSettings = normalizedConfig[settingsKey] as
-                | { authentication?: Record<string, string | undefined> }
-                | undefined;
             const currentAuthentication = currentSettings?.authentication ?? {};
-            const incomingAuthentication = incomingSettings?.authentication ?? {};
+            const incomingAuthentication: Record<string, string | undefined> =
+                normalizedConfig[settingsKey]?.authentication ?? {};
             const catalogUrl = normalizedConfig.catalogUrl ?? connection.catalogUrl;
             const catalogUrlChanged =
                 typeof normalizedConfig.catalogUrl === "string" &&
@@ -631,7 +631,6 @@ export class StreamsManageTool extends StreamsToolBase {
                 const urlError = dataCatalogUrlValidationError(normalizedConfig.catalogUrl as string, provider);
                 if (urlError) throw new StreamsInvalidArgumentError(urlError);
             }
-            const secretField = provider === "DATABRICKS_UNITY" ? "clientSecret" : "privateKey";
             const incomingSecret = incomingAuthentication[secretField];
             if (catalogUrlChanged && (!incomingSecret || !incomingSecret.trim())) {
                 throw new StreamsInvalidArgumentError(

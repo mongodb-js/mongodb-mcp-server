@@ -13,11 +13,13 @@ import { ConfirmationDeclinedError } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
 import {
     ConnectionConfig,
+    DATA_CATALOG_CONFIG,
     DataCatalogProvider,
     dataCatalogUrlValidationError,
     PrivateLinkConfig,
     StreamsArgs,
     StreamsAutoscaling,
+    StreamsConnectionConfig,
     StreamsPrivateLinkAccessType,
     StreamsPipeline,
     StreamsTier,
@@ -234,7 +236,7 @@ const StreamsBuildArgsShape = {
             "GCPPubSub: needs gcp.serviceAccountId (registered via Atlas Cloud Provider Access). " +
             "Sample: provides sample data for testing (no config needed)."
     ),
-    connectionConfig: ConnectionConfig.optional().describe(
+    connectionConfig: StreamsConnectionConfig.optional().describe(
         "Type-specific connection configuration. Only for resource='connection'. " +
             "Omit entirely for connectionType='Sample' (no config needed). " +
             "You may pass a partial config — the tool uses elicitation to collect missing required fields directly from the user. For DataCatalog credentials, supply only the selected provider's authentication fields; secrets are never included in tool output."
@@ -780,45 +782,15 @@ export class StreamsBuildTool extends StreamsToolBase {
         }
 
         const provider = providerResult.data;
-        const settingsKey = provider === "DATABRICKS_UNITY" ? "databricks" : "snowflake";
-        const otherSettingsKey = provider === "DATABRICKS_UNITY" ? "snowflake" : "databricks";
-        if (config[otherSettingsKey] !== undefined) {
+        const { settingsKey, secretField, authFields, schema } = DATA_CATALOG_CONFIG[provider];
+        const parsed = schema.safeParse(config);
+        if (!parsed.success) {
             throw new StreamsInvalidArgumentError(
-                `Do not include '${otherSettingsKey}' with catalogProvider '${provider}'. Supply only '${settingsKey}.authentication'.`
+                `Invalid ${provider} connectionConfig: ${z.prettifyError(parsed.error)}`
             );
         }
-        const allowedConfigFields = new Set(["catalogProvider", "catalogUrl", settingsKey]);
-        const unsupportedConfigField = Object.keys(config).find((field) => !allowedConfigFields.has(field));
-        if (unsupportedConfigField) {
-            throw new StreamsInvalidArgumentError(
-                `Field '${unsupportedConfigField}' is not supported on a DataCatalog connection. Supply only catalogProvider, catalogUrl, and ${settingsKey}.authentication.`
-            );
-        }
-        const misplacedSecretFields = ["clientSecret", "privateKey"].filter((field) => config[field] !== undefined);
-        if (misplacedSecretFields.length > 0) {
-            throw new StreamsInvalidArgumentError(
-                `Sensitive credentials must be nested under '${settingsKey}.authentication'; do not pass them at the connectionConfig root.`
-            );
-        }
-
         const settings = config[settingsKey] as Record<string, unknown> | undefined;
-        const unsupportedSettingsField = Object.keys(settings ?? {}).find((field) => field !== "authentication");
-        if (unsupportedSettingsField) {
-            throw new StreamsInvalidArgumentError(
-                `Field '${settingsKey}.${unsupportedSettingsField}' is not supported. Supply credentials under '${settingsKey}.authentication'.`
-            );
-        }
         const authentication = settings?.authentication as Record<string, unknown> | undefined;
-        const allowedAuthenticationFields =
-            provider === "DATABRICKS_UNITY" ? ["clientId", "clientSecret"] : ["account", "user", "role", "privateKey"];
-        const invalidAuthenticationField = Object.keys(authentication ?? {}).find(
-            (field) => !allowedAuthenticationFields.includes(field)
-        );
-        if (invalidAuthenticationField) {
-            throw new StreamsInvalidArgumentError(
-                `Authentication field '${invalidAuthenticationField}' is not valid for '${provider}'. Expected: ${allowedAuthenticationFields.join(", ")}.`
-            );
-        }
 
         if (typeof config.catalogUrl === "string" && config.catalogUrl.trim()) {
             const urlError = dataCatalogUrlValidationError(config.catalogUrl, provider);
@@ -826,32 +798,15 @@ export class StreamsBuildTool extends StreamsToolBase {
             config.catalogUrl = config.catalogUrl.trim();
         }
 
-        const requiredFields =
-            provider === "DATABRICKS_UNITY"
-                ? [
-                      { key: "catalogUrl", schema: DATA_CATALOG_FIELDS.catalogUrl },
-                      { key: "clientId", schema: DATA_CATALOG_FIELDS.clientId },
-                      { key: "clientSecret", schema: DATA_CATALOG_FIELDS.clientSecret },
-                  ]
-                : [
-                      { key: "catalogUrl", schema: DATA_CATALOG_FIELDS.catalogUrl },
-                      { key: "account", schema: DATA_CATALOG_FIELDS.account },
-                      { key: "user", schema: DATA_CATALOG_FIELDS.user },
-                      { key: "role", schema: DATA_CATALOG_FIELDS.role },
-                      { key: "privateKey", schema: DATA_CATALOG_FIELDS.privateKey },
-                  ];
-        const keys =
-            provider === "DATABRICKS_UNITY"
-                ? ["catalogUrl", "clientId", "clientSecret"]
-                : ["catalogUrl", "account", "user", "role", "privateKey"];
+        const keys = ["catalogUrl", ...authFields];
         const missingFields = StreamsBuildTool.collectMissingFields(
-            requiredFields.map(({ key, schema }) => ({
+            keys.map((key) => ({
                 key,
                 present:
                     key === "catalogUrl"
                         ? typeof config.catalogUrl === "string" && !!config.catalogUrl.trim()
                         : typeof authentication?.[key] === "string" && !!authentication[key]?.trim(),
-                schema,
+                schema: DATA_CATALOG_FIELDS[key as keyof typeof DATA_CATALOG_FIELDS],
             }))
         );
 
@@ -886,10 +841,8 @@ export class StreamsBuildTool extends StreamsToolBase {
             return this.validateDataCatalogConfig(config, request);
         }
 
-        const urlError = dataCatalogUrlValidationError(config.catalogUrl as string, provider);
-        if (urlError) throw new StreamsInvalidArgumentError(urlError);
-        if (provider === "SNOWFLAKE_HORIZON") {
-            const privateKey = authentication?.privateKey as string;
+        if (secretField === "privateKey") {
+            const privateKey = authentication?.[secretField] as string;
             if (!privateKey.trim().startsWith("-----BEGIN PRIVATE KEY-----")) {
                 throw new StreamsInvalidArgumentError(
                     "snowflake.authentication.privateKey must be an unencrypted PKCS#8 PEM key beginning with '-----BEGIN PRIVATE KEY-----'."
