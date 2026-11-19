@@ -18,13 +18,10 @@ permissions:
 jobs:
   jira_task:
     name: Create Jira issue
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event.action == 'opened' || github.event.label.name == 'create-jira'
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1.0.2-beta9
-        with:
-          config: ${{ vars.PERMISSIONS_CONFIG }}
-
       - name: Prepare JIRA summary
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         id: summary
@@ -104,13 +101,10 @@ jobs:
 
   close_jira_task:
     name: Close Jira issue
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event.action == 'closed'
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1.0.2-beta9
-        with:
-          config: ${{ vars.PERMISSIONS_CONFIG }}
-
       - name: Find JIRA ticket by GitHub issue number
         id: find_jira
         uses: mongodb/apix-action/find-jira@ca63bdc0f33a15da45755eb6a54c072ba65d3923 # v19
