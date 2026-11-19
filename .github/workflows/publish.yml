@@ -25,6 +25,12 @@ jobs:
       ATLAS_MCP_REMOTE_GIT_TAG_VERSION: ${{ steps.get-remote-version.outputs.ATLAS_MCP_REMOTE_GIT_TAG_VERSION }}
       ATLAS_MCP_REMOTE_RELEASE_CHANNEL: ${{ steps.remote-npm-tag.outputs.ATLAS_MCP_REMOTE_RELEASE_CHANNEL }}
     steps:
+      - name: Set up Python for permissions monitor
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Expose Python to permissions monitor's sudo PATH
+        run: sudo -n ln -sf "$pythonLocation/bin/python3.12" /usr/local/bin/python3.12
       - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1.0.2-beta9
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -134,6 +140,12 @@ jobs:
     needs: [check]
     if: needs.check.outputs.VERSION_EXISTS == 'false' || (needs.check.outputs.ATLAS_MCP_REMOTE_VERSION_EXISTS == 'false' && needs.check.outputs.ATLAS_MCP_REMOTE_NPM_VERSION != '0.0.0')
     steps:
+      - name: Set up Python for permissions monitor
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Expose Python to permissions monitor's sudo PATH
+        run: sudo -n ln -sf "$pythonLocation/bin/python3.12" /usr/local/bin/python3.12
       - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1.0.2-beta9
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -328,6 +340,12 @@ jobs:
     needs: [check, upload-release-sbom]
     if: ${{ failure() && needs.upload-release-sbom.result == 'failure' }}
     steps:
+      - name: Set up Python for permissions monitor
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Expose Python to permissions monitor's sudo PATH
+        run: sudo -n ln -sf "$pythonLocation/bin/python3.12" /usr/local/bin/python3.12
       - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1.0.2-beta9
       - name: Check out code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
