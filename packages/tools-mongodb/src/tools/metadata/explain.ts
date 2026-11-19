@@ -108,7 +108,8 @@ export class ExplainTool extends MongoDBToolBase {
                         {
                             // `{}` rather than `undefined`: the provider caches databases by
                             // JSON.stringify(dbOptions), so `undefined` can reuse a handle that carries the
-                            // connection's write concern, which the server rejects on an explain.
+                            // connection's write concern (which depends on the connection string), and the
+                            // server rejects a write concern on an explain.
                             writeConcern: {},
                         }
                     )
