@@ -19,7 +19,7 @@ describe("package metadata", () => {
     });
 
     it("keeps the Docker image description in sync with package.json", () => {
-        const label = /^LABEL description="(.*)"$/m.exec(dockerfile)?.[1];
+        const label = /^LABEL description="(.*)"$/m.exec(dockerfile)?.[1]?.replace(/\\(["\\])/g, "$1");
         expect(label).toBe(packageJson.description);
     });
 

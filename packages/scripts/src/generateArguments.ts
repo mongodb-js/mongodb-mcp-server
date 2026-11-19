@@ -268,6 +268,28 @@ function updateServerJsonEnvVars(envVars: ArgumentInfo[]): void {
     console.log(`✓ Updated server.json (version ${version})`);
 }
 
+function updateDockerfileDescription(): void {
+    const packageDir = join(__dirname, "..", "..", "..", "packages", "mongodb-mcp-server");
+    const dockerfilePath = join(packageDir, "Dockerfile");
+    const { description } = JSON.parse(readFileSync(join(packageDir, "package.json"), "utf-8")) as {
+        description: string;
+    };
+
+    const labelPattern = /^LABEL description=".*"$/m;
+    const dockerfile = readFileSync(dockerfilePath, "utf-8");
+    if (!labelPattern.test(dockerfile)) {
+        throw new Error(`Could not find a LABEL description line in ${dockerfilePath}`);
+    }
+
+    const escaped = description.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    writeFileSync(
+        dockerfilePath,
+        dockerfile.replace(labelPattern, () => `LABEL description="${escaped}"`),
+        "utf-8"
+    );
+    console.log("✓ Updated Dockerfile description label");
+}
+
 function generateReadmeConfigTable(argumentInfos: ArgumentInfo[]): string {
     const rows = [
         "| Environment Variable / CLI Option      | Default                                                                     | Description                                                                                                                                                                                             |",
@@ -337,5 +359,6 @@ export function generateArguments(): void {
     const zodMetadata = extractZodDescriptions();
     const argumentInfo = getArgumentInfo(zodMetadata);
     updateServerJsonEnvVars(argumentInfo);
+    updateDockerfileDescription();
     updateReadmeConfigTable(argumentInfo);
 }
