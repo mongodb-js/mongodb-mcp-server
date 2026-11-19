@@ -13,9 +13,15 @@ jobs:
   run-integration-tests:
     name: Run Integration tests
     if: github.event_name == 'push' || (github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
+      - name: Set up Python for permissions monitor
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Expose Python to permissions monitor's sudo PATH
+        run: sudo -n ln -sf "$pythonLocation/bin/python3.12" /usr/local/bin/python3.12
       - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1.0.2-beta9
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -48,9 +54,15 @@ jobs:
   run-atlas-tests:
     name: Run Atlas tests
     if: github.event_name == 'push' || (github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
+      - name: Set up Python for permissions monitor
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Expose Python to permissions monitor's sudo PATH
+        run: sudo -n ln -sf "$pythonLocation/bin/python3.12" /usr/local/bin/python3.12
       - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1.0.2-beta9
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -87,9 +99,15 @@ jobs:
   run-atlas-streams-tests:
     name: Run Atlas Streams tests
     if: github.event_name == 'push' || (github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
+      - name: Set up Python for permissions monitor
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Expose Python to permissions monitor's sudo PATH
+        run: sudo -n ln -sf "$pythonLocation/bin/python3.12" /usr/local/bin/python3.12
       - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1.0.2-beta9
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -126,7 +144,7 @@ jobs:
   run-atlas-clusters-tests:
     name: Run Atlas Clusters tests
     if: false
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1.0.2-beta9
@@ -158,8 +176,14 @@ jobs:
   run-atlas-local-tests:
     name: Run Atlas Local tests
     if: github.event_name == 'push' || (github.event.pull_request.user.login != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
+      - name: Set up Python for permissions monitor
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Expose Python to permissions monitor's sudo PATH
+        run: sudo -n ln -sf "$pythonLocation/bin/python3.12" /usr/local/bin/python3.12
       - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1.0.2-beta9
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

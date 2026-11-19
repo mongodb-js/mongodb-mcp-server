@@ -14,7 +14,7 @@ on:
 jobs:
   run-e2e-tests:
     name: Run E2E Tests
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     # Run on PRs labeled `e2e-tests` (release PRs carry it), main pushes, or manual runs.
