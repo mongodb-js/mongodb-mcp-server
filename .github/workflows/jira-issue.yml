@@ -18,7 +18,7 @@ permissions:
 jobs:
   jira_task:
     name: Create Jira issue
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event.action == 'opened' || github.event.label.name == 'create-jira'
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1.0.2-beta9
@@ -104,7 +104,7 @@ jobs:
 
   close_jira_task:
     name: Close Jira issue
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event.action == 'closed'
     steps:
       - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1.0.2-beta9

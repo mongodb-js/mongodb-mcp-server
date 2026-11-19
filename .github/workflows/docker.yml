@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   get-version:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions: {}
     outputs:
       VERSION: ${{ steps.versions.outputs.VERSION }}
@@ -59,7 +59,7 @@ jobs:
       DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
 
   handle-failure:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       issues: write
