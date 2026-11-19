@@ -12,6 +12,7 @@ import type { Document } from "mongodb";
 import { AggregateArgs } from "../read/aggregate.js";
 import { FindArgs } from "../read/find.js";
 import { CountArgs } from "../read/count.js";
+import { assertNoWriteStages } from "../../helpers/mqlGuards.js";
 
 const verbosityEnum = z.enum(["queryPlanner", "queryPlannerExtended", "executionStats", "allPlansExecution"]);
 
@@ -60,7 +61,7 @@ const ExplainArgsShapeVariants = connectionScopedArgsShape({
 export class ExplainTool extends MongoDBToolBase {
     static toolName = "explain";
     public description =
-        "Returns statistics describing the execution of the winning plan chosen by the query optimizer for the evaluated method";
+        "Returns statistics describing the execution of the winning plan chosen by the query optimizer for the evaluated method. Pipelines with $out or $merge stages are not accepted, because explain never writes.";
 
     public argsShape(): typeof ExplainArgsShapeVariants.preconfigured {
         return this.selectConnectionScopedArgsShape(ExplainArgsShapeVariants);
@@ -90,6 +91,12 @@ export class ExplainTool extends MongoDBToolBase {
             case "aggregate": {
                 const { pipeline } = method.arguments;
                 this.assertMqlIsAllowed(this.resolveConfig(context), pipeline);
+                // Explain only reports a plan and never runs a write stage. Rejecting `$out` and `$merge`
+                // keeps that unambiguous, instead of suggesting that explain can write to a collection.
+                assertNoWriteStages(
+                    pipeline,
+                    "The explain tool does not accept pipelines with $out or $merge stages, because explain never writes. Remove the $out or $merge stage to see the query plan, or use the aggregate tool to run a pipeline that writes to a collection."
+                );
                 result = await provider
                     .aggregate(
                         database,
@@ -99,7 +106,10 @@ export class ExplainTool extends MongoDBToolBase {
                             ...this.getOperationOptions(request),
                         },
                         {
-                            writeConcern: undefined,
+                            // `{}` rather than `undefined`: the provider caches databases by
+                            // JSON.stringify(dbOptions), so `undefined` can reuse a handle that carries the
+                            // connection's write concern, which the server rejects on an explain.
+                            writeConcern: {},
                         }
                     )
                     .explain(verbosity);
