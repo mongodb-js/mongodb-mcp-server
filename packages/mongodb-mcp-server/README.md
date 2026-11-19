@@ -342,7 +342,7 @@ For custom HTTP clients and hosts, see the library guide's [HTTP compatibility r
 - `drop-collection` - Removes a collection or view from the database. The method also removes any indexes associated with the dropped collection.
 - `drop-database` - Removes the specified database, deleting the associated data files
 - `drop-index` - Drop an index for the provided database and collection.
-- `explain` - Returns statistics describing the execution of the winning plan chosen by the query optimizer for the evaluated method
+- `explain` - Returns statistics describing the execution of the winning plan chosen by the query optimizer for the evaluated method. Pipelines with $out or $merge stages are not accepted, because explain never writes.
 - `export` - Export a query or aggregation results in the specified EJSON format.
 - `find` - Run a find query against a MongoDB collection
 - `insert-many` - Insert an array of documents into a MongoDB collection. If the list of documents is above com.mongodb/maxRequestPayloadBytes, consider inserting them in batches.
