@@ -55,7 +55,7 @@ export class UpdateManyTool extends MongoDBToolBase {
     ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const provider = await this.resolveConnection(connectionId);
 
-        this.assertMqlIsAllowed(this.resolveConfig(context), filter);
+        this.assertMqlIsAllowed(this.resolveConfig(context), filter, update);
 
         // Check if update operation uses an index if enabled
         if (this.server.config.indexCheck) {
