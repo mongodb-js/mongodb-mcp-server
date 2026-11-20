@@ -63,6 +63,37 @@ describeWithStreams("atlas-streams-build", (integration) => {
             });
         });
 
+        describe("DataCatalog input validation", () => {
+            it("rejects an unsupported catalog host before calling Atlas", async () => {
+                const response = await integration.mcpClient().callTool({
+                    name: "atlas-streams-build",
+                    arguments: {
+                        projectId: getProjectId(),
+                        resource: "connection",
+                        workspaceName: getWorkspaceName(),
+                        connectionName: `catalog${randomId().slice(0, 8)}`,
+                        connectionType: "DataCatalog",
+                        connectionConfig: {
+                            catalogProvider: "SNOWFLAKE_HORIZON",
+                            catalogUrl: "https://example.com",
+                            snowflake: {
+                                authentication: {
+                                    account: "account",
+                                    user: "user",
+                                    role: "role",
+                                    privateKey: "-----BEGIN PRIVATE KEY-----\\nkey\\n-----END PRIVATE KEY-----",
+                                },
+                            },
+                        },
+                    },
+                });
+
+                const content = getResponseContent(response.content);
+                expect(response.isError, "invalid catalog host should fail validation").toBeTruthy();
+                expect(content).toContain("must end in *.snowflakecomputing.com");
+            });
+        });
+
         describe("kafka connection", () => {
             const kafkaConnName = `kafkaconn${randomId().slice(0, 8)}`;
 

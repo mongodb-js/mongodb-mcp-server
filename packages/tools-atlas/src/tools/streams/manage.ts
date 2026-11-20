@@ -6,9 +6,14 @@ import { LogId, requestIdAttr, type ToolArgs } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
 import {
     ConnectionConfig,
+    DATA_CATALOG_CONFIG,
     StreamsArgs,
     StreamsAutoscaling,
+    StreamsConnectionConfig,
+    StreamsPipeline,
     StreamsTier,
+    type DataCatalogProviderValue,
+    dataCatalogUrlValidationError,
     toStreamsAutoscaling,
 } from "../../streams/streamsArgs.js";
 import { StreamsInvalidArgumentError } from "../../streams/errors.js";
@@ -83,15 +88,12 @@ const StreamsManageArgsShape = {
         .describe("ISO 8601 timestamp to resume from. Only for 'start-processor'."),
 
     // modify-processor options
-    pipeline: z
-        .array(z.record(z.string(), z.unknown()))
-        .optional()
-        .describe(
-            "New pipeline stages as an array of objects, e.g. " +
-                "[{$source: {connectionName: 'src'}}, {$match: {status: 'active'}}, {$merge: {into: {connectionName: 'dest', db: 'db', coll: 'coll'}}}]. " +
-                "Only for 'modify-processor'. Processor must be stopped first. " +
-                "If changing a window stage interval, the processor must be restarted with resumeFromCheckpoint=false."
-        ),
+    pipeline: StreamsPipeline.optional().describe(
+        "New pipeline stages as an array of objects, e.g. " +
+            "[{$source: {connectionName: 'src'}}, {$match: {status: 'active'}}, {$merge: {into: {connectionName: 'dest', db: 'db', coll: 'coll'}}}]. " +
+            "Only for 'modify-processor'. Processor must be stopped first. " +
+            "If changing a window stage interval, the processor must be restarted with resumeFromCheckpoint=false."
+    ),
     dlq: z
         .object({
             connectionName: z.string(),
@@ -112,9 +114,10 @@ const StreamsManageArgsShape = {
     newTier: StreamsTier.optional().describe("New default tier for workspace. Only for 'update-workspace'."),
 
     // update-connection options
-    connectionConfig: ConnectionConfig.optional().describe(
+    connectionConfig: StreamsConnectionConfig.optional().describe(
         "Updated connection configuration. Only for 'update-connection'. " +
             "Provide only the fields to change. " +
+            "For DataCatalog, the provider cannot change; blank/omitted secrets preserve stored credentials only when catalogUrl is unchanged. " +
             "Note: networking config and connection type cannot be modified after creation — to change these, delete and recreate the connection."
     ),
 
@@ -584,20 +587,90 @@ export class StreamsManageTool extends StreamsToolBase {
                 params: { path: { groupId: args.projectId, tenantName: args.workspaceName, connectionName: name } },
             },
             request
-        )) as { type?: string; state?: string };
+        )) as {
+            type?: string;
+            state?: string;
+            catalogProvider?: DataCatalogProviderValue;
+            catalogUrl?: string;
+            databricks?: { authentication?: { clientId?: string } };
+            snowflake?: { authentication?: { account?: string; user?: string; role?: string } };
+        };
 
         const normalizedConfig = ConnectionConfig.parse(args.connectionConfig);
-        const updated = (await this.server.apiClient.updateStreamConnection(
-            {
-                params: { path: { groupId: args.projectId, tenantName: args.workspaceName, connectionName: name } },
-                body: {
-                    ...normalizedConfig,
-                    ...(connection.type !== undefined ? { type: connection.type } : {}),
-                    name,
-                } as never,
-            },
-            request
-        )) as { state?: string } | undefined;
+        let updateConfig: Record<string, unknown> = normalizedConfig;
+        if (connection.type === "DataCatalog") {
+            const provider = connection.catalogProvider;
+            if (!provider) {
+                throw new StreamsInvalidArgumentError(
+                    "Atlas did not return catalogProvider for this DataCatalog connection; inspect it and retry."
+                );
+            }
+            if (normalizedConfig.catalogProvider !== undefined && normalizedConfig.catalogProvider !== provider) {
+                throw new StreamsInvalidArgumentError(
+                    `Catalog provider is immutable. This connection uses '${provider}' and cannot be changed.`
+                );
+            }
+
+            const { settingsKey, secretField, schema } = DATA_CATALOG_CONFIG[provider];
+            const parsed = schema.safeParse(normalizedConfig);
+            if (!parsed.success) {
+                throw new StreamsInvalidArgumentError(
+                    `Invalid ${provider} connectionConfig: ${z.prettifyError(parsed.error)}`
+                );
+            }
+
+            const currentSettings = connection[settingsKey];
+            const currentAuthentication = currentSettings?.authentication ?? {};
+            const incomingAuthentication: Record<string, string | undefined> =
+                normalizedConfig[settingsKey]?.authentication ?? {};
+            const catalogUrl = normalizedConfig.catalogUrl ?? connection.catalogUrl;
+            const catalogUrlChanged =
+                typeof normalizedConfig.catalogUrl === "string" &&
+                normalizedConfig.catalogUrl !== connection.catalogUrl;
+            if (catalogUrlChanged) {
+                const urlError = dataCatalogUrlValidationError(normalizedConfig.catalogUrl as string, provider);
+                if (urlError) throw new StreamsInvalidArgumentError(urlError);
+            }
+            const incomingSecret = incomingAuthentication[secretField];
+            if (catalogUrlChanged && (!incomingSecret || !incomingSecret.trim())) {
+                throw new StreamsInvalidArgumentError(
+                    `Changing catalogUrl requires a new ${settingsKey}.authentication.${secretField}; Atlas will not reuse credentials for a different URL.`
+                );
+            }
+
+            const authentication = {
+                ...currentAuthentication,
+                ...incomingAuthentication,
+                [secretField]: incomingSecret ?? "",
+            };
+            updateConfig = {
+                ...normalizedConfig,
+                catalogProvider: provider,
+                ...(catalogUrl !== undefined && { catalogUrl }),
+                [settingsKey]: { authentication },
+            };
+        }
+
+        const body = {
+            ...updateConfig,
+            ...(connection.type !== undefined ? { type: connection.type } : {}),
+            name,
+        };
+        let updated: { state?: string } | undefined;
+        try {
+            updated = (await this.server.apiClient.updateStreamConnection(
+                {
+                    params: { path: { groupId: args.projectId, tenantName: args.workspaceName, connectionName: name } },
+                    body: body as never,
+                },
+                request
+            )) as { state?: string } | undefined;
+        } catch (error) {
+            if (error instanceof Error) {
+                error.message = StreamsToolBase.redactSubmittedSecrets(error.message, body);
+            }
+            throw error;
+        }
 
         const connectionState = updated?.state ?? connection.state;
         const parsedConnectionState = ConnectionState.safeParse(connectionState);
