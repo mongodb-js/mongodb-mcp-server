@@ -446,6 +446,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
         let computeAutoScaling: boolean | undefined;
         let minInstanceSize: string | undefined;
         let maxInstanceSize: string | undefined;
+        let upgradeAutoScaling: ResolvedM10AutoScaling | undefined;
         let isScaling = false;
         let target: "FLEX" | "M10" | undefined;
 
@@ -549,7 +550,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
                     throw new UpgradeClusterError(`Cluster "${clusterName}" is already a Flex cluster.`);
                 }
 
-                const resolvedAutoScaling = resolveM10AutoScaling(args, clusterInfo.provider);
+                upgradeAutoScaling = resolveM10AutoScaling(args, clusterInfo.provider);
 
                 // tenantUpgrade: upgrades Flex clusters to Dedicated (M10+)
                 ({ id: clusterId } = await this.server.apiClient.tenantUpgrade(
@@ -558,7 +559,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
                         body: buildM10UpgradeBody({
                             baseTier: "FLEX",
                             clusterName,
-                            autoScaling: resolvedAutoScaling,
+                            autoScaling: upgradeAutoScaling,
                             provider: clusterInfo.provider,
                             region: clusterInfo.region,
                         }),
@@ -580,7 +581,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
                     );
                 }
 
-                ({ id: clusterId } = await this.upgradeFreeCluster({
+                ({ id: clusterId, resolvedAutoScaling: upgradeAutoScaling } = await this.upgradeFreeCluster({
                     projectId,
                     clusterName,
                     target,
@@ -642,13 +643,18 @@ export class UpgradeClusterTool extends AtlasToolBase {
                 {
                     type: "text",
                     text: isAutoscaling
-                        ? `Cluster "${clusterName}" is being upgraded from ${clusterInfo.instanceType} to ${target} tier with compute autoscaling ${computeAutoScaling ? `enabled (${minInstanceSize}-${maxInstanceSize})` : "disabled"}. This may take a few minutes.`
+                        ? `Cluster "${clusterName}" is being upgraded from ${clusterInfo.instanceType} to ${target} tier with compute autoscaling ${upgradeAutoScaling?.enabled ? `enabled (${upgradeAutoScaling.minInstanceSize}-${upgradeAutoScaling.maxInstanceSize})` : "disabled"}. This may take a few minutes.`
                         : `Cluster "${clusterName}" is being upgraded from ${clusterInfo.instanceType} to ${target} tier. This may take a few minutes.`,
                 },
             ],
             structuredContent: {
                 originalTier: clusterInfo.instanceType,
                 targetTier: target as "FLEX" | "M10",
+                ...(upgradeAutoScaling !== undefined && {
+                    computeAutoScaling: upgradeAutoScaling.enabled,
+                    minInstanceSize: upgradeAutoScaling.minInstanceSize,
+                    maxInstanceSize: upgradeAutoScaling.maxInstanceSize,
+                }),
                 resolvedProvider: clusterInfo.provider,
                 resolvedRegion: clusterInfo.region,
                 clusterId,
@@ -683,7 +689,7 @@ export class UpgradeClusterTool extends AtlasToolBase {
         regionName: string | undefined;
         autoScalingArgs: AutoScalingArgs;
         request: ToolRequest<IAtlasConfig>;
-    }): Promise<{ id?: string }> {
+    }): Promise<{ id?: string; resolvedAutoScaling?: ResolvedM10AutoScaling }> {
         // upgradeTenantUpgrade: upgrades Free (M0/shared) clusters to Flex or Dedicated (M10+)
         switch (target) {
             case "FLEX":
@@ -702,20 +708,23 @@ export class UpgradeClusterTool extends AtlasToolBase {
                     } as unknown as Parameters<typeof this.server.apiClient.upgradeTenantUpgrade>[0],
                     request
                 );
-            case "M10":
-                return await this.server.apiClient.upgradeTenantUpgrade(
+            case "M10": {
+                const autoScaling = resolveM10AutoScaling(autoScalingArgs, backingProviderName);
+                const { id } = await this.server.apiClient.upgradeTenantUpgrade(
                     {
                         params: { path: { groupId: projectId } },
                         body: buildM10UpgradeBody({
                             baseTier: "FREE",
                             clusterName,
-                            autoScaling: resolveM10AutoScaling(autoScalingArgs, backingProviderName),
+                            autoScaling,
                             provider: backingProviderName,
                             region: regionName,
                         }),
                     } as unknown as Parameters<typeof this.server.apiClient.upgradeTenantUpgrade>[0],
                     request
                 );
+                return { id, resolvedAutoScaling: autoScaling.enabled ? autoScaling : { enabled: false } };
+            }
         }
     }
 
