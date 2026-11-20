@@ -1,7 +1,7 @@
 import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
-import { findLicenseFiles, findPackagePath, getLicenses } from "./licenses.js";
+import { findLicenseFiles, findPackageLicense, findPackagePath, getLicenses } from "./licenses.js";
 import type { Conversion, CycloneDxBom, CycloneDxComponent, DependencyWithLicense } from "./types.js";
 
 // Runs via `pnpm --filter @mongodb-js/mcp-scripts` (cwd = packages/scripts); the
@@ -38,8 +38,9 @@ function enrichComponent(component: CycloneDxComponent): DependencyWithLicense {
     const name = getFullPackageName(component);
     const version = component.version;
 
-    const licenses = getLicenses(component);
     const packagePath = findPackagePath(name, version);
+    const sbomLicenses = getLicenses(component);
+    const licenses = sbomLicenses.length > 0 ? sbomLicenses : findPackageLicense(name, version);
     const licenseFiles = packagePath ? findLicenseFiles(packagePath) : [];
 
     return {
@@ -58,11 +59,16 @@ function generateSbom(prod: boolean): CycloneDxBom {
     // Pin to CycloneDX 1.6: silkbomb 2.0 validates schemas for 1.2-1.6 only.
     // pnpm's default is 1.7, which silkbomb skips validation for (warning +
     // proceeds unvalidated). 1.6 is the newest spec silkbomb fully supports.
-    const output = execSync(`pnpm${filter} sbom --sbom-format cyclonedx --sbom-spec-version 1.6${flags}`, {
-        encoding: "utf-8",
-        maxBuffer: 1024 * 1024 * 100,
-        stdio: ["ignore", "pipe", "inherit"],
-    });
+    // --lockfile-only keeps the component list platform-independent (pnpm 12 otherwise
+    // reads the host store, so the committed notices would differ by platform).
+    const output = execSync(
+        `pnpm${filter} sbom --sbom-format cyclonedx --sbom-spec-version 1.6 --lockfile-only${flags}`,
+        {
+            encoding: "utf-8",
+            maxBuffer: 1024 * 1024 * 100,
+            stdio: ["ignore", "pipe", "inherit"],
+        }
+    );
     return JSON.parse(output) as CycloneDxBom;
 }
 

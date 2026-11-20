@@ -38,3 +38,30 @@ export function findLicenseFiles(packagePath: string): LicenseFile[] {
         return fs.existsSync(filePath) ? [{ filename, content: fs.readFileSync(filePath, "utf-8") }] : [];
     });
 }
+
+const MONOREPO_ROOT = path.join(import.meta.dirname, "../../../../");
+
+// Resolves a package's license from its installed package.json. Needed because
+// `pnpm sbom --lockfile-only` omits license metadata.
+export function findPackageLicense(packageName: string, version: string): string[] {
+    const escapedName = packageName.replace(/\//g, "+");
+    const candidates = [
+        path.join(MONOREPO_ROOT, "node_modules", packageName),
+        ...fs.globSync(
+            path.join(MONOREPO_ROOT, `node_modules/.pnpm/${escapedName}@${version}*/node_modules/${packageName}`)
+        ),
+    ];
+    for (const dir of candidates) {
+        const packageJsonPath = path.join(dir, "package.json");
+        if (!fs.existsSync(packageJsonPath)) continue;
+        const pkg = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8")) as {
+            license?: string;
+            licenses?: { type?: string }[];
+        };
+        if (typeof pkg.license === "string") return [pkg.license];
+        if (Array.isArray(pkg.licenses)) {
+            return pkg.licenses.flatMap((entry) => (typeof entry?.type === "string" ? [entry.type] : []));
+        }
+    }
+    return [];
+}

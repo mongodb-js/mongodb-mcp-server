@@ -20,6 +20,7 @@
     "win-export-certificate-and-key@3.0.2"
   ],
   "licenseOverrides": {
+    "cli-table@0.3.11": "MIT",
     "node-addon-api@8.9.0": "MIT"
   },
   "doNotValidatePackages": [],
