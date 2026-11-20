@@ -7,7 +7,7 @@ COPY . .
 RUN pnpm install --frozen-lockfile
 RUN pnpm build
 RUN pnpm --filter mongodb-mcp-server deploy --prod --node-linker=hoisted /deploy
-# kerberos can't build on Alpine (no musl prebuild); drop the unbuilt package, as the old image did.
+# kerberos can't build on Alpine (no musl prebuild); drop the unbuilt package.
 RUN rm -rf /deploy/node_modules/kerberos
 
 FROM node:24-alpine
