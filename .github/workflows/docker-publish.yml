@@ -23,9 +23,12 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Check out code
+      # Build from the exact release source, not the triggering branch: the workspace build
+      # ignores VERSION (it only labels the image), so the checkout must match it.
+      - name: Check out release tag
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: refs/tags/v${{ inputs.npm_version }}
           persist-credentials: false
 
       - name: Generate Docker tags
