@@ -243,29 +243,31 @@ describeWithMongoDB({
         });
     },
 });
-const updateOperators = [
-    {
-        operator: "$function",
-        expression: { $function: { body: "function(age) { return age > 8; }", args: ["$age"], lang: "js" } },
-    },
-    {
-        operator: "$accumulator",
-        expression: {
-            $accumulator: {
-                init: "function() { return 0; }",
-                accumulate: "function(state) { return state; }",
-                accumulateArgs: [],
-                merge: "function(a) { return a; }",
-                lang: "js",
-            },
-        },
-    },
-    { operator: "$where", expression: { $where: "function() { return this.age > 8; }" } },
-];
-
 describeWithMongoDB({
     name: "updateMany tool with server-side JavaScript operators",
     fn: (integration) => {
+        // Expressions embedded in the update document to trigger the guard. In a plain $set the server stores them
+        // as literal values and never runs them; these tests only check what the tool layer does with them.
+        const serverSideJsExpressions = [
+            {
+                operator: "$function",
+                expression: { $function: { body: "function(age) { return age > 8; }", args: ["$age"], lang: "js" } },
+            },
+            {
+                operator: "$accumulator",
+                expression: {
+                    $accumulator: {
+                        init: "function() { return 0; }",
+                        accumulate: "function(state) { return state; }",
+                        accumulateArgs: [],
+                        merge: "function(a) { return a; }",
+                        lang: "js",
+                    },
+                },
+            },
+            { operator: "$where", expression: { $where: "function() { return this.age > 8; }" } },
+        ];
+
         afterEach(() => {
             integration.mcpServer().userConfig.disableServerSideJs = true;
         });
@@ -302,8 +304,8 @@ describeWithMongoDB({
                 }
             });
 
-            for (const { operator, expression } of updateOperators) {
-                it(`${jsDisabled ? "rejects" : "allows"} update documents using ${operator} when disableServerSideJs is ${jsDisabled}`, async () => {
+            for (const { operator, expression } of serverSideJsExpressions) {
+                it(`${jsDisabled ? "rejects" : "forwards"} update documents using ${operator} when disableServerSideJs is ${jsDisabled}`, async () => {
                     integration.mcpServer().userConfig.disableServerSideJs = jsDisabled;
                     const connectionId = await integration.connectMcpClient();
                     const response = await integration.mcpClient().callTool({
@@ -332,29 +334,29 @@ describeWithMongoDB({
                     }
                 });
             }
-
-            it("rejects update documents using server-side JavaScript before running the indexCheck explain", async () => {
-                integration.mcpServer().userConfig.disableServerSideJs = true;
-                integration.mcpServer().userConfig.indexCheck = true;
-                try {
-                    const connectionId = await integration.connectMcpClient();
-                    const response = await integration.mcpClient().callTool({
-                        name: "update-many",
-                        arguments: {
-                            connectionId,
-                            database: integration.randomDbName(),
-                            collection: "people",
-                            filter: { name: "Peter" },
-                            update: { $set: { adult: updateOperators[0]?.expression } },
-                        },
-                    });
-                    const content = getResponseContent(response.content);
-                    expect(content).toContain(`The "$function" operator is not allowed.`);
-                    expect(content).not.toContain("index");
-                } finally {
-                    integration.mcpServer().userConfig.indexCheck = false;
-                }
-            });
         }
+
+        it("rejects update documents using server-side JavaScript before running the indexCheck explain", async () => {
+            integration.mcpServer().userConfig.disableServerSideJs = true;
+            integration.mcpServer().userConfig.indexCheck = true;
+            try {
+                const connectionId = await integration.connectMcpClient();
+                const response = await integration.mcpClient().callTool({
+                    name: "update-many",
+                    arguments: {
+                        connectionId,
+                        database: integration.randomDbName(),
+                        collection: "people",
+                        filter: { name: "Peter" },
+                        update: { $set: { adult: serverSideJsExpressions[0]?.expression } },
+                    },
+                });
+                const content = getResponseContent(response.content);
+                expect(content).toContain(`The "$function" operator is not allowed.`);
+                expect(content).not.toContain("index");
+            } finally {
+                integration.mcpServer().userConfig.indexCheck = false;
+            }
+        });
     },
 });
