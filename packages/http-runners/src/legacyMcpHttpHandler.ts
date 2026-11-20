@@ -1,4 +1,9 @@
-import { isInitializeRequest, type ClientCapabilities, type Implementation } from "@modelcontextprotocol/server";
+import {
+    isInitializeRequest,
+    isJSONRPCRequest,
+    type ClientCapabilities,
+    type Implementation,
+} from "@modelcontextprotocol/server";
 import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
 import type express from "express";
 import type {
@@ -404,6 +409,8 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
             throw error;
         }
 
+        this.cancelRequestsOnDisconnect({ transport, sessionId });
+
         if (isImplicitInitialization) {
             await this.restoreNegotiatedClientState({ server, sessionId, headers: req.headers });
         } else {
@@ -411,6 +418,63 @@ export class LegacyMcpHttpHandler implements LegacyMcpHandler {
         }
 
         return transport;
+    }
+
+    /**
+     * Treats a client dropping the POST that carries a JSON-RPC request as a
+     * cancellation of that request.
+     *
+     * The transport already aborts the request's signal when its connection
+     * closes before the response was written (the node adapter aborts the web
+     * request when the response socket closes with `writableFinished` false).
+     * Forwarding that abort into the same `notifications/cancelled` path a
+     * client-initiated cancellation uses makes the tool handlers' abort signals
+     * fire, so in-flight MongoDB operations are stopped on the server instead
+     * of running to completion.
+     *
+     * The MCP spec asks servers not to treat a disconnect as a cancellation
+     * because clients may resume the stream. Legacy sessions have no event
+     * store, so a response whose POST stream is gone can never be delivered;
+     * continuing the work only burns database resources.
+     */
+    private cancelRequestsOnDisconnect({
+        transport,
+        sessionId,
+    }: {
+        transport: NodeStreamableHTTPServerTransport;
+        sessionId: string;
+    }): void {
+        const serverOnMessage = transport.onmessage;
+        if (!serverOnMessage) {
+            return;
+        }
+        transport.onmessage = (message, extra): void => {
+            const request = extra?.request;
+            if (isJSONRPCRequest(message) && request !== undefined && !request.signal.aborted) {
+                const requestId = message.id;
+                request.signal.addEventListener(
+                    "abort",
+                    () => {
+                        this.logger.debug({
+                            id: LogId.streamableHttpTransportRequestCancelledOnDisconnect,
+                            context: "streamableHttpTransport",
+                            message: `Client disconnected from session ${sessionId} before the response to request ${String(requestId)} was sent, cancelling it`,
+                            attributes: { ...requestIdAttr(Object.fromEntries(request.headers)) },
+                        });
+                        serverOnMessage({
+                            jsonrpc: "2.0",
+                            method: "notifications/cancelled",
+                            params: {
+                                requestId,
+                                reason: "Client disconnected before the response was sent",
+                            },
+                        });
+                    },
+                    { once: true }
+                );
+            }
+            serverOnMessage(message, extra);
+        };
     }
 
     /**
