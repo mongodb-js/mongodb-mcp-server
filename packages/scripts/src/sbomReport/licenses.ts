@@ -54,9 +54,14 @@ export function findPackageLicense(packageName: string, version: string): string
     for (const dir of candidates) {
         const packageJsonPath = path.join(dir, "package.json");
         if (!fs.existsSync(packageJsonPath)) continue;
-        const { license, licenses } = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
-        if (typeof license === "string") return [license];
-        if (Array.isArray(licenses)) return licenses.flatMap((entry) => entry?.type ?? []);
+        const pkg = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8")) as {
+            license?: string;
+            licenses?: { type?: string }[];
+        };
+        if (typeof pkg.license === "string") return [pkg.license];
+        if (Array.isArray(pkg.licenses)) {
+            return pkg.licenses.flatMap((entry) => (typeof entry?.type === "string" ? [entry.type] : []));
+        }
     }
     return [];
 }
