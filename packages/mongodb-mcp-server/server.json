@@ -73,6 +73,13 @@
           "isSecret": false
         },
         {
+          "name": "MDB_MCP_CONNECTION_CONNECT_TIMEOUT_MS",
+          "description": "Milliseconds a MongoDB connection may stay in the 'connecting' state (e.g. an in-progress OIDC flow) before it is closed. Bounds a dial that never settles so it cannot pin a connection indefinitely. Kept separate from connectionIdleTimeoutMs so lowering the idle timeout does not abort legitimate multi-minute auth flows. Set to 0 to disable; must not be negative. App-level setting, enforced by the shared reaper, so it cannot be overridden per request.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_CONNECTION_IDLE_TIMEOUT_MS",
           "description": "Milliseconds a MongoDB connection may stay unused (no tool call touching it) before it is closed to release the underlying connection pool and its server-side state. Applied per connection regardless of its connection scope; the preconfigured connection is excluded, and the reaper runs on this cadence. Set to 0 to disable reaping; must not be negative.",
           "isRequired": false,
@@ -433,6 +440,13 @@
           "name": "--confirmationRequiredTools",
           "description": "Comma separated values of tool names that require user confirmation before execution. Requires the client to support elicitation.",
           "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--connectionConnectTimeoutMs",
+          "description": "Milliseconds a MongoDB connection may stay in the 'connecting' state (e.g. an in-progress OIDC flow) before it is closed. Bounds a dial that never settles so it cannot pin a connection indefinitely. Kept separate from connectionIdleTimeoutMs so lowering the idle timeout does not abort legitimate multi-minute auth flows. Set to 0 to disable; must not be negative. App-level setting, enforced by the shared reaper, so it cannot be overridden per request.",
+          "isRequired": false,
+          "format": "number"
         },
         {
           "type": "named",
@@ -784,6 +798,13 @@
           "isSecret": false
         },
         {
+          "name": "MDB_MCP_CONNECTION_CONNECT_TIMEOUT_MS",
+          "description": "Milliseconds a MongoDB connection may stay in the 'connecting' state (e.g. an in-progress OIDC flow) before it is closed. Bounds a dial that never settles so it cannot pin a connection indefinitely. Kept separate from connectionIdleTimeoutMs so lowering the idle timeout does not abort legitimate multi-minute auth flows. Set to 0 to disable; must not be negative. App-level setting, enforced by the shared reaper, so it cannot be overridden per request.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
           "name": "MDB_MCP_CONNECTION_IDLE_TIMEOUT_MS",
           "description": "Milliseconds a MongoDB connection may stay unused (no tool call touching it) before it is closed to release the underlying connection pool and its server-side state. Applied per connection regardless of its connection scope; the preconfigured connection is excluded, and the reaper runs on this cadence. Set to 0 to disable reaping; must not be negative.",
           "isRequired": false,
@@ -1144,6 +1165,13 @@
           "name": "--confirmationRequiredTools",
           "description": "Comma separated values of tool names that require user confirmation before execution. Requires the client to support elicitation.",
           "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--connectionConnectTimeoutMs",
+          "description": "Milliseconds a MongoDB connection may stay in the 'connecting' state (e.g. an in-progress OIDC flow) before it is closed. Bounds a dial that never settles so it cannot pin a connection indefinitely. Kept separate from connectionIdleTimeoutMs so lowering the idle timeout does not abort legitimate multi-minute auth flows. Set to 0 to disable; must not be negative. App-level setting, enforced by the shared reaper, so it cannot be overridden per request.",
+          "isRequired": false,
+          "format": "number"
         },
         {
           "type": "named",
