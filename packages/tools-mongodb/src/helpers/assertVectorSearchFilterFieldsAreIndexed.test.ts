@@ -174,6 +174,28 @@ describe("#collectFieldsFromVectorSearchFilter", () => {
             "field10",
         ]);
     });
+
+    it("should collect fields nested under an object-valued $not", () => {
+        expect(collectFieldsFromVectorSearchFilter({ $not: { plot: { $eq: "x" } } })).toEqual(["plot"]);
+        expect(
+            collectFieldsFromVectorSearchFilter({
+                $and: [{ field1: "value" }, { $not: { field2: { $eq: 10 } } }],
+            })
+        ).toEqual(["field1", "field2"]);
+    });
+
+    it("should throw when a logical operator has an unsupported operand shape", () => {
+        expect(() => collectFieldsFromVectorSearchFilter({ $and: { plot: { $eq: 1 } } })).toThrow(MongoDBError);
+        expect(() => collectFieldsFromVectorSearchFilter({ $or: { plot: { $eq: 1 } } })).toThrow(MongoDBError);
+        expect(() => collectFieldsFromVectorSearchFilter({ $nor: { plot: { $eq: 1 } } })).toThrow(MongoDBError);
+        expect(() => collectFieldsFromVectorSearchFilter({ $not: [{ plot: { $eq: 1 } }] })).toThrow(MongoDBError);
+        expect(() => collectFieldsFromVectorSearchFilter({ $not: "plot" })).toThrow(MongoDBError);
+        expect(() => collectFieldsFromVectorSearchFilter({ $and: ["plot"] })).toThrow(MongoDBError);
+    });
+
+    it("should throw when the filter uses an unsupported top-level operator", () => {
+        expect(() => collectFieldsFromVectorSearchFilter({ $expr: { $eq: ["$plot", "x"] } })).toThrow(MongoDBError);
+    });
 });
 
 describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
@@ -323,6 +345,37 @@ describe("#assertVectorSearchFilterFieldsAreIndexed", () => {
             new MongoDBError(
                 ErrorCodes.AtlasVectorSearchInvalidQuery,
                 "Vector search stage contains filter on fields that are not indexed by index myIndex - field3"
+            )
+        );
+    });
+
+    it("should throw MongoDBError when a non-indexed field is hidden inside an object-valued $not", () => {
+        const searchIndexes = createMockSearchIndexes("myIndex", ["field1"]);
+        const pipeline = [
+            {
+                $vectorSearch: {
+                    index: "myIndex",
+                    path: "embedding",
+                    queryVector: [1, 2, 3],
+                    numCandidates: 100,
+                    limit: 10,
+                    filter: {
+                        $not: { field2: { $eq: 10 } }, // field2 is not indexed
+                    },
+                },
+            },
+        ];
+
+        expect(() =>
+            assertVectorSearchFilterFieldsAreIndexed({
+                searchIndexes,
+                pipeline,
+                logger: mockLogger,
+            })
+        ).toThrow(
+            new MongoDBError(
+                ErrorCodes.AtlasVectorSearchInvalidQuery,
+                "Vector search stage contains filter on fields that are not indexed by index myIndex - field2"
             )
         );
     });

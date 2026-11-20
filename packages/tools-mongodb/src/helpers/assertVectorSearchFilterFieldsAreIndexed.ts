@@ -5,9 +5,11 @@ import { ErrorCodes, MongoDBError } from "../common/errors.js";
 import type { VectorSearchStage } from "../mongodbSchemas.js";
 import { LogId } from "@mongodb-js/mcp-core";
 import type { ICompositeLogger } from "@mongodb-js/mcp-types";
+import { isPlainObject } from "./isPlainObject.js";
 
 // https://www.mongodb.com/docs/atlas/atlas-vector-search/vector-search-stage/#mongodb-vector-search-pre-filter
-const ALLOWED_LOGICAL_OPERATORS = ["$not", "$nor", "$and", "$or"];
+const ARRAY_LOGICAL_OPERATORS = ["$and", "$or", "$nor"];
+const OBJECT_LOGICAL_OPERATORS = ["$not"];
 
 export type SearchIndex = VectorSearchIndex | AtlasSearchIndex;
 
@@ -80,21 +82,48 @@ export function assertVectorSearchFilterFieldsAreIndexed({
     }
 }
 
+/**
+ * Collects the field paths referenced by a vector search pre-filter. Throws for any
+ * operator or operand shape that is not explicitly understood, so a malformed filter
+ * can never hide a field from the index check (fail-closed).
+ */
 export function collectFieldsFromVectorSearchFilter(filter: unknown): string[] {
-    if (!filter || typeof filter !== "object" || !Object.keys(filter).length) {
+    if (!isPlainObject(filter) || !Object.keys(filter).length) {
         return [];
     }
 
-    const collectedFields = Object.entries(filter).reduce<string[]>((collectedFields, [maybeField, fieldMQL]) => {
-        if (ALLOWED_LOGICAL_OPERATORS.includes(maybeField) && Array.isArray(fieldMQL)) {
-            return fieldMQL.flatMap((mql) => collectFieldsFromVectorSearchFilter(mql));
+    return Array.from(new Set(collectFields(filter)));
+}
+
+function collectFields(filter: Record<string, unknown>): string[] {
+    return Object.entries(filter).flatMap<string>(([field, operand]) => {
+        if (ARRAY_LOGICAL_OPERATORS.includes(field)) {
+            if (!Array.isArray(operand)) {
+                throw invalidVectorSearchFilter(`${field} must be an array of filter documents`);
+            }
+            return operand.flatMap((clause) => {
+                if (!isPlainObject(clause)) {
+                    throw invalidVectorSearchFilter(`${field} must contain filter documents`);
+                }
+                return collectFields(clause);
+            });
         }
 
-        if (!ALLOWED_LOGICAL_OPERATORS.includes(maybeField)) {
-            collectedFields.push(maybeField);
+        if (OBJECT_LOGICAL_OPERATORS.includes(field)) {
+            if (!isPlainObject(operand)) {
+                throw invalidVectorSearchFilter(`${field} must be a filter document`);
+            }
+            return collectFields(operand);
         }
-        return collectedFields;
-    }, []);
 
-    return Array.from(new Set(collectedFields));
+        if (field.startsWith("$")) {
+            throw invalidVectorSearchFilter(`unsupported operator ${field}`);
+        }
+
+        return [field];
+    });
+}
+
+function invalidVectorSearchFilter(message: string): MongoDBError {
+    return new MongoDBError(ErrorCodes.AtlasVectorSearchInvalidQuery, `Invalid vector search filter: ${message}`);
 }
