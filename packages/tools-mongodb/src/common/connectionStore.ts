@@ -43,6 +43,13 @@ export type ConnectionStoreConfig = ConnectionDriverConfig & {
      * it. `0` disables reaping (default 600_000 / 10 minutes).
      */
     connectionIdleTimeoutMs: number;
+    /**
+     * Milliseconds a configured (pinned) connection may stay unused before the
+     * idle reaper closes its pool. Unlike {@link connectionIdleTimeoutMs} the
+     * entry is kept, so its connectionId stays valid and the next resolve
+     * redials. `0` or omitted disables (configured connections stay open).
+     */
+    preconfiguredConnectionIdleTimeoutMs?: number;
     transport: "stdio" | "http";
     httpHost: string;
     /** Client-side operation timeout (CSOT) applied as the driver `timeoutMS`. */
@@ -104,9 +111,12 @@ export class MCPConnectionStore {
     private readonly deviceId: DeviceId;
     private readonly serverMetadata: ServerMetadata;
     private readonly connectionIdleTimeoutMs: number;
+    private readonly preconfiguredConnectionIdleTimeoutMs: number;
     private readonly keychain: Keychain;
     /** In-flight dial per pinned entry, keyed by connectionId, so concurrent resolves share one dial. */
     private readonly preconfiguredDials = new Map<string, Promise<void>>();
+    /** In-flight close per pinned entry (never rejects), so resolve() waits instead of reusing a closing provider. */
+    private readonly pinnedCloses = new Map<string, Promise<void>>();
     private sweepTimer?: ReturnType<typeof setInterval>;
 
     constructor(options: ConnectionStoreOptions) {
@@ -116,6 +126,7 @@ export class MCPConnectionStore {
         this.deviceId = deviceId;
         this.serverMetadata = serverMetadata ?? DEFAULT_SERVER_METADATA;
         this.connectionIdleTimeoutMs = config.connectionIdleTimeoutMs;
+        this.preconfiguredConnectionIdleTimeoutMs = config.preconfiguredConnectionIdleTimeoutMs ?? 0;
         this.keychain = keychain;
 
         this.startSweeper();
@@ -231,7 +242,7 @@ export class MCPConnectionStore {
                 // otherwise this close is a no-op (the manager is still
                 // disconnected) and the dial's connection survives it.
                 await this.preconfiguredDials.get(entry.connectionId)?.catch(() => undefined);
-                await entry.close();
+                await this.closePinned(entry);
                 return;
             }
             await this.revoke(entry);
@@ -280,6 +291,10 @@ export class MCPConnectionStore {
                 }
 
                 if (entry.source === "preconfigured") {
+                    // The manager reports `connected` until an in-flight close
+                    // finishes; wait for it so we redial instead of handing out
+                    // a provider that is being closed.
+                    await this.pinnedCloses.get(entry.connectionId);
                     if (entry.state.tag === "disconnected" || entry.state.tag === "errored") {
                         await this.dialPreconfigured(entry);
                     }
@@ -343,23 +358,28 @@ export class MCPConnectionStore {
      * {@link revoke} so temp-user cleanup, list-connections removal, and the
      * revocation log behave exactly as an LRU overflow.
      *
-     * The preconfigured connection is pinned (auto-redials on next resolve) and
-     * an in-progress dial is left alone (it may take minutes).
+     * Configured connections are pinned (auto-redial on next resolve), so they
+     * are never revoked here. When {@link preconfiguredConnectionIdleTimeoutMs}
+     * is set, an idle configured connection is only closed — the same as the
+     * disconnect tool does for it — so its connectionId stays valid and the
+     * next tool call redials. An in-progress dial is left alone (it may take
+     * minutes).
      */
     private async sweepIdleConnections(): Promise<void> {
-        if (this.connectionIdleTimeoutMs <= 0) {
-            return;
-        }
         const now = Date.now();
         const idle: ConnectionEntry[] = [];
+        const idlePinned: ConnectionEntry[] = [];
         for (const { entry } of this.entries.values()) {
             if (entry.source === "preconfigured") {
+                if (this.isIdlePinned(entry, now)) {
+                    idlePinned.push(entry);
+                }
                 continue;
             }
             if (entry.state.tag === "connecting") {
                 continue;
             }
-            if (now - entry.lastUsedAt.getTime() > this.connectionIdleTimeoutMs) {
+            if (this.connectionIdleTimeoutMs > 0 && now - entry.lastUsedAt.getTime() > this.connectionIdleTimeoutMs) {
                 idle.push(entry);
             }
         }
@@ -367,19 +387,82 @@ export class MCPConnectionStore {
             this.entries.delete(entry.connectionId);
             await this.revoke(entry);
         }
+        for (const entry of idlePinned) {
+            // The awaits above (and earlier closes) yield, so a tool call may have
+            // used this entry since the snapshot; re-check right before closing.
+            // From here to closePinned registering the close there is no await,
+            // and resolve() waits on that registered close.
+            if (!this.isIdlePinned(entry, Date.now())) {
+                continue;
+            }
+            this.logger.info({
+                id: LogId.connectionRegistryIdleClosed,
+                context: "connectionRegistry",
+                message: `Closing configured connection "${entry.connectionId}" after ${this.preconfiguredConnectionIdleTimeoutMs}ms without use; it reconnects on next use.`,
+            });
+            try {
+                await this.closePinned(entry);
+            } catch {
+                // best-effort: a failed close leaves the entry errored, and the next resolve redials it
+            }
+        }
+    }
+
+    /**
+     * Whether a configured entry should be closed by the idle reaper now: the
+     * timeout is enabled, the entry is still the stored one, it is connected,
+     * no dial or close is in flight, and it has been unused past the timeout.
+     */
+    private isIdlePinned(entry: ConnectionEntry, now: number): boolean {
+        return (
+            this.preconfiguredConnectionIdleTimeoutMs > 0 &&
+            this.entries.get(entry.connectionId)?.entry === entry &&
+            entry.state.tag === "connected" &&
+            !this.preconfiguredDials.has(entry.connectionId) &&
+            !this.pinnedCloses.has(entry.connectionId) &&
+            now - entry.lastUsedAt.getTime() > this.preconfiguredConnectionIdleTimeoutMs
+        );
+    }
+
+    /**
+     * Closes a configured entry's provider while keeping the entry (it redials
+     * on next resolve). Concurrent callers share one close, and resolve() waits
+     * for it, since the manager keeps reporting `connected` until the provider
+     * close finishes.
+     */
+    private closePinned(entry: ConnectionEntry): Promise<void> {
+        const { connectionId } = entry;
+        const inFlight = this.pinnedCloses.get(connectionId);
+        if (inFlight) {
+            return inFlight;
+        }
+        const closing = entry.close().finally(() => {
+            this.pinnedCloses.delete(connectionId);
+        });
+        this.pinnedCloses.set(
+            connectionId,
+            closing.catch(() => undefined)
+        );
+        return closing;
     }
 
     private startSweeper(): void {
-        if (this.connectionIdleTimeoutMs <= 0) {
+        // Reap on the shortest enabled timeout, so an entry is released within one
+        // interval of crossing its threshold. 0 disables a timeout; the schemas
+        // reject negatives, so a tiny but positive value here simply makes the
+        // reaper run more often.
+        const intervals = [this.connectionIdleTimeoutMs, this.preconfiguredConnectionIdleTimeoutMs].filter(
+            (ms) => ms > 0
+        );
+        if (intervals.length === 0) {
             return;
         }
-        // Reap on the timeout cadence itself, so an entry is released within one
-        // interval of crossing the threshold. 0 (handled above) disables; the
-        // connectionIdleTimeoutMs schema rejects negatives, so a tiny but positive
-        // value here simply makes the reaper run more often.
-        this.sweepTimer = setInterval(() => {
-            void this.sweepIdleConnections();
-        }, this.connectionIdleTimeoutMs);
+        this.sweepTimer = setInterval(
+            () => {
+                void this.sweepIdleConnections();
+            },
+            Math.min(...intervals)
+        );
         // Browser-safe: unref() is a Node-only method that keeps the timer from
         // holding the process open; skip it when unavailable (e.g. in a web build).
         if (typeof this.sweepTimer?.unref === "function") {

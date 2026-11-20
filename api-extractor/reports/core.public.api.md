@@ -327,6 +327,7 @@ export const LogId: {
     readonly connectionRegistryRevoked: MongoLogId;
     readonly connectionRegistryRevokeCallbackFailure: MongoLogId;
     readonly connectionRegistryDialFailure: MongoLogId;
+    readonly connectionRegistryIdleClosed: MongoLogId;
 };
 
 // @public (undocumented)
