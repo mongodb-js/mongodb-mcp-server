@@ -18,6 +18,10 @@ const config: KnipConfig = {
                 "happy-dom",
                 // Provides the mongodb-sbom-tools bin used by update-third-party-notices / create-dependency-sbom-lists scripts
                 "@mongodb-js/sbom-tools",
+                // Not imported directly; required so ESLint/tsc resolve YargsOptions in @mongosh/arg-parser .d.ts.
+                // Types must live in the root node_modules: the arg-parser d.ts resolves through the pnpm
+                // store realpath, so packages/cli/node_modules/@types is never consulted.
+                "@types/yargs-parser",
             ],
         },
         "packages/eval-tests": {
