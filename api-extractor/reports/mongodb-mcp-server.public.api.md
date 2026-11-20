@@ -656,9 +656,7 @@ export function getConfigMeta(key: keyof typeof UserConfigSchema.shape): ConfigF
 export { Histogram }
 
 // @public
-export type InstanceLabels<TMetricsDefinitions extends DefaultMetricDefinitions> = [
-DeclaredLabelNames<TMetricsDefinitions[keyof TMetricsDefinitions]>
-] extends [never] ? Record<string, never> : Readonly<Partial<Record<DeclaredLabelNames<TMetricsDefinitions[keyof TMetricsDefinitions]>, string>>>;
+export type InstanceLabels<TMetricsDefinitions extends DefaultMetricDefinitions, TKeys extends keyof TMetricsDefinitions = keyof TMetricsDefinitions> = [CommonLabelNames<TMetricsDefinitions, TKeys>] extends [never] ? Record<string, never> : Readonly<Partial<Record<CommonLabelNames<TMetricsDefinitions, TKeys>, string>>>;
 
 // @public (undocumented)
 export interface ITransportRunner {
@@ -858,24 +856,25 @@ export function parseUserConfig(input: {
 };
 
 // @public (undocumented)
-export class PrometheusMetrics<TMetricsDefinitions extends DefaultMetricDefinitions> implements IMetrics<TMetricsDefinitions> {
-    constructor(input: PrometheusMetricsOptions<TMetricsDefinitions>);
+export class PrometheusMetrics<TMetricsDefinitions extends DefaultMetricDefinitions, TKeys extends keyof TMetricsDefinitions = keyof TMetricsDefinitions> implements IMetrics<TMetricsDefinitions> {
+    constructor(input: PrometheusMetricsOptions<TMetricsDefinitions, TKeys>);
     readonly definitions: TMetricsDefinitions;
     // (undocumented)
     get<K extends keyof TMetricsDefinitions>(key: K): TMetricsDefinitions[K];
     // (undocumented)
     getMetrics(): Promise<string>;
-    readonly labels: Readonly<Record<string, string>>;
+    get labels(): InstanceLabels<TMetricsDefinitions, TKeys>;
     // (undocumented)
     readonly registry: Registry;
-    withLabels(labels: InstanceLabels<TMetricsDefinitions>): PrometheusMetrics<TMetricsDefinitions>;
+    withLabels<TScopedKeys extends TKeys = TKeys>(labels: InstanceLabels<TMetricsDefinitions, TScopedKeys>, input?: {
+        scope?: readonly TScopedKeys[];
+    }): PrometheusMetrics<TMetricsDefinitions, TScopedKeys>;
 }
 
 // @public
-export interface PrometheusMetricsOptions<TMetricsDefinitions extends DefaultMetricDefinitions> {
+export interface PrometheusMetricsOptions<TMetricsDefinitions extends DefaultMetricDefinitions, TKeys extends keyof TMetricsDefinitions = keyof TMetricsDefinitions> {
     collectProcessMetrics?: boolean;
     definitions: TMetricsDefinitions;
-    labels?: InstanceLabels<TMetricsDefinitions>;
     registry?: Registry;
 }
 
