@@ -79,7 +79,7 @@
     "tsx": "^4.23.12",
     "type-fest": "^5.10.0",
     "typescript": "^5.9.2",
-    "vitest": "^4.1.11"
+    "vitest": "^5.1.0"
   },
   "dependencies": {
     "@modelcontextprotocol/node": "^2.1.1",
