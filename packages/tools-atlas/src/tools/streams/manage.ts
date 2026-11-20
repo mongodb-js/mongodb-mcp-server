@@ -9,6 +9,7 @@ import {
     StreamsArgs,
     StreamsAutoscaling,
     StreamsTier,
+    lowercaseAzureStorageAccountName,
     toStreamsAutoscaling,
 } from "../../streams/streamsArgs.js";
 import { StreamsInvalidArgumentError } from "../../streams/errors.js";
@@ -586,7 +587,9 @@ export class StreamsManageTool extends StreamsToolBase {
             request
         )) as { type?: string; state?: string };
 
-        const normalizedConfig = ConnectionConfig.parse(args.connectionConfig);
+        const parsedConfig = ConnectionConfig.parse(args.connectionConfig);
+        const normalizedConfig =
+            connection.type === "AzureBlobStorage" ? lowercaseAzureStorageAccountName(parsedConfig) : parsedConfig;
         const updated = (await this.server.apiClient.updateStreamConnection(
             {
                 params: { path: { groupId: args.projectId, tenantName: args.workspaceName, connectionName: name } },
