@@ -1,5 +1,27 @@
 import { describe, it, expect } from "vitest";
 import { ConnectionConfig, PrivateLinkConfig, StreamsArgs } from "@mongodb-js/mcp-tools-atlas";
+import { lowercaseAzureStorageAccountName } from "./streamsArgs.js";
+
+describe("lowercaseAzureStorageAccountName", () => {
+    it("returns a new config with a lowercased storageAccountName and does not mutate the input", () => {
+        const input = { azure: { servicePrincipalId: "sp-1", storageAccountName: "AcmeStorage" }, other: 1 };
+
+        const result = lowercaseAzureStorageAccountName(input);
+
+        expect(result).toEqual({ azure: { servicePrincipalId: "sp-1", storageAccountName: "acmestorage" }, other: 1 });
+        expect(result).not.toBe(input);
+        expect(result.azure).not.toBe(input.azure);
+        expect(input.azure.storageAccountName).toBe("AcmeStorage");
+    });
+
+    it("returns the config unchanged when there is no azure block or no string storageAccountName", () => {
+        const noAzure = { bucketName: "b" };
+        const noName = { azure: { servicePrincipalId: "sp-1" } };
+
+        expect(lowercaseAzureStorageAccountName(noAzure)).toBe(noAzure);
+        expect(lowercaseAzureStorageAccountName(noName)).toBe(noName);
+    });
+});
 
 describe("StreamsArgs", () => {
     describe("workspaceName", () => {
