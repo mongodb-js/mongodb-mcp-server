@@ -46,7 +46,7 @@ const CollectionSchemaArgsShapeVariants = connectionScopedArgsShape({
         .optional()
         .default("auto")
         .describe(
-            "Where to derive the schema from. 'auto' uses the collection's $jsonSchema validator when it is strictly enforced, otherwise samples documents. 'validator' only uses the validator. 'sample' always samples documents."
+            "Where to derive the schema from. 'auto' uses the collection's $jsonSchema validator when it rejects invalid writes (validationLevel 'strict' with validationAction 'error' or 'errorAndLog', or validationLevel 'constraint'), otherwise samples documents. 'validator' only uses the validator. 'sample' always samples documents."
         ),
     sampleSize: z
         .number()
@@ -203,10 +203,16 @@ export class CollectionSchemaTool extends MongoDBToolBase {
             case "merged":
                 return `Found ${fieldsCount} fields in the schema. Fields declared by the collection's $jsonSchema validator use the validator's types; the remaining fields are inferred from a sample and may not represent the full schema of the collection.`;
             case "validator": {
+                const summary = `Found ${fieldsCount} fields in the schema defined by the collection's $jsonSchema validator.`;
+                if (validator?.validationLevel === "constraint") {
+                    // The server guarantees every document in the collection conforms at this level.
+                    return summary;
+                }
+
                 const caveat = validator?.isEnforced
-                    ? "documents inserted before the validator was added may not conform to it."
-                    : `the validator is not strictly enforced (validationLevel: ${validator?.validationLevel}, validationAction: ${validator?.validationAction}), so documents may not conform to it.`;
-                return `Found ${fieldsCount} fields in the schema defined by the collection's $jsonSchema validator. Note that ${caveat}`;
+                    ? "documents inserted before the validator was added, or with document validation bypassed, may not conform to it."
+                    : `the validator does not reject invalid writes (validationLevel: ${validator?.validationLevel}, validationAction: ${validator?.validationAction}), so documents may not conform to it.`;
+                return `${summary} Note that ${caveat}`;
             }
         }
     }

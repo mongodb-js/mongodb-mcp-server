@@ -2,7 +2,7 @@ packages:
   - "packages/*"
   - "tests/browser"
 overrides:
-  "mongodb": "^7.1.1"
+  "mongodb": "^7.5.0"
   "kerberos": "^7.0.0"
   "bson": "^7.2.0"
   "zod": "^4.6.6"

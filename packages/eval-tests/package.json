@@ -26,7 +26,7 @@
     "ai": "^7.0.107",
     "braintrust": "^3.37.2",
     "bson": "^7.2.0",
-    "mongodb": "^7.1.1",
+    "mongodb": "^7.5.0",
     "mongodb-mcp-server": "workspace:*",
     "zod": "^4.4.2"
   },

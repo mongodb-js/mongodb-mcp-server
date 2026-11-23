@@ -5,7 +5,10 @@ export type JsonSchemaValidator = {
     jsonSchema: JSONSchema;
     validationLevel: string;
     validationAction: string;
-    /** True when every write is rejected unless it matches the validator. */
+    /**
+     * True when every write is rejected unless it matches the validator: validationLevel "strict" with a rejecting
+     * validationAction, or validationLevel "constraint".
+     */
     isEnforced: boolean;
     /** True when the validator declares every field a document may contain, at every nesting level. */
     isExhaustive: boolean;
@@ -110,7 +113,10 @@ export function getJsonSchemaValidator(collectionOptions: Document | undefined):
         jsonSchema,
         validationLevel,
         validationAction,
-        isEnforced: validationLevel === "strict" && REJECTING_VALIDATION_ACTIONS.includes(validationAction),
+        // "constraint" (MongoDB 9.0+) rejects invalid writes regardless of validationAction.
+        isEnforced:
+            validationLevel === "constraint" ||
+            (validationLevel === "strict" && REJECTING_VALIDATION_ACTIONS.includes(validationAction)),
         isExhaustive: isExhaustive(jsonSchema),
     };
 }

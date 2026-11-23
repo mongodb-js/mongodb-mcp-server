@@ -28,7 +28,7 @@ describeWithMongoDB({
                     name: "schemaSource",
                     type: "string",
                     description:
-                        "Where to derive the schema from. 'auto' uses the collection's $jsonSchema validator when it is strictly enforced, otherwise samples documents. 'validator' only uses the validator. 'sample' always samples documents.",
+                        "Where to derive the schema from. 'auto' uses the collection's $jsonSchema validator when it rejects invalid writes (validationLevel 'strict' with validationAction 'error' or 'errorAndLog', or validationLevel 'constraint'), otherwise samples documents. 'validator' only uses the validator. 'sample' always samples documents.",
                     required: false,
                 },
                 {
@@ -252,7 +252,7 @@ describeWithMongoDB({
 
                 const { items, structuredContent } = await callTool();
                 expect(items[0]?.text).toEqual(
-                    "Found 3 fields in the schema defined by the collection's $jsonSchema validator. Note that documents inserted before the validator was added may not conform to it."
+                    "Found 3 fields in the schema defined by the collection's $jsonSchema validator. Note that documents inserted before the validator was added, or with document validation bypassed, may not conform to it."
                 );
                 expect(structuredContent).toEqual({
                     schema: closedSchemaExpected,
@@ -324,7 +324,7 @@ describeWithMongoDB({
                 });
             });
 
-            it("samples documents when the validator is not strictly enforced", async () => {
+            it("samples documents when the validator does not reject invalid writes", async () => {
                 await createCollection({ validator: { $jsonSchema: closedSchema }, validationAction: "warn" });
                 await integration
                     .mongoClient()
@@ -342,7 +342,7 @@ describeWithMongoDB({
 
                 const { items, structuredContent } = await callTool("validator");
                 expect(items[0]?.text).toEqual(
-                    "Found 3 fields in the schema defined by the collection's $jsonSchema validator. Note that the validator is not strictly enforced (validationLevel: moderate, validationAction: error), so documents may not conform to it."
+                    "Found 3 fields in the schema defined by the collection's $jsonSchema validator. Note that the validator does not reject invalid writes (validationLevel: moderate, validationAction: error), so documents may not conform to it."
                 );
                 expect(structuredContent).toEqual({
                     schema: closedSchemaExpected,

@@ -60,15 +60,20 @@ describe("getJsonSchemaValidator", () => {
         });
     });
 
-    it("is enforced with validationLevel=strict and validationAction=errorAndLog", () => {
-        expect(
-            getJsonSchemaValidator({
-                validator: { $jsonSchema: jsonSchema },
-                validationLevel: "strict",
-                validationAction: "errorAndLog",
-            })?.isEnforced
-        ).toBe(true);
-    });
+    it.each([
+        { validationLevel: "strict", validationAction: "errorAndLog" },
+        { validationLevel: "constraint", validationAction: "error" },
+        { validationLevel: "constraint", validationAction: "errorAndLog" },
+        { validationLevel: "constraint", validationAction: "warn" },
+    ])(
+        "is enforced with validationLevel=$validationLevel and validationAction=$validationAction",
+        ({ validationLevel, validationAction }) => {
+            expect(
+                getJsonSchemaValidator({ validator: { $jsonSchema: jsonSchema }, validationLevel, validationAction })
+                    ?.isEnforced
+            ).toBe(true);
+        }
+    );
 
     it.each([
         { validationLevel: "moderate", validationAction: "error" },
