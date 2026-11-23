@@ -31,7 +31,7 @@ import type { ReadResourceCallback } from '@modelcontextprotocol/server';
 import { Registry } from 'prom-client';
 import type { RequestMeta } from '@modelcontextprotocol/server';
 import type { ResourceMetadata } from '@modelcontextprotocol/server';
-import { Secret } from 'mongodb-redact';
+import { Secret } from '@mongodb-js/mongodb-redact';
 import type { ServerContext } from '@modelcontextprotocol/server';
 import { NodeStreamableHTTPServerTransport as StreamableHTTPServerTransport } from '@modelcontextprotocol/node';
 import { ToolAnnotations } from '@modelcontextprotocol/server';
@@ -577,7 +577,7 @@ export class Elicitation implements IElicitation {
     inputRequired(input: ElicitInputRequiredParams): InputRequiredResult;
     readConfirmation(inputResponses: ElicitationInputResponses): boolean | undefined;
     readInput(inputResponses: ElicitationInputResponses, key: string): ElicitedInputResult | undefined;
-    supportsElicitation(): boolean;
+    supportsElicitation(request: ElicitationRequestContext): boolean;
 }
 
 // @public (undocumented)
@@ -654,6 +654,11 @@ export { Gauge }
 export function getConfigMeta(key: keyof typeof UserConfigSchema.shape): ConfigFieldMeta | undefined;
 
 export { Histogram }
+
+// @public
+export type InstanceLabels<TMetricsDefinitions extends DefaultMetricDefinitions> = [
+DeclaredLabelNames<TMetricsDefinitions[keyof TMetricsDefinitions]>
+] extends [never] ? Record<string, never> : Readonly<Partial<Record<DeclaredLabelNames<TMetricsDefinitions[keyof TMetricsDefinitions]>, string>>>;
 
 // @public (undocumented)
 export interface ITransportRunner {
@@ -855,18 +860,22 @@ export function parseUserConfig(input: {
 // @public (undocumented)
 export class PrometheusMetrics<TMetricsDefinitions extends DefaultMetricDefinitions> implements IMetrics<TMetricsDefinitions> {
     constructor(input: PrometheusMetricsOptions<TMetricsDefinitions>);
+    readonly definitions: TMetricsDefinitions;
     // (undocumented)
     get<K extends keyof TMetricsDefinitions>(key: K): TMetricsDefinitions[K];
     // (undocumented)
     getMetrics(): Promise<string>;
+    readonly labels: Readonly<Record<string, string>>;
     // (undocumented)
     readonly registry: Registry;
+    withLabels(labels: InstanceLabels<TMetricsDefinitions>): PrometheusMetrics<TMetricsDefinitions>;
 }
 
 // @public
 export interface PrometheusMetricsOptions<TMetricsDefinitions extends DefaultMetricDefinitions> {
     collectProcessMetrics?: boolean;
     definitions: TMetricsDefinitions;
+    labels?: InstanceLabels<TMetricsDefinitions>;
     registry?: Registry;
 }
 
@@ -1071,10 +1080,12 @@ export type UserConfig = z.infer<typeof UserConfigSchema>;
 // @public (undocumented)
 export const UserConfigSchema: z.ZodObject<{
     apiBaseUrl: z.ZodDefault<z.ZodString>;
+    telemetryBaseUrl: z.ZodOptional<z.ZodString>;
     assistantBaseUrl: z.ZodDefault<z.ZodString>;
     apiClientId: z.ZodOptional<z.ZodString>;
     apiClientSecret: z.ZodOptional<z.ZodString>;
     connectionString: z.ZodOptional<z.ZodString>;
+    connectionStrings: z.ZodDefault<z.ZodRecord<z.ZodString, z.ZodString>>;
     loggers: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
         stderr: "stderr";
         disk: "disk";
@@ -1124,9 +1135,12 @@ export const UserConfigSchema: z.ZodObject<{
     externallyManagedSessions: z.ZodDefault<z.ZodBoolean>;
     maxBytesPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxDocumentsPerQuery: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    timeoutMs: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
     maxTimeMS: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
-    queryCountMaxTimeMsCap: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
-    aggregationCountMaxTimeMsCap: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    queryCountTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    queryCountMaxTimeMsCap: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
+    aggregationCountTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    aggregationCountMaxTimeMsCap: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
     exportsPath: z.ZodDefault<z.ZodString>;
     exportTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     exportCleanupIntervalMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
@@ -1148,6 +1162,7 @@ export const UserConfigSchema: z.ZodObject<{
     monitoringServerFeatures: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
         "health-check": "health-check";
         metrics: "metrics";
+        "process-metrics": "process-metrics";
     }>>, string | string[] | undefined>>;
     gssapiHostName: z.ZodOptional<z.ZodString>;
     sslFIPSMode: z.ZodOptional<z.ZodBoolean>;

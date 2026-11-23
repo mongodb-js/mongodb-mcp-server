@@ -8,6 +8,6 @@ WORKDIR /home/mcp
 ENV MDB_MCP_LOGGERS=stderr,mcp
 ENTRYPOINT ["mongodb-mcp-server"]
 LABEL maintainer="MongoDB Inc <info@mongodb.com>"
-LABEL description="MongoDB MCP Server"
+LABEL description="Official MongoDB MCP server: let AI agents search and manage databases and the Atlas data platform"
 LABEL version=${VERSION}
 LABEL io.modelcontextprotocol.server.name="io.github.mongodb-js/mongodb-mcp-server"

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isCodexComposerIdle, isCodexTransitional, isCodexWorking } from "./codexTuiMarkers.js";
+import { isCodexComposerIdle, isCodexElicitation, isCodexTransitional, isCodexWorking } from "./codexTuiMarkers.js";
 
 describe("isCodexWorking", () => {
     it("matches the default Working header", () => {
@@ -76,5 +76,21 @@ describe("isCodexTransitional", () => {
 
     it("ignores banner text mentioned in a transcript line", () => {
         expect(isCodexTransitional("The log said Waiting for startup and then continued")).toBe(false);
+    });
+});
+
+describe("isCodexElicitation", () => {
+    it("matches the confirmation form", () => {
+        expect(isCodexElicitation("Would you like to confirm?\n› 1. Yes, I confirm\n  2. No, I do not confirm")).toBe(
+            true
+        );
+    });
+
+    it("does not match the just-submitted prompt", () => {
+        expect(isCodexElicitation('› Use "drop-database" tool to drop the "db" database.')).toBe(false);
+    });
+
+    it("does not match a working frame", () => {
+        expect(isCodexElicitation("• Working (1s • esc to interrupt)")).toBe(false);
     });
 });

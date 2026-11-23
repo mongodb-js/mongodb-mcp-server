@@ -85,6 +85,7 @@ export {
     PrometheusMetrics,
     createDefaultMetrics,
     type DefaultPrometheusMetricDefinitions,
+    type InstanceLabels,
     type PrometheusMetricsOptions,
     Registry,
     Gauge,

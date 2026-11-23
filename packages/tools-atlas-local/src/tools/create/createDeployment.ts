@@ -15,20 +15,26 @@ const CreateDeploymentOutputSchema = {
 
 export type CreateDeploymentOutput = z.infer<z.ZodObject<typeof CreateDeploymentOutputSchema>>;
 
+// Loading sample data downloads several hundred MBs of seed data inside the
+// container before it becomes healthy. Without a bound, a stalled download or
+// a dead container makes createDeployment hang forever (CLOUDP-459388), so
+// bound the native wait-until-healthy loop when sample data is requested.
+const WAIT_UNTIL_HEALTHY_TIMEOUT_WITH_SAMPLE_DATA_SECONDS = 480;
+
 const CreateDeploymentArgsShape = {
     deploymentName: CommonArgs.asciiOnlyString().describe("Name of the deployment to create").optional(),
     loadSampleData: z.boolean().describe("Load sample data into the deployment").optional().default(false),
     imageTag: z
         .string()
-        .describe("Atlas Local image tag: 'preview', 'latest', or a semver (e.g. '8.0.0'). Default: 'preview'.")
+        .describe("Atlas Local image tag: 'latest', 'preview', or a semver (e.g. '8.0.0'). Default: 'latest'.")
         .optional()
-        .default("preview"),
+        .default("latest"),
 };
 
 export class CreateDeploymentTool extends AtlasLocalToolBase {
     static toolName = "atlas-local-create-deployment";
     public description =
-        "Create a MongoDB Atlas local deployment. Default image is preview. When the user does not specify an image tag, inform them that preview is used by default and provide this link for more information: https://hub.docker.com/r/mongodb/mongodb-atlas-local";
+        "Create a MongoDB Atlas local deployment. Default image is latest. When the user does not specify an image tag, inform them that latest is used by default and provide this link for more information: https://hub.docker.com/r/mongodb/mongodb-atlas-local";
     static operationType: OperationType = "create";
     public argsShape(): typeof CreateDeploymentArgsShape {
         return CreateDeploymentArgsShape;
@@ -50,6 +56,12 @@ export class CreateDeploymentTool extends AtlasLocalToolBase {
             },
             loadSampleData,
             imageTag,
+            ...(loadSampleData
+                ? {
+                      waitUntilHealthy: true,
+                      waitUntilHealthyTimeout: WAIT_UNTIL_HEALTHY_TIMEOUT_WITH_SAMPLE_DATA_SECONDS,
+                  }
+                : {}),
             ...(this.server.config.voyageApiKey ? { voyageApiKey: this.server.config.voyageApiKey } : {}),
             doNotTrack: !this.server.telemetry.isTelemetryEnabled(),
         };

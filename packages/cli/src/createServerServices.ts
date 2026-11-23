@@ -15,7 +15,9 @@ import { CliServer } from "./cliServer.js";
 import {
     connectionErrorHandler,
     DeviceId,
+    isObjectEmpty,
     MCPConnectionStore,
+    PRECONFIGURED_CONNECTION_ID,
     validateConnectionString,
     type ConnectionRegistry,
 } from "@mongodb-js/mcp-tools-mongodb";
@@ -63,6 +65,8 @@ export type SharedServerServices = {
     /** Shared, app-level registry view over {@link connectionStore}. */
     connectionRegistry: ConnectionRegistry;
     apiClient: ApiClient;
+    /** API client used only for telemetry; equals {@link apiClient} unless `telemetryBaseUrl` is set. */
+    telemetryApiClient: ApiClient;
     exportsManager: ExportsManager;
     telemetry: AtlasTelemetry;
     atlasLocalClient: AtlasLocalClient | undefined;
@@ -84,13 +88,14 @@ export async function validateAppConfig({
     logger: CompositeLogger;
     apiClient: ApiClient;
 }): Promise<void> {
-    // Validate connection string
-    if (config.connectionString) {
+    // Validate connection strings
+    for (const [connectionId, connectionString] of Object.entries(config.connectionStrings)) {
         try {
-            validateConnectionString(config.connectionString, false);
+            validateConnectionString(connectionString, false);
         } catch (error) {
+            const subject = connectionId === PRECONFIGURED_CONNECTION_ID ? "" : ` for connection "${connectionId}"`;
             throw new Error(
-                "Connection string validation failed with error: " +
+                `Connection string validation failed${subject} with error: ` +
                     (error instanceof Error ? error.message : String(error)),
                 { cause: error }
             );
@@ -119,7 +124,7 @@ export async function validateAppConfig({
 
             await apiClient.validateAuthConfig();
         } catch (error) {
-            if (config.connectionString === undefined) {
+            if (isObjectEmpty(config.connectionStrings)) {
                 throw new Error(
                     `Failed to connect to MongoDB Atlas instance using the credentials from the config: ${error instanceof Error ? error.message : String(error)}`,
                     { cause: error }
@@ -140,7 +145,10 @@ export async function createSharedServicesFromConfig(
     options: CreateServerServicesOptions
 ): Promise<SharedServerServices> {
     const { config, serverMetadata, logger, keychain } = options;
-    const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
+    const metrics = new PrometheusMetrics({
+        definitions: createDefaultMetrics(),
+        collectProcessMetrics: config.monitoringServerFeatures.includes("process-metrics"),
+    });
     const monitoringServer = createMonitoringServerFromConfig({ config, logger, metrics });
 
     const deviceId = DeviceId.create(logger);
@@ -162,11 +170,21 @@ export async function createSharedServicesFromConfig(
     // Validate app-fixed config once at startup (see {@link validateAppConfig}).
     await validateAppConfig({ config, logger, apiClient });
 
+    // Second client only when telemetry targets a different host than the API.
+    const telemetryApiClient =
+        config.telemetryBaseUrl && config.telemetryBaseUrl !== config.apiBaseUrl
+            ? createApiClientFromConfig({
+                  config: { ...config, apiBaseUrl: config.telemetryBaseUrl },
+                  serverMetadata,
+                  logger,
+              })
+            : apiClient;
+
     const telemetry = createTelemetryFromConfig({
         config,
         logger,
         deviceId,
-        apiClient,
+        apiClient: telemetryApiClient,
         keychain,
         serverMetadata,
     });
@@ -185,6 +203,7 @@ export async function createSharedServicesFromConfig(
         connectionStore,
         connectionRegistry,
         apiClient,
+        telemetryApiClient,
         exportsManager,
         telemetry,
         atlasLocalClient,
@@ -378,7 +397,8 @@ export function createServerFromConfig({
  * it), then telemetry flushes last.
  */
 export async function closeSharedServices(sharedServices: SharedServerServices): Promise<void> {
-    const { telemetry, connectionStore, exportsManager, apiClient } = sharedServices;
+    const { telemetry, connectionStore, exportsManager, apiClient, telemetryApiClient } = sharedServices;
     await Promise.allSettled([connectionStore.closeAll(), exportsManager.close()]);
-    await Promise.allSettled([apiClient.close(), telemetry.close()]);
+    const apiClients = telemetryApiClient === apiClient ? [apiClient] : [apiClient, telemetryApiClient];
+    await Promise.allSettled([...apiClients.map((client) => client.close()), telemetry.close()]);
 }

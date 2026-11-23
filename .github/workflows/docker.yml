@@ -24,7 +24,13 @@ jobs:
       VERSION: ${{ steps.versions.outputs.VERSION }}
       RELEASE_CHANNEL: ${{ steps.versions.outputs.RELEASE_CHANNEL }}
     steps:
-      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - name: Set up Python for permissions monitor
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Expose Python to permissions monitor's sudo PATH
+        run: sudo -n ln -sf "$pythonLocation/bin/python3.12" /usr/local/bin/python3.12
+      - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1.0.2-beta9
       - name: Get version from npm
         id: versions
         env:
@@ -66,11 +72,17 @@ jobs:
     needs: [get-version, docker-push]
     if: ${{ failure() }}
     steps:
-      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - name: Set up Python for permissions monitor
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Expose Python to permissions monitor's sudo PATH
+        run: sudo -n ln -sf "$pythonLocation/bin/python3.12" /usr/local/bin/python3.12
+      - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1.0.2-beta9
         with:
           config: ${{ vars.PERMISSIONS_CONFIG }}
       - name: Check out code
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Get date
@@ -78,13 +90,13 @@ jobs:
         run: |
           DATE=$(date +'%Y-%m-%d')
           echo "DATE=${DATE}" >> "$GITHUB_OUTPUT"
-      - uses: mongodb-js/devtools-shared/actions/setup-bot-token@main
+      - uses: mongodb-js/devtools-shared/actions/setup-bot-token@94872c30ab44483d5d327da9dd764194a211f06b # main
         id: app-token
         with:
           app-id: ${{ vars.DEVTOOLS_BOT_APP_ID }}
           private-key: ${{ secrets.DEVTOOLS_BOT_PRIVATE_KEY }}
       - name: Create Issue
-        uses: imjohnbo/issue-bot@3188c6ce06249206709d3b1f274d0d4c5a521601
+        uses: imjohnbo/issue-bot@3188c6ce06249206709d3b1f274d0d4c5a521601 # v3.4.5
         with:
           token: ${{ steps.app-token.outputs.token }}
           title: Release Failure for Docker Image on ${{ steps.release-meta.outputs.DATE }}

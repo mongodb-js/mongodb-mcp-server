@@ -36,6 +36,11 @@ export type ConfigFieldMeta = {
      * Defaults to "not-allowed" for security.
      */
     overrideBehavior?: OverrideBehavior;
+    /**
+     * Set to `false` for options that are only accepted from environment variables
+     * and config files, not as command line arguments. Defaults to `true`.
+     */
+    cliArgument?: boolean;
     [key: string]: unknown;
 };
 
@@ -74,6 +79,29 @@ export function commaSeparatedToArray<T extends string[]>(str: string | string[]
     }
 
     return str as T;
+}
+
+/**
+ * A `z.preprocess` callback that attempts to parse a string value as JSON, for
+ * object-valued options set through environment variables (which can only carry
+ * strings); non-string values, e.g. from a config file, pass through unchanged.
+ * Invalid JSON is reported as a validation issue on `ctx` rather than thrown, so
+ * the error names the option without echoing the value, which may carry credentials.
+ */
+export function tryParseJsonInZodPreprocess(val: unknown, ctx: { issues: unknown[] }): unknown {
+    if (typeof val !== "string") {
+        return val;
+    }
+    try {
+        return JSON.parse(val) as unknown;
+    } catch {
+        ctx.issues.push({
+            code: "custom",
+            message: "Expected a JSON object mapping connection names to connection strings",
+            input: "<redacted>",
+        });
+        return val;
+    }
 }
 
 /**

@@ -45,6 +45,11 @@ export class SessionLimitExceededError extends Error {
     }
 }
 
+/** prom-client exposes a metric's declared label names at runtime, but not in its types. */
+function declaredLabelNames(metric: unknown): readonly string[] {
+    return (metric as { labelNames?: readonly string[] }).labelNames ?? [];
+}
+
 /**
  * Default in-memory session store for the 2025-era (legacy) HTTP path.
  *
@@ -61,6 +66,8 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
             notificationTimeout: ManagedTimeout;
             /** Epoch ms of the last activity on this session; drives LRU eviction order. */
             lastUsedAt: number;
+            /** Metrics this session's lifecycle series are recorded through. */
+            metrics: IMetrics<DefaultMetricDefinitions>;
         };
     } = {};
 
@@ -164,8 +171,12 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         logger: ILogger;
         session?: { logger: ICompositeLogger };
         headers?: Record<string, unknown>;
+        /** Defaults to the store's own instance; a labeled sibling scopes this session's labels. */
+        metrics?: IMetrics<DefaultMetricDefinitions>;
     }): Promise<void> {
         const { sessionId, transport, logger } = params;
+        const metrics = params.metrics ?? this.metrics;
+        this.assertLabelsMatch(metrics);
         if (this.sessions[sessionId]) {
             throw new Error(`Session ${sessionId} already exists`);
         }
@@ -213,10 +224,11 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
             notificationTimeout,
             logger,
             lastUsedAt: Date.now(),
+            metrics,
         };
         // Track session created metric
-        this.metrics.get("sessionCreated").inc();
-        this.metrics.get("sessionsActive").set(Object.keys(this.sessions).length);
+        metrics.get("sessionCreated").inc(metrics.labels);
+        metrics.get("sessionsActive").inc(metrics.labels);
         return Promise.resolve();
     }
 
@@ -237,6 +249,11 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
         // session as already gone and doesn't double-count metrics.
         delete this.sessions[sessionId];
 
+        // Recorded on removal so the metrics track store membership even while
+        // transport.close() is pending, e.g. for a session evicted by addSession.
+        session.metrics.get("sessionClosed").inc({ ...session.metrics.labels, reason });
+        session.metrics.get("sessionsActive").dec(session.metrics.labels);
+
         session.abortTimeout.cancel();
         session.notificationTimeout.cancel();
 
@@ -252,10 +269,27 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
                 });
             }
         }
+    }
 
-        // Track session closed metric
-        this.metrics.get("sessionClosed").inc({ reason });
-        this.metrics.get("sessionsActive").set(Object.keys(this.sessions).length);
+    /**
+     * The session metrics and the supplied metrics must agree on labels before
+     * a session is admitted. prom-client does not reject a declared label that
+     * is missing (it records a label-less series), and it throws on a supplied
+     * label the metric does not declare — both are wiring errors that should
+     * fail here, not at emission time.
+     */
+    private assertLabelsMatch(metrics: IMetrics<DefaultMetricDefinitions>): void {
+        for (const key of ["sessionCreated", "sessionClosed", "sessionsActive"] as const) {
+            const supplied = key === "sessionClosed" ? { ...metrics.labels, reason: "" } : metrics.labels;
+            const declared = declaredLabelNames(metrics.get(key));
+            const missing = declared.filter((name) => !(name in supplied));
+            const undeclared = Object.keys(supplied).filter((name) => !declared.includes(name));
+            if (missing.length > 0 || undeclared.length > 0) {
+                throw new Error(
+                    `Session metric ${key} label mismatch: missing [${missing.join(", ")}], undeclared [${undeclared.join(", ")}]`
+                );
+            }
+        }
     }
 
     async closeAllSessions(): Promise<void> {

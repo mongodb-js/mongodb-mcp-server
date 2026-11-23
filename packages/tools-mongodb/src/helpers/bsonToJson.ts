@@ -1,4 +1,4 @@
-import { objectToIdiomaticEJSON } from "hadron-document";
+import { objectToIdiomaticEJSON } from "@mongodb-js/hadron-document";
 
 /**
  * Converts a BSON value into a JSON-safe object using Compass idiomatic Extended JSON.

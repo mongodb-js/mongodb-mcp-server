@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { AggregationCursor } from "mongodb";
-import type { InputRequiredResult } from "@mongodb-js/mcp-core";
+import { ANY_ARRAY_ITEMS, type InputRequiredResult } from "@mongodb-js/mcp-core";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import {
     CollOperationArgs,
@@ -126,7 +126,10 @@ Use this stage when the user wants to reorder a set of candidate documents using
 `;
 
 const AggregateOutputSchema = {
-    documents: z.array(z.unknown()).describe("The documents returned by the aggregation pipeline"),
+    documents: z
+        .array(z.unknown())
+        .meta(ANY_ARRAY_ITEMS)
+        .describe("The documents returned by the aggregation pipeline"),
     count: z
         .number()
         .or(z.literal("indeterminate"))
@@ -384,12 +387,8 @@ export class AggregateTool extends MongoDBToolBase {
             const aggregationResults = await provider
                 .aggregate(database, collection, resultsCountAggregation, {
                     signal: abortSignal,
+                    ...this.getCountPhaseTimeoutOptions(provider, config.aggregationCountTimeoutMs),
                 })
-                .maxTimeMS(
-                    config.maxTimeMS !== undefined
-                        ? Math.min(config.maxTimeMS, config.aggregationCountMaxTimeMsCap)
-                        : config.aggregationCountMaxTimeMsCap
-                )
                 .toArray();
 
             const documentWithCount: unknown = aggregationResults.length === 1 ? aggregationResults[0] : undefined;

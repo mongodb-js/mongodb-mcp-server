@@ -4,6 +4,21 @@
 type MetricLabels = Partial<Record<string, string | number>>;
 
 /**
+ * Label names `ToolBase` sets on `toolExecutionDuration`. Injected labels must
+ * not reuse them: `PrometheusMetrics` rejects one and the tool merge drops it.
+ */
+export const TOOL_EXECUTION_DURATION_LABEL_NAMES = [
+    "tool_name",
+    "category",
+    "status",
+    "operation_type",
+    "error_type",
+] as const;
+
+/** A label name `ToolBase` sets on `toolExecutionDuration`. */
+export type ToolExecutionDurationLabelName = (typeof TOOL_EXECUTION_DURATION_LABEL_NAMES)[number];
+
+/**
  * Interface for observable metrics (like histograms).
  * Used for recording values that can be observed over time.
  */
@@ -49,6 +64,11 @@ export type DefaultMetricDefinitions = {
  * @template TMetricsDefinitions - The type of metric definitions this metrics instance uses
  */
 export interface IMetrics<TMetricsDefinitions extends DefaultMetricDefinitions = DefaultMetricDefinitions> {
+    /**
+     * Labels applied to every metric this object records, merged under the
+     * labels of a specific observation. The definitions must declare them.
+     */
+    readonly labels: Readonly<Record<string, string>>;
     /** Get a specific metric by name */
     get<K extends keyof TMetricsDefinitions>(key: K): TMetricsDefinitions[K];
     /** Get all metrics as a formatted string (e.g., Prometheus format) */

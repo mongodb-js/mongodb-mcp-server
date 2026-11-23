@@ -53,11 +53,12 @@ function enrichComponent(component: CycloneDxComponent): DependencyWithLicense {
 }
 
 function generateSbom(prod: boolean): CycloneDxBom {
+    const filter = prod ? ' --filter-prod "mongodb-mcp-server..."' : "";
     const flags = prod ? " --prod" : "";
     // Pin to CycloneDX 1.6: silkbomb 2.0 validates schemas for 1.2-1.6 only.
     // pnpm's default is 1.7, which silkbomb skips validation for (warning +
     // proceeds unvalidated). 1.6 is the newest spec silkbomb fully supports.
-    const output = execSync(`pnpm sbom --sbom-format cyclonedx --sbom-spec-version 1.6${flags}`, {
+    const output = execSync(`pnpm${filter} sbom --sbom-format cyclonedx --sbom-spec-version 1.6${flags}`, {
         encoding: "utf-8",
         maxBuffer: 1024 * 1024 * 100,
         stdio: ["ignore", "pipe", "inherit"],
