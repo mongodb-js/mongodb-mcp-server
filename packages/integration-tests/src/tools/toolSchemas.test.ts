@@ -1,10 +1,10 @@
-import { execFile } from "child_process";
+import { exec } from "child_process";
 import path from "path";
 import { promisify } from "util";
 import { describe, expect, it } from "vitest";
 
 const projectRoot = path.resolve(import.meta.dirname, "../../../..");
-const serverPath = path.resolve(projectRoot, "packages/mongodb-mcp-server/dist/esm/index.js");
+const serverPath = "packages/mongodb-mcp-server/dist/esm/index.js";
 // Run with `pnpm dlx` rather than installed as a dependency: the Inspector pulls in React 19, which would change how
 // the lockfile resolves React for @mongodb-js/mcp-core's @mcp-ui/server dependency.
 const INSPECTOR = "@modelcontextprotocol/inspector@2.14.0";
@@ -26,22 +26,9 @@ interface InspectorOutput {
  * error-severity findings, so the findings are read from the JSON output and warnings count too.
  */
 async function lintToolSchemas(): Promise<{ toolCount: number; findings: string[] }> {
-    const { stdout } = await promisify(execFile)(
-        "pnpm",
-        [
-            "dlx",
-            INSPECTOR,
-            "--cli",
-            "--method",
-            "tools/list",
-            "--strict",
-            "--format",
-            "json",
-            process.execPath,
-            serverPath,
-            "--telemetry",
-            "disabled",
-        ],
+    // The shell resolves the pnpm.cmd launcher on Windows.
+    const { stdout } = await promisify(exec)(
+        `pnpm dlx ${INSPECTOR} --cli --method tools/list --strict --format json node ${serverPath} --telemetry disabled --loggers mcp`,
         { cwd: projectRoot, maxBuffer: 64 * 1024 * 1024 }
     );
     const output = JSON.parse(stdout) as InspectorOutput;

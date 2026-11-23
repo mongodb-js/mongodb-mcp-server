@@ -1,5 +1,5 @@
 import { createMCPClient, type MCPClient } from "@ai-sdk/mcp";
-import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
+import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { onTestFinished } from "vitest";
 
 import type { BinaryServer } from "./useBinaryServer.js";
@@ -16,7 +16,8 @@ export type ConnectClientOptions = {
 
 /** Connects an AI SDK MCP client to a `BinaryServer`; the client is closed when the test finishes. */
 export async function connectClient(server: BinaryServer, options: ConnectClientOptions = {}): Promise<MCPClient> {
-    const transport = new Experimental_StdioMCPTransport({
+    // Close stdin first so the server can flush telemetry before exiting on Windows.
+    const transport = new StdioClientTransport({
         command: server.command,
         args: server.args,
         env: server.env,
