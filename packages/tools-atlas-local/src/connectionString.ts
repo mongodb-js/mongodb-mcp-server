@@ -2,8 +2,8 @@ import type { Client } from "@mongodb-js/atlas-local";
 import { sleep } from "@mongodb-js/mcp-core";
 
 /** Keep well under the MCP client's default ~60s request timeout. */
-export const DEFAULT_MAX_ATTEMPTS = 60;
-export const DEFAULT_INTERVAL_MS = 500;
+const DEFAULT_MAX_ATTEMPTS = 60;
+const DEFAULT_INTERVAL_MS = 500;
 
 export class AtlasLocalDeploymentNotReadyError extends Error {
     readonly deploymentName: string;

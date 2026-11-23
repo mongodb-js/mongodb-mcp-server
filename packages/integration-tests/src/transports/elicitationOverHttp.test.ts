@@ -120,23 +120,30 @@ describe("elicitation over streamable HTTP", () => {
                 );
             });
 
-            it("does not run the tool when the user declines", async () => {
-                mockElicitInput.confirmNo();
+            it.each(["no", "decline", "cancel"] as const)(
+                "does not run the tool when the user answers %s",
+                async (answer) => {
+                    if (answer === "no") {
+                        mockElicitInput.confirmNo();
+                    } else {
+                        mockElicitInput.mock.mockResolvedValue({ action: answer });
+                    }
 
-                const result = await client.callTool({
-                    name: "drop-database",
-                    arguments: { connectionId: "preconfigured", database: "test-db" },
-                });
+                    const result = await client.callTool({
+                        name: "drop-database",
+                        arguments: { connectionId: "preconfigured", database: "test-db" },
+                    });
 
-                expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
-                expect(result.isError).toBe(true);
-                expect(result.content).toEqual([
-                    {
-                        type: "text",
-                        text: "User did not confirm the execution of the `drop-database` tool so the operation was not performed.",
-                    },
-                ]);
-            });
+                    expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
+                    expect(result.isError).toBe(true);
+                    expect(result.content).toEqual([
+                        {
+                            type: "text",
+                            text: "User did not confirm the execution of the `drop-database` tool so the operation was not performed.",
+                        },
+                    ]);
+                }
+            );
 
             describe("client without elicitation capability", () => {
                 let bareClient: Client;

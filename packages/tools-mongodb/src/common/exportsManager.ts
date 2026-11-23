@@ -394,7 +394,7 @@ export class ExportsManager extends EventEmitter<ExportsManagerEvents> {
     }
 }
 
-export function decodeAndNormalize(text: string): string {
+function decodeAndNormalize(text: string): string {
     return decodeURIComponent(text).normalize("NFKC");
 }
 

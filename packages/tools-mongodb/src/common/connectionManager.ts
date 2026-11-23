@@ -16,10 +16,11 @@ import {
     type ConnectionStringInfo,
     type ConnectionStringHostType,
     type ConnectionInfo,
+    type OIDCConnectionAuthType,
 } from "./connectionInfo.js";
 import type { ServerMetadata } from "@mongodb-js/mcp-types";
 
-export type { ConnectionStringInfo } from "./connectionInfo.js";
+export type { ConnectionStringInfo, OIDCConnectionAuthType } from "./connectionInfo.js";
 
 export interface ConnectionSettings extends Omit<MongoshConnectionInfo, "driverOptions"> {
     /**
@@ -47,7 +48,6 @@ export interface ConnectionSettings extends Omit<MongoshConnectionInfo, "driverO
 }
 
 export type ConnectionTag = "connected" | "connecting" | "disconnected" | "errored";
-export type OIDCConnectionAuthType = "oidc-auth-flow" | "oidc-device-flow";
 
 export interface ConnectionState {
     tag: ConnectionTag;
@@ -59,7 +59,6 @@ const SEARCH_PROBE_COLLECTION_NAME = "test";
 /** See https://github.com/mongodb/mongo/blob/master/src/mongo/base/error_codes.yml (SearchNotEnabled). */
 const MONGODB_SEARCH_NOT_ENABLED_ERROR_CODE = 31082;
 
-/** @public */
 export const defaultDriverOptions: MongoshConnectionInfo["driverOptions"] = {
     readConcern: {
         level: "local",
@@ -327,6 +326,12 @@ export type ConnectionManagerOptions = {
      * settings.
      */
     driverConfig?: ConnectionDriverConfig;
+    /**
+     * Client-side operation timeout (CSOT) applied as the driver `timeoutMS`
+     * on every connection, overriding the MCP default. When unset, the
+     * {@link defaultDriverOptions} value is used.
+     */
+    timeoutMs?: number;
     /** Optional event emitter shared with the OIDC plugin to receive `mongodb-oidc-plugin:auth-*` notifications. */
     bus?: EventEmitter;
 };
@@ -354,6 +359,7 @@ export class MCPConnectionManager extends ConnectionManager {
     private readonly serverMetadata: ServerMetadata;
     private readonly connectionInfo: ConnectionInfo;
     private readonly driverConfig: ConnectionDriverConfig;
+    private readonly timeoutMs: number | undefined;
     private logger: LoggerBase;
 
     /**
@@ -364,13 +370,24 @@ export class MCPConnectionManager extends ConnectionManager {
      * @param options.connectionInfo - Transport / browser hints for OIDC auth inference.
      * @param options.driverConfig - Server-configured connection settings applied to
      * connects without explicit driver options.
+     * @param options.timeoutMs - Client-side operation timeout (CSOT) applied as the
+     * driver `timeoutMS` on every connection.
      * @param options.bus - Optional event emitter shared with the OIDC plugin.
      */
-    constructor({ logger, deviceId, bus, serverMetadata, connectionInfo, driverConfig }: ConnectionManagerOptions) {
+    constructor({
+        logger,
+        deviceId,
+        bus,
+        serverMetadata,
+        connectionInfo,
+        driverConfig,
+        timeoutMs,
+    }: ConnectionManagerOptions) {
         super();
         this.serverMetadata = serverMetadata;
         this.connectionInfo = connectionInfo;
         this.driverConfig = driverConfig ?? {};
+        this.timeoutMs = timeoutMs;
         this.logger = logger;
         this.bus = bus ?? new EventEmitter();
         this.bus.on("mongodb-oidc-plugin:auth-failed", this.onOidcAuthFailed.bind(this));
@@ -454,6 +471,10 @@ export class MCPConnectionManager extends ConnectionManager {
                 productDocsLink: "https://github.com/mongodb-js/mongodb-mcp-server/",
                 productName: "MongoDB MCP",
                 ...mongoshConnectionInfo.driverOptions,
+                // Applied here rather than through the arg-parser, which drops
+                // unknown driver options (including `timeoutMS`) from the derived
+                // path. The server config wins over any caller-supplied value.
+                ...(this.timeoutMs !== undefined && { timeoutMS: this.timeoutMs }),
             };
             serviceProvider = settings.mongoClient
                 ? Promise.resolve(
@@ -482,6 +503,15 @@ export class MCPConnectionManager extends ConnectionManager {
 
         try {
             if (connectionStringInfo.authType.startsWith("oidc")) {
+                // The provider only settles once the OIDC flow completes, and
+                // the startup dial never awaits it. If it rejects before the
+                // plugin reports `auth-failed` (e.g. server selection fails
+                // first), observe the rejection here so it is not unhandled
+                // and the state does not stay stuck in `connecting` — an
+                // `errored` entry is re-dialed by the next resolve.
+                serviceProvider.catch((error: unknown) => {
+                    this.onPendingServiceProviderRejected(serviceProvider, error);
+                });
                 return this.changeState("connection-request", {
                     tag: "connecting",
                     serviceProvider,
@@ -558,6 +588,34 @@ export class MCPConnectionManager extends ConnectionManager {
         }
     }
 
+    /**
+     * Resets a still-`connecting` OIDC connection to `errored` when the
+     * provider it is waiting on rejects. Only the current provider is acted
+     * on, so a provider that was superseded by a reconnect or already closed
+     * by a disconnect is left alone.
+     */
+    private onPendingServiceProviderRejected(
+        serviceProvider: Promise<NodeDriverServiceProvider>,
+        error: unknown
+    ): void {
+        const state = this.currentConnectionState;
+        if (state.tag !== "connecting" || state.serviceProvider !== serviceProvider) {
+            return;
+        }
+
+        const errorReason = error instanceof Error ? error.message : String(error);
+        this.logger.warning({
+            id: LogId.oidcFlow,
+            context: "pendingServiceProviderRejected",
+            message: `OIDC authentication failed before completing: ${errorReason}`,
+        });
+        this.changeState("connection-error", {
+            tag: "errored",
+            errorReason,
+            connectionStringInfo: state.connectionStringInfo,
+        });
+    }
+
     private onOidcAuthFailed(error: unknown): void {
         if (
             this.currentConnectionState.tag === "connecting" &&
@@ -596,6 +654,9 @@ export class MCPConnectionManager extends ConnectionManager {
             this.changeState("connection-request", {
                 ...this.currentConnectionState,
                 tag: "connecting",
+                // The plugin can fall back to device flow even when auth-code
+                // was inferred; keep the state in sync so callers don't wait.
+                oidcConnectionType: "oidc-device-flow",
                 connectionStringInfo: {
                     ...this.currentConnectionState.connectionStringInfo,
                     authType: "oidc-device-flow",

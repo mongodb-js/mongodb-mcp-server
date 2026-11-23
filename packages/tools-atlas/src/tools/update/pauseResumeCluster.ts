@@ -6,7 +6,6 @@ import { AtlasArgs } from "../../args.js";
 import type { PauseResumeClusterMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import type { ClusterDescription20240805 } from "@mongodb-js/mcp-atlas-api-client";
 
-/** @public */
 export const ATLAS_PAUSE_RESUME_CLUSTER_README_DESCRIPTION =
     "Pause or resume a dedicated (M10+) MongoDB Atlas cluster.";
 

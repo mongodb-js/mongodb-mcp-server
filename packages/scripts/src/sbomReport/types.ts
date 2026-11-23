@@ -1,4 +1,4 @@
-export type CycloneDxLicense = {
+type CycloneDxLicense = {
     license?: {
         id?: string;
         name?: string;

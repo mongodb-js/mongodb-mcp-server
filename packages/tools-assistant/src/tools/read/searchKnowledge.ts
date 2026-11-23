@@ -27,7 +27,7 @@ export const SearchKnowledgeToolArgs = {
         ),
 };
 
-export type SearchKnowledgeResponse = {
+type SearchKnowledgeResponse = {
     /** A list of search results */
     results: {
         /** The URL of the search result */

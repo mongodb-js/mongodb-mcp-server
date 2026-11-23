@@ -9,7 +9,7 @@ import { GetReferenceAnswerTool } from "./tool/getReferenceAnswer.js";
 // ╰──────────────────────────────────────────────╯
 
 /** Atlas Search / Vector Search index to create on a seeded collection. */
-export const SeedSearchIndexSchema = z
+const SeedSearchIndexSchema = z
     .object({
         type: z
             .enum(["search", "vectorSearch"])
@@ -28,7 +28,7 @@ export const SeedSearchIndexSchema = z
     .describe("An Atlas Search or Vector Search index to build on the collection.");
 
 /** Classic (b-tree) MongoDB index to create on a seeded collection. */
-export const SeedClassicIndexSchema = z
+const SeedClassicIndexSchema = z
     .object({
         type: z.literal("classic").describe("Marks this as a classic (non-search) MongoDB index."),
         name: z.string().optional().describe("Optional index name; MongoDB auto-generates one when omitted."),
@@ -41,12 +41,12 @@ export const SeedClassicIndexSchema = z
     .describe("A classic MongoDB index, plus any additional createIndex options.");
 
 /** Either a search/vector index or a classic index. */
-export const SeedIndexSpecSchema = z
+const SeedIndexSpecSchema = z
     .discriminatedUnion("type", [SeedSearchIndexSchema, SeedClassicIndexSchema])
     .describe("A single index to create on a seeded collection, discriminated by 'type'.");
 
 /** Per-collection seeding configuration. */
-export const SeedSetupSchema = z
+const SeedSetupSchema = z
     .object({
         indexes: z.array(SeedIndexSpecSchema).optional().describe("Indexes to create after documents are inserted."),
     })
@@ -56,7 +56,7 @@ export const SeedSetupSchema = z
  * One database seed entry: either a bare collection name (documents only), or a
  * single-key object mapping the collection name to its setup (indexes, …).
  */
-export const DbSeedEntrySchema = z
+const DbSeedEntrySchema = z
     .union([
         z.string().describe("Bare collection name to seed with its bundled documents and no indexes."),
         z
@@ -119,21 +119,21 @@ export const RunEvalMetadataSchema = z
 // │   ↘️ "Output" Types in Eval                 │
 // ╰──────────────────────────────────────────────╯
 
-/** A single LLM-judge decision. */
-export const VerdictSchema = z
-    .object({
-        score: z.number().describe("Judge score in [0, 1], where 1 means all criteria were fully met."),
-        explanation: z.string().describe("Short natural-language justification for the score."),
-    })
-    .describe("The LLM judge's score and reasoning for a case.");
+/** A single LLM-judge decision: the judge's score and reasoning for a case. */
+export type Verdict = {
+    /** Judge score in [0, 1], where 1 means all criteria were fully met. */
+    score: number;
+    /** Short natural-language justification for the score. */
+    explanation: string;
+};
 
 /** Eval `output`: what the task produced for a case. */
-export const RunEvalOutputSchema = z
-    .object({
-        response: z.string().describe("Final assistant message text produced by the agent."),
-        judge: VerdictSchema.optional().describe("The judge verdict, attached after scoring runs."),
-    })
-    .describe("Output of a single MongoDB agent eval case.");
+export type RunEvalOutput = {
+    /** Final assistant message text produced by the agent. */
+    response: string;
+    /** The judge verdict, attached after scoring runs. */
+    judge?: Verdict;
+};
 
 // ╭──────────────────────────────────────────────╮
 // │   ↘️ Inferred Types                          │
@@ -144,8 +144,6 @@ export type SeedIndexSpec = z.infer<typeof SeedIndexSpecSchema>;
 export type DbSeedEntry = z.infer<typeof DbSeedEntrySchema>;
 export type RunEvalInput = z.infer<typeof RunEvalInputSchema>;
 export type RunEvalExpected = z.infer<typeof RunEvalExpectedSchema>;
-export type Verdict = z.infer<typeof VerdictSchema>;
-export type RunEvalOutput = z.infer<typeof RunEvalOutputSchema>;
 
 // ╭──────────────────────────────────────────────╮
 // │   ↘️ "Scorer Args" Types in Eval             │

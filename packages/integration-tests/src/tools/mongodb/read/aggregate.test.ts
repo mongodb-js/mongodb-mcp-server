@@ -553,10 +553,10 @@ describeWithMongoDB({
             });
             afterEach(() => {
                 vi.resetAllMocks();
-                integration.mcpServer().userConfig.aggregationCountMaxTimeMsCap = constants.AGG_COUNT_MAX_TIME_MS_CAP;
+                integration.mcpServer().userConfig.aggregationCountTimeoutMs = constants.AGG_COUNT_MAX_TIME_MS_CAP;
             });
             it("should abort count operation and respond with indeterminable count", async () => {
-                integration.mcpServer().userConfig.aggregationCountMaxTimeMsCap = 0.1;
+                integration.mcpServer().userConfig.aggregationCountTimeoutMs = 0.1;
                 const connectionId = await integration.connectMcpClient();
                 const response = await integration.mcpClient().callTool({
                     name: "aggregate",
@@ -590,6 +590,39 @@ describeWithMongoDB({
                 });
             });
         });
+    },
+});
+describeWithMongoDB({
+    name: "aggregate tool count phase with a connection timeout larger than the count cap",
+    fn: (integration) => {
+        beforeEach(async () => {
+            await freshInsertDocuments({
+                collection: integration.mongoClient().db(integration.randomDbName()).collection("people"),
+                count: 1000,
+                documentMapper(index) {
+                    return { name: `Person ${index}`, age: index };
+                },
+            });
+        });
+        it("should still abort the count operation when the connection timeout exceeds the cap", async () => {
+            integration.mcpServer().userConfig.aggregationCountTimeoutMs = 0.1;
+            const connectionId = await integration.connectMcpClient();
+            const response = await integration.mcpClient().callTool({
+                name: "aggregate",
+                arguments: {
+                    connectionId,
+                    database: integration.randomDbName(),
+                    collection: "people",
+                    pipeline: [{ $match: { age: { $gte: 10 } } }, { $sort: { name: -1 } }],
+                },
+            });
+            const content = getResponseContent(response);
+            expect(content).toContain("The aggregation resulted in indeterminable number of documents");
+            expect(content).toContain(`Returning 100 documents.`);
+        });
+    },
+    config: {
+        getUserConfig: () => ({ ...defaultTestConfig, timeoutMs: 60000 }),
     },
 });
 /** The message of the first elicitation request the client received. */
@@ -663,6 +696,11 @@ describe("aggregate tool write stage confirmation", () => {
             it("does not write anything when the user declines", async () => {
                 mockElicitInput.confirmNo();
                 const connectionId = await integration.connectMcpClient();
+                const observe = vi
+                    .spyOn(integration.mcpServer().metrics.get("toolExecutionDuration"), "observe")
+                    .mockClear();
+                const emitEvents = vi.spyOn(integration.mcpServer().telemetry, "emitEvents").mockClear();
+                vi.spyOn(integration.mcpServer().telemetry, "isTelemetryEnabled").mockReturnValue(true);
                 const response = await integration.mcpClient().callTool({
                     name: "aggregate",
                     arguments: {
@@ -673,13 +711,57 @@ describe("aggregate tool write stage confirmation", () => {
                     },
                 });
                 expect(response.isError).toBe(true);
-                expect(getResponseContent(response)).toContain("aggregation was not performed");
+                expect(getResponseContent(response)).toBe(
+                    "User did not confirm the write stages of the aggregation pipeline so the aggregation was not performed."
+                );
+                expect(observe).toHaveBeenCalledTimes(1);
+                expect(observe).toHaveBeenCalledWith(
+                    {
+                        tool_name: "aggregate",
+                        category: "mongodb",
+                        status: "declined",
+                        operation_type: "read",
+                    },
+                    expect.any(Number)
+                );
+                expect(emitEvents.mock.lastCall?.[0]).toMatchObject([
+                    { properties: { command: "aggregate", result: "declined" } },
+                ]);
                 const collections = await integration
                     .mongoClient()
                     .db(integration.randomDbName())
                     .listCollections({ name: "declinedpeople" })
                     .toArray();
                 expect(collections).toHaveLength(0);
+            });
+            it("records a failing confirmed write pipeline as an error rather than a decline", async () => {
+                mockElicitInput.confirmYes();
+                const connectionId = await integration.connectMcpClient();
+                const observe = vi
+                    .spyOn(integration.mcpServer().metrics.get("toolExecutionDuration"), "observe")
+                    .mockClear();
+                const emitEvents = vi.spyOn(integration.mcpServer().telemetry, "emitEvents").mockClear();
+                vi.spyOn(integration.mcpServer().telemetry, "isTelemetryEnabled").mockReturnValue(true);
+
+                const response = await integration.mcpClient().callTool({
+                    name: "aggregate",
+                    arguments: {
+                        connectionId,
+                        database: integration.randomDbName(),
+                        collection: "people",
+                        pipeline: [{ $project: { value: { $divide: [1, 0] } } }, { $out: "failedpeople" }],
+                    },
+                });
+
+                expect(response.isError).toBe(true);
+                expect(getResponseContent(response)).toContain("divide by zero");
+                expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
+                expect(observe).toHaveBeenCalledTimes(1);
+                expect(observe.mock.lastCall?.[0]).toMatchObject({ tool_name: "aggregate", status: "error" });
+                expect(observe.mock.lastCall?.[0].error_type).toEqual(expect.any(String));
+                expect(emitEvents.mock.lastCall?.[0]).toMatchObject([
+                    { properties: { command: "aggregate", result: "failure" } },
+                ]);
             });
             it("does not ask for confirmation for a pipeline without write stages", async () => {
                 const connectionId = await integration.connectMcpClient();

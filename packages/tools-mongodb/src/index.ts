@@ -21,7 +21,12 @@ export type {
     ConnectionTag,
     OIDCConnectionAuthType,
 } from "./common/connectionManager.js";
-export { MCPConnectionManager, ConnectionManager, ConnectionStateConnected } from "./common/connectionManager.js";
+export {
+    MCPConnectionManager,
+    ConnectionManager,
+    ConnectionStateConnected,
+    defaultDriverOptions,
+} from "./common/connectionManager.js";
 export type {
     ConnectionStringInfo,
     ConnectionStringAuthType,
@@ -54,6 +59,7 @@ export {
     ensureExtension,
     isExportExpired,
 } from "./common/exportsManager.js";
+export { NoopExportsManager } from "./common/noopExportsManager.js";
 export {
     connectionErrorHandler,
     connectCapableTools,
@@ -67,6 +73,7 @@ export { isObjectEmpty } from "./helpers/isObjectEmpty.js";
 export { isNodeRuntime } from "./helpers/isNodeRuntime.js";
 export {
     PRECONFIGURED_CONNECTION_ID,
+    CONNECTION_NAME_PATTERN,
     ConnectionEntry,
     atlasClusterSlug,
     buildEntryName,

@@ -13,7 +13,7 @@ export interface ClaudeTranscriptParseResult {
  * Exact tool calls from the session JSONL claude writes per session under
  * `$CLAUDE_CONFIG_DIR/projects/<dir>/<session>.jsonl`.
  */
-export function collectSessionJsonlToolCalls(claudeHomeDir: string, seenCallKeys?: Set<string>): ToolCallRecord[] {
+function collectSessionJsonlToolCalls(claudeHomeDir: string, seenCallKeys?: Set<string>): ToolCallRecord[] {
     const projectsDir = path.join(claudeHomeDir, "projects");
     const records: ToolCallRecord[] = [];
     // A persistent per-session key set skips calls from earlier turns; otherwise dedupe is per call.

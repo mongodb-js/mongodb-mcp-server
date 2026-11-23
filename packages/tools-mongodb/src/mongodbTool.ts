@@ -1,6 +1,6 @@
 import { z, type ZodRawShape } from "zod";
 import type { ToolArgs, InputRequiredResult } from "@mongodb-js/mcp-core";
-import { ToolBase } from "@mongodb-js/mcp-core";
+import { ToolBase, ConfirmationDeclinedError } from "@mongodb-js/mcp-core";
 import type {
     ToolCategory,
     OperationType,
@@ -9,17 +9,18 @@ import type {
     CallToolResult,
     ToolServices,
     ToolServer,
-    ToolServerTool,
     IToolConfig,
 } from "@mongodb-js/mcp-types";
 import type { ConnectionMetadata } from "@mongodb-js/mcp-atlas-telemetry";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { ErrorCodes, MongoDBError } from "./common/errors.js";
 import type { ConnectionEntry, ConnectionRegistry } from "./common/connectionRegistry.js";
+import { PRECONFIGURED_CONNECTION_ID } from "./common/connectionRegistry.js";
 import { assertNoServerSideJS, assertNoWriteStages, type WriteStageTarget } from "./helpers/mqlGuards.js";
 import { buildWriteStageConfirmationMessage } from "./helpers/writeStageConfirmation.js";
 import { EXPORT_TOOL_NAME } from "./helpers/constants.js";
 import type { AvailableExport, CreateJSONExportParams } from "./common/exportsManager.js";
+import type { ConnectionErrorHandler } from "./connectionErrorHandler.js";
 
 export const DBOperationArgs = {
     database: z.string().describe("Database name"),
@@ -32,15 +33,25 @@ export const CollOperationArgs = {
 
 /** MongoDB tool subset of server config. */
 export type IMongoDBConfig = IToolConfig & {
-    connectionString: string | undefined;
+    /**
+     * Connection strings the server is configured with, keyed by the connectionId
+     * each one is exposed under.
+     */
+    connectionStrings: Record<string, string>;
+    /**
+     * @deprecated Provide the connection string as the `"preconfigured"` entry of
+     * `connectionStrings` instead.
+     */
+    connectionString?: string;
     indexCheck: boolean;
     disableServerSideJs: boolean;
-    maxTimeMS: number | undefined;
+    /** @deprecated The connection-level `timeoutMs` config replaces this. Kept so directly-constructed configs still type-check. */
+    maxTimeMS?: number;
     maxDocumentsPerQuery: number;
     maxBytesPerQuery: number;
     httpHost: string;
-    queryCountMaxTimeMsCap: number;
-    aggregationCountMaxTimeMsCap: number;
+    queryCountTimeoutMs: number;
+    aggregationCountTimeoutMs: number;
 };
 
 /**
@@ -50,10 +61,7 @@ export type IMongoDBConfig = IToolConfig & {
  */
 export type MongoDBToolServices = ToolServices<IMongoDBConfig> & {
     connectionRegistry: ConnectionRegistry;
-    connectionErrorHandler(
-        error: MongoDBError,
-        context: { availableTools: readonly ToolServerTool[]; connectionState: unknown }
-    ): Promise<{ errorHandled: boolean; result: CallToolResult }>;
+    connectionErrorHandler: ConnectionErrorHandler;
     exportsManager: { createJSONExport: (params: CreateJSONExportParams) => Promise<AvailableExport> };
 };
 
@@ -88,6 +96,17 @@ export function connectionScopedArgsShape<T extends ZodRawShape>(
         preconfigured: { ...ConnectionIdArgs, ...rest },
         plain: { ...ConnectionIdArgsWithoutPreconfigured, ...rest },
     };
+}
+
+/**
+ * `connectionId` description for a server whose configuration declares named
+ * connections. The ids are listed so a client can address a deployment without
+ * first calling "list-connections"; they are configuration labels, never the
+ * connection strings.
+ */
+function configuredConnectionIdDescription(connectionIds: readonly string[]): string {
+    const ids = connectionIds.map((id) => `"${id}"`).join(", ");
+    return `The connection to run the operation against. Use one of the connections configured on the server (${ids}), or the id returned by one of the connect tools.`;
 }
 
 export type MongoDBToolServer = ToolServer<MongoDBToolServices>;
@@ -130,15 +149,32 @@ export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
     }
 
     /**
-     * Returns common operation options (signal, maxTimeMS) to pass to service provider methods.
-     * If `maxTimeMS` is configured in the request's effective config, it will be included
-     * in the returned options.
+     * Returns common operation options (signal) to pass to service provider methods.
+     *
+     * Timeouts are enforced through the connection's client-level driver
+     * `timeoutMS` (see `timeoutMs` config), not as per-operation `maxTimeMS`:
+     * the driver silently derives the server-side `maxTimeMS` from the
+     * remaining client timeout, and rejects the pair outright for explain.
      */
-    protected getOperationOptions(request: ToolRequest<IMongoDBConfig>): { signal?: AbortSignal; maxTimeMS?: number } {
+    protected getOperationOptions(request: ToolRequest<IMongoDBConfig>): { signal?: AbortSignal } {
         return {
             ...(request.signal && { signal: request.signal }),
-            ...(this.server.config.maxTimeMS !== undefined && { maxTimeMS: this.server.config.maxTimeMS }),
         };
+    }
+
+    /**
+     * Options bounding the internal count phase of find and aggregate. The
+     * count runs alongside the main operation, so it gets its own client
+     * timeout: the smaller of the connection's `timeoutMS` and the configured
+     * count cap. A server-side `maxTimeMS` alone would be overridden by the
+     * connection-level CSOT budget. An unset or `0` connection timeout disables
+     * CSOT, in which case the cap is used as-is.
+     */
+    protected getCountPhaseTimeoutOptions(provider: NodeDriverServiceProvider, cap: number): { timeoutMS: number } {
+        const connectionTimeoutMs = provider.mongoClient.timeoutMS;
+        const timeoutMS =
+            connectionTimeoutMs !== undefined && connectionTimeoutMs > 0 ? Math.min(connectionTimeoutMs, cap) : cap;
+        return { timeoutMS };
     }
 
     /**
@@ -194,7 +230,7 @@ export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
         targets: WriteStageTarget[],
         context: ToolExecutionContext
     ): InputRequiredResult | null {
-        if (this.requiresConfirmation() || !this.server.elicitation.supportsElicitation()) {
+        if (this.requiresConfirmation() || !this.server.elicitation.supportsElicitation(context.request)) {
             return null;
         }
 
@@ -204,8 +240,7 @@ export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
             return this.server.elicitation.confirmationRequired(message);
         }
         if (!confirmed) {
-            throw new MongoDBError(
-                ErrorCodes.ConfirmationDeclined,
+            throw new ConfirmationDeclinedError(
                 "User did not confirm the write stages of the aggregation pipeline so the aggregation was not performed."
             );
         }
@@ -244,10 +279,23 @@ export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
     /**
      * Selects the connectionId-scoped argsShape variant matching whether a
      * connection string is preconfigured for this request, so the "preconfigured"
-     * handle is only mentioned when it actually exists.
+     * handle is only mentioned when it actually exists. When named connection
+     * strings are configured, their names are listed in the description instead.
      */
     protected selectConnectionScopedArgsShape<T extends ZodRawShape>(variants: { preconfigured: T; plain: T }): T {
-        return this.server.config.connectionString ? variants.preconfigured : variants.plain;
+        const connectionIds = Object.keys(this.server.config.connectionStrings);
+        if (connectionIds.length === 0) {
+            return variants.plain;
+        }
+        if (connectionIds.length === 1 && connectionIds[0] === PRECONFIGURED_CONNECTION_ID) {
+            return variants.preconfigured;
+        }
+        // Named connections are per-server configuration, so this variant
+        // cannot be precomputed at module scope like the other two.
+        return {
+            ...variants.plain,
+            connectionId: z.string().describe(configuredConnectionIdDescription(connectionIds)),
+        };
     }
 
     protected async handleError(
@@ -281,6 +329,7 @@ export abstract class MongoDBToolBase extends ToolBase<MongoDBToolServer> {
 
                     return super.handleError(error, args);
                 }
+                // Retained for consumers that still throw the public MongoDBError code.
                 case ErrorCodes.ConfirmationDeclined:
                 case ErrorCodes.ForbiddenCollscan:
                     return {

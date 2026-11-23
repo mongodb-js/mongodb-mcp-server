@@ -1,6 +1,7 @@
 import * as untracedAi from "ai";
 import type { LanguageModel, ToolSet } from "ai";
 import { wrapAISDK, traced } from "braintrust";
+import type { OpenAILanguageModelChatOptions } from "@ai-sdk/openai";
 import type { Verdict } from "./datasetTypes.js";
 import { SubmitScoreTool } from "./tool/submitScore.js";
 import { GetConversationTool } from "./tool/getConversation.js";
@@ -20,6 +21,7 @@ const FALLBACK: Verdict = {
  *
  * @param params - The parameters for the judge.
  * @param params.model - The model to use for the judge.
+ * @param params.reasoningEffort - The OpenAI reasoning effort for the judge; the model default when undefined.
  * @param params.tools - The MCP tools to be exposed to the judge.
  * @param params.criteria - The criteria the LLM judge should evaluate.
  * @param params.tempDbName - The name of the temporary database the LLM judge should operate on.
@@ -27,11 +29,13 @@ const FALLBACK: Verdict = {
  */
 export async function judgeUsingLLM(params: {
     model: LanguageModel;
+    reasoningEffort?: OpenAILanguageModelChatOptions["reasoningEffort"];
     tools: ToolSet;
     tempDbName: string;
     criteria: string;
 }): Promise<Verdict> {
-    const { model, tools, criteria, tempDbName } = params;
+    const { model, reasoningEffort, tools, criteria, tempDbName } = params;
+    const providerOptions = { openai: { reasoningEffort } satisfies OpenAILanguageModelChatOptions };
     const submitScoreTool = new SubmitScoreTool();
 
     const judgeTools: ToolSet = {
@@ -53,6 +57,7 @@ export async function judgeUsingLLM(params: {
                 system,
                 messages,
                 tools: judgeTools,
+                providerOptions,
                 stopWhen: [
                     untracedAi.stepCountIs(DEFAULT_STEP_COUNT),
                     untracedAi.hasToolCall(SubmitScoreTool.toolName),
@@ -68,7 +73,7 @@ export async function judgeUsingLLM(params: {
                     system,
                     messages: [
                         ...messages,
-                        ...result.response.messages,
+                        ...result.responseMessages,
                         {
                             role: "user",
                             content: `You did not call ${SubmitScoreTool.toolName}. Call it now exactly once with your final score.`,
@@ -76,6 +81,7 @@ export async function judgeUsingLLM(params: {
                     ],
                     tools: judgeTools,
                     toolChoice: { type: "tool", toolName: SubmitScoreTool.toolName },
+                    providerOptions,
                     stopWhen: untracedAi.stepCountIs(1),
                 });
             }

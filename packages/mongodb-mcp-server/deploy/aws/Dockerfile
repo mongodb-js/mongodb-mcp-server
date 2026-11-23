@@ -2,6 +2,8 @@
 FROM node:24-alpine
 ARG VERSION=latest
 
+RUN apk upgrade --no-cache
+
 # Create user and group
 RUN addgroup -S mcp && adduser -S mcp -G mcp
 

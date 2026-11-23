@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { AggregationCursor } from "mongodb";
-import type { InputRequiredResult } from "@mongodb-js/mcp-core";
+import { ANY_ARRAY_ITEMS, type InputRequiredResult } from "@mongodb-js/mcp-core";
 import type { NodeDriverServiceProvider } from "@mongosh/service-provider-node-driver";
 import { connectionScopedArgsShape, DBOperationArgs, MongoDBToolBase, type IMongoDBConfig } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
@@ -17,7 +17,10 @@ import { AnyAggregateStage, DB_AGGREGATE_STAGE_OPERATORS } from "../../mongodbSc
 import { bsonToJson } from "../../helpers/bsonToJson.js";
 
 const AggregateDBOutputSchema = {
-    documents: z.array(z.unknown()).describe("The documents returned by the aggregation pipeline"),
+    documents: z
+        .array(z.unknown())
+        .meta(ANY_ARRAY_ITEMS)
+        .describe("The documents returned by the aggregation pipeline"),
     aggResultsCount: z
         .number()
         .optional()
@@ -25,7 +28,7 @@ const AggregateDBOutputSchema = {
     appliedLimits: z.array(CURSOR_LIMIT_KEYS).describe("The limits applied to the aggregation pipeline"),
 };
 
-export const AggregateArgs = {
+const AggregateArgs = {
     pipeline: z
         .array(AnyAggregateStage)
         .min(1)
@@ -195,12 +198,8 @@ export class AggregateDBTool extends MongoDBToolBase {
             const aggregationResults = await provider
                 .aggregateDb(database, resultsCountAggregation, {
                     signal: abortSignal,
+                    ...this.getCountPhaseTimeoutOptions(provider, config.aggregationCountTimeoutMs),
                 })
-                .maxTimeMS(
-                    config.maxTimeMS !== undefined
-                        ? Math.min(config.maxTimeMS, config.aggregationCountMaxTimeMsCap)
-                        : config.aggregationCountMaxTimeMsCap
-                )
                 .toArray();
 
             const documentWithCount: unknown = aggregationResults.length === 1 ? aggregationResults[0] : undefined;

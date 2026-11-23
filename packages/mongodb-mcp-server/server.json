@@ -1,23 +1,30 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.mongodb-js/mongodb-mcp-server",
-  "description": "MongoDB Model Context Protocol Server",
+  "description": "Official MongoDB MCP server: let AI agents search and manage databases and the Atlas data platform",
   "repository": {
     "url": "https://github.com/mongodb-js/mongodb-mcp-server",
     "source": "github"
   },
-  "version": "3.1.0-pre.1",
+  "version": "3.3.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "mongodb-mcp-server",
-      "version": "3.1.0-pre.1",
+      "version": "3.3.0",
       "transport": {
         "type": "stdio"
       },
       "environmentVariables": [
         {
           "name": "MDB_MCP_AGGREGATION_COUNT_MAX_TIME_MS_CAP",
+          "description": "Deprecated. Use `aggregationCountTimeoutMs` instead.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_AGGREGATION_COUNT_TIMEOUT_MS",
           "description": "The maximum time in milliseconds for the count phase of aggregation operations. This is used to limit the time spent counting documents when determining if results were capped.",
           "isRequired": false,
           "format": "number",
@@ -81,7 +88,14 @@
         },
         {
           "name": "MDB_MCP_CONNECTION_STRING",
-          "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
+          "description": "MongoDB connection string for direct database connections, exposed under the connectionId \"preconfigured\". Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data. Deprecated: prefer the \"preconfigured\" entry of connectionStrings.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        },
+        {
+          "name": "MDB_MCP_CONNECTION_STRINGS",
+          "description": "MongoDB connection strings keyed by name, as a JSON object (e.g. {\"preconfigured\": \"mongodb://...\", \"analytics\": \"mongodb://...\"}). Each name becomes a connectionId that the MongoDB tools can use directly, so one server can reach several deployments. Connections are opened on first use. Environment variable or config file only.",
           "isRequired": false,
           "format": "string",
           "isSecret": true
@@ -270,7 +284,7 @@
         },
         {
           "name": "MDB_MCP_MAX_TIME_M_S",
-          "description": "The maximum time in milliseconds that operations are allowed to run on the MongoDB server. When set, this value is passed as the maxTimeMS option to read operations such as find, aggregate, and count.",
+          "description": "Deprecated. Use `timeoutMs` instead. The maximum time in milliseconds that operations are allowed to run on the MongoDB server.",
           "isRequired": false,
           "format": "number",
           "isSecret": false
@@ -284,7 +298,7 @@
         },
         {
           "name": "MDB_MCP_MONITORING_SERVER_FEATURES",
-          "description": "Features to expose on the monitoring server (only used when transport is 'http' and monitoringServerHost/monitoringServerPort are set).",
+          "description": "Features to expose on the monitoring server: health-check, metrics, and process-metrics. process-metrics exposes /metrics with Node.js process metrics (only used when transport is 'http' and monitoringServerHost/monitoringServerPort are set).",
           "isRequired": false,
           "format": "string",
           "isSecret": false
@@ -319,6 +333,13 @@
         },
         {
           "name": "MDB_MCP_QUERY_COUNT_MAX_TIME_MS_CAP",
+          "description": "Deprecated. Use `queryCountTimeoutMs` instead.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_QUERY_COUNT_TIMEOUT_MS",
           "description": "The maximum time in milliseconds for the count phase of find operations. This is used to limit the time spent counting documents when determining if results were capped.",
           "isRequired": false,
           "format": "number",
@@ -336,6 +357,13 @@
           "description": "When set to disabled, disables telemetry collection.",
           "isRequired": false,
           "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_TIMEOUT_MS",
+          "description": "The maximum time in milliseconds that MongoDB operations are allowed to run, applied as the driver's timeoutMS (client-side operation timeout, CSOT) on each connection. It bounds the entire operation, including server selection and network round trips.",
+          "isRequired": false,
+          "format": "number",
           "isSecret": false
         },
         {
@@ -357,6 +385,13 @@
         {
           "type": "named",
           "name": "--aggregationCountMaxTimeMsCap",
+          "description": "Deprecated. Use `aggregationCountTimeoutMs` instead.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--aggregationCountTimeoutMs",
           "description": "The maximum time in milliseconds for the count phase of aggregation operations. This is used to limit the time spent counting documents when determining if results were capped.",
           "isRequired": false,
           "format": "number"
@@ -415,7 +450,7 @@
         {
           "type": "named",
           "name": "--connectionString",
-          "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
+          "description": "MongoDB connection string for direct database connections, exposed under the connectionId \"preconfigured\". Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data. Deprecated: prefer the \"preconfigured\" entry of connectionStrings.",
           "isRequired": false
         },
         {
@@ -595,7 +630,7 @@
         {
           "type": "named",
           "name": "--maxTimeMS",
-          "description": "The maximum time in milliseconds that operations are allowed to run on the MongoDB server. When set, this value is passed as the maxTimeMS option to read operations such as find, aggregate, and count.",
+          "description": "Deprecated. Use `timeoutMs` instead. The maximum time in milliseconds that operations are allowed to run on the MongoDB server.",
           "isRequired": false,
           "format": "number"
         },
@@ -608,7 +643,7 @@
         {
           "type": "named",
           "name": "--monitoringServerFeatures",
-          "description": "Features to expose on the monitoring server (only used when transport is 'http' and monitoringServerHost/monitoringServerPort are set).",
+          "description": "Features to expose on the monitoring server: health-check, metrics, and process-metrics. process-metrics exposes /metrics with Node.js process metrics (only used when transport is 'http' and monitoringServerHost/monitoringServerPort are set).",
           "isRequired": false
         },
         {
@@ -640,6 +675,13 @@
         {
           "type": "named",
           "name": "--queryCountMaxTimeMsCap",
+          "description": "Deprecated. Use `queryCountTimeoutMs` instead.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--queryCountTimeoutMs",
           "description": "The maximum time in milliseconds for the count phase of find operations. This is used to limit the time spent counting documents when determining if results were capped.",
           "isRequired": false,
           "format": "number"
@@ -656,6 +698,13 @@
           "name": "--telemetry",
           "description": "When set to disabled, disables telemetry collection.",
           "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--timeoutMs",
+          "description": "The maximum time in milliseconds that MongoDB operations are allowed to run, applied as the driver's timeoutMS (client-side operation timeout, CSOT) on each connection. It bounds the entire operation, including server selection and network round trips.",
+          "isRequired": false,
+          "format": "number"
         },
         {
           "type": "named",
@@ -673,13 +722,20 @@
     },
     {
       "registryType": "oci",
-      "identifier": "docker.io/mongodb/mongodb-mcp-server:3.1.0-pre.1",
+      "identifier": "docker.io/mongodb/mongodb-mcp-server:3.3.0",
       "transport": {
         "type": "stdio"
       },
       "environmentVariables": [
         {
           "name": "MDB_MCP_AGGREGATION_COUNT_MAX_TIME_MS_CAP",
+          "description": "Deprecated. Use `aggregationCountTimeoutMs` instead.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_AGGREGATION_COUNT_TIMEOUT_MS",
           "description": "The maximum time in milliseconds for the count phase of aggregation operations. This is used to limit the time spent counting documents when determining if results were capped.",
           "isRequired": false,
           "format": "number",
@@ -743,7 +799,14 @@
         },
         {
           "name": "MDB_MCP_CONNECTION_STRING",
-          "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
+          "description": "MongoDB connection string for direct database connections, exposed under the connectionId \"preconfigured\". Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data. Deprecated: prefer the \"preconfigured\" entry of connectionStrings.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        },
+        {
+          "name": "MDB_MCP_CONNECTION_STRINGS",
+          "description": "MongoDB connection strings keyed by name, as a JSON object (e.g. {\"preconfigured\": \"mongodb://...\", \"analytics\": \"mongodb://...\"}). Each name becomes a connectionId that the MongoDB tools can use directly, so one server can reach several deployments. Connections are opened on first use. Environment variable or config file only.",
           "isRequired": false,
           "format": "string",
           "isSecret": true
@@ -932,7 +995,7 @@
         },
         {
           "name": "MDB_MCP_MAX_TIME_M_S",
-          "description": "The maximum time in milliseconds that operations are allowed to run on the MongoDB server. When set, this value is passed as the maxTimeMS option to read operations such as find, aggregate, and count.",
+          "description": "Deprecated. Use `timeoutMs` instead. The maximum time in milliseconds that operations are allowed to run on the MongoDB server.",
           "isRequired": false,
           "format": "number",
           "isSecret": false
@@ -946,7 +1009,7 @@
         },
         {
           "name": "MDB_MCP_MONITORING_SERVER_FEATURES",
-          "description": "Features to expose on the monitoring server (only used when transport is 'http' and monitoringServerHost/monitoringServerPort are set).",
+          "description": "Features to expose on the monitoring server: health-check, metrics, and process-metrics. process-metrics exposes /metrics with Node.js process metrics (only used when transport is 'http' and monitoringServerHost/monitoringServerPort are set).",
           "isRequired": false,
           "format": "string",
           "isSecret": false
@@ -981,6 +1044,13 @@
         },
         {
           "name": "MDB_MCP_QUERY_COUNT_MAX_TIME_MS_CAP",
+          "description": "Deprecated. Use `queryCountTimeoutMs` instead.",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_QUERY_COUNT_TIMEOUT_MS",
           "description": "The maximum time in milliseconds for the count phase of find operations. This is used to limit the time spent counting documents when determining if results were capped.",
           "isRequired": false,
           "format": "number",
@@ -998,6 +1068,13 @@
           "description": "When set to disabled, disables telemetry collection.",
           "isRequired": false,
           "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MDB_MCP_TIMEOUT_MS",
+          "description": "The maximum time in milliseconds that MongoDB operations are allowed to run, applied as the driver's timeoutMS (client-side operation timeout, CSOT) on each connection. It bounds the entire operation, including server selection and network round trips.",
+          "isRequired": false,
+          "format": "number",
           "isSecret": false
         },
         {
@@ -1019,6 +1096,13 @@
         {
           "type": "named",
           "name": "--aggregationCountMaxTimeMsCap",
+          "description": "Deprecated. Use `aggregationCountTimeoutMs` instead.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--aggregationCountTimeoutMs",
           "description": "The maximum time in milliseconds for the count phase of aggregation operations. This is used to limit the time spent counting documents when determining if results were capped.",
           "isRequired": false,
           "format": "number"
@@ -1077,7 +1161,7 @@
         {
           "type": "named",
           "name": "--connectionString",
-          "description": "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data.",
+          "description": "MongoDB connection string for direct database connections, exposed under the connectionId \"preconfigured\". Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data. Deprecated: prefer the \"preconfigured\" entry of connectionStrings.",
           "isRequired": false
         },
         {
@@ -1257,7 +1341,7 @@
         {
           "type": "named",
           "name": "--maxTimeMS",
-          "description": "The maximum time in milliseconds that operations are allowed to run on the MongoDB server. When set, this value is passed as the maxTimeMS option to read operations such as find, aggregate, and count.",
+          "description": "Deprecated. Use `timeoutMs` instead. The maximum time in milliseconds that operations are allowed to run on the MongoDB server.",
           "isRequired": false,
           "format": "number"
         },
@@ -1270,7 +1354,7 @@
         {
           "type": "named",
           "name": "--monitoringServerFeatures",
-          "description": "Features to expose on the monitoring server (only used when transport is 'http' and monitoringServerHost/monitoringServerPort are set).",
+          "description": "Features to expose on the monitoring server: health-check, metrics, and process-metrics. process-metrics exposes /metrics with Node.js process metrics (only used when transport is 'http' and monitoringServerHost/monitoringServerPort are set).",
           "isRequired": false
         },
         {
@@ -1302,6 +1386,13 @@
         {
           "type": "named",
           "name": "--queryCountMaxTimeMsCap",
+          "description": "Deprecated. Use `queryCountTimeoutMs` instead.",
+          "isRequired": false,
+          "format": "number"
+        },
+        {
+          "type": "named",
+          "name": "--queryCountTimeoutMs",
           "description": "The maximum time in milliseconds for the count phase of find operations. This is used to limit the time spent counting documents when determining if results were capped.",
           "isRequired": false,
           "format": "number"
@@ -1318,6 +1409,13 @@
           "name": "--telemetry",
           "description": "When set to disabled, disables telemetry collection.",
           "isRequired": false
+        },
+        {
+          "type": "named",
+          "name": "--timeoutMs",
+          "description": "The maximum time in milliseconds that MongoDB operations are allowed to run, applied as the driver's timeoutMS (client-side operation timeout, CSOT) on each connection. It bounds the entire operation, including server selection and network round trips.",
+          "isRequired": false,
+          "format": "number"
         },
         {
           "type": "named",

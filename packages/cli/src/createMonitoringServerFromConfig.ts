@@ -9,7 +9,7 @@ export type CreateMonitoringServerFromConfigOptions = {
     metrics: IMetrics<DefaultMetricDefinitions>;
 };
 
-export function validateMonitoringServerConfig(config: UserConfig): void {
+function validateMonitoringServerConfig(config: UserConfig): void {
     if ((config.monitoringServerHost === undefined) !== (config.monitoringServerPort === undefined)) {
         throw new Error(
             "Both monitoringServerHost and monitoringServerPort must be defined to enable the monitoring server."

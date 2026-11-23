@@ -47,7 +47,7 @@ export interface ApiClientOptions {
     httpClient: HttpClient;
 }
 
-export type RequestContext = {
+type RequestContext = {
     headers?: Record<string, string | string[] | undefined>;
 };
 
@@ -68,13 +68,6 @@ export type ApiClientRequestContext = {
  * headers. Comparison is case-insensitive, so entries must be lowercase.
  */
 const FORWARDABLE_REQUEST_HEADERS: ReadonlySet<string> = new Set(["x-request-id"]);
-
-export type ApiClientFactoryFn = (construction: ApiClientConstruction) => ApiClient;
-
-/** @public */
-export const defaultCreateApiClient: ApiClientFactoryFn = (construction) => {
-    return new ApiClient(construction);
-};
 
 /**
  * The construction input for {@link ApiClient}: field-specific options plus

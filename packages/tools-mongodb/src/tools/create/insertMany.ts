@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { MongoBulkWriteError, type WriteError } from "mongodb";
 import { CollOperationArgs, connectionScopedArgsShape, MongoDBToolBase } from "../../mongodbTool.js";
-import { type ToolArgs, formatUntrustedData, type ToolResult } from "@mongodb-js/mcp-core";
+import { ANY_ARRAY_ITEMS, type ToolArgs, formatUntrustedData, type ToolResult } from "@mongodb-js/mcp-core";
 import type { CallToolResult, OperationType } from "@mongodb-js/mcp-types";
 import { zEJSON } from "../../args.js";
 
@@ -12,7 +12,7 @@ const InsertManyOutputSchema = {
     database: z.string(),
     collection: z.string(),
     insertedCount: z.number(),
-    insertedIds: z.array(z.unknown()),
+    insertedIds: z.array(z.unknown()).meta(ANY_ARRAY_ITEMS),
 };
 
 export type InsertManyOutput = z.infer<z.ZodObject<typeof InsertManyOutputSchema>>;

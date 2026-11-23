@@ -6,8 +6,8 @@ import {
 } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
-import { formatUntrustedData } from "@mongodb-js/mcp-core";
-import { getSimplifiedSchema } from "mongodb-schema";
+import { ANY_ADDITIONAL_PROPERTIES, formatUntrustedData } from "@mongodb-js/mcp-core";
+import { getSimplifiedSchema } from "@mongodb-js/mongodb-schema";
 import { z } from "zod";
 import { ONE_MB } from "../../helpers/constants.js";
 import { collectCursorUntilMaxBytesLimit } from "../../helpers/collectCursorUntilMaxBytes.js";
@@ -16,7 +16,7 @@ import { isObjectEmpty } from "../../helpers/isObjectEmpty.js";
 const MAXIMUM_SAMPLE_SIZE_HARD_LIMIT = 50_000;
 
 const CollectionSchemaOutputSchema = {
-    schema: z.record(z.string(), z.unknown()),
+    schema: z.record(z.string(), z.unknown()).meta(ANY_ADDITIONAL_PROPERTIES),
     fieldsCount: z.number(),
 };
 

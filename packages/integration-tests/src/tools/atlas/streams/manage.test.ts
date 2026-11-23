@@ -1,6 +1,29 @@
 import { expectDefined, getResponseContent } from "../../../integrationHelpers.js";
 import { describeWithStreams, withWorkspace, randomId, assertApiClientIsAvailable } from "../atlasHelpers.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { z } from "zod";
+
+const catalogFixtures = [
+    {
+        provider: "DATABRICKS_UNITY",
+        env: "MDB_MCP_TEST_STREAMS_UNITY_CATALOG",
+        settingsKey: "databricks",
+        secretField: "clientSecret",
+        authentication: z.object({ clientId: z.string().min(1), clientSecret: z.string().min(1) }),
+    },
+    {
+        provider: "SNOWFLAKE_HORIZON",
+        env: "MDB_MCP_TEST_STREAMS_HORIZON_CATALOG",
+        settingsKey: "snowflake",
+        secretField: "privateKey",
+        authentication: z.object({
+            account: z.string().min(1),
+            user: z.string().min(1),
+            role: z.string().min(1),
+            privateKey: z.string().min(1),
+        }),
+    },
+] as const;
 
 describeWithStreams("atlas-streams-manage", (integration) => {
     describe("tool registration", () => {
@@ -16,6 +39,137 @@ describeWithStreams("atlas-streams-manage", (integration) => {
     });
 
     withWorkspace(integration, ({ getProjectId, getWorkspaceName, getClusterConnectionName }) => {
+        for (const { provider, env, settingsKey, secretField, authentication } of catalogFixtures) {
+            const rawFixture = process.env[env];
+            it.skipIf(!rawFixture)(
+                `creates, rotates, updates, and discovers a ${provider} catalog connection`,
+                async () => {
+                    const endpoint = z.object({ catalogUrl: z.string().min(1), authentication });
+                    const schema = z.object({
+                        initial: endpoint,
+                        rotatedSecret: z.string().min(1),
+                        alternate: endpoint,
+                    });
+                    let parsed: unknown;
+                    try {
+                        parsed = JSON.parse(rawFixture ?? "");
+                    } catch {
+                        throw new Error(`${env} must contain valid JSON.`);
+                    }
+                    const fixture = schema.safeParse(parsed);
+                    if (!fixture.success) {
+                        throw new Error(`${env} must supply initial and alternate endpoints and a rotatedSecret.`);
+                    }
+                    const { initial, rotatedSecret, alternate } = fixture.data;
+                    const secrets = [initial.authentication, alternate.authentication].map((auth) =>
+                        secretField === "clientSecret" && "clientSecret" in auth
+                            ? auth.clientSecret
+                            : "privateKey" in auth
+                              ? auth.privateKey
+                              : ""
+                    );
+                    if (initial.catalogUrl === alternate.catalogUrl || secrets[0] === rotatedSecret) {
+                        throw new Error(`${env} must provide a different URL and a different rotation credential.`);
+                    }
+                    secrets.push(rotatedSecret);
+
+                    const connectionName = `catalog${randomId().slice(0, 8)}`;
+                    const base = { projectId: getProjectId(), workspaceName: getWorkspaceName() };
+                    const client = integration.mcpClient();
+                    const checkResult = (response: { isError?: boolean }, action: string): void => {
+                        expect(response.isError, `${action} failed for ${provider}`).toBeFalsy();
+                        const output = JSON.stringify(response);
+                        for (const secret of secrets.filter(Boolean)) {
+                            const escaped = JSON.stringify(secret).slice(1, -1);
+                            expect(
+                                output.includes(escaped) || output.includes(JSON.stringify(escaped).slice(1, -1))
+                            ).toBe(false);
+                        }
+                    };
+
+                    try {
+                        checkResult(
+                            await client.callTool({
+                                name: "atlas-streams-build",
+                                arguments: {
+                                    ...base,
+                                    resource: "connection",
+                                    connectionName,
+                                    connectionType: "DataCatalog",
+                                    connectionConfig: {
+                                        catalogProvider: provider,
+                                        catalogUrl: initial.catalogUrl,
+                                        [settingsKey]: { authentication: initial.authentication },
+                                    },
+                                },
+                            }),
+                            "Create"
+                        );
+                        for (const connectionConfig of [
+                            { [settingsKey]: { authentication: { [secretField]: rotatedSecret } } },
+                            {
+                                catalogUrl: alternate.catalogUrl,
+                                [settingsKey]: { authentication: alternate.authentication },
+                            },
+                        ]) {
+                            checkResult(
+                                await client.callTool({
+                                    name: "atlas-streams-manage",
+                                    arguments: {
+                                        ...base,
+                                        action: "update-connection",
+                                        resourceName: connectionName,
+                                        connectionConfig,
+                                    },
+                                }),
+                                "Update"
+                            );
+                        }
+                        const listed = await client.callTool({
+                            name: "atlas-streams-discover",
+                            arguments: { ...base, action: "list-connections", responseFormat: "detailed" },
+                        });
+                        checkResult(listed, "List");
+                        expect(listed.structuredContent).toHaveProperty(
+                            "connections",
+                            expect.arrayContaining([
+                                {
+                                    name: connectionName,
+                                    type: "DataCatalog",
+                                    catalogProvider: provider,
+                                    state: "READY",
+                                },
+                            ])
+                        );
+
+                        const inspected = await client.callTool({
+                            name: "atlas-streams-discover",
+                            arguments: { ...base, action: "inspect-connection", resourceName: connectionName },
+                        });
+                        checkResult(inspected, "Inspect");
+                        expect(inspected.structuredContent).toMatchObject({
+                            connection: {
+                                type: "DataCatalog",
+                                catalogProvider: provider,
+                                catalogUrl: alternate.catalogUrl,
+                            },
+                        });
+                    } finally {
+                        const server = integration.mcpServer();
+                        assertApiClientIsAvailable(server);
+                        await server.apiClient
+                            .deleteStreamConnection({
+                                params: {
+                                    path: { groupId: base.projectId, tenantName: base.workspaceName, connectionName },
+                                },
+                            })
+                            .catch(() => undefined);
+                    }
+                },
+                60_000
+            );
+        }
+
         describe("processor management", () => {
             const processorName = `manageproc${randomId().slice(0, 8)}`;
 

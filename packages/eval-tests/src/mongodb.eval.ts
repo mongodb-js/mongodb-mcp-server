@@ -1,7 +1,7 @@
 import { Eval, Reporter, reportFailures } from "braintrust";
 import { getRandomValues } from "node:crypto";
 import * as shared from "./lib/shared.js";
-import { llmJudgeScore } from "./lib/scoring.js";
+import { llmJudgeErrorScore, llmJudgeScore } from "./lib/scoring.js";
 import { judgeUsingLLM } from "./lib/judge.js";
 import { runTask } from "./lib/user.js";
 import { seedTempDb } from "./lib/seeding.js";
@@ -91,6 +91,7 @@ ${hooks.expected.reference_answer}
 
                 const { response, messages } = await runTask({
                     model,
+                    reasoningEffort: resolved.modelReasoningEffort,
                     systemContext: resolved.systemContext,
                     tools,
                     prompt,
@@ -108,6 +109,7 @@ ${hooks.expected.reference_answer}
 
                     judge = await judgeUsingLLM({
                         model: judgeModel,
+                        reasoningEffort: resolved.judgeModelReasoningEffort,
                         tools: {
                             ...readOnlyTools,
                             [GetConversationTool.toolName]: new GetConversationTool(messages).getTool(),
@@ -127,6 +129,7 @@ ${hooks.expected.reference_answer}
             }
         },
         scores: [llmJudgeScore],
+        errorScoreHandler: llmJudgeErrorScore,
         baseExperimentName: process.env.EVAL_BASE_EXPERIMENT_NAME,
         parameters: EvalParametersBtSchema,
         maxConcurrency: process.env.EVAL_MAX_CONCURRENCY ? parseInt(process.env.EVAL_MAX_CONCURRENCY) : undefined,

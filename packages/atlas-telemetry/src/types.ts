@@ -103,6 +103,11 @@ export type TelemetryToolEventProperties = {
     error_type?: string;
     cluster_name?: string;
     is_atlas?: boolean;
+    /** The MCP client that issued the request, per-request (see {@link TelemetryCommonProperties}). */
+    mcp_client_name?: string;
+    mcp_client_version?: string;
+    /** The exact MCP protocol revision the client used, per-request (see {@link TelemetryCommonProperties}). */
+    mcp_client_protocol?: string;
 } & TelemetryToolMetadata;
 
 export type TelemetryToolEvent = TelemetryEvent<TelemetryToolEventProperties>;
@@ -122,6 +127,8 @@ export type TelemetryServerEventProperties = {
     /** The MCP client that issued the request, per-request (see {@link TelemetryCommonProperties}). */
     mcp_client_name?: string;
     mcp_client_version?: string;
+    /** The exact MCP protocol revision the client used, per-request (see {@link TelemetryCommonProperties}). */
+    mcp_client_protocol?: string;
 };
 
 export type TelemetryServerEvent = TelemetryEvent<TelemetryServerEventProperties>;

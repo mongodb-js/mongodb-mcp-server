@@ -5,7 +5,7 @@ import { LogId } from "@mongodb-js/mcp-core";
 import { AssistantToolBase } from "../../assistantTool.js";
 import { stringify as yamlStringify } from "yaml";
 
-export type KnowledgeSource = {
+type KnowledgeSource = {
     /** The name of the data source */
     id: string;
     /** The type of the data source */
@@ -19,7 +19,7 @@ export type KnowledgeSource = {
     }[];
 };
 
-export type ListKnowledgeSourcesResponse = {
+type ListKnowledgeSourcesResponse = {
     dataSources: KnowledgeSource[];
 };
 

@@ -11,9 +11,9 @@ export interface RemoteAtlasContext {
 
 // The suite keys off the AGENT_E2E_ prefix (matching the other harness env vars),
 // then maps them onto the mongodb-atlas-mcp-remote wrapper's own MDB_MCP_API_* contract.
-export const REMOTE_MCP_CLIENT_ID = process.env.AGENT_E2E_MCP_CLIENT_ID ?? "";
-export const REMOTE_MCP_CLIENT_SECRET = process.env.AGENT_E2E_MCP_CLIENT_SECRET ?? "";
-export const REMOTE_MCP_BASE_URL = process.env.AGENT_E2E_MCP_BASE_URL ?? "";
+const REMOTE_MCP_CLIENT_ID = process.env.AGENT_E2E_MCP_CLIENT_ID ?? "";
+const REMOTE_MCP_CLIENT_SECRET = process.env.AGENT_E2E_MCP_CLIENT_SECRET ?? "";
+const REMOTE_MCP_BASE_URL = process.env.AGENT_E2E_MCP_BASE_URL ?? "";
 
 /**
  * Skip gate: the remote Atlas MCP suite is opt-in via the Atlas MCP-configuration

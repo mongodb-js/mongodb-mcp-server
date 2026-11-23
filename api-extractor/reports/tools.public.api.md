@@ -22,7 +22,7 @@ import type { LoggingMessageNotification } from '@modelcontextprotocol/server';
 import { McpServer } from '@modelcontextprotocol/server';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import type { RequestMeta } from '@modelcontextprotocol/server';
-import type { Secret } from 'mongodb-redact';
+import type { Secret } from '@mongodb-js/mongodb-redact';
 import type { ServerContext } from '@modelcontextprotocol/server';
 import { ToolAnnotations } from '@modelcontextprotocol/server';
 import { z } from 'zod';
@@ -2563,7 +2563,7 @@ export type MongoDBToolServices = ToolServices<IMongoDBConfig> & {
 export type MonitoringServerFeature = (typeof monitoringServerFeatureValues)[number];
 
 // @public (undocumented)
-export const monitoringServerFeatureValues: readonly ["health-check", "metrics"];
+export const monitoringServerFeatureValues: readonly ["health-check", "metrics", "process-metrics"];
 
 // @public (undocumented)
 export type NotConnectedToMongoDBErrorCode = typeof ErrorCodes.NotConnectedToMongoDB;

@@ -1,9 +1,9 @@
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
-import type { MongoClusterOptions, MongoDBUserDoc } from "mongodb-runner";
+import type { MongoClusterOptions, MongoDBUserDoc } from "@mongodb-js/mongodb-runner";
 import { DockerComposeEnvironment, GenericContainer, Wait } from "testcontainers";
-import { MongoCluster } from "mongodb-runner";
+import { MongoCluster } from "@mongodb-js/mongodb-runner";
 import { MongoClient } from "mongodb";
 import { ConnectionString } from "mongodb-connection-string-url";
 import { ShellWaitStrategy } from "testcontainers/build/wait-strategies/shell-wait-strategy.js";

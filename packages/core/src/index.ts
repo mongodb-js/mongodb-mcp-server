@@ -6,8 +6,8 @@ export { NoopLogger } from "./logging/noopLogger.js";
 export { CompositeLogger } from "./logging/compositeLogger.js";
 export { Keychain, type SecretKind } from "./keychain.js";
 export { NoopTelemetry } from "./telemetry/noopTelemetry.js";
-export { UserFacingError, ToolArgumentValidationError } from "./errors.js";
-export type { Secret } from "mongodb-redact";
+export { UserFacingError, ToolArgumentValidationError, ConfirmationDeclinedError } from "./errors.js";
+export type { Secret } from "@mongodb-js/mongodb-redact";
 export { McpServer } from "@modelcontextprotocol/server";
 export type { InputRequiredResult, CallToolResult } from "@modelcontextprotocol/server";
 
@@ -28,7 +28,7 @@ export {
 export { ReactiveResource } from "./reactiveResource.js";
 export { getRandomUUID } from "./getRandomUUID.js";
 export { TRANSPORT_PAYLOAD_LIMITS } from "./transportConstants.js";
-export { CommonArgs, ASCII_ONLY_NON_CC_ERROR } from "./args.js";
+export { CommonArgs, ASCII_ONLY_NON_CC_ERROR, ANY_ADDITIONAL_PROPERTIES, ANY_ARRAY_ITEMS } from "./args.js";
 export { LogId } from "./logId.js";
 export { setManagedTimeout, type ManagedTimeout, sleep } from "./managedTimeout.js";
 export {
@@ -49,12 +49,13 @@ export { StdioRunner } from "./runners/stdioRunner.js";
 
 export { NoopMetrics } from "./metrics/noopMetrics.js";
 export { Elicitation, CONFIRMATION_INPUT_KEY } from "./elicitation.js";
-// ElicitedInputResult / ElicitRequestSchema / IElicitation / ElicitationInputResponses live in @mongodb-js/mcp-types.
+// ElicitedInputResult / ElicitRequestSchema / IElicitation / ElicitationInputResponses / ElicitationRequestContext live in @mongodb-js/mcp-types.
 export type {
     ElicitedInputResult,
     ElicitRequestSchema,
     IElicitation,
     ElicitationInputResponses,
+    ElicitationRequestContext,
 } from "@mongodb-js/mcp-types";
 
 export {

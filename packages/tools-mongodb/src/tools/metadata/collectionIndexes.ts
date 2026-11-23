@@ -1,7 +1,7 @@
 import { CollOperationArgs, connectionScopedArgsShape, MongoDBToolBase } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { OperationType } from "@mongodb-js/mcp-types";
-import { formatUntrustedData } from "@mongodb-js/mcp-core";
+import { ANY_ADDITIONAL_PROPERTIES, formatUntrustedData } from "@mongodb-js/mcp-core";
 import { z } from "zod";
 import type { CallToolResult } from "@mongodb-js/mcp-types";
 
@@ -9,7 +9,7 @@ const CollectionIndexesOutputSchema = {
     classicIndexes: z.array(
         z.object({
             name: z.string(),
-            key: z.record(z.string(), z.unknown()),
+            key: z.record(z.string(), z.unknown()).meta(ANY_ADDITIONAL_PROPERTIES),
         })
     ),
     searchIndexes: z.array(
@@ -18,7 +18,7 @@ const CollectionIndexesOutputSchema = {
             type: z.string(),
             status: z.string(),
             queryable: z.boolean(),
-            latestDefinition: z.record(z.string(), z.unknown()),
+            latestDefinition: z.record(z.string(), z.unknown()).meta(ANY_ADDITIONAL_PROPERTIES),
         })
     ),
     classicIndexesCount: z.number(),
@@ -142,15 +142,6 @@ export class CollectionIndexesTool extends MongoDBToolBase {
         // Vector search uses a `fields` array, Atlas search uses `mappings`
         const fields = definition["fields"];
         if (Array.isArray(fields)) {
-            // Check for auto-embed indexes (have autoEmbed field type)
-            if (fields.some((field: Record<string, unknown>) => field["type"] === "autoEmbed")) {
-                return "autoEmbed";
-            }
-            // Check for regular vector search indexes (have vector field type)
-            if (fields.some((field: Record<string, unknown>) => field["type"] === "vector")) {
-                return "vectorSearch";
-            }
-            // Other vector search variations (e.g., mixed with filter fields only)
             return "vectorSearch";
         }
 

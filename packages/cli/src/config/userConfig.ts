@@ -9,9 +9,12 @@ import {
     onlyStricterLogLevelOverride,
     onlySubsetOfBaseValueOverride,
     parseBoolean,
+    tryParseJsonInZodPreprocess,
 } from "./configUtils.js";
 import { MCP_LOG_LEVELS } from "@mongodb-js/mcp-core";
 import {
+    CONNECTION_NAME_PATTERN,
+    PRECONFIGURED_CONNECTION_ID,
     monitoringServerFeatureValues,
     previewFeatureValues,
     QUERY_COUNT_MAX_TIME_MS_CAP,
@@ -31,6 +34,11 @@ const ServerConfigSchema = z.object({
         .string()
         .default("https://cloud.mongodb.com/")
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    // Undocumented telemetry host override (tests capture events against a local mock).
+    telemetryBaseUrl: z
+        .string()
+        .optional()
+        .register(configRegistry, { overrideBehavior: "not-allowed", cliArgument: false }),
     assistantBaseUrl: z
         .string()
         .default("https://knowledge.mongodb.com/api/v1/")
@@ -50,9 +58,39 @@ const ServerConfigSchema = z.object({
         .string()
         .optional()
         .describe(
-            "MongoDB connection string for direct database connections. Optional, if not set, you'll need to call the connect tool before interacting with MongoDB data."
+            'MongoDB connection string for direct database connections, exposed under the connectionId "preconfigured". Optional, if not set, you\'ll need to call the connect tool before interacting with MongoDB data. Deprecated: prefer the "preconfigured" entry of connectionStrings.'
         )
         .register(configRegistry, { isSecret: true, overrideBehavior: "not-allowed" }),
+    connectionStrings: z
+        .preprocess(
+            tryParseJsonInZodPreprocess,
+            z.union([
+                z.record(
+                    z
+                        .string()
+                        .regex(
+                            CONNECTION_NAME_PATTERN,
+                            "Connection names may only contain letters, digits, '.', '_' and '-' (max 64 characters)"
+                        ),
+                    z.string().min(1)
+                ),
+                // Never matches: by now the preprocessor has turned any valid input into an
+                // object. The string arm only makes the argument parser (which also reads the
+                // environment variables) take this option as a raw string, since it has no
+                // notion of records, so that the JSON is parsed and validated here, with a
+                // field-level error instead of a parser failure.
+                z.string().refine(() => false, { message: "Expected a JSON object" }),
+            ])
+        )
+        .default({})
+        .describe(
+            'MongoDB connection strings keyed by name, as a JSON object (e.g. {"preconfigured": "mongodb://...", "analytics": "mongodb://..."}). Each name becomes a connectionId that the MongoDB tools can use directly, so one server can reach several deployments. Connections are opened on first use. Environment variable or config file only.'
+        )
+        .register(configRegistry, {
+            isSecret: true,
+            overrideBehavior: "not-allowed",
+            cliArgument: false,
+        }) as unknown as z.ZodDefault<z.ZodRecord<z.ZodString, z.ZodString>>, // the string arm above never parses successfully
     loggers: z
         .preprocess(
             (val: string | string[] | undefined) => commaSeparatedToArray(val),
@@ -271,33 +309,62 @@ const ServerConfigSchema = z.object({
             "The maximum number of documents that can be returned by a find or aggregate tool call. For the find tool, the effective limit will be the smaller of this value and the tool's limit parameter."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    timeoutMs: z.coerce
+        .number()
+        .int()
+        .min(0, "timeoutMs must be non-negative")
+        .optional()
+        .describe(
+            "The maximum time in milliseconds that MongoDB operations are allowed to run, applied as the driver's timeoutMS (client-side operation timeout, CSOT) on each connection. It bounds the entire operation, including server selection and network round trips."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    /** @deprecated Use `timeoutMs` instead. */
     maxTimeMS: z.coerce
         .number()
         .int()
         .min(0, "maxTimeMS must be non-negative")
         .optional()
         .describe(
-            "The maximum time in milliseconds that operations are allowed to run on the MongoDB server. When set, this value is passed as the maxTimeMS option to read operations such as find, aggregate, and count."
+            "Deprecated. Use `timeoutMs` instead. The maximum time in milliseconds that operations are allowed to run on the MongoDB server."
         )
-        .register(configRegistry, { overrideBehavior: "not-allowed" }),
-    queryCountMaxTimeMsCap: z.coerce
+        .register(configRegistry, { overrideBehavior: "not-allowed" })
+        .register(argMetadata, { deprecationReplacement: "timeoutMs" }),
+    queryCountTimeoutMs: z.coerce
         .number()
         .int()
-        .min(0, "queryCountMaxTimeMsCap must be non-negative")
+        .min(0, "queryCountTimeoutMs must be non-negative")
         .default(QUERY_COUNT_MAX_TIME_MS_CAP)
         .describe(
             "The maximum time in milliseconds for the count phase of find operations. This is used to limit the time spent counting documents when determining if results were capped."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
-    aggregationCountMaxTimeMsCap: z.coerce
+    /** @deprecated Use `queryCountTimeoutMs` instead. */
+    queryCountMaxTimeMsCap: z.coerce
         .number()
         .int()
-        .min(0, "aggregationCountMaxTimeMsCap must be non-negative")
+        .min(0, "queryCountMaxTimeMsCap must be non-negative")
+        .optional()
+        .describe("Deprecated. Use `queryCountTimeoutMs` instead.")
+        .register(configRegistry, { overrideBehavior: "not-allowed" })
+        .register(argMetadata, { deprecationReplacement: "queryCountTimeoutMs" }),
+    aggregationCountTimeoutMs: z.coerce
+        .number()
+        .int()
+        .min(0, "aggregationCountTimeoutMs must be non-negative")
         .default(AGG_COUNT_MAX_TIME_MS_CAP)
         .describe(
             "The maximum time in milliseconds for the count phase of aggregation operations. This is used to limit the time spent counting documents when determining if results were capped."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    /** @deprecated Use `aggregationCountTimeoutMs` instead. */
+    aggregationCountMaxTimeMsCap: z.coerce
+        .number()
+        .int()
+        .min(0, "aggregationCountMaxTimeMsCap must be non-negative")
+        .optional()
+        .describe("Deprecated. Use `aggregationCountTimeoutMs` instead.")
+        .register(configRegistry, { overrideBehavior: "not-allowed" })
+        .register(argMetadata, { deprecationReplacement: "aggregationCountTimeoutMs" }),
     exportsPath: z
         .string()
         .default(getExportsPath())
@@ -401,15 +468,47 @@ const ServerConfigSchema = z.object({
         )
         .default(["health-check"])
         .describe(
-            "Features to expose on the monitoring server (only used when transport is 'http' and monitoringServerHost/monitoringServerPort are set)."
+            "Features to expose on the monitoring server: health-check, metrics, and process-metrics. process-metrics exposes /metrics with Node.js process metrics (only used when transport is 'http' and monitoringServerHost/monitoringServerPort are set)."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
 });
 
-export const UserConfigSchema = z.object({
+/**
+ * Applies the cross-field rules for the deprecated `connectionString` option: it
+ * becomes the {@link PRECONFIGURED_CONNECTION_ID} entry of `connectionStrings`,
+ * so the rest of the server only ever reads `connectionStrings`.
+ */
+export function withConnectionStringsNormalized<T extends z.ZodObject>(schema: T): T {
+    type ConnectionStringsConfig = { connectionString?: string; connectionStrings: Record<string, string> };
+    return schema
+        .refine(
+            (config) => {
+                const { connectionString, connectionStrings } = config as ConnectionStringsConfig;
+                return !connectionString || !Object.hasOwn(connectionStrings, PRECONFIGURED_CONNECTION_ID);
+            },
+            {
+                message: `connectionString and the "${PRECONFIGURED_CONNECTION_ID}" entry of connectionStrings cannot both be set`,
+                path: ["connectionStrings", PRECONFIGURED_CONNECTION_ID],
+            }
+        )
+        .overwrite((config) => {
+            const { connectionString, connectionStrings } = config as ConnectionStringsConfig;
+            if (!connectionString) {
+                return config;
+            }
+            return {
+                ...config,
+                connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: connectionString, ...connectionStrings },
+            };
+        });
+}
+
+const UserConfigObjectSchema = z.object({
     ...MongoshCliOptionsSchema.shape,
     ...ServerConfigSchema.shape,
 });
+
+export const UserConfigSchema = withConnectionStringsNormalized(UserConfigObjectSchema);
 
 export type UserConfig = z.infer<typeof UserConfigSchema>;
 

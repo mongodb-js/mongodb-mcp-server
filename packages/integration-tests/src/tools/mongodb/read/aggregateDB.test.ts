@@ -6,7 +6,7 @@ import {
     defaultTestConfig,
     expectDefined,
 } from "../../../integrationHelpers.js";
-import { expect, it, afterEach, describe, beforeEach } from "vitest";
+import { expect, it, afterEach, describe, beforeEach, vi } from "vitest";
 import { createMockElicitInput } from "@mongodb-js/mcp-test-utils";
 import {
     describeWithMongoDB,
@@ -303,6 +303,11 @@ describe("aggregate-db tool write stage confirmation", () => {
             it("does not write anything when the user declines", async () => {
                 mockElicitInput.confirmNo();
                 const connectionId = await integration.connectMcpClient();
+                const observe = vi
+                    .spyOn(integration.mcpServer().metrics.get("toolExecutionDuration"), "observe")
+                    .mockClear();
+                const emitEvents = vi.spyOn(integration.mcpServer().telemetry, "emitEvents").mockClear();
+                vi.spyOn(integration.mcpServer().telemetry, "isTelemetryEnabled").mockReturnValue(true);
                 const response = await integration.mcpClient().callTool({
                     name: "aggregate-db",
                     arguments: {
@@ -312,13 +317,60 @@ describe("aggregate-db tool write stage confirmation", () => {
                     },
                 });
                 expect(response.isError).toBe(true);
-                expect(getResponseContent(response)).toContain("aggregation was not performed");
+                expect(getResponseContent(response)).toBe(
+                    "User did not confirm the write stages of the aggregation pipeline so the aggregation was not performed."
+                );
+                expect(observe).toHaveBeenCalledTimes(1);
+                expect(observe).toHaveBeenCalledWith(
+                    {
+                        tool_name: "aggregate-db",
+                        category: "mongodb",
+                        status: "declined",
+                        operation_type: "read",
+                    },
+                    expect.any(Number)
+                );
+                expect(emitEvents.mock.lastCall?.[0]).toMatchObject([
+                    { properties: { command: "aggregate-db", result: "declined" } },
+                ]);
                 const collections = await integration
                     .mongoClient()
                     .db(integration.randomDbName())
                     .listCollections({ name: "declinedpeople" })
                     .toArray();
                 expect(collections).toHaveLength(0);
+            });
+            it("records a failing confirmed write pipeline as an error rather than a decline", async () => {
+                mockElicitInput.confirmYes();
+                const connectionId = await integration.connectMcpClient();
+                const observe = vi
+                    .spyOn(integration.mcpServer().metrics.get("toolExecutionDuration"), "observe")
+                    .mockClear();
+                const emitEvents = vi.spyOn(integration.mcpServer().telemetry, "emitEvents").mockClear();
+                vi.spyOn(integration.mcpServer().telemetry, "isTelemetryEnabled").mockReturnValue(true);
+
+                const response = await integration.mcpClient().callTool({
+                    name: "aggregate-db",
+                    arguments: {
+                        connectionId,
+                        database: integration.randomDbName(),
+                        pipeline: [
+                            { $documents: [{ name: "Peter", age: 5 }] },
+                            { $project: { value: { $divide: [1, 0] } } },
+                            { $out: "failedpeople" },
+                        ],
+                    },
+                });
+
+                expect(response.isError).toBe(true);
+                expect(getResponseContent(response)).toContain("divide by zero");
+                expect(mockElicitInput.mock).toHaveBeenCalledTimes(1);
+                expect(observe).toHaveBeenCalledTimes(1);
+                expect(observe.mock.lastCall?.[0]).toMatchObject({ tool_name: "aggregate-db", status: "error" });
+                expect(observe.mock.lastCall?.[0].error_type).toEqual(expect.any(String));
+                expect(emitEvents.mock.lastCall?.[0]).toMatchObject([
+                    { properties: { command: "aggregate-db", result: "failure" } },
+                ]);
             });
             it("does not ask for confirmation for a pipeline without write stages", async () => {
                 const connectionId = await integration.connectMcpClient();

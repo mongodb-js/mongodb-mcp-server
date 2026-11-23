@@ -2,9 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Keychain, NoopLogger, type CompositeLogger } from "@mongodb-js/mcp-core";
 import { StdioRunner } from "@mongodb-js/mcp-core";
 import type * as McpCore from "@mongodb-js/mcp-core";
-import type { ConnectionRegistry } from "@mongodb-js/mcp-tools-mongodb";
+import { MCPConnectionStore, type ConnectionRegistry } from "@mongodb-js/mcp-tools-mongodb";
 import type * as McpToolsMongodb from "@mongodb-js/mcp-tools-mongodb";
 import { StreamableHttpRunner } from "@mongodb-js/mcp-http-runners";
+import { PrometheusMetrics } from "@mongodb-js/mcp-metrics";
 import type { TransportRequestContext } from "@mongodb-js/mcp-types";
 import { UserConfigSchema } from "./config/userConfig.js";
 
@@ -161,6 +162,27 @@ describe("createSharedServicesFromConfig", () => {
         expect(sharedServices.connectionStore).toBeDefined();
         expect(sharedServices.connectionRegistry).toBeDefined();
         expect(sharedServices.atlasLocalClient).toBeUndefined();
+        expect(await sharedServices.metrics.getMetrics()).not.toMatch(/^# TYPE process_/m);
+    });
+
+    it("collects process metrics when the monitoring feature is enabled", async () => {
+        const config = UserConfigSchema.parse({
+            telemetry: "disabled",
+            loggers: ["stderr"],
+            monitoringServerFeatures: ["process-metrics"],
+        });
+
+        const sharedServices = await createSharedServicesFromConfig({
+            config,
+            serverMetadata,
+            tools: [],
+            resources: [],
+            logger,
+            keychain: new Keychain(),
+        });
+
+        expect(sharedServices.metrics).toBeInstanceOf(PrometheusMetrics);
+        expect(await sharedServices.metrics.getMetrics()).toMatch(/^# TYPE process_/m);
     });
 });
 
@@ -203,6 +225,19 @@ describe("createServerFromConfig (request-scoped server)", () => {
         expect(createApiClientFromConfig).toHaveBeenCalledTimes(1);
         expect(createTelemetryFromConfig).toHaveBeenCalledTimes(1);
         expect(createMonitoringServerFromConfig).toHaveBeenCalledTimes(1);
+    });
+
+    it("builds a second API client for telemetry when telemetryBaseUrl points elsewhere", async () => {
+        const config = UserConfigSchema.parse({
+            telemetry: "disabled",
+            telemetryBaseUrl: "https://telemetry.example.com/",
+        });
+
+        await makeSharedServerServices(config);
+
+        expect(createApiClientFromConfig).toHaveBeenCalledTimes(2);
+        const secondCall = vi.mocked(createApiClientFromConfig).mock.calls[1]?.[0];
+        expect(secondCall?.config.apiBaseUrl).toBe("https://telemetry.example.com/");
     });
 
     it("creates a fresh server per call over the same shared app-level services", async () => {
@@ -307,6 +342,26 @@ describe("createRunnerFromConfig", () => {
         });
 
         expect(runner).toBeInstanceOf(StreamableHttpRunner);
+    });
+
+    it("dials the preconfigured connection on startup", async () => {
+        const config = UserConfigSchema.parse({
+            transport: "stdio",
+            telemetry: "disabled",
+        });
+        const spy = vi.spyOn(MCPConnectionStore.prototype, "connectPreconfigured").mockResolvedValue();
+
+        await createRunnerFromConfig({
+            config,
+            serverMetadata,
+            tools: [],
+            resources: [],
+            logger,
+            keychain: new Keychain(),
+        });
+
+        expect(spy).toHaveBeenCalledOnce();
+        spy.mockRestore();
     });
 });
 

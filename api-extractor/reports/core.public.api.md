@@ -6,12 +6,12 @@
 
 import type { AtlasClusterConnectionInfo } from '@mongodb-js/mcp-types';
 import { CallToolResult } from '@modelcontextprotocol/server';
-import type { ClientCapabilities } from '@modelcontextprotocol/server';
 import type { CloseableTransport } from '@mongodb-js/mcp-types';
 import type { ConnectionMetadata } from '@mongodb-js/mcp-types';
 import type { DefaultEventMap } from '@mongodb-js/mcp-types';
 import type { DefaultMetricDefinitions } from '@mongodb-js/mcp-types';
 import { ElicitationInputResponses } from '@mongodb-js/mcp-types';
+import { ElicitationRequestContext } from '@mongodb-js/mcp-types';
 import { ElicitedInputResult } from '@mongodb-js/mcp-types';
 import type { ElicitInputRequiredParams } from '@mongodb-js/mcp-types';
 import { ElicitRequestSchema } from '@mongodb-js/mcp-types';
@@ -36,12 +36,13 @@ import type { LogLevel } from '@mongodb-js/mcp-types';
 import type { LogPayload } from '@mongodb-js/mcp-types';
 import { McpServer } from '@modelcontextprotocol/server';
 import type { MongoLogId } from '@mongodb-js/mcp-types';
+import type { NegotiatedClientState } from '@mongodb-js/mcp-types';
 import type { OperationType } from '@mongodb-js/mcp-types';
 import type { PreviewFeature } from '@mongodb-js/mcp-types';
 import type { ReactiveResourceOptions } from '@mongodb-js/mcp-types';
 import type { ResourceConfiguration } from '@mongodb-js/mcp-types';
 import type { ResourceMetadata } from '@modelcontextprotocol/server';
-import { Secret } from 'mongodb-redact';
+import { Secret } from '@mongodb-js/mongodb-redact';
 import { ServerContext } from '@modelcontextprotocol/server';
 import type { SessionCloseReason } from '@mongodb-js/mcp-types';
 import type { SessionStoreConstructorArgs } from '@mongodb-js/mcp-types';
@@ -57,6 +58,16 @@ import type { TransportType } from '@mongodb-js/mcp-types';
 import { z } from 'zod';
 import { ZodRawShape } from 'zod';
 import { ZodString } from 'zod';
+
+// @public
+export const ANY_ADDITIONAL_PROPERTIES: {
+    readonly additionalProperties: true;
+};
+
+// @public
+export const ANY_ARRAY_ITEMS: {
+    readonly items: undefined;
+};
 
 // @public (undocumented)
 export type AnyToolBase = ToolBase<any>;
@@ -104,6 +115,11 @@ export class CompositeLogger extends LoggerBase {
 // @public
 export const CONFIRMATION_INPUT_KEY = "confirmation";
 
+// @public
+export class ConfirmationDeclinedError extends UserFacingError {
+    constructor(message: string);
+}
+
 // @public @deprecated
 export function createDefaultSessionStore<TTransport extends CloseableTransport = CloseableTransport, TMetrics extends DefaultMetricDefinitions = DefaultMetricDefinitions>(params: SessionStoreConstructorArgs<TMetrics>): SessionStore<TTransport>;
 
@@ -132,10 +148,12 @@ export class Elicitation implements IElicitation {
     inputRequired(input: ElicitInputRequiredParams): InputRequiredResult;
     readConfirmation(inputResponses: ElicitationInputResponses): boolean | undefined;
     readInput(inputResponses: ElicitationInputResponses, key: string): ElicitedInputResult | undefined;
-    supportsElicitation(): boolean;
+    supportsElicitation(request: ElicitationRequestContext): boolean;
 }
 
 export { ElicitationInputResponses }
+
+export { ElicitationRequestContext }
 
 export { ElicitedInputResult }
 
@@ -265,6 +283,7 @@ export const LogId: {
     readonly mongodbIndexCheckFailure: MongoLogId;
     readonly searchCapabilityProbe: MongoLogId;
     readonly mongodbGetSearchIndexesFailure: MongoLogId;
+    readonly mongodbSearchIndexOnViewDiagnosisFailure: MongoLogId;
     readonly toolUpdateFailure: MongoLogId;
     readonly resourceUpdateFailure: MongoLogId;
     readonly updateToolMetadata: MongoLogId;
@@ -333,6 +352,8 @@ export class NoopLogger extends LoggerBase {
 export class NoopMetrics implements IMetrics<DefaultMetricDefinitions> {
     get<K extends keyof DefaultMetricDefinitions>(_key: K): DefaultMetricDefinitions[K];
     getMetrics(): Promise<string>;
+    // (undocumented)
+    readonly labels: Readonly<Record<string, string>>;
 }
 
 // @public (undocumented)
@@ -418,6 +439,7 @@ export class SessionStore<T extends CloseableTransport = CloseableTransport> imp
             logger: ICompositeLogger;
         };
         headers?: Record<string, unknown>;
+        metrics?: IMetrics<DefaultMetricDefinitions>;
     }): Promise<void>;
     // (undocumented)
     closeAllSessions(): Promise<void>;

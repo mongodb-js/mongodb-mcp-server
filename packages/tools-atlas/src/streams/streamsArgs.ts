@@ -8,6 +8,95 @@ export const StreamsTier = z.enum(["SP2", "SP5", "SP10", "SP30", "SP50"]);
 
 export type StreamsTierValue = z.infer<typeof StreamsTier>;
 
+export const DataCatalogProvider = z.enum(["DATABRICKS_UNITY", "SNOWFLAKE_HORIZON"]);
+export type DataCatalogProviderValue = z.infer<typeof DataCatalogProvider>;
+
+const DatabricksCatalogSettings = z.strictObject({
+    authentication: z
+        .strictObject({
+            clientId: z.string().optional().describe("Databricks service principal OAuth client ID."),
+            clientSecret: z.string().optional().describe("Sensitive Databricks OAuth client secret."),
+        })
+        .optional(),
+});
+
+const SnowflakeCatalogSettings = z.strictObject({
+    authentication: z
+        .strictObject({
+            account: z.string().optional().describe("Snowflake account identifier."),
+            user: z.string().optional().describe("Snowflake service user."),
+            role: z.string().optional().describe("Snowflake role for Iceberg catalog access."),
+            privateKey: z.string().optional().describe("Sensitive unencrypted PKCS#8 PEM private key."),
+        })
+        .optional(),
+});
+
+const CatalogUrl = z
+    .string()
+    .describe(
+        "Base HTTPS URL only (no REST path): Databricks *.cloud.databricks.com or *.azuredatabricks.net; Snowflake *.snowflakecomputing.com."
+    );
+
+export const DATA_CATALOG_CONFIG = {
+    DATABRICKS_UNITY: {
+        settingsKey: "databricks",
+        secretField: "clientSecret",
+        suffixes: [".cloud.databricks.com", ".azuredatabricks.net"],
+        authFields: Object.keys(DatabricksCatalogSettings.shape.authentication.unwrap().shape),
+        schema: z.strictObject({
+            catalogProvider: z.literal("DATABRICKS_UNITY").optional(),
+            catalogUrl: CatalogUrl.optional(),
+            databricks: DatabricksCatalogSettings.optional(),
+        }),
+    },
+    SNOWFLAKE_HORIZON: {
+        settingsKey: "snowflake",
+        secretField: "privateKey",
+        suffixes: [".snowflakecomputing.com"],
+        authFields: Object.keys(SnowflakeCatalogSettings.shape.authentication.unwrap().shape),
+        schema: z.strictObject({
+            catalogProvider: z.literal("SNOWFLAKE_HORIZON").optional(),
+            catalogUrl: CatalogUrl.optional(),
+            snowflake: SnowflakeCatalogSettings.optional(),
+        }),
+    },
+} as const;
+
+export function dataCatalogUrlValidationError(
+    urlValue: string,
+    provider: DataCatalogProviderValue
+): string | undefined {
+    let url: URL;
+    try {
+        url = new URL(urlValue.trim());
+    } catch {
+        return "catalogUrl must be a valid HTTPS base URL.";
+    }
+    if (
+        url.protocol !== "https:" ||
+        url.username ||
+        url.password ||
+        (url.pathname !== "" && url.pathname !== "/") ||
+        url.search ||
+        url.hash
+    ) {
+        return "catalogUrl must be an HTTPS account/workspace base URL only; omit credentials, query, fragment, and REST path.";
+    }
+
+    const { suffixes } = DATA_CATALOG_CONFIG[provider];
+    if (!suffixes.some((suffix) => url.hostname.toLowerCase().endsWith(suffix))) {
+        const hosts = suffixes.map((suffix) => `*${suffix}`).join(" or ");
+        return `catalogUrl host for '${provider}' must end in ${hosts}.`;
+    }
+    return undefined;
+}
+
+/** Networking access types supported by Kafka, S3, and Kinesis connections. */
+const StreamsNetworkingAccessType = z.enum(["PUBLIC", "VPC", "PRIVATE_LINK", "TRANSIT_GATEWAY"]);
+
+/** Networking access types supported by connections that use publicPrivateNetworking. */
+export const StreamsPrivateLinkAccessType = z.enum(["PUBLIC", "PRIVATE_LINK"]);
+
 const DBRoleType = z.enum(["BUILT_IN", "CUSTOM"]).default("BUILT_IN");
 
 /** Typed schema for connectionConfig — all fields optional to support elicitation of partial configs. */
@@ -66,6 +155,20 @@ export const ConnectionConfig = z
             .passthrough()
             .optional()
             .describe("AWS config for S3, Kinesis, and Lambda connections."),
+        // GCP (Pub/Sub)
+        gcp: z
+            .object({
+                serviceAccountId: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "Email address of the GCP service account that Atlas Streams uses to access Pub/Sub. " +
+                            "Must be registered in this Atlas project via Cloud Provider Access."
+                    ),
+            })
+            .passthrough()
+            .optional()
+            .describe("GCP config for Pub/Sub connections."),
         // Https
         url: z.string().optional().describe("Webhook URL for Https connections."),
         headers: z.record(z.string(), z.string()).optional().describe("HTTP headers for Https connections."),
@@ -93,12 +196,23 @@ export const ConnectionConfig = z
             .passthrough()
             .optional()
             .describe("Schema registry auth. Defaults to USER_INFO."),
-        // Networking (Kafka PrivateLink/VPC peering)
+        // Iceberg Data Catalog
+        catalogProvider: DataCatalogProvider.optional().describe(
+            "Catalog provider for a DataCatalog connection: DATABRICKS_UNITY or SNOWFLAKE_HORIZON."
+        ),
+        catalogUrl: CatalogUrl.optional(),
+        databricks: DatabricksCatalogSettings.optional().describe(
+            "Required for catalogProvider DATABRICKS_UNITY; do not combine with snowflake."
+        ),
+        snowflake: SnowflakeCatalogSettings.optional().describe(
+            "Required for catalogProvider SNOWFLAKE_HORIZON; do not combine with databricks."
+        ),
+        // networking: Kafka, S3, and Kinesis (PUBLIC | VPC | PRIVATE_LINK | TRANSIT_GATEWAY)
         networking: z
             .object({
                 access: z
                     .object({
-                        type: z.string().optional(),
+                        type: StreamsNetworkingAccessType.optional(),
                         connectionId: z.string().optional(),
                     })
                     .passthrough()
@@ -106,9 +220,86 @@ export const ConnectionConfig = z
             })
             .passthrough()
             .optional()
-            .describe("Private networking config (PrivateLink or VPC peering). Kafka only."),
+            .describe(
+                "Networking access for Kafka, S3, and Kinesis connections. " +
+                    "Set access.type to PUBLIC, VPC, PRIVATE_LINK, or TRANSIT_GATEWAY. " +
+                    "For GCPPubSub and AWSLambda connections use publicPrivateNetworking."
+            ),
+        // publicPrivateNetworking: AWSLambda and GCPPubSub (PUBLIC | PRIVATE_LINK)
+        publicPrivateNetworking: z
+            .object({
+                access: z
+                    .object({
+                        type: StreamsPrivateLinkAccessType.optional(),
+                        connectionId: z
+                            .string()
+                            .optional()
+                            .describe(
+                                "PrivateLink endpoint ID (24-character hex string), as returned by atlas-streams-discover action 'get-networking'."
+                            ),
+                    })
+                    .passthrough()
+                    .optional(),
+            })
+            .passthrough()
+            .optional()
+            .describe(
+                "Networking access for GCPPubSub and AWSLambda connections. " +
+                    "Set access.type to PUBLIC or PRIVATE_LINK. " +
+                    "For private networking set access.connectionId to a PrivateLink endpoint ID."
+            ),
     })
     .passthrough();
+
+export const StreamsConnectionConfig = z.union([
+    DATA_CATALOG_CONFIG.DATABRICKS_UNITY.schema,
+    DATA_CATALOG_CONFIG.SNOWFLAKE_HORIZON.schema,
+    ConnectionConfig.extend({
+        catalogProvider: z.never().optional(),
+        catalogUrl: z.never().optional(),
+        databricks: z.never().optional(),
+        snowflake: z.never().optional(),
+    }),
+]);
+
+const IcebergCatalog = z.discriminatedUnion("type", [
+    z.looseObject({ type: z.enum(["hadoop", "glue"]) }),
+    ...(["unity", "horizon"] as const).map((type) => {
+        const connectionError = `Catalog connectionName is required for '${type}'. Create or inspect a DataCatalog connection first.`;
+        const warehouseError = `Catalog warehouse is required for '${type}' (Unity catalog name or Snowflake database).`;
+        return z.looseObject({
+            type: z.literal(type),
+            connectionName: z.string(connectionError).trim().min(1, connectionError),
+            warehouse: z.string(warehouseError).trim().min(1, warehouseError),
+        });
+    }),
+]);
+
+const IcebergStage = z.looseObject({ catalog: IcebergCatalog.optional() });
+
+export const StreamsPipeline = z.array(z.record(z.string(), z.unknown())).superRefine((pipeline, context) => {
+    pipeline.forEach((stage, stageIndex) => {
+        if (stage.$iceberg === undefined) return;
+        const parsed = IcebergStage.safeParse(stage.$iceberg);
+        if (parsed.success) return;
+        for (const issue of parsed.error.issues) {
+            context.addIssue({
+                code: "custom",
+                path: [stageIndex, "$iceberg", ...issue.path],
+                message:
+                    issue.code === "invalid_union"
+                        ? "Catalog type must be hadoop, glue, unity, or horizon."
+                        : issue.message,
+            });
+        }
+    });
+});
+
+/** PrivateLink vendors accepted by the API. Input is normalized to uppercase. */
+const StreamsPrivateLinkVendor = z
+    .string()
+    .transform((value) => value.toUpperCase())
+    .pipe(z.enum(["CONFLUENT", "MSK", "EVENTHUB", "GENERIC", "KINESIS", "S3", "PUBSUB", "LAMBDA"]));
 
 /** Typed schema for privateLinkConfig — provider is required, all other fields optional and per-provider. */
 export const PrivateLinkConfig = z
@@ -122,12 +313,9 @@ export const PrivateLinkConfig = z
                 "Cloud region for the PrivateLink endpoint. Required for all vendors except AWS MSK. Use cloud-native region names: AWS 'us-east-1', Azure 'eastus2', GCP 'us-central1'."
             ),
         // AWS
-        vendor: z
-            .string()
-            .optional()
-            .describe(
-                "PrivateLink vendor. If the user does not specify a vendor, ask them which vendor to use before proceeding. If they decline or say none, omit this field — the Atlas API will default to GENERIC. Valid values — AWS: 'CONFLUENT', 'MSK', 'KINESIS', 'S3'. Azure: 'EVENTHUB', 'CONFLUENT'. GCP: 'CONFLUENT'."
-            ),
+        vendor: StreamsPrivateLinkVendor.optional().describe(
+            "PrivateLink vendor. If the user does not specify a vendor, ask them which vendor to use before proceeding. If they decline or say none, omit this field — the Atlas API will default to GENERIC. Valid values — AWS: 'CONFLUENT', 'MSK', 'KINESIS', 'S3', 'LAMBDA'. Azure: 'EVENTHUB', 'CONFLUENT'. GCP: 'CONFLUENT', 'PUBSUB'."
+        ),
         arn: z.string().optional().describe("Amazon Resource Name (ARN). Required for AWS MSK vendor."),
         authenticationScheme: z
             .enum(["TLS", "SASL_SCRAM", "IAM"])
@@ -139,7 +327,7 @@ export const PrivateLinkConfig = z
             .string()
             .optional()
             .describe(
-                "DNS domain hostname. Required for AWS CONFLUENT, AZURE EVENTHUB, AZURE CONFLUENT, and GCP CONFLUENT."
+                "DNS domain hostname. Required for AWS CONFLUENT, AZURE EVENTHUB, AZURE CONFLUENT, and GCP CONFLUENT. For GCP PUBSUB Atlas derives it — omit it."
             ),
         dnsSubDomain: z
             .array(z.string())
@@ -152,7 +340,7 @@ export const PrivateLinkConfig = z
             .string()
             .optional()
             .describe(
-                "Service endpoint ID. Required for AWS CONFLUENT, AWS S3, AWS KINESIS, and AZURE EVENTHUB. Do NOT provide for AZURE CONFLUENT or GCP CONFLUENT."
+                "Service endpoint ID. Required for AWS CONFLUENT, AWS S3, AWS KINESIS, AWS LAMBDA ('com.amazonaws.{region}.lambda'), and AZURE EVENTHUB. Do NOT provide for AZURE CONFLUENT, GCP CONFLUENT, or GCP PUBSUB."
             ),
         azureResourceIds: z
             .array(z.string())

@@ -229,7 +229,7 @@ export abstract class MCPHttpServer<
                 // else (modern-enveloped, or naming a method only the 2026-07-28
                 // era has) goes to the stateless modern handler.
                 const webRequest = await toWebRequest(req, req.body);
-                if (!isModernOnlyMethodRequest(req.body) && (await isLegacyRequest(webRequest))) {
+                if (!isModernOnlyMethodRequest(req.body) && (await isLegacyRequest(webRequest, req.body))) {
                     return await this.legacyHandler.handle(req, res);
                 }
                 return await toNodeHandler({ fetch: (request, opts) => this.modernHandler.fetch(request, opts) })(

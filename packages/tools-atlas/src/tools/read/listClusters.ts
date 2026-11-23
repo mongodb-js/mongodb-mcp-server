@@ -16,7 +16,7 @@ export const ListClustersArgs = {
     projectId: AtlasArgs.projectId().describe("Atlas project ID to filter clusters").optional(),
 };
 
-export const ClusterOutputSchema = {
+const ClusterOutputSchema = {
     name: z.string().optional(),
     clusterId: z.string().optional(),
     instanceType: z.enum(["FREE", "DEDICATED", "FLEX"]),
@@ -30,13 +30,13 @@ export const ClusterOutputSchema = {
     processIds: z.array(z.string()).optional(),
 };
 
-export const ClusterSummaryOutputSchema = z.object({
+const ClusterSummaryOutputSchema = z.object({
     clusterName: z.string().optional(),
     projectId: z.string().optional(),
     projectName: z.string().optional(),
 });
 
-export const ListClusterItemOutputSchema = z.union([ClusterSummaryOutputSchema, z.object(ClusterOutputSchema)]);
+const ListClusterItemOutputSchema = z.union([ClusterSummaryOutputSchema, z.object(ClusterOutputSchema)]);
 
 const ListClustersOutputSchema = {
     projectId: z.string().optional(),

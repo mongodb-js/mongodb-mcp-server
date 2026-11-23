@@ -2,7 +2,7 @@ import { ToolBase } from "@mongodb-js/mcp-core";
 import type { TelemetryToolMetadata, IToolConfig, ToolCategory, ToolServices, ToolServer } from "@mongodb-js/mcp-types";
 import { getSharedProxyFetch } from "@mongodb-js/mcp-fetch";
 
-export const DEFAULT_ASSISTANT_BASE_URL = "https://knowledge.mongodb.com/api/v1/";
+const DEFAULT_ASSISTANT_BASE_URL = "https://knowledge.mongodb.com/api/v1/";
 
 export interface IAssistantConfig extends IToolConfig {
     assistantBaseUrl?: string;

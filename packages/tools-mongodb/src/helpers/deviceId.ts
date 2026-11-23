@@ -2,7 +2,7 @@ import { getDeviceId } from "@mongodb-js/device-id";
 import type { IDeviceId } from "@mongodb-js/mcp-types";
 import { LogId, type LoggerBase } from "@mongodb-js/mcp-core";
 
-export const DEVICE_ID_TIMEOUT = 3000;
+const DEVICE_ID_TIMEOUT = 3000;
 
 export class DeviceId implements IDeviceId {
     private static readonly UnknownDeviceId = Promise.resolve("unknown");
