@@ -348,7 +348,7 @@ importers:
     dependencies:
       '@mcp-ui/server':
         specifier: ^6.1.0
-        version: 6.1.0(@cfworker/json-schema@4.1.1)(react-dom@18.3.1(react@19.3.1))(react@19.3.1)(zod@4.6.6)
+        version: 6.1.0(@cfworker/json-schema@4.1.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(zod@4.6.6)
       '@modelcontextprotocol/server':
         specifier: ^2.3.1
         version: 2.3.1
@@ -1157,10 +1157,10 @@ importers:
     devDependencies:
       '@lg-mcp/embeddable-uis':
         specifier: ^0.1.0
-        version: 0.1.0(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@19.3.0)(react-dom@18.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react-dom@18.3.1(react@19.3.1))(react@19.3.1)
+        version: 0.1.0(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@lg-mcp/hooks':
         specifier: ^0.2.0
-        version: 0.2.0(@cfworker/json-schema@4.1.1)(react-dom@18.3.1(react@19.3.1))(react@19.3.1)(zod@4.6.6)
+        version: 0.2.0(@cfworker/json-schema@4.1.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(zod@4.6.6)
       '@microsoft/api-extractor':
         specifier: ^7.59.0
         version: 7.59.0(@types/node@25.6.0)
@@ -1175,7 +1175,7 @@ importers:
         version: 7.0.1(@testing-library/dom@10.4.1)(vitest@4.1.11)
       '@testing-library/react':
         specifier: ^16.3.2
-        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@18.3.1(react@19.3.1))(react@19.3.1)
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@types/node':
         specifier: ^25.6.0
         version: 25.6.0
@@ -1195,8 +1195,8 @@ importers:
         specifier: ^19.3.1
         version: 19.3.1
       react-dom:
-        specifier: ^18.3.0
-        version: 18.3.1(react@19.3.1)
+        specifier: ^19.3.1
+        version: 19.3.1(react@19.3.1)
       tsx:
         specifier: ^4.23.12
         version: 4.23.12
@@ -7049,6 +7049,11 @@ packages:
     peerDependencies:
       react: ^18.3.1
 
+  react-dom@19.3.1:
+    resolution: {integrity: sha512-Y0bARz53lhEC1NMCASs0/j+faB/zqt3R8hpvg1e8+61ZVJ4UL0UdC4cBbXfZMcIuhrfgeILTLe+ZeBCavQPtKQ==}
+    peerDependencies:
+      react: ^19.3.1
+
   react-fast-compare@3.2.2:
     resolution: {integrity: sha512-nsO+KSNgo1SbJqJEYRE9ERzo7YtYbou/OqjSQKxV7jcKox7+usiUVZOAC+XnDOABXggQTno0Y1CpVnuWEc1boQ==}
 
@@ -7242,6 +7247,9 @@ packages:
 
   scheduler@0.23.2:
     resolution: {integrity: sha512-UOShsPwz7NrMUqhR6t0hWjFduvOzbtv7toDH1/hIrfRNIDBnnBWd0CwJTGvTpngVlmwGCdP9/Zl/tVrDqcuYzQ==}
+
+  scheduler@0.28.0:
+    resolution: {integrity: sha512-juorfCmIkIw8tT+p5BXSm6PJjQF/ycEYmKyzURCIt/RaZIhL+PulbQ9Yu2z1HdOJDdqDTlxA1+xKBmHXJsczAw==}
 
   seek-bzip@2.0.0:
     resolution: {integrity: sha512-SMguiTnYrhpLdk3PwfzHeotrcwi8bNV4iemL9tx9poR/yeaMYwB9VzR1w7b57DuWpuqR8n6oZboi0hj3AxZxQg==}
@@ -9634,18 +9642,18 @@ snapshots:
       - react
       - supports-color
 
-  '@leafygreen-ui/checkbox@18.1.5(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@19.3.0)(react-dom@18.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react-dom@18.3.1(react@19.3.1))(react@19.3.1)':
+  '@leafygreen-ui/checkbox@18.1.5(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
       '@leafygreen-ui/a11y': 3.0.5(@types/react@19.3.0)(react@19.3.1)
       '@leafygreen-ui/emotion': 5.2.1(@types/react@19.3.0)(react@19.3.1)
       '@leafygreen-ui/hooks': 9.3.2(@types/react@19.3.0)(react@19.3.1)
-      '@leafygreen-ui/leafygreen-provider': 5.0.4(@types/react@19.3.0)(react-dom@18.3.1(react@19.3.1))(react@19.3.1)
+      '@leafygreen-ui/leafygreen-provider': 5.0.4(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@leafygreen-ui/lib': 15.7.1(react@19.3.1)
       '@leafygreen-ui/palette': 5.0.3
       '@leafygreen-ui/tokens': 4.2.3(@types/react@19.3.0)(react@19.3.1)
-      '@leafygreen-ui/typography': 22.2.4(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@19.3.0)(react-dom@18.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react@19.3.1)
+      '@leafygreen-ui/typography': 22.2.4(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react@19.3.1)
       '@lg-tools/test-harnesses': 0.3.4
-      react-transition-group: 4.4.5(react-dom@18.3.1(react@19.3.1))(react@19.3.1)
+      react-transition-group: 4.4.5(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     transitivePeerDependencies:
       - '@types/react'
       - react
@@ -9682,12 +9690,12 @@ snapshots:
       - react
       - supports-color
 
-  '@leafygreen-ui/icon-button@17.1.5(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@19.3.0)(react-dom@18.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react@19.3.1)':
+  '@leafygreen-ui/icon-button@17.1.5(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react@19.3.1)':
     dependencies:
       '@leafygreen-ui/a11y': 3.0.5(@types/react@19.3.0)(react@19.3.1)
       '@leafygreen-ui/emotion': 5.2.1(@types/react@19.3.0)(react@19.3.1)
       '@leafygreen-ui/icon': 14.8.0(@types/react@19.3.0)(react@19.3.1)
-      '@leafygreen-ui/leafygreen-provider': 5.0.4(@types/react@19.3.0)(react-dom@18.3.1(react@19.3.1))(react@19.3.1)
+      '@leafygreen-ui/leafygreen-provider': 5.0.4(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@leafygreen-ui/lib': 15.7.1(react@19.3.1)
       '@leafygreen-ui/palette': 5.0.3
       '@leafygreen-ui/polymorphic': 3.1.0(react@19.3.1)
@@ -9708,11 +9716,11 @@ snapshots:
       - react
       - supports-color
 
-  '@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@19.3.0)(react-dom@18.3.1(react@19.3.1))(react@19.3.1)':
+  '@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
       '@leafygreen-ui/hooks': 9.3.3(@types/react@19.3.0)(react@19.3.1)
       '@leafygreen-ui/lib': 15.7.1(react@19.3.1)
-      react-transition-group: 4.4.5(react-dom@18.3.1(react@19.3.1))(react@19.3.1)
+      react-transition-group: 4.4.5(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     transitivePeerDependencies:
       - '@types/react'
       - react
@@ -9733,22 +9741,22 @@ snapshots:
     transitivePeerDependencies:
       - react
 
-  '@leafygreen-ui/table@15.2.3(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@19.3.0)(react-dom@18.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react-dom@18.3.1(react@19.3.1))(react@19.3.1)':
+  '@leafygreen-ui/table@15.2.3(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
-      '@leafygreen-ui/checkbox': 18.1.5(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@19.3.0)(react-dom@18.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react-dom@18.3.1(react@19.3.1))(react@19.3.1)
+      '@leafygreen-ui/checkbox': 18.1.5(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@leafygreen-ui/emotion': 5.2.1(@types/react@19.3.0)(react@19.3.1)
       '@leafygreen-ui/hooks': 9.3.2(@types/react@19.3.0)(react@19.3.1)
       '@leafygreen-ui/icon': 14.8.0(@types/react@19.3.0)(react@19.3.1)
-      '@leafygreen-ui/icon-button': 17.1.5(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@19.3.0)(react-dom@18.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react@19.3.1)
-      '@leafygreen-ui/leafygreen-provider': 5.0.4(@types/react@19.3.0)(react-dom@18.3.1(react@19.3.1))(react@19.3.1)
+      '@leafygreen-ui/icon-button': 17.1.5(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react@19.3.1)
+      '@leafygreen-ui/leafygreen-provider': 5.0.4(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@leafygreen-ui/lib': 15.7.1(react@19.3.1)
       '@leafygreen-ui/palette': 5.0.3
       '@leafygreen-ui/polymorphic': 3.1.0(react@19.3.1)
       '@leafygreen-ui/tokens': 4.2.3(@types/react@19.3.0)(react@19.3.1)
-      '@leafygreen-ui/typography': 22.2.4(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@19.3.0)(react-dom@18.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react@19.3.1)
+      '@leafygreen-ui/typography': 22.2.4(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react@19.3.1)
       '@lg-tools/test-harnesses': 0.3.4
-      '@tanstack/react-table': 8.21.3(react-dom@18.3.1(react@19.3.1))(react@19.3.1)
-      '@tanstack/react-virtual': 3.13.12(react-dom@18.3.1(react@19.3.1))(react@19.3.1)
+      '@tanstack/react-table': 8.21.3(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@tanstack/react-virtual': 3.13.12(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       lodash: 4.18.1
       polished: 4.3.1
       react-fast-compare: 3.2.2
@@ -9769,11 +9777,11 @@ snapshots:
       - react
       - supports-color
 
-  '@leafygreen-ui/typography@22.2.4(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@19.3.0)(react-dom@18.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react@19.3.1)':
+  '@leafygreen-ui/typography@22.2.4(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react@19.3.1)':
     dependencies:
       '@leafygreen-ui/emotion': 5.2.1(@types/react@19.3.0)(react@19.3.1)
       '@leafygreen-ui/icon': 14.8.0(@types/react@19.3.0)(react@19.3.1)
-      '@leafygreen-ui/leafygreen-provider': 5.0.4(@types/react@19.3.0)(react-dom@18.3.1(react@19.3.1))(react@19.3.1)
+      '@leafygreen-ui/leafygreen-provider': 5.0.4(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@leafygreen-ui/lib': 15.7.1(react@19.3.1)
       '@leafygreen-ui/palette': 5.0.3
       '@leafygreen-ui/polymorphic': 3.1.0(react@19.3.1)
@@ -9783,13 +9791,13 @@ snapshots:
       - react
       - supports-color
 
-  '@lg-mcp/embeddable-uis@0.1.0(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@19.3.0)(react-dom@18.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react-dom@18.3.1(react@19.3.1))(react@19.3.1)':
+  '@lg-mcp/embeddable-uis@0.1.0(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
       '@leafygreen-ui/emotion': 5.2.1(@types/react@19.3.0)(react@19.3.1)
       '@leafygreen-ui/lib': 15.7.1(react@19.3.1)
-      '@leafygreen-ui/table': 15.2.3(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@19.3.0)(react-dom@18.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react-dom@18.3.1(react@19.3.1))(react@19.3.1)
+      '@leafygreen-ui/table': 15.2.3(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@leafygreen-ui/tokens': 4.2.3(@types/react@19.3.0)(react@19.3.1)
-      '@leafygreen-ui/typography': 22.2.4(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@19.3.0)(react-dom@18.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react@19.3.1)
+      '@leafygreen-ui/typography': 22.2.4(@leafygreen-ui/leafygreen-provider@5.0.4(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react@19.3.1)
     transitivePeerDependencies:
       - '@leafygreen-ui/leafygreen-provider'
       - '@types/react'
@@ -9797,9 +9805,9 @@ snapshots:
       - react-dom
       - supports-color
 
-  '@lg-mcp/hooks@0.2.0(@cfworker/json-schema@4.1.1)(react-dom@18.3.1(react@19.3.1))(react@19.3.1)(zod@4.6.6)':
+  '@lg-mcp/hooks@0.2.0(@cfworker/json-schema@4.1.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(zod@4.6.6)':
     dependencies:
-      '@mcp-ui/server': 5.16.3(@cfworker/json-schema@4.1.1)(react-dom@18.3.1(react@19.3.1))(react@19.3.1)(zod@4.6.6)
+      '@mcp-ui/server': 5.16.3(@cfworker/json-schema@4.1.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(zod@4.6.6)
     transitivePeerDependencies:
       - '@cfworker/json-schema'
       - react
@@ -9822,9 +9830,9 @@ snapshots:
       - '@cfworker/json-schema'
       - supports-color
 
-  '@mcp-ui/server@5.16.3(@cfworker/json-schema@4.1.1)(react-dom@18.3.1(react@19.3.1))(react@19.3.1)(zod@4.6.6)':
+  '@mcp-ui/server@5.16.3(@cfworker/json-schema@4.1.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(zod@4.6.6)':
     dependencies:
-      '@modelcontextprotocol/ext-apps': 0.2.2(@modelcontextprotocol/sdk@1.32.1(@cfworker/json-schema@4.1.1)(zod@4.6.6))(react-dom@18.3.1(react@19.3.1))(react@19.3.1)(zod@4.6.6)
+      '@modelcontextprotocol/ext-apps': 0.2.2(@modelcontextprotocol/sdk@1.32.1(@cfworker/json-schema@4.1.1)(zod@4.6.6))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(zod@4.6.6)
       '@modelcontextprotocol/sdk': 1.32.1(@cfworker/json-schema@4.1.1)(zod@4.6.6)
     transitivePeerDependencies:
       - '@cfworker/json-schema'
@@ -9833,9 +9841,9 @@ snapshots:
       - supports-color
       - zod
 
-  '@mcp-ui/server@6.1.0(@cfworker/json-schema@4.1.1)(react-dom@18.3.1(react@19.3.1))(react@19.3.1)(zod@4.6.6)':
+  '@mcp-ui/server@6.1.0(@cfworker/json-schema@4.1.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(zod@4.6.6)':
     dependencies:
-      '@modelcontextprotocol/ext-apps': 0.3.1(@modelcontextprotocol/sdk@1.32.1(@cfworker/json-schema@4.1.1)(zod@4.6.6))(react-dom@18.3.1(react@19.3.1))(react@19.3.1)(zod@4.6.6)
+      '@modelcontextprotocol/ext-apps': 0.3.1(@modelcontextprotocol/sdk@1.32.1(@cfworker/json-schema@4.1.1)(zod@4.6.6))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(zod@4.6.6)
       '@modelcontextprotocol/sdk': 1.32.1(@cfworker/json-schema@4.1.1)(zod@4.6.6)
     transitivePeerDependencies:
       - '@cfworker/json-schema'
@@ -9924,7 +9932,7 @@ snapshots:
     dependencies:
       zod: 4.6.6
 
-  '@modelcontextprotocol/ext-apps@0.2.2(@modelcontextprotocol/sdk@1.32.1(@cfworker/json-schema@4.1.1)(zod@4.6.6))(react-dom@18.3.1(react@19.3.1))(react@19.3.1)(zod@4.6.6)':
+  '@modelcontextprotocol/ext-apps@0.2.2(@modelcontextprotocol/sdk@1.32.1(@cfworker/json-schema@4.1.1)(zod@4.6.6))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(zod@4.6.6)':
     dependencies:
       '@modelcontextprotocol/sdk': 1.32.1(@cfworker/json-schema@4.1.1)(zod@4.6.6)
       prettier: 3.8.3
@@ -9947,9 +9955,9 @@ snapshots:
       '@rollup/rollup-linux-x64-gnu': 4.60.3
       '@rollup/rollup-win32-x64-msvc': 4.60.3
       react: 19.3.1
-      react-dom: 18.3.1(react@19.3.1)
+      react-dom: 19.3.1(react@19.3.1)
 
-  '@modelcontextprotocol/ext-apps@0.3.1(@modelcontextprotocol/sdk@1.32.1(@cfworker/json-schema@4.1.1)(zod@4.6.6))(react-dom@18.3.1(react@19.3.1))(react@19.3.1)(zod@4.6.6)':
+  '@modelcontextprotocol/ext-apps@0.3.1(@modelcontextprotocol/sdk@1.32.1(@cfworker/json-schema@4.1.1)(zod@4.6.6))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(zod@4.6.6)':
     dependencies:
       '@modelcontextprotocol/sdk': 1.32.1(@cfworker/json-schema@4.1.1)(zod@4.6.6)
       zod: 4.6.6
@@ -9972,7 +9980,7 @@ snapshots:
       '@rollup/rollup-win32-arm64-msvc': 4.60.3
       '@rollup/rollup-win32-x64-msvc': 4.60.3
       react: 19.3.1
-      react-dom: 18.3.1(react@19.3.1)
+      react-dom: 19.3.1(react@19.3.1)
 
   '@modelcontextprotocol/ext-apps@1.7.4(@modelcontextprotocol/sdk@1.32.1(@cfworker/json-schema@4.1.1)(zod@4.6.6))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.6.6)':
     dependencies:
@@ -11673,17 +11681,17 @@ snapshots:
     dependencies:
       defer-to-connect: 2.0.1
 
-  '@tanstack/react-table@8.21.3(react-dom@18.3.1(react@19.3.1))(react@19.3.1)':
+  '@tanstack/react-table@8.21.3(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
       '@tanstack/table-core': 8.21.3
       react: 19.3.1
-      react-dom: 18.3.1(react@19.3.1)
+      react-dom: 19.3.1(react@19.3.1)
 
-  '@tanstack/react-virtual@3.13.12(react-dom@18.3.1(react@19.3.1))(react@19.3.1)':
+  '@tanstack/react-virtual@3.13.12(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
       '@tanstack/virtual-core': 3.13.12
       react: 19.3.1
-      react-dom: 18.3.1(react@19.3.1)
+      react-dom: 19.3.1(react@19.3.1)
 
   '@tanstack/table-core@8.21.3': {}
 
@@ -11723,12 +11731,12 @@ snapshots:
     optionalDependencies:
       vitest: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.11)(@vitest/coverage-v8@4.1.11)(happy-dom@20.9.0)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.3.4(@types/node@25.6.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.1))
 
-  '@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@18.3.1(react@19.3.1))(react@19.3.1)':
+  '@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
       '@babel/runtime': 7.29.10
       '@testing-library/dom': 10.4.1
       react: 19.3.1
-      react-dom: 18.3.1(react@19.3.1)
+      react-dom: 19.3.1(react@19.3.1)
     optionalDependencies:
       '@types/react': 19.3.0
       '@types/react-dom': 19.2.3(@types/react@19.3.0)
@@ -15038,11 +15046,10 @@ snapshots:
       react: 18.3.1
       scheduler: 0.23.2
 
-  react-dom@18.3.1(react@19.3.1):
+  react-dom@19.3.1(react@19.3.1):
     dependencies:
-      loose-envify: 1.4.0
       react: 19.3.1
-      scheduler: 0.23.2
+      scheduler: 0.28.0
 
   react-fast-compare@3.2.2: {}
 
@@ -15086,14 +15093,14 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.3.0
 
-  react-transition-group@4.4.5(react-dom@18.3.1(react@19.3.1))(react@19.3.1):
+  react-transition-group@4.4.5(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
     dependencies:
       '@babel/runtime': 7.29.10
       dom-helpers: 5.2.1
       loose-envify: 1.4.0
       prop-types: 15.8.1
       react: 19.3.1
-      react-dom: 18.3.1(react@19.3.1)
+      react-dom: 19.3.1(react@19.3.1)
 
   react@18.3.1:
     dependencies:
@@ -15313,6 +15320,8 @@ snapshots:
   scheduler@0.23.2:
     dependencies:
       loose-envify: 1.4.0
+
+  scheduler@0.28.0: {}
 
   seek-bzip@2.0.0:
     dependencies:
