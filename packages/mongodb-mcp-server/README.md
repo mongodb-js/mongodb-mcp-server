@@ -342,7 +342,7 @@ For custom HTTP clients and hosts, see the library guide's [HTTP compatibility r
 - `drop-collection` - Removes a collection or view from the database. The method also removes any indexes associated with the dropped collection.
 - `drop-database` - Removes the specified database, deleting the associated data files
 - `drop-index` - Drop an index for the provided database and collection.
-- `explain` - Returns statistics describing the execution of the winning plan chosen by the query optimizer for the evaluated method
+- `explain` - Returns statistics describing the execution of the winning plan chosen by the query optimizer for the evaluated method. Pipelines with $out or $merge stages are not accepted, because explain never writes.
 - `export` - Export a query or aggregation results in the specified EJSON format.
 - `find` - Run a find query against a MongoDB collection
 - `insert-many` - Insert an array of documents into a MongoDB collection. If the list of documents is above com.mongodb/maxRequestPayloadBytes, consider inserting them in batches.
@@ -372,7 +372,7 @@ For custom HTTP clients and hosts, see the library guide's [HTTP compatibility r
 - `atlas-list-projects` - List MongoDB Atlas projects.
 - `atlas-load-sample-dataset` - Load a MongoDB sample dataset into an Atlas cluster, or check the status of a previously-initiated load. To start a new load, provide `clusterName` — the load runs asynchronously and the response includes a `jobId` and initial state. To check progress, call this tool again with `jobId` (sample dataset loads typically take 1–5 minutes). State can be WORKING, COMPLETED, or FAILED.
 - `atlas-pause-resume-cluster` - Pause or resume a dedicated (M10+) MongoDB Atlas cluster.
-- `atlas-streams-build` - Create Atlas Stream Processing resources. Use this tool for 'set up a Kafka pipeline', 'create a workspace', 'add a connection', or 'deploy a processor'. Use resource='workspace' to create a new workspace (specify cloud provider, region, and tier). Use resource='connection' to add a data source or sink to an existing workspace. Use resource='processor' to deploy a stream processor with a pipeline. Use resource='privatelink' to set up private networking. Typical workflow: create workspace → add connections → deploy processor.
+- `atlas-streams-build` - Create Atlas Stream Processing resources. Use this tool for 'set up a Kafka pipeline', 'create a workspace', 'add a connection', or 'deploy a processor'. Use resource='workspace' to create a new workspace (specify cloud provider, region, and tier). Use resource='connection' to add a data source or sink to an existing workspace, including a Unity or Horizon DataCatalog for Iceberg. Use resource='processor' to deploy a stream processor with a pipeline. Use resource='privatelink' to set up private networking. Typical workflow: create workspace → add connections → deploy processor. For Unity/Horizon Iceberg sinks, set $iceberg.catalog with type, catalog connectionName, and warehouse; Hadoop/Glue remain type-only.
 - `atlas-streams-discover` - Discover and inspect Atlas Stream Processing resources. Also use for 'why is my processor failing', 'what workspaces do I have', 'show processor stats', or 'check processor health'. Use 'list-workspaces' to see all workspaces in a project. Use inspect actions for details on a specific resource. Use 'diagnose-processor' for a combined health report including state, stats, connection health, and recent errors. Use 'get-networking' for PrivateLink and account details.
 - `atlas-streams-manage` - Manage Atlas Stream Processing resources: start/stop processors, modify pipelines, update configurations. Also use for 'change the pipeline', 'scale up my processor', or 'update my workspace tier'. Common workflow: action='stop-processor' → action='modify-processor' → action='start-processor'. Use `atlas-streams-discover` with action 'inspect-processor' to check state before managing.
 - `atlas-streams-teardown` - Delete Atlas Stream Processing resources. Also use for 'remove my workspace', 'disconnect a source', 'delete all processors', or 'clean up my streams environment'. Performs basic safety checks before deletion: summarizes counts of processors and connections, highlights connections referenced by processors where possible, and surfaces API errors if processors are still running when deletion is attempted. Use `atlas-streams-discover` to review resources before deleting.
@@ -383,7 +383,7 @@ NOTE: atlas tools are only available when you set credentials on [configuration]
 #### MongoDB Atlas Local Tools
 
 - `atlas-local-connect-deployment` - Connect to a MongoDB Atlas Local deployment and get back a connectionId to pass to the other MongoDB tools
-- `atlas-local-create-deployment` - Create a MongoDB Atlas local deployment. Default image is preview. When the user does not specify an image tag, inform them that preview is used by default and provide this link for more information: https://hub.docker.com/r/mongodb/mongodb-atlas-local
+- `atlas-local-create-deployment` - Create a MongoDB Atlas local deployment. Default image is latest. When the user does not specify an image tag, inform them that latest is used by default and provide this link for more information: https://hub.docker.com/r/mongodb/mongodb-atlas-local
 - `atlas-local-delete-deployment` - Delete a MongoDB Atlas local deployment
 - `atlas-local-list-deployments` - List MongoDB Atlas local deployments
 
@@ -537,6 +537,18 @@ You can set the `confirmationRequiredTools` configuration option to specify the 
 In addition, the `aggregate` and `aggregate-db` tools always request confirmation before running a pipeline that contains a `$out` or `$merge` stage, regardless of whether they appear in `confirmationRequiredTools`. Those stages write to a collection — `$out` replaces its contents entirely — so this confirmation names the affected collection and what will happen to it. Pipelines without a write stage are not confirmed.
 
 Adding either tool to `confirmationRequiredTools` is broader: every call is then confirmed up front with the standard tool-level message, and a write stage does not raise a second prompt.
+
+##### Unattended and CI agents
+
+Some clients advertise elicitation support but have no user to answer the prompt, for example when running non-interactively (such as `codex exec`) or in CI. In that case the elicitation is not accepted, the server treats it as a decline, and the tool returns ``User did not confirm the execution of the `<tool>` tool so the operation was not performed.`` Nothing is changed, and the agent run may still exit successfully, so the failure is easy to miss.
+
+If you run the server with an unattended agent and want confirmation-gated tools (such as `delete-many`) to execute, disable the confirmation prompts by setting `confirmationRequiredTools` to an empty value:
+
+```shell
+MDB_MCP_CONFIRMATION_REQUIRED_TOOLS="" npx -y mongodb-mcp-server
+```
+
+or pass `--confirmationRequiredTools ""`. Only do this when the agent is trusted to run destructive operations without a human in the loop. Consider combining it with a [read-only](#read-only-mode) or [disabled tools](#disabled-tools) configuration, or with a database user that has limited privileges.
 
 #### Read-Only Mode
 

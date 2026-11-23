@@ -21,18 +21,30 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.action == 'opened' || github.event.label.name == 'create-jira'
     steps:
-      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - name: Set up Python for permissions monitor
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
-          config: ${{ vars.PERMISSIONS_CONFIG }}
+          python-version: "3.12"
+      - name: Expose Python to permissions monitor's sudo PATH
+        run: sudo -n ln -sf "$pythonLocation/bin/python3.12" /usr/local/bin/python3.12
+      - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1.0.2-beta9
+
+      - name: Prepare JIRA summary
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        id: summary
+        with:
+          script: |
+            const summary = `GitHub Issue #${context.payload.issue.number}: ${context.payload.issue.title}`;
+            core.setOutput('summary', summary.slice(0, 255));
 
       - name: Create JIRA ticket
-        uses: mongodb/apix-action/create-jira@v16
+        uses: mongodb/apix-action/create-jira@ca63bdc0f33a15da45755eb6a54c072ba65d3923 # v19
         id: create
         continue-on-error: true
         with:
           token: ${{ secrets.JIRA_API_TOKEN }}
           project-key: MCP
-          summary: "GitHub Issue n. ${{ github.event.issue.number }}"
+          summary: ${{ steps.summary.outputs.summary }}
           issuetype: Bug
           description: "This ticket tracks the following GitHub issue: ${{ github.event.issue.html_url }}."
           extra-data: |
@@ -54,7 +66,7 @@ jobs:
 
       - name: Add comment
         if: steps.create.outputs.issue-key
-        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9
+        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
         with:
           issue-number: ${{ github.event.issue.number }}
           body: |
@@ -62,7 +74,7 @@ jobs:
 
       - name: Remove create-jira label
         if: github.event.action == 'labeled' && github.event.label.name == 'create-jira'
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             try {
@@ -80,7 +92,7 @@ jobs:
       - name: Report failure on the GitHub issue
         if: ${{ !steps.create.outputs.issue-key }}
         continue-on-error: true
-        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9
+        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
         with:
           issue-number: ${{ github.event.issue.number }}
           body: |
@@ -99,20 +111,24 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.action == 'closed'
     steps:
-      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      - name: Set up Python for permissions monitor
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
-          config: ${{ vars.PERMISSIONS_CONFIG }}
+          python-version: "3.12"
+      - name: Expose Python to permissions monitor's sudo PATH
+        run: sudo -n ln -sf "$pythonLocation/bin/python3.12" /usr/local/bin/python3.12
+      - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1.0.2-beta9
 
       - name: Find JIRA ticket by GitHub issue number
         id: find_jira
-        uses: mongodb/apix-action/find-jira@v16
+        uses: mongodb/apix-action/find-jira@ca63bdc0f33a15da45755eb6a54c072ba65d3923 # v19
         with:
           token: ${{ secrets.JIRA_API_TOKEN }}
           jql: "project = MCP AND description ~ '${{ github.event.issue.html_url }}'"
 
       - name: Close JIRA ticket
         if: steps.find_jira.outputs.found == 'true'
-        uses: mongodb/apix-action/transition-jira@v16
+        uses: mongodb/apix-action/transition-jira@ca63bdc0f33a15da45755eb6a54c072ba65d3923 # v19
         id: close_jira_ticket
         continue-on-error: true
         with:
@@ -121,7 +137,7 @@ jobs:
           transition-id: 61
       - name: Add closure comment
         if: steps.close_jira_ticket.outcome == 'success'
-        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9
+        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
         with:
           issue-number: ${{ github.event.issue.number }}
           body: |

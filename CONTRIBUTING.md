@@ -165,7 +165,7 @@ pnpm run inspect
 This is equivalent to:
 
 ```shell
-npx @modelcontextprotocol/inspector -- node dist/esm/index.js
+pnpm dlx @modelcontextprotocol/inspector@2.14.0 -- node dist/esm/index.js
 ```
 
 ## Pull Request Guidelines

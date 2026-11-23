@@ -1,17 +1,17 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.mongodb-js/mongodb-mcp-server",
-  "description": "MongoDB Model Context Protocol Server",
+  "description": "Official MongoDB MCP server: let AI agents search and manage databases and the Atlas data platform",
   "repository": {
     "url": "https://github.com/mongodb-js/mongodb-mcp-server",
     "source": "github"
   },
-  "version": "3.2.2",
+  "version": "3.3.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "mongodb-mcp-server",
-      "version": "3.2.2",
+      "version": "3.3.0",
       "transport": {
         "type": "stdio"
       },
@@ -722,7 +722,7 @@
     },
     {
       "registryType": "oci",
-      "identifier": "docker.io/mongodb/mongodb-mcp-server:3.2.2",
+      "identifier": "docker.io/mongodb/mongodb-mcp-server:3.3.0",
       "transport": {
         "type": "stdio"
       },
