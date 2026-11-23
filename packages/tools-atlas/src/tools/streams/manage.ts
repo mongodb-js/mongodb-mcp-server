@@ -12,6 +12,7 @@ import {
     StreamsConnectionConfig,
     StreamsPipeline,
     StreamsTier,
+    lowercaseAzureStorageAccountName,
     type DataCatalogProviderValue,
     dataCatalogUrlValidationError,
     toStreamsAutoscaling,
@@ -596,7 +597,9 @@ export class StreamsManageTool extends StreamsToolBase {
             snowflake?: { authentication?: { account?: string; user?: string; role?: string } };
         };
 
-        const normalizedConfig = ConnectionConfig.parse(args.connectionConfig);
+        const parsedConfig = ConnectionConfig.parse(args.connectionConfig);
+        const normalizedConfig =
+            connection.type === "AzureBlobStorage" ? lowercaseAzureStorageAccountName(parsedConfig) : parsedConfig;
         let updateConfig: Record<string, unknown> = normalizedConfig;
         if (connection.type === "DataCatalog") {
             const provider = connection.catalogProvider;

@@ -97,6 +97,13 @@ const ConnectionInspectSchema = ConnectionSummarySchema.omit({ name: true }).ext
             serviceAccountId: z.string().optional(),
         })
         .optional(),
+    azure: z
+        .object({
+            servicePrincipalId: z.string().optional(),
+            storageAccountName: z.string().optional(),
+            region: z.string().optional(),
+        })
+        .optional(),
     publicPrivateNetworking: PublicPrivateNetworkingSummarySchema.optional(),
 });
 
@@ -111,6 +118,17 @@ function toGcpInspect(data: unknown): ConnectionInspect["gcp"] {
     const gcp = data as Record<string, unknown> | undefined;
     if (gcp === undefined || gcp === null) return undefined;
     return typeof gcp.serviceAccountId === "string" ? { serviceAccountId: gcp.serviceAccountId } : undefined;
+}
+
+function toAzureInspect(data: unknown): ConnectionInspect["azure"] {
+    const azure = data as Record<string, unknown> | undefined;
+    if (azure === undefined || azure === null) return undefined;
+    const summary = {
+        ...(typeof azure.servicePrincipalId === "string" && { servicePrincipalId: azure.servicePrincipalId }),
+        ...(typeof azure.storageAccountName === "string" && { storageAccountName: azure.storageAccountName }),
+        ...(typeof azure.region === "string" && { region: azure.region }),
+    };
+    return Object.keys(summary).length > 0 ? summary : undefined;
 }
 
 function toPublicPrivateNetworkingInspect(data: unknown): ConnectionInspect["publicPrivateNetworking"] {
@@ -128,6 +146,7 @@ function toPublicPrivateNetworkingInspect(data: unknown): ConnectionInspect["pub
 function toConnectionInspect(data: Record<string, unknown>): ConnectionInspect {
     const summary = toConnectionSummary(data);
     const gcp = toGcpInspect(data.gcp);
+    const azure = toAzureInspect(data.azure);
     const publicPrivateNetworking = toPublicPrivateNetworkingInspect(data.publicPrivateNetworking);
     const bootstrapServers =
         typeof data.bootstrapServers === "string" ||
@@ -143,6 +162,7 @@ function toConnectionInspect(data: Record<string, unknown>): ConnectionInspect {
         ...(typeof data.catalogUrl === "string" && { catalogUrl: data.catalogUrl }),
         ...(bootstrapServers !== undefined && { bootstrapServers }),
         ...(gcp !== undefined && { gcp }),
+        ...(azure !== undefined && { azure }),
         ...(publicPrivateNetworking !== undefined && { publicPrivateNetworking }),
     };
 }

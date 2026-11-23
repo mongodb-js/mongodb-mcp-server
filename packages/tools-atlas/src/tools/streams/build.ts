@@ -23,16 +23,20 @@ import {
     StreamsPrivateLinkAccessType,
     StreamsPipeline,
     StreamsTier,
+    lowercaseAzureStorageAccountName,
 } from "../../streams/streamsArgs.js";
 import { StreamsInvalidArgumentError } from "../../streams/errors.js";
 
 const BuildResource = z.enum(["workspace", "connection", "processor", "privatelink"]);
 
 /** Vendors whose connections read PrivateLink settings from publicPrivateNetworking. */
-const PUBLIC_PRIVATE_NETWORKING_VENDORS = new Set(["PUBSUB", "LAMBDA"]);
+const PUBLIC_PRIVATE_NETWORKING_VENDORS = new Set(["PUBSUB", "AZURE_BLOB_STORAGE", "LAMBDA"]);
+
+/** Fields required by the API for an AZURE_BLOB_STORAGE PrivateLink endpoint. */
+const AZURE_BLOB_STORAGE_REQUIRED_FIELDS = ["region", "serviceEndpointId", "dnsDomain"] as const;
 
 /** System variables that are not available in streaming requests. */
-const UNSUPPORTED_STREAM_VARIABLES = ["$$NOW", "$$ROOT", "$$CURRENT"] as const;
+const UNSUPPORTED_STREAM_VARIABLES = ["$$NOW", "$$CURRENT"] as const;
 
 const ConnectionType = z.enum([
     "Kafka",
@@ -43,6 +47,7 @@ const ConnectionType = z.enum([
     "AWSLambda",
     "SchemaRegistry",
     "GCPPubSub",
+    "AzureBlobStorage",
     "Sample",
     "DataCatalog",
 ]);
@@ -165,6 +170,25 @@ const HTTPS_FIELDS = {
     },
 } as const satisfies Record<string, FieldSchema>;
 
+const AZURE_FIELDS = {
+    servicePrincipalId: {
+        title: "Azure Service Principal ID",
+        description:
+            "Unique ID of the Azure service principal that has access to the storage account. " +
+            "Find it in Atlas UI → Project Settings → Integrations → Azure Service Principal Access.",
+    },
+    storageAccountName: {
+        title: "Azure Storage Account Name",
+        description: "Name of the Azure storage account to connect to (3-24 lowercase letters and numbers only).",
+    },
+    connectionId: {
+        title: "PrivateLink Connection ID",
+        description:
+            "24-character hex ID of an AZURE_BLOB_STORAGE PrivateLink endpoint in this project. " +
+            "Use `atlas-streams-discover` with action 'get-networking' to list endpoints.",
+    },
+} as const satisfies Record<string, FieldSchema>;
+
 const GCP_FIELDS = {
     serviceAccountId: {
         title: "GCP Service Account Email",
@@ -234,6 +258,7 @@ const StreamsBuildArgsShape = {
             "SchemaRegistry: needs provider, schemaRegistryUrls, and authentication config. " +
             "DataCatalog: needs catalogProvider, catalogUrl, and exactly one provider config: databricks.authentication (clientId, clientSecret) or snowflake.authentication (account, user, role, privateKey). Never include token credentials or use private token endpoints. " +
             "GCPPubSub: needs gcp.serviceAccountId (registered via Atlas Cloud Provider Access). " +
+            "AzureBlobStorage: needs azure.servicePrincipalId and azure.storageAccountName (servicePrincipalId registered via Atlas Cloud Provider Access)." +
             "Sample: provides sample data for testing (no config needed)."
     ),
     connectionConfig: StreamsConnectionConfig.optional().describe(
@@ -253,18 +278,24 @@ const StreamsBuildArgsShape = {
             "Use $iceberg to write to Apache Iceberg tables on an S3 connection (must be the last stage): {$iceberg: {connectionName, bucket, databaseName, tableName, path}}. " +
             "The storage connectionName is the S3 connection. Optional built-in catalogs are {$iceberg: {catalog: {type: 'hadoop'}}} or {type: 'glue'} (Glue is S3-only). For DataCatalog connections, Unity uses catalog: {type: 'unity', connectionName: '<DataCatalog connection name>', warehouse: '<Unity catalog name>'}; Horizon uses {type: 'horizon', connectionName: '<DataCatalog connection name>', warehouse: '<Snowflake database>'}. Keep Hadoop/Glue as type-only catalogs. " +
             "path is required and must not end with '/'. Requires tier SP10 or higher. On non-AWS workspaces also specify region. " +
-            "Use $emit to write to Kafka, Kinesis, S3, or GCP Pub/Sub sinks. Kafka: {$emit: {connectionName, topic}}. " +
+            "Use $emit to write to Kafka, Kinesis, S3, Azure Blob Storage, or GCP Pub/Sub sinks. Kafka: {$emit: {connectionName, topic}}. " +
             "Kinesis: {$emit: {connectionName, stream, partitionKey}}. " +
-            "S3: {$emit: {connectionName, bucket, path}}. " +
+            "S3: {$emit: {connectionName, bucket, path, config: {outputFormat: 'basicJson'|'canonicalJson'|'relaxedJson', compression: 'none'|'gzip'|'snappy'}}}. " +
+            "Azure Blob Storage: {$emit: {connectionName, container, path, config: {outputFormat: 'basicJson'|'canonicalJson'|'relaxedJson', compression: 'none'|'gzip'|'snappy'}}}. " +
             "GCP Pub/Sub: {$emit: {connectionName, topic, projectId, region}}. " +
+            "Kafka/Kinesis/S3/Azure Blob $emit accept config.outputFormat; S3/Azure Blob also accept config.compression. " +
+            "S3 uses path (not prefix); there is no top-level format field. " +
             "$emit does not work with Https connections — use $https instead. " +
+            "Use $throttle to rate-limit the pipeline: {$throttle: {messagesPerSec: <int>, bytesPerSec: <int>}} — at least one of the two limits is required and each must be a positive integer. " +
+            "$throttle can appear anywhere after $source in the main pipeline (it cannot be nested inside another stage), and you may use multiple $throttle stages. " +
+            "Use $throttle when a downstream system enforces rate limits; a limit below the source's sustained rate makes the processor fall behind and lag grow. " +
             "Use $https to POST data to an Https connection: {$https: {connectionName}}. " +
             "Use $externalFunction for Lambda: {$externalFunction: {connectionName, functionName, execution: 'async', as: 'result'}}. Lambda does NOT use $emit — use $externalFunction with execution='async' as a sink stage or execution='sync' for mid-pipeline enrichment. " +
             "By default $https.onError is 'dlq', which requires a DLQ (see dlq parameter). Set {$https: {connectionName, onError: 'ignore'}} to skip DLQ. " +
             "For Kafka $emit with Schema Registry: {$emit: {connectionName, topic, schemaRegistry: {connectionName: '<sr-connection>', valueSchema: {type: 'avro', schema: {<avro-schema>}, options: {subjectNameStrategy: 'TopicNameStrategy', autoRegisterSchemas: true}}}}}. " +
             "Note: valueSchema.type must be lowercase 'avro'. valueSchema.schema (Avro schema definition) is always required even with autoRegisterSchemas. " +
             "Kafka/Kinesis $source must include a 'topic'/'stream' field. Cluster $source must include db and coll: {$source: {connectionName, db, coll}}. " +
-            "$$NOW, $$ROOT, and $$CURRENT are not available in streaming request. " +
+            "$$NOW and $$CURRENT are not available in streaming request. " +
             "Connections referenced in $source/$merge/$emit/$iceberg/$https/$externalFunction must already exist in the workspace."
     ),
     dlq: z
@@ -432,6 +463,9 @@ export class StreamsBuildTool extends StreamsToolBase {
         if (networkingField) {
             config = StreamsBuildTool.normalizeNetworkingField(config, networkingField);
         }
+        if (args.connectionType === "AzureBlobStorage") {
+            config = lowercaseAzureStorageAccountName(config);
+        }
 
         const missingInfo = this.normalizeAndValidateConnectionConfig({
             config,
@@ -522,6 +556,8 @@ export class StreamsBuildTool extends StreamsToolBase {
                 return this.validateHttpsConfig(config, request);
             case "GCPPubSub":
                 return this.validateGcpPubSubConfig(config, request);
+            case "AzureBlobStorage":
+                return this.validateAzureBlobStorageConfig(config, request);
             default:
                 return null;
         }
@@ -910,6 +946,72 @@ export class StreamsBuildTool extends StreamsToolBase {
         });
     }
 
+    private validateAzureBlobStorageConfig(
+        config: Record<string, unknown>,
+        request: ToolRequest<IAtlasConfig>
+    ): CallToolResult | InputRequiredResult | null {
+        const azure = config.azure as Record<string, unknown> | undefined;
+
+        const access = (config.publicPrivateNetworking as Record<string, unknown> | undefined)?.access as
+            | Record<string, unknown>
+            | undefined;
+        const usesPrivateLink = access?.type === "PRIVATE_LINK";
+
+        const missingFields = StreamsBuildTool.collectMissingFields([
+            {
+                key: "servicePrincipalId",
+                present: !!azure?.servicePrincipalId,
+                schema: AZURE_FIELDS.servicePrincipalId,
+            },
+            {
+                key: "storageAccountName",
+                present: !!azure?.storageAccountName,
+                schema: AZURE_FIELDS.storageAccountName,
+            },
+            {
+                key: "connectionId",
+                present: !usesPrivateLink || !!access?.connectionId,
+                schema: AZURE_FIELDS.connectionId,
+            },
+        ]);
+
+        return missingFields.length === 0
+            ? null
+            : this.elicitOrReportMissing({
+                  connectionType: "AzureBlobStorage",
+                  config,
+                  missingFields,
+                  request,
+                  applyFields: (fields, cfg) => {
+                      if (fields.servicePrincipalId || fields.storageAccountName) {
+                          if (!cfg.azure) cfg.azure = {};
+                          const azureConfig = cfg.azure as Record<string, unknown>;
+                          if (fields.servicePrincipalId) azureConfig.servicePrincipalId = fields.servicePrincipalId;
+                          if (fields.storageAccountName) {
+                              azureConfig.storageAccountName = fields.storageAccountName.toLowerCase();
+                          }
+                      }
+                      if (fields.connectionId) {
+                          if (!cfg.publicPrivateNetworking) cfg.publicPrivateNetworking = {};
+                          const networking = cfg.publicPrivateNetworking as Record<string, unknown>;
+                          if (!networking.access) networking.access = {};
+                          (networking.access as Record<string, unknown>).connectionId = fields.connectionId;
+                      }
+                  },
+                  additionalNote: [
+                      "The Azure service principal must first be registered in the Atlas project via Cloud Provider Access, " +
+                          "with the Reader role on the subscription that contains the storage account.",
+                      ...(usesPrivateLink
+                          ? [
+                                "For PrivateLink, create the AZURE_BLOB_STORAGE endpoint first with resource='privatelink', " +
+                                    "then wait until atlas-streams-discover action 'get-networking' reports state DONE. " +
+                                    "The workspace must be in AZURE.",
+                            ]
+                          : []),
+                  ].join("\n"),
+              });
+    }
+
     private validateHttpsConfig(
         config: Record<string, unknown>,
         request: ToolRequest<IAtlasConfig>
@@ -1052,7 +1154,7 @@ export class StreamsBuildTool extends StreamsToolBase {
 
     /**
      * The Atlas API uses `networking` for Kafka/S3/Kinesis connections and
-     * `publicPrivateNetworking` for AWSLambda/GCPPubSub. Agents
+     * `publicPrivateNetworking` for AWSLambda/GCPPubSub/AzureBlobStorage. Agents
      * often mirror Terraform's `networking` attribute for every type, so move
      * the value to the field the API expects. Also infer PRIVATE_LINK when a
      * connectionId is supplied without an access type, since the API would
@@ -1345,7 +1447,8 @@ export class StreamsBuildTool extends StreamsToolBase {
                     "  AZURE EVENTHUB: {provider, vendor:'EVENTHUB', region, dnsDomain, serviceEndpointId (full Azure Resource ID)}\n" +
                     "  AZURE CONFLUENT: {provider, vendor:'CONFLUENT', region, dnsDomain, azureResourceIds}\n" +
                     "  GCP CONFLUENT: {provider, vendor:'CONFLUENT', region, dnsDomain, gcpServiceAttachmentUris}\n" +
-                    "  GCP PUBSUB: {provider, vendor:'PUBSUB', region} (Atlas derives dnsDomain; omit it. Requires a GCP cluster or network peering in the same region)"
+                    "  GCP PUBSUB: {provider, vendor:'PUBSUB', region} (Atlas derives dnsDomain; omit it. Requires a GCP cluster or network peering in the same region)\n" +
+                    "  AZURE AZURE_BLOB_STORAGE: {provider, vendor:'AZURE_BLOB_STORAGE', region, dnsDomain:'<account>.blob.core.windows.net', serviceEndpointId:'/subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.Storage/storageAccounts/<account>'} (requires an Azure cluster or network peering in the same region; the service principal needs Reader on the subscription)"
             );
         }
         if (!args.privateLinkConfig.provider) {
@@ -1418,6 +1521,17 @@ export class StreamsBuildTool extends StreamsToolBase {
             throw new StreamsInvalidArgumentError(
                 "privateLinkConfig.region is required for vendor 'PUBSUB' (e.g. 'us-central1')."
             );
+        }
+        if (vendor === "AZURE_BLOB_STORAGE") {
+            const missing = AZURE_BLOB_STORAGE_REQUIRED_FIELDS.filter((field) => !config[field]);
+            if (missing.length > 0) {
+                throw new StreamsInvalidArgumentError(
+                    `privateLinkConfig is missing required field(s) for vendor 'AZURE_BLOB_STORAGE': ${missing.join(", ")}.\n` +
+                        "  region: Atlas Azure region (e.g. 'eastus2')\n" +
+                        "  serviceEndpointId: '/subscriptions/{subscriptionId}/resourceGroups/{resourceGroup}/providers/Microsoft.Storage/storageAccounts/{storageAccount}'\n" +
+                        "  dnsDomain: '{storageAccount}.blob.core.windows.net'"
+                );
+            }
         }
     }
 }
