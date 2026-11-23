@@ -6,6 +6,7 @@ import type { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import type { Elicitation } from "@mongodb-js/mcp-core";
 import type { CompositeLogger } from "@mongodb-js/mcp-core";
 import type { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
 import { MockMetrics, createMockElicitation } from "@mongodb-js/mcp-test-utils";
 import type { AtlasToolServer } from "../../atlasTool.js";
@@ -708,6 +709,102 @@ describe("StreamsManageTool", () => {
     });
 
     describe("update-connection", () => {
+        describe.each([
+            {
+                provider: "DATABRICKS_UNITY",
+                settingsKey: "databricks",
+                url: "https://old.cloud.databricks.com",
+                newUrl: "https://new.cloud.databricks.com",
+                metadata: { clientId: "service-principal" },
+                secretField: "clientSecret",
+                secret: "unity-rotation-secret",
+            },
+            {
+                provider: "SNOWFLAKE_HORIZON",
+                settingsKey: "snowflake",
+                url: "https://old.snowflakecomputing.com",
+                newUrl: "https://new.snowflakecomputing.com",
+                metadata: { account: "account", user: "service-user", role: "iceberg-role" },
+                secretField: "privateKey",
+                secret: "-----BEGIN PRIVATE KEY-----\ntest-rotation-key\n-----END PRIVATE KEY-----",
+            },
+        ])("DataCatalog $provider", ({ provider, settingsKey, url, newUrl, metadata, secretField, secret }) => {
+            beforeEach(() => {
+                mockApiClient.getStreamConnection!.mockResolvedValue({
+                    type: "DataCatalog",
+                    state: "PENDING",
+                    catalogProvider: provider,
+                    catalogUrl: url,
+                    [settingsKey]: { authentication: metadata },
+                });
+            });
+
+            it.each([false, true])("sends the supplied credential (URL changes: %s)", async (changeUrl) => {
+                mockApiClient.updateStreamConnection!.mockResolvedValue({ state: "READY" });
+                const result = await exec({
+                    ...baseArgs,
+                    action: "update-connection",
+                    resourceName: "catalog",
+                    connectionConfig: {
+                        ...(changeUrl && { catalogUrl: newUrl }),
+                        [settingsKey]: { authentication: { [secretField]: secret } },
+                    },
+                });
+
+                expect(mockApiClient.updateStreamConnection).toHaveBeenCalledExactlyOnceWith(
+                    {
+                        params: { path: { groupId: "proj1", tenantName: "ws1", connectionName: "catalog" } },
+                        body: {
+                            name: "catalog",
+                            type: "DataCatalog",
+                            catalogProvider: provider,
+                            catalogUrl: changeUrl ? newUrl : url,
+                            [settingsKey]: { authentication: { ...metadata, [secretField]: secret } },
+                        },
+                    },
+                    expect.anything()
+                );
+                expect(result.isError).toBeFalsy();
+                expect(result.structuredContent).toEqual({ connectionState: "READY" });
+                expect(JSON.stringify(result)).not.toContain(JSON.stringify(secret).slice(1, -1));
+            });
+
+            it("redacts raw and escaped credentials before logging an Atlas rejection", async () => {
+                const escaped = JSON.stringify(secret).slice(1, -1);
+                mockApiClient.updateStreamConnection!.mockRejectedValue(
+                    ApiClientError.fromError({
+                        response: new Response(null, { status: 400 }),
+                        error: {
+                            reason: `Invalid credentials: ${secret}; JSON: ${escaped}`,
+                            error: 400,
+                            errorCode: "INVALID_ARGUMENT",
+                        },
+                    })
+                );
+
+                const result = await tool.invoke(
+                    {
+                        ...baseArgs,
+                        action: "update-connection",
+                        resourceName: "catalog",
+                        connectionConfig: { [settingsKey]: { authentication: { [secretField]: secret } } },
+                    },
+                    { request: { signal: new AbortController().signal } }
+                );
+
+                expect(mockApiClient.updateStreamConnection).toHaveBeenCalledOnce();
+                expect(result).toMatchObject({
+                    isError: true,
+                    content: [{ text: expect.stringContaining("Bad Request") }],
+                });
+                for (const output of [JSON.stringify(result), JSON.stringify(mockLogger.error!.mock.calls)]) {
+                    expect(output).toContain("<password>");
+                    expect(output).not.toContain(escaped);
+                    expect(output).not.toContain(JSON.stringify(escaped).slice(1, -1));
+                }
+            });
+        });
+
         it("should update connection with new config", async () => {
             const result = await exec({
                 ...baseArgs,
@@ -749,6 +846,121 @@ describe("StreamsManageTool", () => {
             expect(result.structuredContent).toEqual({});
         });
 
+        it.each([
+            {
+                provider: "DATABRICKS_UNITY",
+                url: "https://workspace.cloud.databricks.com",
+                settings: { databricks: { authentication: { clientId: "unity-client" } } },
+                secretField: "clientSecret",
+                settingsKey: "databricks",
+            },
+            {
+                provider: "SNOWFLAKE_HORIZON",
+                url: "https://myorg-myaccount.snowflakecomputing.com",
+                settings: {
+                    snowflake: { authentication: { account: "myorg-myaccount", user: "svc", role: "ICEBERG_ROLE" } },
+                },
+                secretField: "privateKey",
+                settingsKey: "snowflake",
+            },
+        ])("preserves stored $provider credentials without returning secrets", async (testCase) => {
+            mockApiClient.getStreamConnection = vi.fn().mockResolvedValue({
+                name: "catalog",
+                type: "DataCatalog",
+                state: "READY",
+                catalogProvider: testCase.provider,
+                catalogUrl: testCase.url,
+                ...testCase.settings,
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                action: "update-connection",
+                resourceName: "catalog",
+                connectionConfig: { catalogUrl: testCase.url },
+            });
+
+            const updateCall = mockApiClient.updateStreamConnection!.mock.calls[0]?.[0] as {
+                body: Record<string, unknown>;
+            };
+            const providerSettings = updateCall.body[testCase.settingsKey] as {
+                authentication: Record<string, unknown>;
+            };
+            expect(updateCall.body).toMatchObject({
+                type: "DataCatalog",
+                catalogProvider: testCase.provider,
+                catalogUrl: testCase.url,
+            });
+            expect(providerSettings.authentication[testCase.secretField]).toBe("");
+            expect((result.content[0] as { text: string }).text).not.toContain("-----BEGIN PRIVATE KEY-----");
+            expect((result.content[0] as { text: string }).text).not.toContain("clientSecret");
+        });
+
+        it("requires fresh credentials when a DataCatalog URL changes", async () => {
+            mockApiClient.getStreamConnection = vi.fn().mockResolvedValue({
+                name: "catalog",
+                type: "DataCatalog",
+                catalogProvider: "DATABRICKS_UNITY",
+                catalogUrl: "https://old-workspace.cloud.databricks.com",
+                databricks: { authentication: { clientId: "unity-client" } },
+            });
+
+            await expect(
+                exec({
+                    ...baseArgs,
+                    action: "update-connection",
+                    resourceName: "catalog",
+                    connectionConfig: { catalogUrl: "https://new-workspace.cloud.databricks.com" },
+                })
+            ).rejects.toThrow("Changing catalogUrl requires a new databricks.authentication.clientSecret");
+            expect(mockApiClient.updateStreamConnection).not.toHaveBeenCalled();
+        });
+
+        it("rejects an invalid DataCatalog host when updating the URL", async () => {
+            mockApiClient.getStreamConnection = vi.fn().mockResolvedValue({
+                name: "catalog",
+                type: "DataCatalog",
+                catalogProvider: "SNOWFLAKE_HORIZON",
+                catalogUrl: "https://myorg-myaccount.snowflakecomputing.com",
+                snowflake: { authentication: { account: "acct", user: "svc", role: "ICEBERG_ROLE" } },
+            });
+
+            await expect(
+                exec({
+                    ...baseArgs,
+                    action: "update-connection",
+                    resourceName: "catalog",
+                    connectionConfig: {
+                        catalogUrl: "https://example.com",
+                        snowflake: {
+                            authentication: {
+                                privateKey: "-----BEGIN PRIVATE KEY-----\nkey\n-----END PRIVATE KEY-----",
+                            },
+                        },
+                    },
+                })
+            ).rejects.toThrow("catalogUrl host for 'SNOWFLAKE_HORIZON' must end in *.snowflakecomputing.com");
+            expect(mockApiClient.updateStreamConnection).not.toHaveBeenCalled();
+        });
+
+        it("rejects changing the provider of an existing DataCatalog connection", async () => {
+            mockApiClient.getStreamConnection = vi.fn().mockResolvedValue({
+                name: "catalog",
+                type: "DataCatalog",
+                catalogProvider: "DATABRICKS_UNITY",
+            });
+
+            await expect(
+                exec({
+                    ...baseArgs,
+                    action: "update-connection",
+                    resourceName: "catalog",
+                    connectionConfig: { catalogProvider: "SNOWFLAKE_HORIZON" },
+                })
+            ).rejects.toThrow("Catalog provider is immutable");
+            expect(mockApiClient.updateStreamConnection).not.toHaveBeenCalled();
+        });
+
         it("should normalize bootstrapServers array to comma-separated string", async () => {
             await exec({
                 ...baseArgs,
@@ -765,6 +977,39 @@ describe("StreamsManageTool", () => {
                 }),
                 expect.anything()
             );
+        });
+
+        it("should lowercase the Azure storageAccountName when updating an AzureBlobStorage connection", async () => {
+            mockApiClient.getStreamConnection = vi
+                .fn()
+                .mockResolvedValue({ name: "conn1", type: "AzureBlobStorage", state: "READY" });
+            const connectionConfig = {
+                azure: {
+                    servicePrincipalId: "11111111-2222-3333-4444-555555555555",
+                    storageAccountName: "AcmeStorage",
+                },
+            };
+
+            await exec({
+                ...baseArgs,
+                action: "update-connection",
+                resourceName: "conn1",
+                connectionConfig,
+            });
+
+            expect(mockApiClient.updateStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        type: "AzureBlobStorage",
+                        azure: {
+                            servicePrincipalId: "11111111-2222-3333-4444-555555555555",
+                            storageAccountName: "acmestorage",
+                        },
+                    }),
+                }),
+                expect.anything()
+            );
+            expect(connectionConfig.azure.storageAccountName).toBe("AcmeStorage");
         });
 
         it("should normalize schemaRegistryUrls string to array", async () => {

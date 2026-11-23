@@ -62,6 +62,7 @@ const WorkspaceInspectConciseSchema = WorkspaceSummarySchema.extend({
 const ConnectionSummarySchema = z.object({
     name: z.string(),
     type: z.string().optional(),
+    catalogProvider: z.string().optional(),
     state: z.string().optional(),
 });
 
@@ -72,6 +73,7 @@ function toConnectionSummary(c: unknown): ConnectionSummary {
     return {
         name: conn.name,
         type: conn.type,
+        ...(typeof conn.catalogProvider === "string" && { catalogProvider: conn.catalogProvider }),
         state: conn.state,
     } as ConnectionSummary;
 }
@@ -88,10 +90,18 @@ const PublicPrivateNetworkingSummarySchema = z.object({
 const ConnectionInspectSchema = ConnectionSummarySchema.omit({ name: true }).extend({
     region: z.string().optional(),
     clusterName: z.string().optional(),
+    catalogUrl: z.string().optional(),
     bootstrapServers: z.union([z.string(), z.array(z.string())]).optional(),
     gcp: z
         .object({
             serviceAccountId: z.string().optional(),
+        })
+        .optional(),
+    azure: z
+        .object({
+            servicePrincipalId: z.string().optional(),
+            storageAccountName: z.string().optional(),
+            region: z.string().optional(),
         })
         .optional(),
     publicPrivateNetworking: PublicPrivateNetworkingSummarySchema.optional(),
@@ -110,6 +120,17 @@ function toGcpInspect(data: unknown): ConnectionInspect["gcp"] {
     return typeof gcp.serviceAccountId === "string" ? { serviceAccountId: gcp.serviceAccountId } : undefined;
 }
 
+function toAzureInspect(data: unknown): ConnectionInspect["azure"] {
+    const azure = data as Record<string, unknown> | undefined;
+    if (azure === undefined || azure === null) return undefined;
+    const summary = {
+        ...(typeof azure.servicePrincipalId === "string" && { servicePrincipalId: azure.servicePrincipalId }),
+        ...(typeof azure.storageAccountName === "string" && { storageAccountName: azure.storageAccountName }),
+        ...(typeof azure.region === "string" && { region: azure.region }),
+    };
+    return Object.keys(summary).length > 0 ? summary : undefined;
+}
+
 function toPublicPrivateNetworkingInspect(data: unknown): ConnectionInspect["publicPrivateNetworking"] {
     const networking = data as Record<string, unknown> | undefined;
     const access = networking?.access as Record<string, unknown> | undefined;
@@ -125,6 +146,7 @@ function toPublicPrivateNetworkingInspect(data: unknown): ConnectionInspect["pub
 function toConnectionInspect(data: Record<string, unknown>): ConnectionInspect {
     const summary = toConnectionSummary(data);
     const gcp = toGcpInspect(data.gcp);
+    const azure = toAzureInspect(data.azure);
     const publicPrivateNetworking = toPublicPrivateNetworkingInspect(data.publicPrivateNetworking);
     const bootstrapServers =
         typeof data.bootstrapServers === "string" ||
@@ -136,8 +158,11 @@ function toConnectionInspect(data: Record<string, unknown>): ConnectionInspect {
         ...(summary.state !== undefined && { state: summary.state }),
         ...(typeof data.region === "string" && { region: data.region }),
         ...(typeof data.clusterName === "string" && { clusterName: data.clusterName }),
+        ...(typeof data.catalogProvider === "string" && { catalogProvider: data.catalogProvider }),
+        ...(typeof data.catalogUrl === "string" && { catalogUrl: data.catalogUrl }),
         ...(bootstrapServers !== undefined && { bootstrapServers }),
         ...(gcp !== undefined && { gcp }),
+        ...(azure !== undefined && { azure }),
         ...(publicPrivateNetworking !== undefined && { publicPrivateNetworking }),
     };
 }

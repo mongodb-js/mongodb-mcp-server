@@ -173,6 +173,55 @@ describe("StreamsBuildTool", () => {
     });
 
     describe("createProcessor", () => {
+        it("validates Unity and Horizon Iceberg catalogs and preserves built-in catalogs", () => {
+            const pipelineSchema = tool.argsShape().pipeline;
+
+            expect(() =>
+                pipelineSchema.parse([
+                    { $source: { connectionName: "src" } },
+                    {
+                        $iceberg: {
+                            connectionName: "s3",
+                            catalog: { type: "unity", connectionName: "unity-cat" },
+                        },
+                    },
+                ])
+            ).toThrow("Catalog warehouse is required for 'unity'");
+
+            expect(() =>
+                pipelineSchema.parse([
+                    { $source: { connectionName: "src" } },
+                    {
+                        $iceberg: {
+                            connectionName: "s3",
+                            catalog: { type: "horizon", warehouse: "ANALYTICS" },
+                        },
+                    },
+                ])
+            ).toThrow("Catalog connectionName is required for 'horizon'");
+
+            expect(
+                pipelineSchema.parse([
+                    { $source: { connectionName: "src" } },
+                    { $iceberg: { connectionName: "s3", catalog: { type: "glue" } } },
+                ])
+            ).toEqual([
+                { $source: { connectionName: "src" } },
+                { $iceberg: { connectionName: "s3", catalog: { type: "glue" } } },
+            ]);
+
+            const horizonPipeline = [
+                { $source: { connectionName: "src" } },
+                {
+                    $iceberg: {
+                        connectionName: "s3",
+                        catalog: { type: "horizon", connectionName: "horizon-cat", warehouse: "ANALYTICS" },
+                    },
+                },
+            ];
+            expect(pipelineSchema.parse(horizonPipeline)).toEqual(horizonPipeline);
+        });
+
         it("should create processor with pipeline and DLQ config", async () => {
             const pipeline = [
                 { $source: { connectionName: "src" } },
@@ -282,6 +331,59 @@ describe("StreamsBuildTool", () => {
             expect(result.structuredContent).toEqual({
                 resource: "processor",
             });
+        });
+
+        it("should deploy a pipeline that includes a $throttle stage", async () => {
+            mockApiClient.listStreamConnections!.mockResolvedValue({
+                results: [
+                    { name: "src", type: "Kafka" },
+                    { name: "sink", type: "AzureBlobStorage" },
+                ],
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "blob-etl",
+                pipeline: [
+                    { $source: { connectionName: "src", topic: "in" } },
+                    { $throttle: { messagesPerSec: 1000 } },
+                    { $emit: { connectionName: "sink", container: "c", path: "out" } },
+                ],
+            });
+
+            expect(result.isError).toBeFalsy();
+            expect(mockApiClient.createStreamProcessor).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        pipeline: expect.arrayContaining([{ $throttle: { messagesPerSec: 1000 } }]),
+                    }),
+                }),
+                expect.anything()
+            );
+        });
+
+        it("should not recommend $throttle for an external sink that has no throttle stage", async () => {
+            mockApiClient.listStreamConnections!.mockResolvedValue({
+                results: [
+                    { name: "src", type: "Kafka" },
+                    { name: "sink", type: "GCPPubSub" },
+                ],
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "pubsub-etl",
+                pipeline: [
+                    { $source: { connectionName: "src", topic: "in" } },
+                    { $emit: { connectionName: "sink", topic: "out", projectId: "p", region: "us-central1" } },
+                ],
+            });
+
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).not.toContain("$throttle");
+            expect(text).not.toContain("rate limit");
         });
     });
 
@@ -827,6 +929,216 @@ describe("StreamsBuildTool", () => {
         });
     });
 
+    describe("createConnection - DataCatalog", () => {
+        it("accepts partial provider config but rejects mixed or unknown credential fields", () => {
+            const schema = tool.argsShape().connectionConfig;
+            const partial = { catalogProvider: "DATABRICKS_UNITY", databricks: { authentication: { clientId: "id" } } };
+            expect(schema.parse(partial)).toEqual(partial);
+            expect(schema.safeParse({ ...partial, snowflake: {} }).success).toBe(false);
+            expect(
+                schema.safeParse({
+                    ...partial,
+                    databricks: { authentication: { clientId: "id", clientSecrett: "placeholder" } },
+                }).success
+            ).toBe(false);
+            expect(z.toJSONSchema(schema.unwrap(), { io: "input" })).toHaveProperty("anyOf");
+        });
+
+        it.each([
+            {
+                provider: "DATABRICKS_UNITY",
+                catalogUrl: "https://my-workspace.cloud.databricks.com",
+                config: {
+                    databricks: {
+                        authentication: { clientId: "unity-client", clientSecret: "unity-secret-value" },
+                    },
+                },
+                expected: {
+                    databricks: {
+                        authentication: { clientId: "unity-client", clientSecret: "unity-secret-value" },
+                    },
+                },
+                secret: "unity-secret-value",
+            },
+            {
+                provider: "SNOWFLAKE_HORIZON",
+                catalogUrl: "https://myorg-myaccount.snowflakecomputing.com",
+                config: {
+                    snowflake: {
+                        authentication: {
+                            account: "myorg-myaccount",
+                            user: "ICEBERG_SERVICE_USER",
+                            role: "ASP_ICEBERG_ROLE",
+                            privateKey: "-----BEGIN PRIVATE KEY-----\nprivate-key-value\n-----END PRIVATE KEY-----",
+                        },
+                    },
+                },
+                expected: {
+                    snowflake: {
+                        authentication: {
+                            account: "myorg-myaccount",
+                            user: "ICEBERG_SERVICE_USER",
+                            role: "ASP_ICEBERG_ROLE",
+                            privateKey: "-----BEGIN PRIVATE KEY-----\nprivate-key-value\n-----END PRIVATE KEY-----",
+                        },
+                    },
+                },
+                secret: "private-key-value",
+            },
+        ])("creates a $provider connection with its provider-specific credentials", async (testCase) => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "iceberg-catalog",
+                connectionType: "DataCatalog",
+                connectionConfig: {
+                    catalogProvider: testCase.provider,
+                    catalogUrl: testCase.catalogUrl,
+                    ...testCase.config,
+                },
+            });
+
+            expect(mockApiClient.createStreamConnection).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1", tenantName: "ws1" } },
+                    body: {
+                        name: "iceberg-catalog",
+                        type: "DataCatalog",
+                        catalogProvider: testCase.provider,
+                        catalogUrl: testCase.catalogUrl,
+                        ...testCase.expected,
+                    },
+                },
+                expect.anything()
+            );
+            expect((result.content[0] as { text: string }).text).not.toContain(testCase.secret);
+        });
+
+        it("elicits missing catalog settings rather than sending an incomplete connection", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "iceberg-catalog",
+                connectionType: "DataCatalog",
+                connectionConfig: { catalogProvider: "DATABRICKS_UNITY" },
+            });
+
+            expect(result.resultType).toBe("input_required");
+            expect(mockApiClient.createStreamConnection).not.toHaveBeenCalled();
+            expect(mockElicitation.inputRequired).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    schema: expect.objectContaining({
+                        required: ["catalogUrl", "clientId", "clientSecret"],
+                    }),
+                })
+            );
+        });
+
+        it.each([
+            {
+                name: "direct",
+                connectionConfig: {
+                    catalogProvider: "DATABRICKS_UNITY",
+                    catalogUrl: "https://my-workspace.cloud.databricks.com",
+                    databricks: { authentication: { clientId: "unity-client", clientSecret: "direct-secret" } },
+                },
+                inputResponses: undefined,
+                secret: "direct-secret",
+            },
+            {
+                name: "elicited",
+                connectionConfig: { catalogProvider: "DATABRICKS_UNITY" },
+                inputResponses: {
+                    "connection-fields": {
+                        action: "accept",
+                        content: {
+                            catalogUrl: "https://my-workspace.cloud.databricks.com",
+                            clientId: "unity-client",
+                            clientSecret: "elicited-secret",
+                        },
+                    },
+                },
+                secret: "elicited-secret",
+            },
+        ])(
+            "redacts $name DataCatalog credentials before logging API errors",
+            async ({ connectionConfig, inputResponses, secret }) => {
+                mockApiClient.createStreamConnection!.mockRejectedValue(new Error(`Invalid clientSecret: ${secret}`));
+                const errorLog = vi.spyOn(server.logger, "error");
+                mockElicitation.readInput.mockImplementation((_responses, key) =>
+                    key === "connection-fields" && inputResponses !== undefined
+                        ? { accepted: true, fields: inputResponses["connection-fields"].content }
+                        : undefined
+                );
+
+                const result = await tool.invoke(
+                    {
+                        ...baseArgs,
+                        resource: "connection",
+                        connectionName: "iceberg-catalog",
+                        connectionType: "DataCatalog",
+                        connectionConfig,
+                    },
+                    { request: { signal: new AbortController().signal, inputResponses } }
+                );
+
+                expect(result).toMatchObject({ isError: true, content: [{ type: "text" }] });
+                expect(JSON.stringify(result)).not.toContain(secret);
+                expect(JSON.stringify(errorLog.mock.calls)).not.toContain(secret);
+                expect(JSON.stringify(errorLog.mock.calls)).toContain("<password>");
+            }
+        );
+
+        it("rejects mixed provider credentials with an actionable error", async () => {
+            await expect(
+                exec({
+                    ...baseArgs,
+                    resource: "connection",
+                    connectionName: "iceberg-catalog",
+                    connectionType: "DataCatalog",
+                    connectionConfig: {
+                        catalogProvider: "DATABRICKS_UNITY",
+                        catalogUrl: "https://my-workspace.cloud.databricks.com",
+                        databricks: { authentication: { clientId: "unity-client", clientSecret: "secret" } },
+                        snowflake: { authentication: { account: "acct" } },
+                    },
+                })
+            ).rejects.toThrow(/Invalid DATABRICKS_UNITY connectionConfig:.*snowflake/s);
+            expect(mockApiClient.createStreamConnection).not.toHaveBeenCalled();
+        });
+
+        it.each([
+            ["http://myorg-myaccount.snowflakecomputing.com", "HTTPS account/workspace base URL"],
+            ["https://example.com", "must end in *.snowflakecomputing.com"],
+            [
+                "https://myorg-myaccount.snowflakecomputing.com/polaris/api/catalog",
+                "omit credentials, query, fragment, and REST path",
+            ],
+        ])("rejects invalid catalog URL %s", async (catalogUrl, error) => {
+            await expect(
+                exec({
+                    ...baseArgs,
+                    resource: "connection",
+                    connectionName: "iceberg-catalog",
+                    connectionType: "DataCatalog",
+                    connectionConfig: {
+                        catalogProvider: "SNOWFLAKE_HORIZON",
+                        catalogUrl,
+                        snowflake: {
+                            authentication: {
+                                account: "account",
+                                user: "service-user",
+                                role: "iceberg-role",
+                                privateKey: "-----BEGIN PRIVATE KEY-----\nkey\n-----END PRIVATE KEY-----",
+                            },
+                        },
+                    },
+                })
+            ).rejects.toThrow(error);
+            expect(mockApiClient.createStreamConnection).not.toHaveBeenCalled();
+        });
+    });
+
     describe("createConnection - GCPPubSub", () => {
         it("should create a GCP Pub/Sub connection with serviceAccountId", async () => {
             await exec({
@@ -910,6 +1222,108 @@ describe("StreamsBuildTool", () => {
             const request = mockElicitation.inputRequired.mock.calls[0]![0] as { schema: { required: string[] } };
             expect(result.resultType).toBe("input_required");
             expect(request.schema.required).toEqual(["connectionId"]);
+        });
+    });
+
+    describe("createConnection - AzureBlobStorage", () => {
+        it("should create an Azure Blob Storage connection with service principal and storage account", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "blob-out",
+                connectionType: "AzureBlobStorage",
+                connectionConfig: {
+                    azure: {
+                        servicePrincipalId: "11111111-2222-3333-4444-555555555555",
+                        storageAccountName: "acmestorage",
+                    },
+                },
+            });
+
+            expect(mockApiClient.createStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        name: "blob-out",
+                        type: "AzureBlobStorage",
+                        azure: {
+                            servicePrincipalId: "11111111-2222-3333-4444-555555555555",
+                            storageAccountName: "acmestorage",
+                        },
+                    }),
+                }),
+                expect.anything()
+            );
+        });
+
+        it("should lowercase the storageAccountName", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "blob-out",
+                connectionType: "AzureBlobStorage",
+                connectionConfig: {
+                    azure: {
+                        servicePrincipalId: "11111111-2222-3333-4444-555555555555",
+                        storageAccountName: "AcmeStorage",
+                    },
+                },
+            });
+
+            expect(mockApiClient.createStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        azure: expect.objectContaining({ storageAccountName: "acmestorage" }),
+                    }),
+                }),
+                expect.anything()
+            );
+        });
+
+        it("should create an Azure Blob Storage connection with PrivateLink networking", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "blob-out",
+                connectionType: "AzureBlobStorage",
+                connectionConfig: {
+                    azure: {
+                        servicePrincipalId: "11111111-2222-3333-4444-555555555555",
+                        storageAccountName: "acmestorage",
+                    },
+                    publicPrivateNetworking: {
+                        access: { type: "PRIVATE_LINK", connectionId: "64b7e9f1a2c3d4e5f6a7b8c9" },
+                    },
+                },
+            });
+
+            expect(mockApiClient.createStreamConnection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        type: "AzureBlobStorage",
+                        publicPrivateNetworking: {
+                            access: { type: "PRIVATE_LINK", connectionId: "64b7e9f1a2c3d4e5f6a7b8c9" },
+                        },
+                    }),
+                }),
+                expect.anything()
+            );
+
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("PENDING");
+        });
+
+        it("should trigger elicitation when Azure config is missing", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "blob-out",
+                connectionType: "AzureBlobStorage",
+                connectionConfig: {},
+            });
+
+            const request = mockElicitation.inputRequired.mock.calls[0]![0] as { schema: { required: string[] } };
+            expect(result.resultType).toBe("input_required");
+            expect(request.schema.required).toEqual(["servicePrincipalId", "storageAccountName"]);
         });
     });
 
@@ -1001,7 +1415,11 @@ describe("StreamsBuildTool", () => {
             expect(mockApiClient.createStreamProcessor).not.toHaveBeenCalled();
         });
 
-        it("should return error when pipeline contains $$ROOT", async () => {
+        it("should allow $$ROOT in a pipeline", async () => {
+            mockApiClient.listStreamConnections!.mockResolvedValue({
+                results: [{ name: "src" }, { name: "sink" }],
+            });
+
             const result = await exec({
                 ...baseArgs,
                 resource: "processor",
@@ -1013,8 +1431,34 @@ describe("StreamsBuildTool", () => {
                 ],
             });
 
+            expect(result.isError).toBeUndefined();
+            expect(mockApiClient.createStreamProcessor).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    body: expect.objectContaining({
+                        pipeline: expect.arrayContaining([{ $replaceRoot: { newRoot: "$$ROOT" } }]),
+                    }),
+                }),
+                expect.anything()
+            );
+        });
+
+        it("should return error when pipeline contains $$CURRENT", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "proc1",
+                pipeline: [
+                    { $source: { connectionName: "src" } },
+                    { $addFields: { doc: "$$CURRENT" } },
+                    { $merge: { into: { connectionName: "sink", db: "db1", coll: "c1" } } },
+                ],
+            });
+
             expect(result.isError).toBe(true);
-            expect((result.content[0] as { text: string }).text).toContain("$$ROOT");
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("$$CURRENT");
+            expect(text).toContain("not available in streaming request");
+            expect(mockApiClient.createStreamProcessor).not.toHaveBeenCalled();
         });
 
         it("should accept $emit as a valid sink stage", async () => {
@@ -1105,6 +1549,31 @@ describe("StreamsBuildTool", () => {
 
             expect(result.isError).toBeUndefined();
             expect(mockApiClient.createStreamProcessor).toHaveBeenCalledOnce();
+        });
+
+        it("should validate the DataCatalog connection nested under $iceberg.catalog", async () => {
+            mockApiClient.listStreamConnections!.mockResolvedValue({
+                results: [{ name: "src" }, { name: "s3-storage" }],
+            });
+
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "iceberg-proc",
+                pipeline: [
+                    { $source: { connectionName: "src" } },
+                    {
+                        $iceberg: {
+                            connectionName: "s3-storage",
+                            catalog: { type: "unity", connectionName: "missing-catalog", warehouse: "analytics" },
+                        },
+                    },
+                ],
+            });
+
+            expect(result.isError).toBe(true);
+            expect((result.content[0] as { text: string }).text).toContain("missing-catalog");
+            expect(mockApiClient.createStreamProcessor).not.toHaveBeenCalled();
         });
 
         it("should return error when DLQ references non-existent connection", async () => {
@@ -1393,6 +1862,36 @@ describe("StreamsBuildTool", () => {
             );
         });
 
+        it("should create an AZURE AZURE_BLOB_STORAGE PrivateLink", async () => {
+            await exec({
+                ...baseArgs,
+                resource: "privatelink",
+                privateLinkConfig: {
+                    provider: "AZURE",
+                    vendor: "AZURE_BLOB_STORAGE",
+                    region: "eastus2",
+                    dnsDomain: "acmestorage.blob.core.windows.net",
+                    serviceEndpointId:
+                        "/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.Storage/storageAccounts/acmestorage",
+                },
+            });
+
+            expect(mockApiClient.createPrivateLinkConnection).toHaveBeenCalledWith(
+                {
+                    params: { path: { groupId: "proj1" } },
+                    body: {
+                        provider: "AZURE",
+                        vendor: "AZURE_BLOB_STORAGE",
+                        region: "eastus2",
+                        dnsDomain: "acmestorage.blob.core.windows.net",
+                        serviceEndpointId:
+                            "/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.Storage/storageAccounts/acmestorage",
+                    },
+                },
+                expect.anything()
+            );
+        });
+
         it("should throw when privateLinkConfig is missing", async () => {
             await expect(
                 exec({
@@ -1517,6 +2016,7 @@ describe("StreamsBuildTool", () => {
     describe("review regressions", () => {
         const serviceAccountId = "atlas-streams@my-project.iam.gserviceaccount.com";
         const connectionId = "64b7e9f1a2c3d4e5f6a7b8c9";
+        const servicePrincipalId = "11111111-2222-3333-4444-555555555555";
 
         const lastConnectionBody = (): Record<string, unknown> => {
             const calls = mockApiClient.createStreamConnection!.mock.calls as unknown as [
@@ -1525,17 +2025,19 @@ describe("StreamsBuildTool", () => {
             return calls.at(-1)![0].body;
         };
 
-        it("accepts the new connection type in the advertised arguments schema", () => {
+        it("accepts the new connection types in the advertised arguments schema", () => {
             const argsSchema = z.object(tool.argsShape());
-            const parsed = argsSchema.safeParse({
-                projectId: connectionId,
-                workspaceName: "ws1",
-                resource: "connection",
-                connectionName: "conn1",
-                connectionType: "GCPPubSub",
-                connectionConfig: {},
-            });
-            expect(parsed.success).toBe(true);
+            for (const connectionType of ["GCPPubSub", "AzureBlobStorage"]) {
+                const parsed = argsSchema.safeParse({
+                    projectId: connectionId,
+                    workspaceName: "ws1",
+                    resource: "connection",
+                    connectionName: "conn1",
+                    connectionType,
+                    connectionConfig: {},
+                });
+                expect(parsed.success).toBe(true);
+            }
         });
 
         it("rejects an invalid publicPrivateNetworking access type", () => {
@@ -1556,7 +2058,23 @@ describe("StreamsBuildTool", () => {
 
         it("normalizes and validates the PrivateLink vendor", () => {
             expect(PrivateLinkConfig.parse({ provider: "GCP", vendor: "pubsub" }).vendor).toBe("PUBSUB");
+            expect(PrivateLinkConfig.parse({ provider: "AZURE", vendor: "azure_blob_storage" }).vendor).toBe(
+                "AZURE_BLOB_STORAGE"
+            );
             expect(() => PrivateLinkConfig.parse({ provider: "GCP", vendor: "BOGUS" })).toThrow();
+        });
+
+        it("documents S3 $emit config fields in the pipeline description", () => {
+            const description = tool.argsShape().pipeline.description ?? "";
+            expect(description).toContain("config.outputFormat");
+            expect(description).toContain("config.compression");
+            expect(description).toContain("S3 uses path (not prefix)");
+        });
+
+        it("documents Azure Blob Storage $emit config fields in the pipeline description", () => {
+            const description = tool.argsShape().pipeline.description ?? "";
+            expect(description).toContain("Azure Blob Storage: {$emit: {connectionName, container, path, config:");
+            expect(description).toContain("S3/Azure Blob also accept config.compression");
         });
 
         it("moves Kafka-style networking to publicPrivateNetworking for GCP Pub/Sub", async () => {
@@ -1629,6 +2147,43 @@ describe("StreamsBuildTool", () => {
             });
         });
 
+        it("lowercases an elicited Azure storage account name", async () => {
+            mockElicitation.readInput.mockReturnValue({
+                accepted: true,
+                fields: { servicePrincipalId, storageAccountName: "AcmeStorage" },
+            });
+
+            await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "blob-out",
+                connectionType: "AzureBlobStorage",
+                connectionConfig: {},
+            });
+
+            expect(lastConnectionBody().azure).toEqual({
+                servicePrincipalId,
+                storageAccountName: "acmestorage",
+            });
+        });
+
+        it("requires connectionId for an Azure PrivateLink connection", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "connection",
+                connectionName: "blob-out",
+                connectionType: "AzureBlobStorage",
+                connectionConfig: {
+                    azure: { servicePrincipalId, storageAccountName: "acmestorage" },
+                    publicPrivateNetworking: { access: { type: "PRIVATE_LINK" } },
+                },
+            });
+
+            const request = mockElicitation.inputRequired.mock.calls[0]![0] as { schema: { required: string[] } };
+            expect(result.resultType).toBe("input_required");
+            expect(request.schema.required).toEqual(["connectionId"]);
+        });
+
         it("requires connectionId for an AWS Lambda PrivateLink connection", async () => {
             const result = await exec({
                 ...baseArgs,
@@ -1684,6 +2239,16 @@ describe("StreamsBuildTool", () => {
                     privateLinkConfig: { provider: "GCP", vendor: "PUBSUB" },
                 })
             ).rejects.toThrow("privateLinkConfig.region is required for vendor 'PUBSUB'");
+        });
+
+        it("requires region, serviceEndpointId, and dnsDomain for an Azure Blob Storage PrivateLink", async () => {
+            await expect(
+                exec({
+                    ...baseArgs,
+                    resource: "privatelink",
+                    privateLinkConfig: { provider: "AZURE", vendor: "AZURE_BLOB_STORAGE" },
+                })
+            ).rejects.toThrow(/missing required field\(s\).*region, serviceEndpointId, dnsDomain/);
         });
 
         it("omits an empty dnsDomain for a GCP PUBSUB PrivateLink", async () => {
@@ -1884,6 +2449,24 @@ describe("StreamsBuildTool", () => {
             const text = (result.content[0] as { text: string }).text;
             expect(text).toContain(connectionId);
             expect(text).toContain(`connectionId='${connectionId}'`);
+        });
+
+        it("still rejects $$NOW when the pipeline also uses $$ROOT", async () => {
+            const result = await exec({
+                ...baseArgs,
+                resource: "processor",
+                processorName: "proc1",
+                pipeline: [
+                    { $source: { connectionName: "src" } },
+                    { $addFields: { root: "$$ROOT", ts: "$$NOW" } },
+                    { $merge: { into: { connectionName: "sink", db: "db1", coll: "c1" } } },
+                ],
+            });
+
+            expect(result.isError).toBe(true);
+            const text = (result.content[0] as { text: string }).text;
+            expect(text).toContain("$$NOW");
+            expect(text).not.toContain("$$ROOT");
         });
     });
 });
