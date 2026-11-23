@@ -62,6 +62,7 @@ const WorkspaceInspectConciseSchema = WorkspaceSummarySchema.extend({
 const ConnectionSummarySchema = z.object({
     name: z.string(),
     type: z.string().optional(),
+    catalogProvider: z.string().optional(),
     state: z.string().optional(),
 });
 
@@ -72,6 +73,7 @@ function toConnectionSummary(c: unknown): ConnectionSummary {
     return {
         name: conn.name,
         type: conn.type,
+        ...(typeof conn.catalogProvider === "string" && { catalogProvider: conn.catalogProvider }),
         state: conn.state,
     } as ConnectionSummary;
 }
@@ -88,6 +90,7 @@ const PublicPrivateNetworkingSummarySchema = z.object({
 const ConnectionInspectSchema = ConnectionSummarySchema.omit({ name: true }).extend({
     region: z.string().optional(),
     clusterName: z.string().optional(),
+    catalogUrl: z.string().optional(),
     bootstrapServers: z.union([z.string(), z.array(z.string())]).optional(),
     gcp: z
         .object({
@@ -136,6 +139,8 @@ function toConnectionInspect(data: Record<string, unknown>): ConnectionInspect {
         ...(summary.state !== undefined && { state: summary.state }),
         ...(typeof data.region === "string" && { region: data.region }),
         ...(typeof data.clusterName === "string" && { clusterName: data.clusterName }),
+        ...(typeof data.catalogProvider === "string" && { catalogProvider: data.catalogProvider }),
+        ...(typeof data.catalogUrl === "string" && { catalogUrl: data.catalogUrl }),
         ...(bootstrapServers !== undefined && { bootstrapServers }),
         ...(gcp !== undefined && { gcp }),
         ...(publicPrivateNetworking !== undefined && { publicPrivateNetworking }),

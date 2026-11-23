@@ -473,7 +473,7 @@ export class Elicitation implements IElicitation {
     inputRequired(input: ElicitInputRequiredParams): InputRequiredResult;
     readConfirmation(inputResponses: ElicitationInputResponses): boolean | undefined;
     readInput(inputResponses: ElicitationInputResponses, key: string): ElicitedInputResult | undefined;
-    supportsElicitation(): boolean;
+    supportsElicitation(request: ElicitationRequestContext): boolean;
 }
 
 // @public (undocumented)

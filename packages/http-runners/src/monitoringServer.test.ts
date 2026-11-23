@@ -114,6 +114,29 @@ describe("MonitoringServer", () => {
             expect(body).toContain("# HELP");
         });
 
+        it("exposes metrics endpoint when process-metrics is the only feature", async () => {
+            server = new MonitoringServer({
+                options: {
+                    http: {
+                        host: "127.0.0.1",
+                        port: 0,
+                    },
+                    features: ["process-metrics"],
+                },
+                logger,
+                metrics: new PrometheusMetrics({
+                    definitions: createDefaultMetrics(),
+                    collectProcessMetrics: true,
+                }),
+            });
+
+            await server.start();
+
+            const response = await fetch(`${server.serverAddress}/metrics`);
+            expect(response.status).toBe(200);
+            expect(await response.text()).toMatch(/^# TYPE process_/m);
+        });
+
         it("does not expose metrics endpoint when metrics feature is disabled", async () => {
             server = new MonitoringServer({
                 options: {

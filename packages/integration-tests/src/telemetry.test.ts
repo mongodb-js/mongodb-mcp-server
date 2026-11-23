@@ -1,11 +1,11 @@
 import { CompositeLogger } from "@mongodb-js/mcp-core";
+import { useMockTelemetry } from "@mongodb-js/mcp-test-utils";
 import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { connectClient } from "./helpers/connectClient.js";
 import { expectToolEvent } from "./helpers/expectToolEvent.js";
 import { useBinaryServer } from "./helpers/useBinaryServer.js";
-import { useMockTelemetry } from "./helpers/useMockTelemetry.js";
 
 const SERVER_ARGS = ["--disabledTools", "atlas-local"];
 

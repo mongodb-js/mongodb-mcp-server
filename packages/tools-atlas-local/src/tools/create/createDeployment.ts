@@ -26,15 +26,15 @@ const CreateDeploymentArgsShape = {
     loadSampleData: z.boolean().describe("Load sample data into the deployment").optional().default(false),
     imageTag: z
         .string()
-        .describe("Atlas Local image tag: 'preview', 'latest', or a semver (e.g. '8.0.0'). Default: 'preview'.")
+        .describe("Atlas Local image tag: 'latest', 'preview', or a semver (e.g. '8.0.0'). Default: 'latest'.")
         .optional()
-        .default("preview"),
+        .default("latest"),
 };
 
 export class CreateDeploymentTool extends AtlasLocalToolBase {
     static toolName = "atlas-local-create-deployment";
     public description =
-        "Create a MongoDB Atlas local deployment. Default image is preview. When the user does not specify an image tag, inform them that preview is used by default and provide this link for more information: https://hub.docker.com/r/mongodb/mongodb-atlas-local";
+        "Create a MongoDB Atlas local deployment. Default image is latest. When the user does not specify an image tag, inform them that latest is used by default and provide this link for more information: https://hub.docker.com/r/mongodb/mongodb-atlas-local";
     static operationType: OperationType = "create";
     public argsShape(): typeof CreateDeploymentArgsShape {
         return CreateDeploymentArgsShape;

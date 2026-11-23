@@ -14,7 +14,7 @@ jobs:
     if: github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
-      - uses: mongodb-js/devtools-shared/actions/setup-bot-token@main
+      - uses: mongodb-js/devtools-shared/actions/setup-bot-token@94872c30ab44483d5d327da9dd764194a211f06b # main
         id: app-token
         with:
           app-id: ${{ vars.DEVTOOLS_BOT_APP_ID }}

@@ -13,10 +13,15 @@ import { ConfirmationDeclinedError } from "@mongodb-js/mcp-core";
 import { AtlasArgs } from "../../args.js";
 import {
     ConnectionConfig,
+    DATA_CATALOG_CONFIG,
+    DataCatalogProvider,
+    dataCatalogUrlValidationError,
     PrivateLinkConfig,
     StreamsArgs,
     StreamsAutoscaling,
+    StreamsConnectionConfig,
     StreamsPrivateLinkAccessType,
+    StreamsPipeline,
     StreamsTier,
 } from "../../streams/streamsArgs.js";
 import { StreamsInvalidArgumentError } from "../../streams/errors.js";
@@ -39,6 +44,7 @@ const ConnectionType = z.enum([
     "SchemaRegistry",
     "GCPPubSub",
     "Sample",
+    "DataCatalog",
 ]);
 
 interface FieldSchema {
@@ -120,6 +126,38 @@ const SCHEMA_REGISTRY_FIELDS = {
     },
 } as const satisfies Record<string, FieldSchema>;
 
+const DATA_CATALOG_FIELDS = {
+    catalogUrl: {
+        title: "Catalog URL",
+        description:
+            "HTTPS base URL only, without a REST path. Databricks: *.cloud.databricks.com or *.azuredatabricks.net. Snowflake: *.snowflakecomputing.com.",
+    },
+    clientId: {
+        title: "Databricks Client ID",
+        description: "OAuth client ID of the Databricks service principal.",
+    },
+    clientSecret: {
+        title: "Databricks Client Secret",
+        description: "Sensitive OAuth client secret. It is never returned by Atlas.",
+    },
+    account: {
+        title: "Snowflake Account",
+        description: "Snowflake account identifier.",
+    },
+    user: {
+        title: "Snowflake User",
+        description: "Snowflake service user.",
+    },
+    role: {
+        title: "Snowflake Role",
+        description: "Snowflake role used for Iceberg catalog access.",
+    },
+    privateKey: {
+        title: "Snowflake Private Key",
+        description: "Sensitive unencrypted PKCS#8 PEM private key. It is never returned by Atlas.",
+    },
+} as const satisfies Record<string, FieldSchema>;
+
 const HTTPS_FIELDS = {
     url: {
         title: "Endpoint URL",
@@ -194,42 +232,41 @@ const StreamsBuildArgsShape = {
             "AWSKinesisDataStreams: needs aws.roleArn (must be registered via Atlas Cloud Provider Access). " +
             "AWSLambda: needs aws.roleArn (must be registered via Atlas Cloud Provider Access). " +
             "SchemaRegistry: needs provider, schemaRegistryUrls, and authentication config. " +
+            "DataCatalog: needs catalogProvider, catalogUrl, and exactly one provider config: databricks.authentication (clientId, clientSecret) or snowflake.authentication (account, user, role, privateKey). Never include token credentials or use private token endpoints. " +
             "GCPPubSub: needs gcp.serviceAccountId (registered via Atlas Cloud Provider Access). " +
             "Sample: provides sample data for testing (no config needed)."
     ),
-    connectionConfig: ConnectionConfig.optional().describe(
+    connectionConfig: StreamsConnectionConfig.optional().describe(
         "Type-specific connection configuration. Only for resource='connection'. " +
             "Omit entirely for connectionType='Sample' (no config needed). " +
-            "You may pass a partial config — the tool uses elicitation to collect missing required fields directly from the user."
+            "You may pass a partial config — the tool uses elicitation to collect missing required fields directly from the user. For DataCatalog credentials, supply only the selected provider's authentication fields; secrets are never included in tool output."
     ),
 
     // Processor fields
     processorName: StreamsArgs.processorName()
         .optional()
         .describe("Processor name. Required when resource='processor'."),
-    pipeline: z
-        .array(z.record(z.string(), z.unknown()))
-        .optional()
-        .describe(
-            "Pipeline stages for the stream processor. Required when resource='processor'. " +
-                "Must start with a $source stage and end with a sink stage ($merge, $emit, $iceberg, $https, or $externalFunction). " +
-                "Use $merge to write to Atlas cluster collections: {$merge: {into: {connectionName, db, coll}}}. " +
-                "Use $iceberg to write to Apache Iceberg tables on an S3 connection (must be the last stage): {$iceberg: {connectionName, bucket, databaseName, tableName, path}}. " +
-                "path is required and must not end with '/'. Requires tier SP10 or higher. On non-AWS workspaces also specify region. " +
-                "Use $emit to write to Kafka, Kinesis, S3, or GCP Pub/Sub sinks. Kafka: {$emit: {connectionName, topic}}. " +
-                "Kinesis: {$emit: {connectionName, stream, partitionKey}}. " +
-                "S3: {$emit: {connectionName, bucket, path}}. " +
-                "GCP Pub/Sub: {$emit: {connectionName, topic, projectId, region}}. " +
-                "$emit does not work with Https connections — use $https instead. " +
-                "Use $https to POST data to an Https connection: {$https: {connectionName}}. " +
-                "Use $externalFunction for Lambda: {$externalFunction: {connectionName, functionName, execution: 'async', as: 'result'}}. Lambda does NOT use $emit — use $externalFunction with execution='async' as a sink stage or execution='sync' for mid-pipeline enrichment. " +
-                "By default $https.onError is 'dlq', which requires a DLQ (see dlq parameter). Set {$https: {connectionName, onError: 'ignore'}} to skip DLQ. " +
-                "For Kafka $emit with Schema Registry: {$emit: {connectionName, topic, schemaRegistry: {connectionName: '<sr-connection>', valueSchema: {type: 'avro', schema: {<avro-schema>}, options: {subjectNameStrategy: 'TopicNameStrategy', autoRegisterSchemas: true}}}}}. " +
-                "Note: valueSchema.type must be lowercase 'avro'. valueSchema.schema (Avro schema definition) is always required even with autoRegisterSchemas. " +
-                "Kafka/Kinesis $source must include a 'topic'/'stream' field. Cluster $source must include db and coll: {$source: {connectionName, db, coll}}. " +
-                "$$NOW, $$ROOT, and $$CURRENT are not available in streaming request. " +
-                "Connections referenced in $source/$merge/$emit/$iceberg/$https/$externalFunction must already exist in the workspace."
-        ),
+    pipeline: StreamsPipeline.optional().describe(
+        "Pipeline stages for the stream processor. Required when resource='processor'. " +
+            "Must start with a $source stage and end with a sink stage ($merge, $emit, $iceberg, $https, or $externalFunction). " +
+            "Use $merge to write to Atlas cluster collections: {$merge: {into: {connectionName, db, coll}}}. " +
+            "Use $iceberg to write to Apache Iceberg tables on an S3 connection (must be the last stage): {$iceberg: {connectionName, bucket, databaseName, tableName, path}}. " +
+            "The storage connectionName is the S3 connection. Optional built-in catalogs are {$iceberg: {catalog: {type: 'hadoop'}}} or {type: 'glue'} (Glue is S3-only). For DataCatalog connections, Unity uses catalog: {type: 'unity', connectionName: '<DataCatalog connection name>', warehouse: '<Unity catalog name>'}; Horizon uses {type: 'horizon', connectionName: '<DataCatalog connection name>', warehouse: '<Snowflake database>'}. Keep Hadoop/Glue as type-only catalogs. " +
+            "path is required and must not end with '/'. Requires tier SP10 or higher. On non-AWS workspaces also specify region. " +
+            "Use $emit to write to Kafka, Kinesis, S3, or GCP Pub/Sub sinks. Kafka: {$emit: {connectionName, topic}}. " +
+            "Kinesis: {$emit: {connectionName, stream, partitionKey}}. " +
+            "S3: {$emit: {connectionName, bucket, path}}. " +
+            "GCP Pub/Sub: {$emit: {connectionName, topic, projectId, region}}. " +
+            "$emit does not work with Https connections — use $https instead. " +
+            "Use $https to POST data to an Https connection: {$https: {connectionName}}. " +
+            "Use $externalFunction for Lambda: {$externalFunction: {connectionName, functionName, execution: 'async', as: 'result'}}. Lambda does NOT use $emit — use $externalFunction with execution='async' as a sink stage or execution='sync' for mid-pipeline enrichment. " +
+            "By default $https.onError is 'dlq', which requires a DLQ (see dlq parameter). Set {$https: {connectionName, onError: 'ignore'}} to skip DLQ. " +
+            "For Kafka $emit with Schema Registry: {$emit: {connectionName, topic, schemaRegistry: {connectionName: '<sr-connection>', valueSchema: {type: 'avro', schema: {<avro-schema>}, options: {subjectNameStrategy: 'TopicNameStrategy', autoRegisterSchemas: true}}}}}. " +
+            "Note: valueSchema.type must be lowercase 'avro'. valueSchema.schema (Avro schema definition) is always required even with autoRegisterSchemas. " +
+            "Kafka/Kinesis $source must include a 'topic'/'stream' field. Cluster $source must include db and coll: {$source: {connectionName, db, coll}}. " +
+            "$$NOW, $$ROOT, and $$CURRENT are not available in streaming request. " +
+            "Connections referenced in $source/$merge/$emit/$iceberg/$https/$externalFunction must already exist in the workspace."
+    ),
     dlq: z
         .object({
             connectionName: z.string().describe("Atlas connection name for DLQ output"),
@@ -273,10 +310,10 @@ export class StreamsBuildTool extends StreamsToolBase {
         "Create Atlas Stream Processing resources. " +
         "Use this tool for 'set up a Kafka pipeline', 'create a workspace', 'add a connection', or 'deploy a processor'. " +
         "Use resource='workspace' to create a new workspace (specify cloud provider, region, and tier). " +
-        "Use resource='connection' to add a data source or sink to an existing workspace. " +
+        "Use resource='connection' to add a data source or sink to an existing workspace, including a Unity or Horizon DataCatalog for Iceberg. " +
         "Use resource='processor' to deploy a stream processor with a pipeline. " +
         "Use resource='privatelink' to set up private networking. " +
-        "Typical workflow: create workspace → add connections → deploy processor.";
+        "Typical workflow: create workspace → add connections → deploy processor. For Unity/Horizon Iceberg sinks, set $iceberg.catalog with type, catalog connectionName, and warehouse; Hadoop/Glue remain type-only.";
 
     public argsShape(): typeof StreamsBuildArgsShape {
         return StreamsBuildArgsShape;
@@ -411,13 +448,20 @@ export class StreamsBuildTool extends StreamsToolBase {
             type: args.connectionType,
         };
 
-        await this.server.apiClient.createStreamConnection(
-            {
-                params: { path: { groupId: args.projectId, tenantName: workspaceName } },
-                body: body as never,
-            },
-            request
-        );
+        try {
+            await this.server.apiClient.createStreamConnection(
+                {
+                    params: { path: { groupId: args.projectId, tenantName: workspaceName } },
+                    body: body as never,
+                },
+                request
+            );
+        } catch (error) {
+            if (error instanceof Error) {
+                error.message = StreamsToolBase.redactSubmittedSecrets(error.message, config);
+            }
+            throw error;
+        }
 
         const networking = config.networking as { access?: { type?: string } } | undefined;
         const publicPrivateNetworking = config.publicPrivateNetworking as { access?: { type?: string } } | undefined;
@@ -426,6 +470,10 @@ export class StreamsBuildTool extends StreamsToolBase {
         const privateLinkWarning = usesPrivateLink
             ? `\n\nNote: This connection uses PrivateLink and will start in PENDING state. It may take a few minutes to provision. Use \`atlas-streams-discover\` with action 'inspect-connection' to check when it becomes READY.`
             : "";
+        const nextStep =
+            args.connectionType === "DataCatalog"
+                ? `For an Iceberg processor, use this name in $iceberg.catalog.connectionName with type 'unity' or 'horizon' and provide the matching warehouse.`
+                : `Reference this connection as '${args.connectionName}' in your processor pipeline's $source, $merge, $emit, or $iceberg stages.`;
 
         return {
             content: [
@@ -433,8 +481,7 @@ export class StreamsBuildTool extends StreamsToolBase {
                     type: "text",
                     text:
                         `Connection '${args.connectionName}' (${args.connectionType}) added to workspace '${workspaceName}'.${privateLinkWarning}\n\n` +
-                        `Next: Add more connections or deploy a processor with \`atlas-streams-build\` resource='processor'. ` +
-                        `Reference this connection as '${args.connectionName}' in your processor pipeline's $source, $merge, $emit, or $iceberg stages.`,
+                        `Next: Add more connections or deploy a processor with \`atlas-streams-build\` resource='processor'. ${nextStep}`,
                 },
             ],
             structuredContent: { resource: "connection" },
@@ -469,6 +516,8 @@ export class StreamsBuildTool extends StreamsToolBase {
                 return this.validateAwsConfig({ config, connectionType, request });
             case "SchemaRegistry":
                 return this.validateSchemaRegistryConfig(config, request);
+            case "DataCatalog":
+                return this.validateDataCatalogConfig(config, request);
             case "Https":
                 return this.validateHttpsConfig(config, request);
             case "GCPPubSub":
@@ -721,6 +770,89 @@ export class StreamsBuildTool extends StreamsToolBase {
         });
     }
 
+    private validateDataCatalogConfig(
+        config: Record<string, unknown>,
+        request: ToolRequest<IAtlasConfig>
+    ): CallToolResult | InputRequiredResult | null {
+        const providerResult = DataCatalogProvider.safeParse(config.catalogProvider);
+        if (!providerResult.success) {
+            throw new StreamsInvalidArgumentError(
+                "catalogProvider is required for DataCatalog and must be DATABRICKS_UNITY or SNOWFLAKE_HORIZON."
+            );
+        }
+
+        const provider = providerResult.data;
+        const { settingsKey, secretField, authFields, schema } = DATA_CATALOG_CONFIG[provider];
+        const parsed = schema.safeParse(config);
+        if (!parsed.success) {
+            throw new StreamsInvalidArgumentError(
+                `Invalid ${provider} connectionConfig: ${z.prettifyError(parsed.error)}`
+            );
+        }
+        const settings = config[settingsKey] as Record<string, unknown> | undefined;
+        const authentication = settings?.authentication as Record<string, unknown> | undefined;
+
+        if (typeof config.catalogUrl === "string" && config.catalogUrl.trim()) {
+            const urlError = dataCatalogUrlValidationError(config.catalogUrl, provider);
+            if (urlError) throw new StreamsInvalidArgumentError(urlError);
+            config.catalogUrl = config.catalogUrl.trim();
+        }
+
+        const keys = ["catalogUrl", ...authFields];
+        const missingFields = StreamsBuildTool.collectMissingFields(
+            keys.map((key) => ({
+                key,
+                present:
+                    key === "catalogUrl"
+                        ? typeof config.catalogUrl === "string" && !!config.catalogUrl.trim()
+                        : typeof authentication?.[key] === "string" && !!authentication[key]?.trim(),
+                schema: DATA_CATALOG_FIELDS[key as keyof typeof DATA_CATALOG_FIELDS],
+            }))
+        );
+
+        if (missingFields.length > 0) {
+            const result = this.elicitOrReportMissing({
+                connectionType: "DataCatalog",
+                config,
+                missingFields,
+                request,
+                applyFields: (elicitedFields, cfg) => {
+                    if (elicitedFields.catalogUrl) cfg.catalogUrl = elicitedFields.catalogUrl.trim();
+                    const providerSettings = (cfg[settingsKey] as Record<string, unknown> | undefined) ?? {};
+                    const auth = (providerSettings.authentication as Record<string, unknown> | undefined) ?? {};
+                    for (const key of keys) {
+                        if (key !== "catalogUrl" && elicitedFields[key]) auth[key] = elicitedFields[key];
+                    }
+                    providerSettings.authentication = auth;
+                    cfg[settingsKey] = providerSettings;
+                },
+            });
+            if (result) return result;
+
+            const completedAuthentication = (
+                config[settingsKey] as { authentication?: Record<string, unknown> } | undefined
+            )?.authentication;
+            for (const key of keys) {
+                const value = key === "catalogUrl" ? config.catalogUrl : completedAuthentication?.[key];
+                if (typeof value !== "string" || !value.trim()) {
+                    throw new StreamsInvalidArgumentError(`DataCatalog field '${key}' must not be blank.`);
+                }
+            }
+            return this.validateDataCatalogConfig(config, request);
+        }
+
+        if (secretField === "privateKey") {
+            const privateKey = authentication?.[secretField] as string;
+            if (!privateKey.trim().startsWith("-----BEGIN PRIVATE KEY-----")) {
+                throw new StreamsInvalidArgumentError(
+                    "snowflake.authentication.privateKey must be an unencrypted PKCS#8 PEM key beginning with '-----BEGIN PRIVATE KEY-----'."
+                );
+            }
+        }
+
+        return null;
+    }
+
     private validateGcpPubSubConfig(
         config: Record<string, unknown>,
         request: ToolRequest<IAtlasConfig>
@@ -833,7 +965,7 @@ export class StreamsBuildTool extends StreamsToolBase {
     }): CallToolResult | InputRequiredResult | null {
         // Clients that do not declare elicitation support cannot answer
         // embedded requests: report the missing fields instead of eliciting.
-        if (!this.server.elicitation.supportsElicitation()) {
+        if (!this.server.elicitation.supportsElicitation(request)) {
             return StreamsBuildTool.missingFieldsResponse({ connectionType, missingFields, additionalNote });
         }
 

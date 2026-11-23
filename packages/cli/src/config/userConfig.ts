@@ -34,6 +34,11 @@ const ServerConfigSchema = z.object({
         .string()
         .default("https://cloud.mongodb.com/")
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    // Undocumented telemetry host override (tests capture events against a local mock).
+    telemetryBaseUrl: z
+        .string()
+        .optional()
+        .register(configRegistry, { overrideBehavior: "not-allowed", cliArgument: false }),
     assistantBaseUrl: z
         .string()
         .default("https://knowledge.mongodb.com/api/v1/")
@@ -463,7 +468,7 @@ const ServerConfigSchema = z.object({
         )
         .default(["health-check"])
         .describe(
-            "Features to expose on the monitoring server (only used when transport is 'http' and monitoringServerHost/monitoringServerPort are set)."
+            "Features to expose on the monitoring server: health-check, metrics, and process-metrics. process-metrics exposes /metrics with Node.js process metrics (only used when transport is 'http' and monitoringServerHost/monitoringServerPort are set)."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
 });

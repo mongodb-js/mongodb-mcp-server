@@ -577,7 +577,7 @@ export class Elicitation implements IElicitation {
     inputRequired(input: ElicitInputRequiredParams): InputRequiredResult;
     readConfirmation(inputResponses: ElicitationInputResponses): boolean | undefined;
     readInput(inputResponses: ElicitationInputResponses, key: string): ElicitedInputResult | undefined;
-    supportsElicitation(): boolean;
+    supportsElicitation(request: ElicitationRequestContext): boolean;
 }
 
 // @public (undocumented)
@@ -1080,6 +1080,7 @@ export type UserConfig = z.infer<typeof UserConfigSchema>;
 // @public (undocumented)
 export const UserConfigSchema: z.ZodObject<{
     apiBaseUrl: z.ZodDefault<z.ZodString>;
+    telemetryBaseUrl: z.ZodOptional<z.ZodString>;
     assistantBaseUrl: z.ZodDefault<z.ZodString>;
     apiClientId: z.ZodOptional<z.ZodString>;
     apiClientSecret: z.ZodOptional<z.ZodString>;
@@ -1161,6 +1162,7 @@ export const UserConfigSchema: z.ZodObject<{
     monitoringServerFeatures: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
         "health-check": "health-check";
         metrics: "metrics";
+        "process-metrics": "process-metrics";
     }>>, string | string[] | undefined>>;
     gssapiHostName: z.ZodOptional<z.ZodString>;
     sslFIPSMode: z.ZodOptional<z.ZodBoolean>;

@@ -10,7 +10,7 @@ import {
 import { describeWithMongoDB, validateAutoConnectBehavior } from "../../../mongodbHelpers.js";
 import type { Document } from "bson";
 import type { OptionalId } from "mongodb";
-import type { SimplifiedSchema } from "mongodb-schema";
+import type { SimplifiedSchema } from "@mongodb-js/mongodb-schema";
 import type { CollectionSchemaOutput } from "@mongodb-js/mcp-tools-mongodb";
 import { describe, expect, it } from "vitest";
 describeWithMongoDB({

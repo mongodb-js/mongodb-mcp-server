@@ -11,6 +11,7 @@ import type { ConnectionMetadata } from '@mongodb-js/mcp-types';
 import type { DefaultEventMap } from '@mongodb-js/mcp-types';
 import type { DefaultMetricDefinitions } from '@mongodb-js/mcp-types';
 import { ElicitationInputResponses } from '@mongodb-js/mcp-types';
+import { ElicitationRequestContext } from '@mongodb-js/mcp-types';
 import { ElicitedInputResult } from '@mongodb-js/mcp-types';
 import type { ElicitInputRequiredParams } from '@mongodb-js/mcp-types';
 import { ElicitRequestSchema } from '@mongodb-js/mcp-types';
@@ -57,6 +58,16 @@ import type { TransportType } from '@mongodb-js/mcp-types';
 import { z } from 'zod';
 import { ZodRawShape } from 'zod';
 import { ZodString } from 'zod';
+
+// @public
+export const ANY_ADDITIONAL_PROPERTIES: {
+    readonly additionalProperties: true;
+};
+
+// @public
+export const ANY_ARRAY_ITEMS: {
+    readonly items: undefined;
+};
 
 // @public (undocumented)
 export type AnyToolBase = ToolBase<any>;
@@ -137,10 +148,12 @@ export class Elicitation implements IElicitation {
     inputRequired(input: ElicitInputRequiredParams): InputRequiredResult;
     readConfirmation(inputResponses: ElicitationInputResponses): boolean | undefined;
     readInput(inputResponses: ElicitationInputResponses, key: string): ElicitedInputResult | undefined;
-    supportsElicitation(): boolean;
+    supportsElicitation(request: ElicitationRequestContext): boolean;
 }
 
 export { ElicitationInputResponses }
+
+export { ElicitationRequestContext }
 
 export { ElicitedInputResult }
 
@@ -270,6 +283,7 @@ export const LogId: {
     readonly mongodbIndexCheckFailure: MongoLogId;
     readonly searchCapabilityProbe: MongoLogId;
     readonly mongodbGetSearchIndexesFailure: MongoLogId;
+    readonly mongodbSearchIndexOnViewDiagnosisFailure: MongoLogId;
     readonly toolUpdateFailure: MongoLogId;
     readonly resourceUpdateFailure: MongoLogId;
     readonly updateToolMetadata: MongoLogId;

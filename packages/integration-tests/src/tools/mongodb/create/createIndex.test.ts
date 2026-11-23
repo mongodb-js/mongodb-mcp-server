@@ -517,6 +517,76 @@ describeWithMongoDB({
                 expect(content).toContain(`Collection 'nonexistent_db.foo' does not exist`);
             });
         });
+        describe("when the namespace is a view", () => {
+            let sourceCollectionName: string;
+            let viewName: string;
+            beforeEach(async () => {
+                sourceCollectionName = new ObjectId().toString();
+                viewName = `view_${new ObjectId().toString()}`;
+                const db = integration.mongoClient().db(integration.randomDbName());
+                await db.createCollection(sourceCollectionName);
+                await db.createCollection(viewName, {
+                    viewOn: sourceCollectionName,
+                    // Search on views only accepts a $match that consists of $expr.
+                    pipeline: [{ $match: { $expr: { $eq: ["$category", "a"] } } }],
+                });
+            });
+            afterEach(async () => {
+                // Guarded so a failed setup does not hide the real failure.
+                const db = integration.mongoClient().db(integration.randomDbName());
+                await db
+                    .collection(viewName)
+                    .drop()
+                    .catch(() => {});
+                await db
+                    .collection(sourceCollectionName)
+                    .drop()
+                    .catch(() => {});
+            });
+
+            // The default search image is MongoDB 8.1+, where search indexes on views can be
+            // created through this path. The 8.0 error handling is covered by the 8.0 suite below.
+            it.each([
+                {
+                    type: "search",
+                    definition: [{ type: "search", mappings: { dynamic: true } }],
+                },
+                {
+                    type: "vector search",
+                    definition: [
+                        {
+                            type: "vectorSearch",
+                            fields: [{ type: "vector", path: "embedding", numDimensions: 4 }],
+                        },
+                    ],
+                },
+            ])("creates a $type index on the view", async ({ definition }) => {
+                const response = await integration.mcpClient().callTool({
+                    name: "create-index",
+                    arguments: {
+                        connectionId,
+                        database: integration.randomDbName(),
+                        collection: viewName,
+                        name: "view_idx",
+                        definition,
+                    },
+                });
+                const content = getResponseContent(response.content);
+
+                // On failure this shows the server's error text instead of just "true".
+                expect(response.isError ? content : undefined).toBeUndefined();
+                expect(content).toContain(`Created the index "view_idx" on collection "${viewName}"`);
+                expect(content).not.toContain("is a view");
+
+                const indexes = await integration
+                    .mongoClient()
+                    .db(integration.randomDbName())
+                    .collection(viewName)
+                    .listSearchIndexes()
+                    .toArray();
+                expect(indexes.map((index) => index.name)).toContain("view_idx");
+            });
+        });
         describe("when the collection exists", () => {
             let collectionName: string;
             let collection: Collection;
@@ -722,6 +792,95 @@ describeWithMongoDB({
     config: {
         downloadOptions: {
             search: true,
+        },
+    },
+});
+describeWithMongoDB({
+    name: "createIndex tool with search indexes on a view on MongoDB 8.0",
+    fn: (integration) => {
+        let connectionId: string;
+        let sourceCollectionName: string;
+        let viewName: string;
+        beforeEach(async () => {
+            connectionId = await integration.connectMcpClient();
+            await waitUntilSearchIsReady({ mongoClient: integration.mongoClient() });
+            sourceCollectionName = new ObjectId().toString();
+            viewName = `view_${new ObjectId().toString()}`;
+            const db = integration.mongoClient().db(integration.randomDbName());
+            await db.createCollection(sourceCollectionName);
+            await db.createCollection(viewName, {
+                viewOn: sourceCollectionName,
+                pipeline: [{ $match: { $expr: { $eq: ["$category", "a"] } } }],
+            });
+        });
+        afterEach(async () => {
+            const db = integration.mongoClient().db(integration.randomDbName());
+            await db
+                .collection(viewName)
+                .drop()
+                .catch(() => {});
+            await db
+                .collection(sourceCollectionName)
+                .drop()
+                .catch(() => {});
+        });
+
+        // On 8.0 the server answers a view with the same "Collection ... does not exist" error
+        // it gives for a missing collection, so the tool has to explain what is really going on.
+        it.each([
+            {
+                type: "search",
+                definition: [{ type: "search", mappings: { dynamic: true } }],
+            },
+            {
+                type: "vector search",
+                definition: [
+                    {
+                        type: "vectorSearch",
+                        fields: [{ type: "vector", path: "embedding", numDimensions: 4 }],
+                    },
+                ],
+            },
+        ])("explains why a $type index cannot be created on the view", async ({ definition }) => {
+            const response = await integration.mcpClient().callTool({
+                name: "create-index",
+                arguments: {
+                    connectionId,
+                    database: integration.randomDbName(),
+                    collection: viewName,
+                    definition,
+                },
+            });
+            const content = getResponseContent(response.content);
+
+            expect(response.isError).toBe(true);
+            expect(content).toContain(`"${integration.randomDbName()}.${viewName}"`);
+            expect(content).toContain("is a view");
+            expect(content).toContain("on MongoDB 8.0");
+            expect(content).toContain("On Atlas, create the index through the Atlas UI");
+            expect(content).toContain(`source collection "${sourceCollectionName}"`);
+            expect(content).not.toContain("does not exist");
+        });
+
+        it("still reports a missing collection as missing", async () => {
+            const response = await integration.mcpClient().callTool({
+                name: "create-index",
+                arguments: {
+                    connectionId,
+                    database: integration.randomDbName(),
+                    collection: "no_such_collection",
+                    definition: [{ type: "search", mappings: { dynamic: true } }],
+                },
+            });
+
+            expect(response.isError).toBe(true);
+            expect(getResponseContent(response.content)).toContain("does not exist");
+        });
+    },
+    config: {
+        downloadOptions: {
+            search: true,
+            image: "mongodb/mongodb-atlas-local:8.0",
         },
     },
 });

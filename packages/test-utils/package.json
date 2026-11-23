@@ -1,6 +1,6 @@
 {
   "name": "@mongodb-js/mcp-test-utils",
-  "version": "3.2.2",
+  "version": "3.3.0",
   "private": true,
   "type": "module",
   "description": "Test utilities for the MongoDB MCP server",
@@ -14,6 +14,7 @@
     "check": "tsc --noEmit --project tsconfig.json"
   },
   "dependencies": {
+    "@mongodb-js/mcp-atlas-telemetry": "workspace:*",
     "@mongodb-js/mcp-core": "workspace:*",
     "@mongodb-js/mcp-metrics": "workspace:*",
     "@mongodb-js/mongodb-runner": "^8.4.1",

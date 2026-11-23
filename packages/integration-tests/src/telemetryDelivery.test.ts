@@ -9,11 +9,10 @@ import type {
     TransportRequestContext,
 } from "@mongodb-js/mcp-types";
 import { UIRegistry } from "@mongodb-js/mcp-ui";
-import { MockMetrics } from "@mongodb-js/mcp-test-utils";
+import { MockMetrics, useMockTelemetry } from "@mongodb-js/mcp-test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createTestApiClient } from "./integrationHelpers.js";
-import { useMockTelemetry } from "./helpers/useMockTelemetry.js";
 import { type TestServer } from "./mocks/tools.js";
 
 const SERVER_METADATA = { mcpServerName: "telemetry-delivery-test", version: "1.0.0" };
