@@ -213,8 +213,9 @@ function updateServerJsonEnvVars(envVars: ArgumentInfo[]): void {
     const packageJsonPath = join(__dirname, "..", "..", "..", "packages", "mongodb-mcp-server", "package.json");
 
     const content = readFileSync(serverJsonPath, "utf-8");
-    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8")) as { version: string };
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8")) as { version: string; description: string };
     const serverJson = JSON.parse(content) as {
+        description?: string;
         version?: string;
         packages: {
             registryType?: string;
@@ -241,6 +242,9 @@ function updateServerJsonEnvVars(envVars: ArgumentInfo[]): void {
     // Generate package arguments (named arguments in camelCase)
     const packageArguments = generatePackageArguments(envVars);
 
+    // The registry description is sourced from package.json so the two cannot drift
+    serverJson.description = packageJson.description;
+
     // Update version at root level
     serverJson.version = process.env.VERSION || version;
 
@@ -262,6 +266,28 @@ function updateServerJsonEnvVars(envVars: ArgumentInfo[]): void {
 
     writeFileSync(serverJsonPath, JSON.stringify(serverJson, null, 2) + "\n", "utf-8");
     console.log(`✓ Updated server.json (version ${version})`);
+}
+
+function updateDockerfileDescription(): void {
+    const packageDir = join(__dirname, "..", "..", "..", "packages", "mongodb-mcp-server");
+    const dockerfilePath = join(packageDir, "Dockerfile");
+    const { description } = JSON.parse(readFileSync(join(packageDir, "package.json"), "utf-8")) as {
+        description: string;
+    };
+
+    const labelPattern = /^LABEL description=".*"$/m;
+    const dockerfile = readFileSync(dockerfilePath, "utf-8");
+    if (!labelPattern.test(dockerfile)) {
+        throw new Error(`Could not find a LABEL description line in ${dockerfilePath}`);
+    }
+
+    const escaped = description.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    writeFileSync(
+        dockerfilePath,
+        dockerfile.replace(labelPattern, () => `LABEL description="${escaped}"`),
+        "utf-8"
+    );
+    console.log("✓ Updated Dockerfile description label");
 }
 
 function generateReadmeConfigTable(argumentInfos: ArgumentInfo[]): string {
@@ -333,5 +359,6 @@ export function generateArguments(): void {
     const zodMetadata = extractZodDescriptions();
     const argumentInfo = getArgumentInfo(zodMetadata);
     updateServerJsonEnvVars(argumentInfo);
+    updateDockerfileDescription();
     updateReadmeConfigTable(argumentInfo);
 }

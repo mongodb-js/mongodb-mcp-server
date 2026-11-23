@@ -810,6 +810,45 @@ describeAccuracyTests(
             },
         },
         {
+            // Verifies the Unity catalog connection and warehouse syntax from the public Streams UI.
+            prompt:
+                `Deploy processor 'unity-iceberg-sink' in workspace '${workspaceName}' that reads from 'events' ` +
+                `and writes an Iceberg table to the existing S3 connection 'archive' in bucket 'acme-lakehouse'. ` +
+                `Register the table in the Unity DataCatalog connection 'unity_catalog', using warehouse 'analytics'.`,
+            systemPrompt: projectContext,
+            expectedToolCalls: [
+                ...optionalWorkspaceDiscovery,
+                {
+                    toolName: "atlas-streams-build",
+                    parameters: {
+                        ...optionalProcessorParams,
+                        projectId,
+                        resource: "processor",
+                        workspaceName,
+                        processorName: "unity-iceberg-sink",
+                        pipeline: Matcher.anyValue,
+                    },
+                },
+            ],
+            mockedTools,
+            customScorer: (baselineScore: number, actualToolCalls: LLMToolCall[]): number => {
+                const build = actualToolCalls.find(
+                    (call) => call.toolName === "atlas-streams-build" && call.parameters.resource === "processor"
+                );
+                const pipeline = build?.parameters.pipeline;
+                if (!Array.isArray(pipeline) || pipeline.length === 0) return 0;
+                const lastStage = pipeline[pipeline.length - 1] as Record<string, unknown> | undefined;
+                const icebergStage = lastStage?.["$iceberg"] as Record<string, unknown> | undefined;
+                const catalog = icebergStage?.catalog as Record<string, unknown> | undefined;
+                return icebergStage?.connectionName === "archive" &&
+                    catalog?.type === "unity" &&
+                    catalog.connectionName === "unity_catalog" &&
+                    catalog.warehouse === "analytics"
+                    ? baselineScore
+                    : 0;
+            },
+        },
+        {
             prompt: `Create processor 'autoscale-orders' in workspace '${workspaceName}' at SP10 with autoscaling between SP5 and SP30. Use the existing 'events' source and 'output' sink.`,
             systemPrompt: projectContext,
             expectedToolCalls: [

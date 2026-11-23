@@ -16,7 +16,7 @@ describeWithMongoDB({
             integration,
             name: "explain",
             description:
-                "Returns statistics describing the execution of the winning plan chosen by the query optimizer for the evaluated method",
+                "Returns statistics describing the execution of the winning plan chosen by the query optimizer for the evaluated method. Pipelines with $out or $merge stages are not accepted, because explain never writes.",
             operationType: "metadata",
             parameters: [
                 ...databaseCollectionParameters,
@@ -327,9 +327,9 @@ describeWithMongoDB({
                     { name: "Laura", age: 10 },
                 ]);
         });
-        // Explaining a pipeline never executes its $out/$merge stage, so this is not a data-safety
-        // guard. It keeps explain consistent with aggregate: a pipeline that cannot be run in the
-        // current mode cannot be explained either.
+        // Explain never executes a $out/$merge stage and rejects such pipelines in every mode. In these
+        // modes, the more specific message below takes precedence over the generic explain one, so it
+        // stays consistent with what the aggregate tool reports for the same pipeline.
         for (const writeStage of ["$out", "$merge"] as const) {
             it(`rejects explaining aggregations with a ${writeStage} stage in readOnly mode`, async () => {
                 integration.mcpServer().userConfig.readOnly = true;
@@ -365,6 +365,85 @@ describeWithMongoDB({
                     "When 'create', 'update', or 'delete' operations are disabled, you can not run pipelines with $out or $merge stages."
                 );
             });
+        }
+    },
+});
+describeWithMongoDB({
+    name: "explain tool with a write concern on the connection",
+    fn: (integration) => {
+        // The server rejects any explain that carries a write concern, so a write concern set on the
+        // connection string (Atlas strings include `w=majority`) must not leak into the explain command.
+        const methods = [
+            { name: "aggregate", arguments: { pipeline: [{ $match: { name: "Peter" } }] } },
+            { name: "find", arguments: { filter: { name: "Peter" } } },
+            { name: "count", arguments: { query: { name: "Peter" } } },
+        ] as const;
+
+        // Use the database first so the provider caches a handle with the connection's write concern.
+        async function connectWithWriteConcern(w: string): Promise<{ connectionId: string; database: string }> {
+            const url = new URL(integration.connectionString());
+            url.searchParams.set("w", w);
+            const entry = await integration.mcpServer().connectionRegistry.connect({
+                settings: { connectionString: url.toString() },
+            });
+            const database = integration.randomDbName();
+            const insert = await integration.mcpClient().callTool({
+                name: "insert-many",
+                arguments: {
+                    connectionId: entry.connectionId,
+                    database,
+                    collection: "people",
+                    documents: [{ name: "Peter" }],
+                },
+            });
+            expect(insert.isError).toBeFalsy();
+            return { connectionId: entry.connectionId, database };
+        }
+
+        for (const w of ["majority", "1"]) {
+            for (const method of methods) {
+                it(`should explain ${method.name} when the connection string sets w=${w}`, async () => {
+                    const { connectionId, database } = await connectWithWriteConcern(w);
+
+                    const response = await integration.mcpClient().callTool({
+                        name: "explain",
+                        arguments: { connectionId, database, collection: "people", method: [method] },
+                    });
+
+                    expect(response.isError).toBeFalsy();
+                    const structuredContent = response.structuredContent as ExplainOutput;
+                    expect(structuredContent.method).toBe(method.name);
+                    expect(structuredContent.explainResult).toHaveProperty("queryPlanner");
+                });
+            }
+        }
+
+        // Explain never writes, so pipelines with a write stage are rejected up front with an explanation
+        // rather than failing later on a write concern error, or implying that explain can write.
+        for (const writeStage of ["$out", "$merge"] as const) {
+            for (const w of ["majority", "1"]) {
+                it(`rejects explaining an aggregate with a ${writeStage} stage when the connection string sets w=${w}`, async () => {
+                    const { connectionId, database } = await connectWithWriteConcern(w);
+                    const stage = writeStage === "$out" ? { $out: "outpeople" } : { $merge: { into: "outpeople" } };
+
+                    const response = await integration.mcpClient().callTool({
+                        name: "explain",
+                        arguments: {
+                            connectionId,
+                            database,
+                            collection: "people",
+                            method: [
+                                { name: "aggregate", arguments: { pipeline: [{ $match: { name: "Peter" } }, stage] } },
+                            ],
+                        },
+                    });
+
+                    expect(response.isError).toBe(true);
+                    const content = getResponseContent(response);
+                    expect(content).toContain("The explain tool does not accept pipelines with $out or $merge stages");
+                    expect(content).not.toContain("writeConcern");
+                });
+            }
         }
     },
 });
