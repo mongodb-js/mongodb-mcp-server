@@ -1,41 +1,26 @@
 The following third-party software is used by and included in **MongoDB MCP Server**.
-This document was automatically generated on Fri Nov 20 2026.
+This document was automatically generated on Mon Nov 23 2026.
 
 ## List of dependencies
 
 Package|Version|License
 -------|-------|-------
-**[@aws-crypto/sha256-browser](#dcf63e8238fa19b0963dd6f1bd9595c1767c35e004476882760dafbc9799e46e)**|5.2.0|Apache-2.0
-**[@aws-crypto/sha256-js](#50b63fb360e42c4612414b935c6f4774af58b8409ebc3df515d10451ffadf058)**|5.2.0|Apache-2.0
-**[@aws-crypto/supports-web-crypto](#10e004f712d088a66497cd55e567f07dc580563b5d26c463f69900e6f8c5de44)**|5.2.0|Apache-2.0
-**[@aws-crypto/util](#d79f5295b871b8443a953757144141caad45c1bf644c2de3a78a489b04407192)**|5.2.0|Apache-2.0
-**[@aws-sdk/client-cognito-identity](#a3b5489b135bafcf9a2659dc2aa444803a20ff6a81eb8ed663a9590fb89ba444)**|3.1003.0|Apache-2.0
-**[@aws-sdk/core](#39dd3e1b2350b4fe66dc7f06f97d662034ffe0c6cd90cdfbd1c3e6daa16e7c6e)**|3.978.3|Apache-2.0
-**[@aws-sdk/credential-provider-cognito-identity](#79dc573f5ba5cac9c6beab3f58816deb1321a3cf4dfa7cd9a6267562695e56d5)**|3.972.9|Apache-2.0
-**[@aws-sdk/credential-provider-env](#1c952684e2ac3f54dbd95141637983af7c5ef8c01bfc528eec7860fec0588b6e)**|3.972.16|Apache-2.0
-**[@aws-sdk/credential-provider-http](#ac68df93a440839b88f1a06845a069ce5260af53f75ea1ab19a66ca25efd99f9)**|3.972.18|Apache-2.0
-**[@aws-sdk/credential-provider-ini](#6817cde590530cde7d3e615126e2785e46a2707c957b9684bbffa29a9a93a406)**|3.972.16|Apache-2.0
-**[@aws-sdk/credential-provider-login](#96a4a44f72f4ce975c5dce8491f5e0cb89b49927318e9cf227a9393df634b125)**|3.972.16|Apache-2.0
-**[@aws-sdk/credential-provider-node](#f1e210957e5d38966af9ca0d1f3c92ab567602e3f555e828fb2588bf1b41815e)**|3.972.17|Apache-2.0
-**[@aws-sdk/credential-provider-process](#4bc017fc85fa9bb7cf4bd7ec3e6b1e8bd0c1193602feaec60a81a5976c689238)**|3.972.16|Apache-2.0
-**[@aws-sdk/credential-provider-sso](#b4eb6fe6f2df4344e7efd2076cf499bc3d0b999c394ac291393ac3398bc7fde3)**|3.972.16|Apache-2.0
-**[@aws-sdk/credential-provider-web-identity](#e4de01164747e55dc1f284c59a1606b29d903971fa531c2fc38bf32fbe6e6649)**|3.972.16|Apache-2.0
-**[@aws-sdk/credential-providers](#b35a11bbee3295c08692951584b4f24e520932eea8dd0aeee3d4fdae60eb2b47)**|3.1003.0|Apache-2.0
-**[@aws-sdk/middleware-host-header](#8e906b6bcf1def60ab95ad9ec805308c00852496f8c9eda5402d3c8797c4439f)**|3.972.7|Apache-2.0
-**[@aws-sdk/middleware-logger](#f6c5305ff1795cff62ed22b454b4d29eaa60c337d2d8b7d15e4475cf42528051)**|3.972.7|Apache-2.0
-**[@aws-sdk/middleware-recursion-detection](#1bce1b14288a88725c182b375ed4203baf058811403cb251499efb39d866f002)**|3.972.7|Apache-2.0
-**[@aws-sdk/middleware-user-agent](#6ccdfcfafa125d2f84f997ab6406bf86eee6d2de9be007080781664027193534)**|3.972.18|Apache-2.0
-**[@aws-sdk/nested-clients](#833a4e466d6eec6091f8ef56bf1ed8155144447d0a234f370546b08661421cc4)**|3.996.6|Apache-2.0
-**[@aws-sdk/region-config-resolver](#52b8493b57007a733ac88ed367b63a758bddb1e5f20cb12ad915db15f8385193)**|3.972.7|Apache-2.0
-**[@aws-sdk/token-providers](#f99a1a424a918f423d9e0750f58266f4ffd8bd7ba7ef8c95c28747bccbfc965f)**|3.1003.0|Apache-2.0
-**[@aws-sdk/types](#44490d0a294602b556e44e9bcae055ee8c88b785d20fe49eda7c56cb2ad372e0)**|3.973.5|Apache-2.0
-**[@aws-sdk/types](#92dd9a55f25d28221877f8c7137f3396d805d94f9afa3a69e7969f197f40e9c2)**|3.974.6|Apache-2.0
-**[@aws-sdk/util-endpoints](#fb31de74f79e2ffaf4aff6a0a0d6508b8146e3eb4b66bc7c25c3f774feb252cb)**|3.996.4|Apache-2.0
-**[@aws-sdk/util-locate-window](#91f3bf88610ba96fa890a69353f920b6352c634661541fb73874df6d1b881dd5)**|3.965.5|Apache-2.0
-**[@aws-sdk/util-user-agent-browser](#aaad4140e346ff76166c1b98d605beacc6032203f73e9af7578cf5b1acf3b2fc)**|3.972.7|Apache-2.0
-**[@aws-sdk/util-user-agent-node](#e452369a5d8392d9612d876ab089456ba44dcea7c24cf19ea01162921315fe98)**|3.973.3|Apache-2.0
-**[@aws-sdk/xml-builder](#68b0310a94ab13c749de3c1ce0dd52888a033def43f21ca1f9bd56497a476807)**|3.972.41|Apache-2.0
-**[@aws/lambda-invoke-store](#f0217fef00757a17949bb59dc7aae6a8fbf564432ad8e440e62c82822bbd4eba)**|0.2.3|Apache-2.0
+**[@aws-sdk/core](#4275079c12856679cd19cfbf997ce1dc66913d67a077606f65fd2fceb3e15eb8)**|3.981.1|Apache-2.0
+**[@aws-sdk/credential-provider-cognito-identity](#fca775ea0491a45f58a1918352f2223d333800df5a3c6bf653bac60cccb0687a)**|3.972.84|Apache-2.0
+**[@aws-sdk/credential-provider-env](#2469a00a09fd2f56ab861a7c75fb41baebb3035f657141d94f9e5e317135dcce)**|3.972.85|Apache-2.0
+**[@aws-sdk/credential-provider-http](#f2bda6dbe7273de73bd5ebd2796d126ba995a9537557d97a99e706d0ca9a25d7)**|3.972.87|Apache-2.0
+**[@aws-sdk/credential-provider-ini](#03a5bc9aa02b1ada4b131d11547a6a28fba98e59c91d0255a8040d81ff54cfa7)**|3.973.31|Apache-2.0
+**[@aws-sdk/credential-provider-login](#332067616416994a25710e80c4b238bdf6c8105020df2d8773bdc0241b0079c4)**|3.972.93|Apache-2.0
+**[@aws-sdk/credential-provider-node](#9af18a3b77183178fc7129b7be4b1102ad60627806d59beb4d109a18f5de3c2b)**|3.972.98|Apache-2.0
+**[@aws-sdk/credential-provider-process](#e815c334f53837611140ad1e23fb0eb77379dfcd7cb220e8cba3ba9728f7696c)**|3.972.85|Apache-2.0
+**[@aws-sdk/credential-provider-sso](#c9061fffeb79d3cb29c8a35bbe565f428f2539cea61177e5ea89f7a131da1686)**|3.973.29|Apache-2.0
+**[@aws-sdk/credential-provider-web-identity](#4be11aa1647ea5863cb15fae2c755f41b80d3f541c94df761e16190cae88fa2a)**|3.972.91|Apache-2.0
+**[@aws-sdk/credential-providers](#126c43660f65fa628705060880ac7774a2b22bf32d053728a44c6d5c8d779efa)**|3.1175.0|Apache-2.0
+**[@aws-sdk/nested-clients](#2821a14ee3e0c60c8d72c4f26704ec8463f91197046ac7fd308ba6344c410884)**|3.998.4|Apache-2.0
+**[@aws-sdk/signature-v4-multi-region](#eca09b8faa6950d6783a40ce3013f396cd4981a216875eeaacc87fa92a9f12c9)**|3.996.52|Apache-2.0
+**[@aws-sdk/token-providers](#3207f65f1d7360f543be0e00ebe2ba48d42bf78b97db6e06ffdc7bc4e1a548d3)**|3.1175.0|Apache-2.0
+**[@aws-sdk/types](#4eb243650a029e1e5ad22f9b86efdf27af116496b7d4215d56e118a1640e8655)**|3.975.1|Apache-2.0
+**[@aws-sdk/xml-builder](#eda45602f25dd6931b166860d4f4e950e08511678da75bee70c4b3fafc870374)**|3.972.43|Apache-2.0
 **[@aws/lambda-invoke-store](#99f22e6b9259cdb551e825b4c521ed7465afd757e399edd9482a817c8d376576)**|0.3.0|Apache-2.0
 **[@cfworker/json-schema](#a3ff56de9158fb479a4eb73317fba1e4f9d7390f67a36393cdceb9d107db81fd)**|4.1.1|MIT
 **[@hono/node-server](#f814f0875f6f98c3b246ff602df095468b23e7fffb75cfcf75eb8e5ba5eae5dd)**|1.19.19|MIT
@@ -62,51 +47,12 @@ Package|Version|License
 **[@modelcontextprotocol/sdk](#a87ede19dd988bc599975fc2f7c71f7e3b7e50359f8eef6e71ae4a234383d237)**|1.32.1|MIT
 **[@modelcontextprotocol/server](#594fbc56ffa97da9d5bf73207127b82e7885989144e2b8026061f18035d88ee9)**|2.3.1|Apache-2.0
 **[@opentelemetry/api](#65aff18a9fc4c98f9c24ab0445de2b3275049aa3c7a6db8be0534ad8dc7d2193)**|1.9.1|Apache-2.0
-**[@smithy/abort-controller](#290b53ba6663e435953e6033bae74287f208f6bd16bc6e2d4a7ca581b3ce2007)**|4.2.11|Apache-2.0
-**[@smithy/config-resolver](#77272054b528ffcf6bb02a57dcbe0bf0fd96fd65d046629032bf103b1891650b)**|4.4.10|Apache-2.0
-**[@smithy/core](#cec689f3b13f05869a49170ec9fe5156d590b1cb51ab0eeae78ec69aaeb9c2b8)**|3.23.9|Apache-2.0
-**[@smithy/core](#a1f539630ce1673f25f95c50ecee6f8e63cc3f191dd0350b8213f337db04ac33)**|3.36.0|Apache-2.0
-**[@smithy/credential-provider-imds](#b836afb1c3f82aa69db1436cf3cf8c69202fddd410d15b424413b3c10ac4f54c)**|4.2.11|Apache-2.0
-**[@smithy/fetch-http-handler](#f4564a9673008ef638e2acfe37dd0942cd19e0965bbe964352d797ecf5fb2744)**|5.3.13|Apache-2.0
-**[@smithy/hash-node](#e38f66adea1ded3a0fc0238f170a759fc1bedd6f936826610f43d5d24a146ddb)**|4.2.11|Apache-2.0
-**[@smithy/invalid-dependency](#74502227fd06d8c49c64dd21d59017275d01d52db87fd1158dd88a8e8771b998)**|4.2.11|Apache-2.0
-**[@smithy/is-array-buffer](#a25ba330c8f14a26e04a854e0d8074597470d0efd72d6504378f98c23c2f2dc3)**|2.2.0|Apache-2.0
-**[@smithy/is-array-buffer](#14634b6ef1f4764ac75df85b62ee1700fefc9afa0d40d516bf4e0bc97690193f)**|4.2.2|Apache-2.0
-**[@smithy/middleware-content-length](#7afb2fa5568475051eeffbbdab4b70eb621f51241bf32edaba0a641e025e7d63)**|4.2.11|Apache-2.0
-**[@smithy/middleware-endpoint](#847628247c404856c54d772cb2701f3c5d47cbf70b801defb9f461c8f32aeb3b)**|4.4.23|Apache-2.0
-**[@smithy/middleware-retry](#607d7209016e15a9f9936d47a681f22a0c3ff25d7860dd5d2fe1f94dd7a667a1)**|4.4.40|Apache-2.0
-**[@smithy/middleware-serde](#f37d8b8c7d1bfa82d06adaac504678c89304004d3f1535bfd749ec8d96894281)**|4.2.12|Apache-2.0
-**[@smithy/middleware-stack](#bbcfba6ba5c348a26cb2ead54adb2abe49fb4eb3a6f14c8ebfcc5cff835a48fd)**|4.2.11|Apache-2.0
-**[@smithy/node-config-provider](#c111157323f1985f20f1ac18a78ac1aa86b8aca10d74bb87723b863d63e59f0d)**|4.3.11|Apache-2.0
-**[@smithy/node-http-handler](#6bd93367712d7c65119b6378729acc6fa870dea60fd523d1d726909f8b6272d9)**|4.4.14|Apache-2.0
-**[@smithy/property-provider](#2359f3d13977d037b3ea50b43a533bfacc5815a88af32de1249422c461113d96)**|4.2.11|Apache-2.0
-**[@smithy/protocol-http](#77ca789f92d72eedb911100fd4a5321521404e078b6c2261ead5230ad325626a)**|5.3.11|Apache-2.0
-**[@smithy/querystring-builder](#633b8bacdf7563604b1963d13b3b476dd90abfbf1bdb4804e7211ec1e0936022)**|4.2.11|Apache-2.0
-**[@smithy/querystring-parser](#0eecff072d5131c6dec5fe3ffa3f04bc45303d6fafe8337ea66da0b81f25b584)**|4.2.11|Apache-2.0
-**[@smithy/service-error-classification](#7f5128deb78da7a8ee17182870d4abf4bab8796849ea3bd1316a3d8305fb0f3d)**|4.2.11|Apache-2.0
-**[@smithy/shared-ini-file-loader](#d9d98fb2178678724ac8b290e3a1517f06f0086d0217a590d9da80026213e4e4)**|4.4.6|Apache-2.0
-**[@smithy/signature-v4](#7069adc153dfa3d3880f289cf607f29339d9a8ac353ef761615472fe4ca81dec)**|5.7.4|Apache-2.0
-**[@smithy/smithy-client](#0e0637597702f6375f8fc0a65ecc39df0117fe2d44f12850e3ca4439f2c80745)**|4.12.3|Apache-2.0
-**[@smithy/types](#32640c6d1cee59a08e72d561e61a3c62c8cefc6333d3e1608e0e8ee855c7306c)**|4.13.0|Apache-2.0
-**[@smithy/types](#1cc2ba5febbe4dfd93f755cd5422638cb9cf9a9e24864ed18ae947b99ee7c35d)**|4.19.0|Apache-2.0
-**[@smithy/url-parser](#e070772c5aed77fc2b1b0b501309360e29173930cdc5c80fe271767cbbb4715c)**|4.2.11|Apache-2.0
-**[@smithy/util-base64](#9d167293b8d5c596a6cc8b7a85db08d7ddf76139542c6c22b170af0091657530)**|4.3.2|Apache-2.0
-**[@smithy/util-body-length-browser](#a4de8d4c08624d8e6589b5af7c77d94bf6f7cb6fe97e56dd12823cec04a6de94)**|4.2.2|Apache-2.0
-**[@smithy/util-body-length-node](#b18ac998b10587a4f20a8c4aff5e75796106ce063d85ee6a1b45a1271f9587fe)**|4.2.3|Apache-2.0
-**[@smithy/util-buffer-from](#07f5ce50586cc8093d605ee5df653bcd3fc89320cc2afec296eb130d7463fa31)**|2.2.0|Apache-2.0
-**[@smithy/util-buffer-from](#5571b73570815b98950ea630bc2c41fe1a34db9cf36404f6cb222292772137eb)**|4.2.2|Apache-2.0
-**[@smithy/util-config-provider](#d9243b3d408ffd0b7a53890557a746a5fbc5170b030fc0b8b17d0f9078e24543)**|4.2.2|Apache-2.0
-**[@smithy/util-defaults-mode-browser](#41119d3e0686f5d04b513d4e402ffdcc998b4abfdc121ab20341f6e8737e6f84)**|4.3.39|Apache-2.0
-**[@smithy/util-defaults-mode-node](#74df983325fd7602da87f345352b7f0075257f75cbd829ba77f26376f6fce928)**|4.2.42|Apache-2.0
-**[@smithy/util-endpoints](#9f31b2d8e2846d89a435372155e464f12bdf74ec4a942987904fed32c311ce3b)**|3.3.2|Apache-2.0
-**[@smithy/util-hex-encoding](#80df28e7ca8019822a9fc1bf6aa9efa11e9fc958cff48cae8d8516fefaae8ef9)**|4.2.2|Apache-2.0
-**[@smithy/util-middleware](#5c15d56f4bae671b881b0521f28f76c0746aeb6a6af1ec869f115f93e86a7f47)**|4.2.11|Apache-2.0
-**[@smithy/util-retry](#a0f700bb1fabd2a3128a65fcbe388679fbbd7e62a5bdfc799374e3e8c38fe573)**|4.2.11|Apache-2.0
-**[@smithy/util-stream](#511348f9236a6f8c9b367730789ddcf6912a60a9005ecfb19823937e80a74f7a)**|4.5.17|Apache-2.0
-**[@smithy/util-uri-escape](#94f2c04acec7dca1192771141b555626af8ada19c7e5de8820ac1512bfe4cce2)**|4.2.2|Apache-2.0
-**[@smithy/util-utf8](#ddf790da0f47b61de4adaf277708e1a3323b9d73daf35cf26744cb614ee471ff)**|2.3.0|Apache-2.0
-**[@smithy/util-utf8](#d84c4080d717edfbcfd0a903fc554549c673091618969b1580ecda94c41bb0ba)**|4.2.2|Apache-2.0
-**[@smithy/uuid](#6fb5f2722612f4fb79cdd6d2464b654f9bd645a13d3eacaefc80cd40bf52dc07)**|1.1.2|Apache-2.0
+**[@smithy/core](#09050af3c553dced1fac8635f105974679940b5f87d28b5330f8593dadc31b55)**|3.41.0|Apache-2.0
+**[@smithy/credential-provider-imds](#4bec717cb88b2b85cd0816d3c4e00765da9351441b02966f2f3eb288f25970dd)**|4.5.2|Apache-2.0
+**[@smithy/fetch-http-handler](#61b9566ff1dc03b15efa34dd8b73492f20d32e434399b0060317b3cf18844ec5)**|5.8.1|Apache-2.0
+**[@smithy/node-http-handler](#71ef22f744e5db2f1c84b8d0a480dbcd2b3b75f78fa023cc5227386a644787ee)**|4.14.2|Apache-2.0
+**[@smithy/signature-v4](#24bb63448b6fa79be3672a6b659a487abe4bce1b26837304b12c5a167acc302e)**|5.7.5|Apache-2.0
+**[@smithy/types](#fce1718f916a6b3aa6f70008be65e8ad9d2e90ad4deb6598dab01b8c73198d9f)**|4.20.0|Apache-2.0
 **[@tootallnate/quickjs-emscripten](#dda6dbabe98503ac1af20979be1778d7a1c8f355b85377124a909567193c2cd3)**|0.23.0|MIT
 **[@types/node](#fb8f5c8bd483ba1f0f9540c778a82434a77cbefebed5b317638ccaedaddc3e56)**|25.6.0|MIT
 **[@types/webidl-conversions](#be865b69ce581ada8d76b65df5443adba1b852f1b9a516834184708187790e83)**|7.0.3|MIT
@@ -165,7 +111,7 @@ Package|Version|License
 **[decompress-response](#64c777c1b9075eb1d4fc1a0e1ea86130393649a9a01a8e42c16eb14c59b5b8da)**|6.0.0|MIT
 **[deep-extend](#654bd7d00073c2195bca924a07d93393b2aaf5cacbb6f52a383877f6f33dbfbf)**|0.6.0|MIT
 **[default-browser-id](#f63dfb38aa4c33779345e31d3307033c1f6324967ba1c7e6667f37625ed3094c)**|5.0.1|MIT
-**[default-browser](#d56e9863eb7664540d17da110d50b118912edf183d70171ed0d39705239a970b)**|5.5.0|MIT
+**[default-browser](#fbb9ad6bceeab1d9e4edaa5a8bfa74cfbfdfd0eb2f5a5857b023722754e0f780)**|5.5.1|MIT
 **[define-data-property](#a776d26c4eb3429c37b30afeed2ddcd9be51dec6d9ea7025b0e6426a5d4f78d6)**|1.1.4|MIT
 **[define-lazy-prop](#6e79b04c4690532e40a5cdfb76f3ab49de1d6778466fede1548a2e19ac8e75c4)**|3.0.0|MIT
 **[define-properties](#332935df321f270f8588f3ae5e25759d1611d1610bd987eac78b79dd1ee5fe35)**|1.2.1|MIT
@@ -236,7 +182,6 @@ Package|Version|License
 **[http-errors](#707a89567e9b013efa55b49a2bded5f01acd28c256f7e0b884bcc0a024a520f1)**|2.0.1|MIT
 **[http-proxy-agent](#bd2b92f8eb0b68f6d255c316d3cd8c9aff9984e8bcb584d47613c422de726405)**|7.0.2|MIT
 **[https-proxy-agent](#b6aac91220cd7856e313022f6bc340440996660bbcd315ce14638d6daa8a33c6)**|7.0.6|MIT
-**[iconv-lite](#13b102cc17ed6cc490ef8afd0e5ca1aad6f969a6045176d067b261a111d5c712)**|0.7.2|MIT
 **[iconv-lite](#76dc46c7125d24015248138147d9e4cde7c341cd2f40acf5fc9eb9874785cf9b)**|0.7.3|MIT
 **[ieee754](#926bd89d8cb0e458a159fe96007510a5c9d75add2ea3e46185c68854f977a887)**|1.2.1|BSD-3-Clause
 **[inherits](#3eafa9bfb872baf192e837ab771da2e95e983ee682371a2b1c579e518e96f7b4)**|2.0.4|ISC
@@ -255,6 +200,7 @@ Package|Version|License
 **[is-docker](#b21de9a8d47c7c165b912be5c7a36eae3939076531e05733aa2ac7f1099dc46d)**|3.0.0|MIT
 **[is-finalizationregistry](#1e5f8592b3a0fe83ac33a7d0e4812993394a7aa7901baceaa16d26f8267bcfd2)**|1.1.1|MIT
 **[is-generator-function](#5fd3da1f6505eb7e698c022db012ab222cd21b80d929ae5368779a7ac2728c0d)**|1.1.2|MIT
+**[is-in-ssh](#5c276fae7d395a2f6311b1f68e5c59b876ce8a60e214c81e6bdfdca2ed71cd53)**|1.0.0|MIT
 **[is-inside-container](#3f45825f7cda0ec2231b94ee915a0dc76a31eb0f97746c44510d9b05d80c1a97)**|1.0.0|MIT
 **[is-map](#a9d75aec4f0b5614e4286c133a5fb6390141bd79d8b5bff8f3f7815869d04f8e)**|2.0.3|MIT
 **[is-negative-zero](#52bfa7a0a5179ef02b297ce92113f0c5aced36291aa0882d08aa04a289d7672f)**|2.0.3|MIT
@@ -295,11 +241,10 @@ Package|Version|License
 **[mimic-response](#3a8c7e8eed886630dd878b11cbb7ef72840b3bab1f8d4251956ca4f9fa40925f)**|3.1.0|MIT
 **[minimist](#8162d302efd0533ce00fc8a52dd6703dbb4205435af84e72b7694c608a729de4)**|1.2.8|MIT
 **[mkdirp-classic](#e79cc875152b50c2eb57a97163d99f0155bf4e4af7ba4a7e01c12a17a4a3305c)**|0.5.3|MIT
-**[mongodb-build-info](#a141155010340cf8407ae9b3dc89f79dec50b3121d860b75670fc406751bbf54)**|1.9.11|Apache-2.0
-**[mongodb-client-encryption](#f24794d804800d6c453e41a022153224598e9e9c89b0cf7a097419d8e9df3a2e)**|7.0.0|Apache-2.0
+**[mongodb-client-encryption](#3a96696aca95427aae39160f8770f2c62ac59d4cce3caf9120d164aea2f1ce88)**|7.2.2|Apache-2.0
 **[mongodb-connection-string-url](#267005f447433080cc6f4777fd158a8ea3dc603ee3a9d3d77cace34dcf82718c)**|7.0.2|Apache-2.0
-**[mongodb-log-writer](#0788567a51c952a5640e64bd3cb5ef4a5e445f340b3bc971f286caa80334a932)**|2.5.13|Apache-2.0
-**[mongodb](#38940045ee88475d4d74b9a0d5fd843c2ac1c8fd42e38d7a25a7d974a32bce03)**|7.2.0|Apache-2.0
+**[mongodb-log-writer](#b78847d07c7dd1ce2789bf7c4265339a01a842565a53acd95f992815960e4234)**|3.0.6|Apache-2.0
+**[mongodb](#5331961f1696cbc57b5670e967e8a41b713e41ff6ff2d7d14d547f2c9a813fc0)**|7.7.0|Apache-2.0
 **[ms](#2083576c5af8054927640b4788059806d07e250a26066c9ccb2d928394fb9226)**|2.1.3|MIT
 **[mute-stream](#eb2993784d22f2439b2bd63d57d776315f4d5ca647c84da53d61484d28bf6d67)**|3.0.0|ISC
 **[nan](#7f3cd4339345a87ffb0ffe971e900c311e8418a5ea739b6cc735412fbbbbac79)**|2.28.0|MIT
@@ -307,7 +252,7 @@ Package|Version|License
 **[negotiator](#617fa350c7c0fe851efe2301be0dfe1e0a38808562f7dbd2e655d30b17730ccc)**|1.0.0|MIT
 **[netmask](#63146faecf6013c0b1471a5bbc4eab645a19ea5fab9b71cc73fe2b911ccf9099)**|2.1.1|MIT
 **[node-abi](#33d6fecb9cb52faf8a4ce0c437c53e4aba62183c75b443323f636111d8139cfa)**|3.85.0|MIT
-**[node-addon-api](#6229b4201ea3ef7be83227f13d178fe940528acd58ded6d96bb0726958086cb6)**|8.9.0|MIT
+**[node-addon-api](#85ae7b46799e601feeabb27b3713d6edbc2de78de8b5fedf5b409c7b684eead7)**|8.9.2|MIT
 **[node-domexception](#3c25065fd2bc1b6b56856e30ac5b8f34ddae33ca87b225854f8d855b0ccabfbe)**|1.0.0|MIT
 **[node-fetch](#22edb8ba3fe3457e8c1a02e497e6a8cb54e89775224f0c7680ea43772b5c1638)**|3.3.2|MIT
 **[node-machine-id](#04300d9a81d7dde11af595a215cba70df140afadb59a5032f596d7ea2bcc1add)**|1.1.12|MIT
@@ -319,11 +264,11 @@ Package|Version|License
 **[object.assign](#bad5aa92482188df4646987f14216640323e5d45592bb9ab101df122d722faa2)**|4.1.7|MIT
 **[on-finished](#d3c391e10faad1d82190a06f5be315d94a9194cff75aa389940432ef15cf45de)**|2.4.1|MIT
 **[once](#d0d1303998dfae04e4f898f477380aac35568f4d6679f4ea913c2441cf9ebb0b)**|1.4.0|ISC
-**[open](#d014b2891443a3afc1d36e54769389831aa4a59ac459b9b9873f650b1c919307)**|10.2.0|MIT
+**[open](#6ac77d846c988586dfd83cbd43e9137d5bbcac5999028ab136dd583fca4723d3)**|11.0.4|MIT
 **[openapi-fetch](#365c9b72e00b036ab2c8b49575da5ae68f4574d5b707df4586de1d9023b36ba5)**|0.17.0|MIT
 **[openapi-typescript-helpers](#9835b337ae0818865094d6a3e6463751959d2ab05e048808d9870647c2d33d56)**|0.1.0|MIT
 **[openid-client](#e03509e0b6e3a53087fe4bcae90bfa2acee37ac8fe45813dc67b8877b05a33b6)**|6.8.2|MIT
-**[os-dns-native](#9f258105d3daf2840edf7ef048426459a0febc2730883e5b576835dbb91795ec)**|2.0.1|MIT
+**[os-dns-native](#437b9e2bb80c52a2256d06b5ffa4c163ab8a557ab2bed58b9311410d04eeeccb)**|2.1.6|MIT
 **[own-keys](#ea2c792d62ee0a9b2bcb3000d74851d23d963b6658ea5eb6c9b3ff9c7003c4d1)**|1.0.1|MIT
 **[pac-proxy-agent](#a1e028ed101bcee38608950703fbac1f2fd2ad61072b39432ca69a0d79aa84f8)**|7.2.0|MIT
 **[pac-resolver](#7935fe0839f6e2b7c51abcc08705a6096eff5670dc2bdc3819fd096b8d114d8b)**|7.0.1|MIT
@@ -332,13 +277,13 @@ Package|Version|License
 **[path-to-regexp](#815c8b96310baa514797933e7743b0bdd46815906d71d246af97fbf96bb1d572)**|8.4.2|MIT
 **[pkce-challenge](#560377ce6df233b2e39ef3d3950e5a008292b4a21ba7893dfe4692de95ac8e3a)**|5.0.1|MIT
 **[possible-typed-array-names](#9d88337b5021573c773eed80b0c9204d4cadb96cebe01f76d9c674d01c8858e0)**|1.1.0|MIT
+**[powershell-utils](#bf666e269b6718b91aaa9d8bccdec00b1d05697ca88b5c4a06aa4b2d759cdb2a)**|0.2.1|MIT
 **[prebuild-install](#034b3dd1336ef871b8a3739cb1647e8750e3bf21d4ecc9bbfb45525b798ddf20)**|7.1.3|MIT
 **[progress](#b598d996665da76d10446d00412c9422fc984e52a6e405e322aa93c70ae317a1)**|2.0.3|MIT
 **[prom-client](#cd280c3376897f5665894197da7c3e71b17736a810cd80845050255d53628fcd)**|15.1.3|Apache-2.0
 **[proxy-addr](#b94cf93d9a9b565b45709d6348836b83655ae5e0ad3bc5dd6ea24ef661b3be24)**|2.0.8|MIT
 **[pump](#b9b847105813a63ec5c1a9ba264ec1293a0156c5d464e95a13745cd6cafa7769)**|3.0.4|MIT
 **[punycode](#3fe331f5536b72438f24d644ea9804b5e462f791a4c72a6d94f37193af1086aa)**|2.3.1|MIT
-**[qs](#0d1be5d42fb47208b18c66dea50afd11d0ff366411be91aa1150d8dfab0c8311)**|6.16.0|BSD-3-Clause
 **[qs](#394380b97e53013d9992466129c4804ec1930e321f375f7413fb8b705af0e6ec)**|6.17.1|BSD-3-Clause
 **[range-parser](#e973789240fef3c00f359e6acc8570dd769b70ee8b29fdcb679897fa2d696bff)**|1.2.1|MIT
 **[raw-body](#6c791d6d9ec7a011e573514432e037b3a1a50a921c494c45b57d79af7f2a3d7b)**|3.0.2|MIT
@@ -378,7 +323,7 @@ Package|Version|License
 **[simple-get](#c2c12990b6319daff653bdf953cadfa368185f0edc671124fb1028f6979df829)**|4.0.1|MIT
 **[smart-buffer](#bc8fbee089eb9cddf673c4c9dbc15edd13839063c27e2814009b6a0448065875)**|4.2.0|MIT
 **[socks-proxy-agent](#d2c38f45ca9652d91bdddab43eb515b26566789904dee10e0c32517705184cec)**|8.0.5|MIT
-**[socks](#d403b00b9f091afcb89dd752cd6387b4480b3c976cd41048ba4efadef13df30e)**|2.8.9|MIT
+**[socks](#6d223cc1f20b58d9bcb002c91f95ec54adb7555182ce59912b9fc6df1744479a)**|2.8.11|MIT
 **[source-map](#55fb2b4a8e114a26cce0c971365f26175ae0d834849c5edebbdb5adafaa08787)**|0.6.1|BSD-3-Clause
 **[sparse-bitfield](#0cbcf2cac3ff859d288ae5ffc2c793bbd2430b120f5930bd09b6dba7259086d7)**|3.0.3|MIT
 **[ssh2](#93a456b00d0854244fabe1d5f5fd42fa38d0528630795c8c9a1d478b6960b80e)**|1.17.0|MIT
@@ -424,7 +369,7 @@ Package|Version|License
 **[which](#5a71f2b741944bf107d6e7f067241798a6e277e42e8ca1e28c4608ccc233f8ec)**|2.0.2|ISC
 **[wrap-ansi](#73510341652cf181e67a927a84114f247052e12db67de6c9ff21e2a854e673c6)**|9.0.2|MIT
 **[wrappy](#13cebf193d7ada5ee347b9ae819b96f5e6da21f9b53e7f268c7703b686158595)**|1.0.2|ISC
-**[wsl-utils](#3c6cb23f48b28398188bbe0a6b73ab9fa96d0ba5322f8f68b056cfc22a3f1f7a)**|0.1.0|MIT
+**[wsl-utils](#ee8506733ae11ac9b9d7fd283514c7a5e8fc12fb905996b51cb54cceee3ae2c1)**|1.0.1|MIT
 **[y18n](#1dd471a41f77455fc624d6d6ba14ef1b741362d6c36295d66fa1474d3fc2e27d)**|5.0.8|ISC
 **[yaml](#9b53222172e570a39130e477f4385c60f7108a8992cae6e7ed22d1d7bff97e46)**|2.9.1|ISC
 **[yargs-parser](#d114360895423d9e902d0d2591b959ed4b0c309f8cec3e7b22fb6ed5502d1c19)**|20.2.9|ISC
@@ -435,158 +380,83 @@ Package|Version|License
 
 ## Package details
 
-<a id="dcf63e8238fa19b0963dd6f1bd9595c1767c35e004476882760dafbc9799e46e"></a>
-### [@aws-crypto/sha256-browser](https://www.npmjs.com/package/@aws-crypto/sha256-browser) (version 5.2.0)
+<a id="4275079c12856679cd19cfbf997ce1dc66913d67a077606f65fd2fceb3e15eb8"></a>
+### [@aws-sdk/core](https://www.npmjs.com/package/@aws-sdk/core) (version 3.981.1)
 License tags: Apache-2.0
 
 
-<a id="50b63fb360e42c4612414b935c6f4774af58b8409ebc3df515d10451ffadf058"></a>
-### [@aws-crypto/sha256-js](https://www.npmjs.com/package/@aws-crypto/sha256-js) (version 5.2.0)
+<a id="fca775ea0491a45f58a1918352f2223d333800df5a3c6bf653bac60cccb0687a"></a>
+### [@aws-sdk/credential-provider-cognito-identity](https://www.npmjs.com/package/@aws-sdk/credential-provider-cognito-identity) (version 3.972.84)
 License tags: Apache-2.0
 
 
-<a id="10e004f712d088a66497cd55e567f07dc580563b5d26c463f69900e6f8c5de44"></a>
-### [@aws-crypto/supports-web-crypto](https://www.npmjs.com/package/@aws-crypto/supports-web-crypto) (version 5.2.0)
+<a id="2469a00a09fd2f56ab861a7c75fb41baebb3035f657141d94f9e5e317135dcce"></a>
+### [@aws-sdk/credential-provider-env](https://www.npmjs.com/package/@aws-sdk/credential-provider-env) (version 3.972.85)
 License tags: Apache-2.0
 
 
-<a id="d79f5295b871b8443a953757144141caad45c1bf644c2de3a78a489b04407192"></a>
-### [@aws-crypto/util](https://www.npmjs.com/package/@aws-crypto/util) (version 5.2.0)
+<a id="f2bda6dbe7273de73bd5ebd2796d126ba995a9537557d97a99e706d0ca9a25d7"></a>
+### [@aws-sdk/credential-provider-http](https://www.npmjs.com/package/@aws-sdk/credential-provider-http) (version 3.972.87)
 License tags: Apache-2.0
 
 
-<a id="a3b5489b135bafcf9a2659dc2aa444803a20ff6a81eb8ed663a9590fb89ba444"></a>
-### [@aws-sdk/client-cognito-identity](https://www.npmjs.com/package/@aws-sdk/client-cognito-identity) (version 3.1003.0)
+<a id="03a5bc9aa02b1ada4b131d11547a6a28fba98e59c91d0255a8040d81ff54cfa7"></a>
+### [@aws-sdk/credential-provider-ini](https://www.npmjs.com/package/@aws-sdk/credential-provider-ini) (version 3.973.31)
 License tags: Apache-2.0
 
 
-<a id="39dd3e1b2350b4fe66dc7f06f97d662034ffe0c6cd90cdfbd1c3e6daa16e7c6e"></a>
-### [@aws-sdk/core](https://www.npmjs.com/package/@aws-sdk/core) (version 3.978.3)
+<a id="332067616416994a25710e80c4b238bdf6c8105020df2d8773bdc0241b0079c4"></a>
+### [@aws-sdk/credential-provider-login](https://www.npmjs.com/package/@aws-sdk/credential-provider-login) (version 3.972.93)
 License tags: Apache-2.0
 
 
-<a id="79dc573f5ba5cac9c6beab3f58816deb1321a3cf4dfa7cd9a6267562695e56d5"></a>
-### [@aws-sdk/credential-provider-cognito-identity](https://www.npmjs.com/package/@aws-sdk/credential-provider-cognito-identity) (version 3.972.9)
+<a id="9af18a3b77183178fc7129b7be4b1102ad60627806d59beb4d109a18f5de3c2b"></a>
+### [@aws-sdk/credential-provider-node](https://www.npmjs.com/package/@aws-sdk/credential-provider-node) (version 3.972.98)
 License tags: Apache-2.0
 
 
-<a id="1c952684e2ac3f54dbd95141637983af7c5ef8c01bfc528eec7860fec0588b6e"></a>
-### [@aws-sdk/credential-provider-env](https://www.npmjs.com/package/@aws-sdk/credential-provider-env) (version 3.972.16)
+<a id="e815c334f53837611140ad1e23fb0eb77379dfcd7cb220e8cba3ba9728f7696c"></a>
+### [@aws-sdk/credential-provider-process](https://www.npmjs.com/package/@aws-sdk/credential-provider-process) (version 3.972.85)
 License tags: Apache-2.0
 
 
-<a id="ac68df93a440839b88f1a06845a069ce5260af53f75ea1ab19a66ca25efd99f9"></a>
-### [@aws-sdk/credential-provider-http](https://www.npmjs.com/package/@aws-sdk/credential-provider-http) (version 3.972.18)
+<a id="c9061fffeb79d3cb29c8a35bbe565f428f2539cea61177e5ea89f7a131da1686"></a>
+### [@aws-sdk/credential-provider-sso](https://www.npmjs.com/package/@aws-sdk/credential-provider-sso) (version 3.973.29)
 License tags: Apache-2.0
 
 
-<a id="6817cde590530cde7d3e615126e2785e46a2707c957b9684bbffa29a9a93a406"></a>
-### [@aws-sdk/credential-provider-ini](https://www.npmjs.com/package/@aws-sdk/credential-provider-ini) (version 3.972.16)
+<a id="4be11aa1647ea5863cb15fae2c755f41b80d3f541c94df761e16190cae88fa2a"></a>
+### [@aws-sdk/credential-provider-web-identity](https://www.npmjs.com/package/@aws-sdk/credential-provider-web-identity) (version 3.972.91)
 License tags: Apache-2.0
 
 
-<a id="96a4a44f72f4ce975c5dce8491f5e0cb89b49927318e9cf227a9393df634b125"></a>
-### [@aws-sdk/credential-provider-login](https://www.npmjs.com/package/@aws-sdk/credential-provider-login) (version 3.972.16)
+<a id="126c43660f65fa628705060880ac7774a2b22bf32d053728a44c6d5c8d779efa"></a>
+### [@aws-sdk/credential-providers](https://www.npmjs.com/package/@aws-sdk/credential-providers) (version 3.1175.0)
 License tags: Apache-2.0
 
 
-<a id="f1e210957e5d38966af9ca0d1f3c92ab567602e3f555e828fb2588bf1b41815e"></a>
-### [@aws-sdk/credential-provider-node](https://www.npmjs.com/package/@aws-sdk/credential-provider-node) (version 3.972.17)
+<a id="2821a14ee3e0c60c8d72c4f26704ec8463f91197046ac7fd308ba6344c410884"></a>
+### [@aws-sdk/nested-clients](https://www.npmjs.com/package/@aws-sdk/nested-clients) (version 3.998.4)
 License tags: Apache-2.0
 
 
-<a id="4bc017fc85fa9bb7cf4bd7ec3e6b1e8bd0c1193602feaec60a81a5976c689238"></a>
-### [@aws-sdk/credential-provider-process](https://www.npmjs.com/package/@aws-sdk/credential-provider-process) (version 3.972.16)
+<a id="eca09b8faa6950d6783a40ce3013f396cd4981a216875eeaacc87fa92a9f12c9"></a>
+### [@aws-sdk/signature-v4-multi-region](https://www.npmjs.com/package/@aws-sdk/signature-v4-multi-region) (version 3.996.52)
 License tags: Apache-2.0
 
 
-<a id="b4eb6fe6f2df4344e7efd2076cf499bc3d0b999c394ac291393ac3398bc7fde3"></a>
-### [@aws-sdk/credential-provider-sso](https://www.npmjs.com/package/@aws-sdk/credential-provider-sso) (version 3.972.16)
+<a id="3207f65f1d7360f543be0e00ebe2ba48d42bf78b97db6e06ffdc7bc4e1a548d3"></a>
+### [@aws-sdk/token-providers](https://www.npmjs.com/package/@aws-sdk/token-providers) (version 3.1175.0)
 License tags: Apache-2.0
 
 
-<a id="e4de01164747e55dc1f284c59a1606b29d903971fa531c2fc38bf32fbe6e6649"></a>
-### [@aws-sdk/credential-provider-web-identity](https://www.npmjs.com/package/@aws-sdk/credential-provider-web-identity) (version 3.972.16)
+<a id="4eb243650a029e1e5ad22f9b86efdf27af116496b7d4215d56e118a1640e8655"></a>
+### [@aws-sdk/types](https://www.npmjs.com/package/@aws-sdk/types) (version 3.975.1)
 License tags: Apache-2.0
 
 
-<a id="b35a11bbee3295c08692951584b4f24e520932eea8dd0aeee3d4fdae60eb2b47"></a>
-### [@aws-sdk/credential-providers](https://www.npmjs.com/package/@aws-sdk/credential-providers) (version 3.1003.0)
-License tags: Apache-2.0
-
-
-<a id="8e906b6bcf1def60ab95ad9ec805308c00852496f8c9eda5402d3c8797c4439f"></a>
-### [@aws-sdk/middleware-host-header](https://www.npmjs.com/package/@aws-sdk/middleware-host-header) (version 3.972.7)
-License tags: Apache-2.0
-
-
-<a id="f6c5305ff1795cff62ed22b454b4d29eaa60c337d2d8b7d15e4475cf42528051"></a>
-### [@aws-sdk/middleware-logger](https://www.npmjs.com/package/@aws-sdk/middleware-logger) (version 3.972.7)
-License tags: Apache-2.0
-
-
-<a id="1bce1b14288a88725c182b375ed4203baf058811403cb251499efb39d866f002"></a>
-### [@aws-sdk/middleware-recursion-detection](https://www.npmjs.com/package/@aws-sdk/middleware-recursion-detection) (version 3.972.7)
-License tags: Apache-2.0
-
-
-<a id="6ccdfcfafa125d2f84f997ab6406bf86eee6d2de9be007080781664027193534"></a>
-### [@aws-sdk/middleware-user-agent](https://www.npmjs.com/package/@aws-sdk/middleware-user-agent) (version 3.972.18)
-License tags: Apache-2.0
-
-
-<a id="833a4e466d6eec6091f8ef56bf1ed8155144447d0a234f370546b08661421cc4"></a>
-### [@aws-sdk/nested-clients](https://www.npmjs.com/package/@aws-sdk/nested-clients) (version 3.996.6)
-License tags: Apache-2.0
-
-
-<a id="52b8493b57007a733ac88ed367b63a758bddb1e5f20cb12ad915db15f8385193"></a>
-### [@aws-sdk/region-config-resolver](https://www.npmjs.com/package/@aws-sdk/region-config-resolver) (version 3.972.7)
-License tags: Apache-2.0
-
-
-<a id="f99a1a424a918f423d9e0750f58266f4ffd8bd7ba7ef8c95c28747bccbfc965f"></a>
-### [@aws-sdk/token-providers](https://www.npmjs.com/package/@aws-sdk/token-providers) (version 3.1003.0)
-License tags: Apache-2.0
-
-
-<a id="44490d0a294602b556e44e9bcae055ee8c88b785d20fe49eda7c56cb2ad372e0"></a>
-### [@aws-sdk/types](https://www.npmjs.com/package/@aws-sdk/types) (version 3.973.5)
-License tags: Apache-2.0
-
-
-<a id="92dd9a55f25d28221877f8c7137f3396d805d94f9afa3a69e7969f197f40e9c2"></a>
-### [@aws-sdk/types](https://www.npmjs.com/package/@aws-sdk/types) (version 3.974.6)
-License tags: Apache-2.0
-
-
-<a id="fb31de74f79e2ffaf4aff6a0a0d6508b8146e3eb4b66bc7c25c3f774feb252cb"></a>
-### [@aws-sdk/util-endpoints](https://www.npmjs.com/package/@aws-sdk/util-endpoints) (version 3.996.4)
-License tags: Apache-2.0
-
-
-<a id="91f3bf88610ba96fa890a69353f920b6352c634661541fb73874df6d1b881dd5"></a>
-### [@aws-sdk/util-locate-window](https://www.npmjs.com/package/@aws-sdk/util-locate-window) (version 3.965.5)
-License tags: Apache-2.0
-
-
-<a id="aaad4140e346ff76166c1b98d605beacc6032203f73e9af7578cf5b1acf3b2fc"></a>
-### [@aws-sdk/util-user-agent-browser](https://www.npmjs.com/package/@aws-sdk/util-user-agent-browser) (version 3.972.7)
-License tags: Apache-2.0
-
-
-<a id="e452369a5d8392d9612d876ab089456ba44dcea7c24cf19ea01162921315fe98"></a>
-### [@aws-sdk/util-user-agent-node](https://www.npmjs.com/package/@aws-sdk/util-user-agent-node) (version 3.973.3)
-License tags: Apache-2.0
-
-
-<a id="68b0310a94ab13c749de3c1ce0dd52888a033def43f21ca1f9bd56497a476807"></a>
-### [@aws-sdk/xml-builder](https://www.npmjs.com/package/@aws-sdk/xml-builder) (version 3.972.41)
-License tags: Apache-2.0
-
-
-<a id="f0217fef00757a17949bb59dc7aae6a8fbf564432ad8e440e62c82822bbd4eba"></a>
-### [@aws/lambda-invoke-store](https://www.npmjs.com/package/@aws/lambda-invoke-store) (version 0.2.3)
+<a id="eda45602f25dd6931b166860d4f4e950e08511678da75bee70c4b3fafc870374"></a>
+### [@aws-sdk/xml-builder](https://www.npmjs.com/package/@aws-sdk/xml-builder) (version 3.972.43)
 License tags: Apache-2.0
 
 
@@ -720,228 +590,33 @@ License tags: Apache-2.0
 License tags: Apache-2.0
 
 
-<a id="290b53ba6663e435953e6033bae74287f208f6bd16bc6e2d4a7ca581b3ce2007"></a>
-### [@smithy/abort-controller](https://www.npmjs.com/package/@smithy/abort-controller) (version 4.2.11)
+<a id="09050af3c553dced1fac8635f105974679940b5f87d28b5330f8593dadc31b55"></a>
+### [@smithy/core](https://www.npmjs.com/package/@smithy/core) (version 3.41.0)
 License tags: Apache-2.0
 
 
-<a id="77272054b528ffcf6bb02a57dcbe0bf0fd96fd65d046629032bf103b1891650b"></a>
-### [@smithy/config-resolver](https://www.npmjs.com/package/@smithy/config-resolver) (version 4.4.10)
+<a id="4bec717cb88b2b85cd0816d3c4e00765da9351441b02966f2f3eb288f25970dd"></a>
+### [@smithy/credential-provider-imds](https://www.npmjs.com/package/@smithy/credential-provider-imds) (version 4.5.2)
 License tags: Apache-2.0
 
 
-<a id="cec689f3b13f05869a49170ec9fe5156d590b1cb51ab0eeae78ec69aaeb9c2b8"></a>
-### [@smithy/core](https://www.npmjs.com/package/@smithy/core) (version 3.23.9)
+<a id="61b9566ff1dc03b15efa34dd8b73492f20d32e434399b0060317b3cf18844ec5"></a>
+### [@smithy/fetch-http-handler](https://www.npmjs.com/package/@smithy/fetch-http-handler) (version 5.8.1)
 License tags: Apache-2.0
 
 
-<a id="a1f539630ce1673f25f95c50ecee6f8e63cc3f191dd0350b8213f337db04ac33"></a>
-### [@smithy/core](https://www.npmjs.com/package/@smithy/core) (version 3.36.0)
+<a id="71ef22f744e5db2f1c84b8d0a480dbcd2b3b75f78fa023cc5227386a644787ee"></a>
+### [@smithy/node-http-handler](https://www.npmjs.com/package/@smithy/node-http-handler) (version 4.14.2)
 License tags: Apache-2.0
 
 
-<a id="b836afb1c3f82aa69db1436cf3cf8c69202fddd410d15b424413b3c10ac4f54c"></a>
-### [@smithy/credential-provider-imds](https://www.npmjs.com/package/@smithy/credential-provider-imds) (version 4.2.11)
+<a id="24bb63448b6fa79be3672a6b659a487abe4bce1b26837304b12c5a167acc302e"></a>
+### [@smithy/signature-v4](https://www.npmjs.com/package/@smithy/signature-v4) (version 5.7.5)
 License tags: Apache-2.0
 
 
-<a id="f4564a9673008ef638e2acfe37dd0942cd19e0965bbe964352d797ecf5fb2744"></a>
-### [@smithy/fetch-http-handler](https://www.npmjs.com/package/@smithy/fetch-http-handler) (version 5.3.13)
-License tags: Apache-2.0
-
-
-<a id="e38f66adea1ded3a0fc0238f170a759fc1bedd6f936826610f43d5d24a146ddb"></a>
-### [@smithy/hash-node](https://www.npmjs.com/package/@smithy/hash-node) (version 4.2.11)
-License tags: Apache-2.0
-
-
-<a id="74502227fd06d8c49c64dd21d59017275d01d52db87fd1158dd88a8e8771b998"></a>
-### [@smithy/invalid-dependency](https://www.npmjs.com/package/@smithy/invalid-dependency) (version 4.2.11)
-License tags: Apache-2.0
-
-
-<a id="a25ba330c8f14a26e04a854e0d8074597470d0efd72d6504378f98c23c2f2dc3"></a>
-### [@smithy/is-array-buffer](https://www.npmjs.com/package/@smithy/is-array-buffer) (version 2.2.0)
-License tags: Apache-2.0
-
-
-<a id="14634b6ef1f4764ac75df85b62ee1700fefc9afa0d40d516bf4e0bc97690193f"></a>
-### [@smithy/is-array-buffer](https://www.npmjs.com/package/@smithy/is-array-buffer) (version 4.2.2)
-License tags: Apache-2.0
-
-
-<a id="7afb2fa5568475051eeffbbdab4b70eb621f51241bf32edaba0a641e025e7d63"></a>
-### [@smithy/middleware-content-length](https://www.npmjs.com/package/@smithy/middleware-content-length) (version 4.2.11)
-License tags: Apache-2.0
-
-
-<a id="847628247c404856c54d772cb2701f3c5d47cbf70b801defb9f461c8f32aeb3b"></a>
-### [@smithy/middleware-endpoint](https://www.npmjs.com/package/@smithy/middleware-endpoint) (version 4.4.23)
-License tags: Apache-2.0
-
-
-<a id="607d7209016e15a9f9936d47a681f22a0c3ff25d7860dd5d2fe1f94dd7a667a1"></a>
-### [@smithy/middleware-retry](https://www.npmjs.com/package/@smithy/middleware-retry) (version 4.4.40)
-License tags: Apache-2.0
-
-
-<a id="f37d8b8c7d1bfa82d06adaac504678c89304004d3f1535bfd749ec8d96894281"></a>
-### [@smithy/middleware-serde](https://www.npmjs.com/package/@smithy/middleware-serde) (version 4.2.12)
-License tags: Apache-2.0
-
-
-<a id="bbcfba6ba5c348a26cb2ead54adb2abe49fb4eb3a6f14c8ebfcc5cff835a48fd"></a>
-### [@smithy/middleware-stack](https://www.npmjs.com/package/@smithy/middleware-stack) (version 4.2.11)
-License tags: Apache-2.0
-
-
-<a id="c111157323f1985f20f1ac18a78ac1aa86b8aca10d74bb87723b863d63e59f0d"></a>
-### [@smithy/node-config-provider](https://www.npmjs.com/package/@smithy/node-config-provider) (version 4.3.11)
-License tags: Apache-2.0
-
-
-<a id="6bd93367712d7c65119b6378729acc6fa870dea60fd523d1d726909f8b6272d9"></a>
-### [@smithy/node-http-handler](https://www.npmjs.com/package/@smithy/node-http-handler) (version 4.4.14)
-License tags: Apache-2.0
-
-
-<a id="2359f3d13977d037b3ea50b43a533bfacc5815a88af32de1249422c461113d96"></a>
-### [@smithy/property-provider](https://www.npmjs.com/package/@smithy/property-provider) (version 4.2.11)
-License tags: Apache-2.0
-
-
-<a id="77ca789f92d72eedb911100fd4a5321521404e078b6c2261ead5230ad325626a"></a>
-### [@smithy/protocol-http](https://www.npmjs.com/package/@smithy/protocol-http) (version 5.3.11)
-License tags: Apache-2.0
-
-
-<a id="633b8bacdf7563604b1963d13b3b476dd90abfbf1bdb4804e7211ec1e0936022"></a>
-### [@smithy/querystring-builder](https://www.npmjs.com/package/@smithy/querystring-builder) (version 4.2.11)
-License tags: Apache-2.0
-
-
-<a id="0eecff072d5131c6dec5fe3ffa3f04bc45303d6fafe8337ea66da0b81f25b584"></a>
-### [@smithy/querystring-parser](https://www.npmjs.com/package/@smithy/querystring-parser) (version 4.2.11)
-License tags: Apache-2.0
-
-
-<a id="7f5128deb78da7a8ee17182870d4abf4bab8796849ea3bd1316a3d8305fb0f3d"></a>
-### [@smithy/service-error-classification](https://www.npmjs.com/package/@smithy/service-error-classification) (version 4.2.11)
-License tags: Apache-2.0
-
-
-<a id="d9d98fb2178678724ac8b290e3a1517f06f0086d0217a590d9da80026213e4e4"></a>
-### [@smithy/shared-ini-file-loader](https://www.npmjs.com/package/@smithy/shared-ini-file-loader) (version 4.4.6)
-License tags: Apache-2.0
-
-
-<a id="7069adc153dfa3d3880f289cf607f29339d9a8ac353ef761615472fe4ca81dec"></a>
-### [@smithy/signature-v4](https://www.npmjs.com/package/@smithy/signature-v4) (version 5.7.4)
-License tags: Apache-2.0
-
-
-<a id="0e0637597702f6375f8fc0a65ecc39df0117fe2d44f12850e3ca4439f2c80745"></a>
-### [@smithy/smithy-client](https://www.npmjs.com/package/@smithy/smithy-client) (version 4.12.3)
-License tags: Apache-2.0
-
-
-<a id="32640c6d1cee59a08e72d561e61a3c62c8cefc6333d3e1608e0e8ee855c7306c"></a>
-### [@smithy/types](https://www.npmjs.com/package/@smithy/types) (version 4.13.0)
-License tags: Apache-2.0
-
-
-<a id="1cc2ba5febbe4dfd93f755cd5422638cb9cf9a9e24864ed18ae947b99ee7c35d"></a>
-### [@smithy/types](https://www.npmjs.com/package/@smithy/types) (version 4.19.0)
-License tags: Apache-2.0
-
-
-<a id="e070772c5aed77fc2b1b0b501309360e29173930cdc5c80fe271767cbbb4715c"></a>
-### [@smithy/url-parser](https://www.npmjs.com/package/@smithy/url-parser) (version 4.2.11)
-License tags: Apache-2.0
-
-
-<a id="9d167293b8d5c596a6cc8b7a85db08d7ddf76139542c6c22b170af0091657530"></a>
-### [@smithy/util-base64](https://www.npmjs.com/package/@smithy/util-base64) (version 4.3.2)
-License tags: Apache-2.0
-
-
-<a id="a4de8d4c08624d8e6589b5af7c77d94bf6f7cb6fe97e56dd12823cec04a6de94"></a>
-### [@smithy/util-body-length-browser](https://www.npmjs.com/package/@smithy/util-body-length-browser) (version 4.2.2)
-License tags: Apache-2.0
-
-
-<a id="b18ac998b10587a4f20a8c4aff5e75796106ce063d85ee6a1b45a1271f9587fe"></a>
-### [@smithy/util-body-length-node](https://www.npmjs.com/package/@smithy/util-body-length-node) (version 4.2.3)
-License tags: Apache-2.0
-
-
-<a id="07f5ce50586cc8093d605ee5df653bcd3fc89320cc2afec296eb130d7463fa31"></a>
-### [@smithy/util-buffer-from](https://www.npmjs.com/package/@smithy/util-buffer-from) (version 2.2.0)
-License tags: Apache-2.0
-
-
-<a id="5571b73570815b98950ea630bc2c41fe1a34db9cf36404f6cb222292772137eb"></a>
-### [@smithy/util-buffer-from](https://www.npmjs.com/package/@smithy/util-buffer-from) (version 4.2.2)
-License tags: Apache-2.0
-
-
-<a id="d9243b3d408ffd0b7a53890557a746a5fbc5170b030fc0b8b17d0f9078e24543"></a>
-### [@smithy/util-config-provider](https://www.npmjs.com/package/@smithy/util-config-provider) (version 4.2.2)
-License tags: Apache-2.0
-
-
-<a id="41119d3e0686f5d04b513d4e402ffdcc998b4abfdc121ab20341f6e8737e6f84"></a>
-### [@smithy/util-defaults-mode-browser](https://www.npmjs.com/package/@smithy/util-defaults-mode-browser) (version 4.3.39)
-License tags: Apache-2.0
-
-
-<a id="74df983325fd7602da87f345352b7f0075257f75cbd829ba77f26376f6fce928"></a>
-### [@smithy/util-defaults-mode-node](https://www.npmjs.com/package/@smithy/util-defaults-mode-node) (version 4.2.42)
-License tags: Apache-2.0
-
-
-<a id="9f31b2d8e2846d89a435372155e464f12bdf74ec4a942987904fed32c311ce3b"></a>
-### [@smithy/util-endpoints](https://www.npmjs.com/package/@smithy/util-endpoints) (version 3.3.2)
-License tags: Apache-2.0
-
-
-<a id="80df28e7ca8019822a9fc1bf6aa9efa11e9fc958cff48cae8d8516fefaae8ef9"></a>
-### [@smithy/util-hex-encoding](https://www.npmjs.com/package/@smithy/util-hex-encoding) (version 4.2.2)
-License tags: Apache-2.0
-
-
-<a id="5c15d56f4bae671b881b0521f28f76c0746aeb6a6af1ec869f115f93e86a7f47"></a>
-### [@smithy/util-middleware](https://www.npmjs.com/package/@smithy/util-middleware) (version 4.2.11)
-License tags: Apache-2.0
-
-
-<a id="a0f700bb1fabd2a3128a65fcbe388679fbbd7e62a5bdfc799374e3e8c38fe573"></a>
-### [@smithy/util-retry](https://www.npmjs.com/package/@smithy/util-retry) (version 4.2.11)
-License tags: Apache-2.0
-
-
-<a id="511348f9236a6f8c9b367730789ddcf6912a60a9005ecfb19823937e80a74f7a"></a>
-### [@smithy/util-stream](https://www.npmjs.com/package/@smithy/util-stream) (version 4.5.17)
-License tags: Apache-2.0
-
-
-<a id="94f2c04acec7dca1192771141b555626af8ada19c7e5de8820ac1512bfe4cce2"></a>
-### [@smithy/util-uri-escape](https://www.npmjs.com/package/@smithy/util-uri-escape) (version 4.2.2)
-License tags: Apache-2.0
-
-
-<a id="ddf790da0f47b61de4adaf277708e1a3323b9d73daf35cf26744cb614ee471ff"></a>
-### [@smithy/util-utf8](https://www.npmjs.com/package/@smithy/util-utf8) (version 2.3.0)
-License tags: Apache-2.0
-
-
-<a id="d84c4080d717edfbcfd0a903fc554549c673091618969b1580ecda94c41bb0ba"></a>
-### [@smithy/util-utf8](https://www.npmjs.com/package/@smithy/util-utf8) (version 4.2.2)
-License tags: Apache-2.0
-
-
-<a id="6fb5f2722612f4fb79cdd6d2464b654f9bd645a13d3eacaefc80cd40bf52dc07"></a>
-### [@smithy/uuid](https://www.npmjs.com/package/@smithy/uuid) (version 1.1.2)
+<a id="fce1718f916a6b3aa6f70008be65e8ad9d2e90ad4deb6598dab01b8c73198d9f"></a>
+### [@smithy/types](https://www.npmjs.com/package/@smithy/types) (version 4.20.0)
 License tags: Apache-2.0
 
 
@@ -1261,8 +936,8 @@ License tags: MIT
 License tags: MIT
 
 
-<a id="d56e9863eb7664540d17da110d50b118912edf183d70171ed0d39705239a970b"></a>
-### [default-browser](https://www.npmjs.com/package/default-browser) (version 5.5.0)
+<a id="fbb9ad6bceeab1d9e4edaa5a8bfa74cfbfdfd0eb2f5a5857b023722754e0f780"></a>
+### [default-browser](https://www.npmjs.com/package/default-browser) (version 5.5.1)
 License tags: MIT
 
 
@@ -1616,11 +1291,6 @@ License tags: MIT
 License tags: MIT
 
 
-<a id="13b102cc17ed6cc490ef8afd0e5ca1aad6f969a6045176d067b261a111d5c712"></a>
-### [iconv-lite](https://www.npmjs.com/package/iconv-lite) (version 0.7.2)
-License tags: MIT
-
-
 <a id="76dc46c7125d24015248138147d9e4cde7c341cd2f40acf5fc9eb9874785cf9b"></a>
 ### [iconv-lite](https://www.npmjs.com/package/iconv-lite) (version 0.7.3)
 License tags: MIT
@@ -1708,6 +1378,11 @@ License tags: MIT
 
 <a id="5fd3da1f6505eb7e698c022db012ab222cd21b80d929ae5368779a7ac2728c0d"></a>
 ### [is-generator-function](https://www.npmjs.com/package/is-generator-function) (version 1.1.2)
+License tags: MIT
+
+
+<a id="5c276fae7d395a2f6311b1f68e5c59b876ce8a60e214c81e6bdfdca2ed71cd53"></a>
+### [is-in-ssh](https://www.npmjs.com/package/is-in-ssh) (version 1.0.0)
 License tags: MIT
 
 
@@ -1911,13 +1586,8 @@ License tags: MIT
 License tags: MIT
 
 
-<a id="a141155010340cf8407ae9b3dc89f79dec50b3121d860b75670fc406751bbf54"></a>
-### [mongodb-build-info](https://www.npmjs.com/package/mongodb-build-info) (version 1.9.11)
-License tags: Apache-2.0
-
-
-<a id="f24794d804800d6c453e41a022153224598e9e9c89b0cf7a097419d8e9df3a2e"></a>
-### [mongodb-client-encryption](https://www.npmjs.com/package/mongodb-client-encryption) (version 7.0.0)
+<a id="3a96696aca95427aae39160f8770f2c62ac59d4cce3caf9120d164aea2f1ce88"></a>
+### [mongodb-client-encryption](https://www.npmjs.com/package/mongodb-client-encryption) (version 7.2.2)
 License tags: Apache-2.0
 
 
@@ -1926,13 +1596,13 @@ License tags: Apache-2.0
 License tags: Apache-2.0
 
 
-<a id="0788567a51c952a5640e64bd3cb5ef4a5e445f340b3bc971f286caa80334a932"></a>
-### [mongodb-log-writer](https://www.npmjs.com/package/mongodb-log-writer) (version 2.5.13)
+<a id="b78847d07c7dd1ce2789bf7c4265339a01a842565a53acd95f992815960e4234"></a>
+### [mongodb-log-writer](https://www.npmjs.com/package/mongodb-log-writer) (version 3.0.6)
 License tags: Apache-2.0
 
 
-<a id="38940045ee88475d4d74b9a0d5fd843c2ac1c8fd42e38d7a25a7d974a32bce03"></a>
-### [mongodb](https://www.npmjs.com/package/mongodb) (version 7.2.0)
+<a id="5331961f1696cbc57b5670e967e8a41b713e41ff6ff2d7d14d547f2c9a813fc0"></a>
+### [mongodb](https://www.npmjs.com/package/mongodb) (version 7.7.0)
 License tags: Apache-2.0
 
 
@@ -1971,8 +1641,8 @@ License tags: MIT
 License tags: MIT
 
 
-<a id="6229b4201ea3ef7be83227f13d178fe940528acd58ded6d96bb0726958086cb6"></a>
-### [node-addon-api](https://www.npmjs.com/package/node-addon-api) (version 8.9.0)
+<a id="85ae7b46799e601feeabb27b3713d6edbc2de78de8b5fedf5b409c7b684eead7"></a>
+### [node-addon-api](https://www.npmjs.com/package/node-addon-api) (version 8.9.2)
 License tags: MIT
 
 
@@ -2031,8 +1701,8 @@ License tags: MIT
 License tags: ISC
 
 
-<a id="d014b2891443a3afc1d36e54769389831aa4a59ac459b9b9873f650b1c919307"></a>
-### [open](https://www.npmjs.com/package/open) (version 10.2.0)
+<a id="6ac77d846c988586dfd83cbd43e9137d5bbcac5999028ab136dd583fca4723d3"></a>
+### [open](https://www.npmjs.com/package/open) (version 11.0.4)
 License tags: MIT
 
 
@@ -2051,8 +1721,8 @@ License tags: MIT
 License tags: MIT
 
 
-<a id="9f258105d3daf2840edf7ef048426459a0febc2730883e5b576835dbb91795ec"></a>
-### [os-dns-native](https://www.npmjs.com/package/os-dns-native) (version 2.0.1)
+<a id="437b9e2bb80c52a2256d06b5ffa4c163ab8a557ab2bed58b9311410d04eeeccb"></a>
+### [os-dns-native](https://www.npmjs.com/package/os-dns-native) (version 2.1.6)
 License tags: MIT
 
 
@@ -2096,6 +1766,11 @@ License tags: MIT
 License tags: MIT
 
 
+<a id="bf666e269b6718b91aaa9d8bccdec00b1d05697ca88b5c4a06aa4b2d759cdb2a"></a>
+### [powershell-utils](https://www.npmjs.com/package/powershell-utils) (version 0.2.1)
+License tags: MIT
+
+
 <a id="034b3dd1336ef871b8a3739cb1647e8750e3bf21d4ecc9bbfb45525b798ddf20"></a>
 ### [prebuild-install](https://www.npmjs.com/package/prebuild-install) (version 7.1.3)
 License tags: MIT
@@ -2124,11 +1799,6 @@ License tags: MIT
 <a id="3fe331f5536b72438f24d644ea9804b5e462f791a4c72a6d94f37193af1086aa"></a>
 ### [punycode](https://www.npmjs.com/package/punycode) (version 2.3.1)
 License tags: MIT
-
-
-<a id="0d1be5d42fb47208b18c66dea50afd11d0ff366411be91aa1150d8dfab0c8311"></a>
-### [qs](https://www.npmjs.com/package/qs) (version 6.16.0)
-License tags: BSD-3-Clause
 
 
 <a id="394380b97e53013d9992466129c4804ec1930e321f375f7413fb8b705af0e6ec"></a>
@@ -2346,8 +2016,8 @@ License tags: MIT
 License tags: MIT
 
 
-<a id="d403b00b9f091afcb89dd752cd6387b4480b3c976cd41048ba4efadef13df30e"></a>
-### [socks](https://www.npmjs.com/package/socks) (version 2.8.9)
+<a id="6d223cc1f20b58d9bcb002c91f95ec54adb7555182ce59912b9fc6df1744479a"></a>
+### [socks](https://www.npmjs.com/package/socks) (version 2.8.11)
 License tags: MIT
 
 
@@ -2576,8 +2246,8 @@ License tags: MIT
 License tags: ISC
 
 
-<a id="3c6cb23f48b28398188bbe0a6b73ab9fa96d0ba5322f8f68b056cfc22a3f1f7a"></a>
-### [wsl-utils](https://www.npmjs.com/package/wsl-utils) (version 0.1.0)
+<a id="ee8506733ae11ac9b9d7fd283514c7a5e8fc12fb905996b51cb54cceee3ae2c1"></a>
+### [wsl-utils](https://www.npmjs.com/package/wsl-utils) (version 1.0.1)
 License tags: MIT
 
 

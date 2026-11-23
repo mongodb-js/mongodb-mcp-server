@@ -40,7 +40,6 @@
     "@mongodb-js/mcp-atlas-api-client": "workspace:*",
     "@mongodb-js/mcp-tools-atlas-local": "workspace:*",
     "@mongodb-js/mcp-tools-mongodb": "workspace:*",
-    "bson": "^7.2.0",
     "@mongosh/arg-parser": "^5.0.2",
     "mongodb-log-writer": "^3.0.6",
     "ts-levenshtein": "^1.0.7",
