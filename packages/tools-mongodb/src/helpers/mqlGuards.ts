@@ -1,5 +1,5 @@
 import { ErrorCodes, MongoDBError } from "../common/errors.js";
-import { isPlainObject } from "./isPlainObject.js";
+import { isRecord } from "./isRecord.js";
 
 /**
  * Operators that execute server-side JavaScript. These can be used to run
@@ -135,7 +135,7 @@ export function getWriteStageTargets(pipeline: Record<string, unknown>[], defaul
                 // document describing it. `whenMatched` also accepts a custom
                 // update pipeline, which has no concise description, so only the
                 // documented string modes are reported.
-                const spec = isPlainObject(stage.$merge) ? stage.$merge : undefined;
+                const spec = isRecord(stage.$merge) ? stage.$merge : undefined;
                 targets.push({
                     operator: "$merge",
                     namespace: resolveNamespace(spec ? spec.into : stage.$merge, defaultDatabase),
@@ -162,7 +162,7 @@ function resolveNamespace(target: unknown, defaultDatabase: string): string | un
         return `${defaultDatabase}.${target}`;
     }
 
-    if (isPlainObject(target) && typeof target.coll === "string") {
+    if (isRecord(target) && typeof target.coll === "string") {
         const database = typeof target.db === "string" ? target.db : defaultDatabase;
         return `${database}.${target.coll}`;
     }

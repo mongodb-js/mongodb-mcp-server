@@ -5,7 +5,7 @@ import { ErrorCodes, MongoDBError } from "../common/errors.js";
 import type { VectorSearchStage } from "../mongodbSchemas.js";
 import { LogId } from "@mongodb-js/mcp-core";
 import type { ICompositeLogger } from "@mongodb-js/mcp-types";
-import { isPlainObject } from "./isPlainObject.js";
+import { isRecord } from "./isRecord.js";
 
 // https://www.mongodb.com/docs/atlas/atlas-vector-search/vector-search-stage/#mongodb-vector-search-pre-filter
 const ARRAY_LOGICAL_OPERATORS = ["$and", "$or", "$nor"];
@@ -88,7 +88,7 @@ export function assertVectorSearchFilterFieldsAreIndexed({
  * can never hide a field from the index check (fail-closed).
  */
 export function collectFieldsFromVectorSearchFilter(filter: unknown): string[] {
-    if (!isPlainObject(filter) || !Object.keys(filter).length) {
+    if (!isRecord(filter) || !Object.keys(filter).length) {
         return [];
     }
 
@@ -102,7 +102,7 @@ function collectFields(filter: Record<string, unknown>): string[] {
                 throw invalidVectorSearchFilter(`${field} must be an array of filter documents`);
             }
             return operand.flatMap((clause) => {
-                if (!isPlainObject(clause)) {
+                if (!isRecord(clause)) {
                     throw invalidVectorSearchFilter(`${field} must contain filter documents`);
                 }
                 return collectFields(clause);
@@ -110,7 +110,7 @@ function collectFields(filter: Record<string, unknown>): string[] {
         }
 
         if (OBJECT_LOGICAL_OPERATORS.includes(field)) {
-            if (!isPlainObject(operand)) {
+            if (!isRecord(operand)) {
                 throw invalidVectorSearchFilter(`${field} must be a filter document`);
             }
             return collectFields(operand);
