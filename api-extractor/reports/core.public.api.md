@@ -284,6 +284,7 @@ export const LogId: {
     readonly searchCapabilityProbe: MongoLogId;
     readonly mongodbGetSearchIndexesFailure: MongoLogId;
     readonly mongodbSearchIndexOnViewDiagnosisFailure: MongoLogId;
+    readonly mongodbListCollectionsFailure: MongoLogId;
     readonly toolUpdateFailure: MongoLogId;
     readonly resourceUpdateFailure: MongoLogId;
     readonly updateToolMetadata: MongoLogId;

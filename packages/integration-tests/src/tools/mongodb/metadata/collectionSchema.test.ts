@@ -391,24 +391,45 @@ describeWithMongoDB({
                     vi.restoreAllMocks();
                 });
 
-                async function connectWithFailingListCollections(): Promise<string> {
+                async function connectWithFailingListCollections(
+                    error: Error = new MongoServerError({
+                        message: "not authorized",
+                        code: 13,
+                        codeName: "Unauthorized",
+                    })
+                ): Promise<string> {
                     const connectionId = await integration.connectMcpClient();
                     const entry = await integration.mcpServer().connectionRegistry.peek(connectionId);
                     expectDefined(entry);
-                    vi.spyOn(entry.getServiceProvider(), "listCollections").mockRejectedValue(
-                        new MongoServerError({ message: "not authorized", codeName: "Unauthorized" })
-                    );
+                    vi.spyOn(entry.getServiceProvider(), "listCollections").mockRejectedValue(error);
                     return connectionId;
                 }
 
-                it("returns an error when schemaSource is 'validator'", async () => {
+                it("returns an error when schemaSource is 'validator' and the user is not authorized", async () => {
                     await createCollection({ validator: { $jsonSchema: closedSchema } });
                     const connectionId = await connectWithFailingListCollections();
 
                     const { items, isError } = await callTool("validator", connectionId);
                     expect(isError).toBe(true);
                     expect(items[0]?.text).toEqual(
-                        "Could not read the validator for the requested namespace. This may be because the current user lacks the listCollections privilege on the database. Use schemaSource 'sample' to infer the schema from documents instead."
+                        "Could not read the validator for the requested namespace because the current user lacks the listCollections privilege on the database: not authorized. Use schemaSource 'sample' to infer the schema from documents instead."
+                    );
+                });
+
+                it("returns the underlying error when schemaSource is 'validator' and the lookup fails for another reason", async () => {
+                    await createCollection({ validator: { $jsonSchema: closedSchema } });
+                    const connectionId = await connectWithFailingListCollections(
+                        new MongoServerError({
+                            message: "operation exceeded time limit",
+                            code: 50,
+                            codeName: "MaxTimeMSExpired",
+                        })
+                    );
+
+                    const { items, isError } = await callTool("validator", connectionId);
+                    expect(isError).toBe(true);
+                    expect(items[0]?.text).toEqual(
+                        "Could not read the validator for the requested namespace because listCollections failed: operation exceeded time limit. Use schemaSource 'sample' to infer the schema from documents instead."
                     );
                 });
 

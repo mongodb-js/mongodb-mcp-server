@@ -6,18 +6,17 @@ import {
 } from "../../mongodbTool.js";
 import type { ToolArgs, ToolResult } from "@mongodb-js/mcp-core";
 import type { CollectionSchemaMetadata, OperationType, ToolExecutionContext } from "@mongodb-js/mcp-types";
-import { ANY_ADDITIONAL_PROPERTIES, formatUntrustedData } from "@mongodb-js/mcp-core";
+import { ANY_ADDITIONAL_PROPERTIES, formatUntrustedData, LogId } from "@mongodb-js/mcp-core";
 import {
     convertMongoDBJSONSchemaToSimplified,
     getSimplifiedSchema,
     type SimplifiedSchema,
 } from "@mongodb-js/mongodb-schema";
-import type { Document } from "mongodb";
+import { MongoServerError, type Document } from "mongodb";
 import { z } from "zod";
 import { ONE_MB } from "../../helpers/constants.js";
 import { collectCursorUntilMaxBytesLimit } from "../../helpers/collectCursorUntilMaxBytes.js";
 import { isObjectEmpty } from "../../helpers/isObjectEmpty.js";
-import { operationWithFallback } from "../../helpers/operationWithFallback.js";
 import {
     getJsonSchemaValidator,
     mergeSimplifiedSchemas,
@@ -26,6 +25,25 @@ import {
 
 const MAXIMUM_SAMPLE_SIZE_HARD_LIMIT = 50_000;
 const SAMPLE_INSTEAD_HINT = "Use schemaSource 'sample' to infer the schema from documents instead.";
+const UNAUTHORIZED_ERROR_CODE = 13;
+
+function getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+}
+
+function isUnauthorizedError(error: unknown): boolean {
+    return (
+        error instanceof MongoServerError &&
+        (error.code === UNAUTHORIZED_ERROR_CODE || error.codeName === "Unauthorized")
+    );
+}
+
+function describeValidatorLookupFailure(error: unknown): string {
+    const reason = isUnauthorizedError(error)
+        ? "the current user lacks the listCollections privilege on the database"
+        : "listCollections failed";
+    return `Could not read the validator for the requested namespace because ${reason}: ${getErrorMessage(error)}. ${SAMPLE_INSTEAD_HINT}`;
+}
 
 const CollectionSchemaOutputSchema = {
     schema: z.record(z.string(), z.unknown()).meta(ANY_ADDITIONAL_PROPERTIES),
@@ -88,21 +106,33 @@ export class CollectionSchemaTool extends MongoDBToolBase {
         { request }: ToolExecutionContext<IMongoDBConfig>
     ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const provider = await this.resolveConnection(connectionId);
-        // Users without the listCollections privilege can still sample documents; undefined means the lookup failed.
-        const collectionInfos =
-            schemaSource === "sample"
-                ? []
-                : await operationWithFallback(
-                      () => provider.listCollections(database, { name: collection }, this.getOperationOptions(request)),
-                      undefined
-                  );
-        const [collectionInfo] = collectionInfos ?? [];
+        // Users without the listCollections privilege can still sample documents, so a failed lookup is only fatal in
+        // validator mode.
+        let collectionInfos: Document[] = [];
+        let lookupError: unknown;
+        if (schemaSource !== "sample") {
+            try {
+                collectionInfos = await provider.listCollections(
+                    database,
+                    { name: collection },
+                    this.getOperationOptions(request)
+                );
+            } catch (error) {
+                lookupError = error;
+                this.server.logger.debug({
+                    id: LogId.mongodbListCollectionsFailure,
+                    context: "collection-schema tool",
+                    message: `Failed to read the collection validator: ${getErrorMessage(error)}`,
+                });
+            }
+        }
+        const [collectionInfo] = collectionInfos;
         const validator = getJsonSchemaValidator(collectionInfo?.options as Document | undefined);
 
         if (schemaSource === "validator" && !validator) {
             let text: string;
-            if (!collectionInfos) {
-                text = `Could not read the validator for the requested namespace. This may be because the current user lacks the listCollections privilege on the database. ${SAMPLE_INSTEAD_HINT}`;
+            if (lookupError !== undefined) {
+                text = describeValidatorLookupFailure(lookupError);
             } else if (!collectionInfo) {
                 text = "The requested namespace does not exist.";
             } else {

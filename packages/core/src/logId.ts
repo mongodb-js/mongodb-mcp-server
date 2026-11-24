@@ -55,6 +55,7 @@ export const LogId = {
     searchCapabilityProbe: mongoLogId(1_004_006),
     mongodbGetSearchIndexesFailure: mongoLogId(1_004_007),
     mongodbSearchIndexOnViewDiagnosisFailure: mongoLogId(1_004_008),
+    mongodbListCollectionsFailure: mongoLogId(1_004_009),
 
     toolUpdateFailure: mongoLogId(1_005_001),
     resourceUpdateFailure: mongoLogId(1_005_002),

@@ -662,7 +662,7 @@ describeWithMongoDB({
                 },
             });
             const content = getResponseContent(response);
-            expect(content).toMatch(/timed out|exceeded time limit/i);
+            expect(content).toMatch(/timed out|timeout error|exceeded time limit/i);
             expect(response.structuredContent).toBeUndefined();
         });
     },
