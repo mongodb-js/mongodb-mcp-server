@@ -247,6 +247,15 @@ const ServerConfigSchema = z.object({
             "Milliseconds a MongoDB connection may stay unused (no tool call touching it) before it is closed to release the underlying connection pool and its server-side state. Applied per connection regardless of its connection scope; the preconfigured connection is excluded, and the reaper runs on this cadence. Set to 0 to disable reaping; must not be negative."
         )
         .register(configRegistry, { overrideBehavior: onlyLowerThanBaseValueOverride() }),
+    preconfiguredConnectionIdleTimeoutMs: z.coerce
+        .number()
+        .int()
+        .min(0, "Invalid preconfiguredConnectionIdleTimeoutMs: must be a non-negative integer")
+        .default(0)
+        .describe(
+            "Milliseconds a configured connection (connectionString or connectionStrings) may stay unused (no tool call touching it) before its connection pool is closed. The connection stays configured and its connectionId stays valid: the next tool call that uses it reconnects automatically. Set to 0 (the default) to keep configured connections open until the server shuts down; must not be negative."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
     /**
      * @deprecated The MCP protocol is moving to sessionless, so this option will
      * soon be removed and the connection scope will default to "global". For

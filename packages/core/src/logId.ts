@@ -109,4 +109,5 @@ export const LogId = {
     connectionRegistryRevoked: mongoLogId(1_014_001),
     connectionRegistryRevokeCallbackFailure: mongoLogId(1_014_002),
     connectionRegistryDialFailure: mongoLogId(1_014_003),
+    connectionRegistryIdleClosed: mongoLogId(1_014_004),
 } as const;
