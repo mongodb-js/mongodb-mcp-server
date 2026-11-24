@@ -1,5 +1,5 @@
 The following third-party software is used by and included in **MongoDB MCP Server**.
-This document was automatically generated on Mon Nov 23 2026.
+This document was automatically generated on Tue Nov 24 2026.
 
 ## List of dependencies
 
@@ -54,7 +54,6 @@ Package|Version|License
 **[@smithy/signature-v4](#24bb63448b6fa79be3672a6b659a487abe4bce1b26837304b12c5a167acc302e)**|5.7.5|Apache-2.0
 **[@smithy/types](#fce1718f916a6b3aa6f70008be65e8ad9d2e90ad4deb6598dab01b8c73198d9f)**|4.20.0|Apache-2.0
 **[@tootallnate/quickjs-emscripten](#dda6dbabe98503ac1af20979be1778d7a1c8f355b85377124a909567193c2cd3)**|0.23.0|MIT
-**[@types/node](#fb8f5c8bd483ba1f0f9540c778a82434a77cbefebed5b317638ccaedaddc3e56)**|25.6.0|MIT
 **[@types/webidl-conversions](#be865b69ce581ada8d76b65df5443adba1b852f1b9a516834184708187790e83)**|7.0.3|MIT
 **[@types/whatwg-url](#2656807e2c5278a762bc40eb434fcb3d941b21264c0c1c7723243d05d9ad8049)**|13.0.0|MIT
 **[accepts](#f95b7a83c78ce214a33c8f8ef681fb76acf619e685469f394034d5d5ea1cfb23)**|2.0.0|MIT
@@ -355,7 +354,6 @@ Package|Version|License
 **[typed-array-byte-offset](#e924117a15a5b269cb250033789a5883a651be89bb45c75664284c8cb6f6227a)**|1.0.4|MIT
 **[typed-array-length](#b0f118a5ab8169e781596037141ad122c47a932cbf1977fd90478540dc4e5fc9)**|1.0.7|MIT
 **[unbox-primitive](#553e03b08501e4c9c3c118978409bc7ee42fc47ae800d6df3b665b16c38ce4ab)**|1.1.0|MIT
-**[undici-types](#b0d2c11cf977876b41bc2854498debbc94808c37e6b3c3eb5d00c3b84f2e17ed)**|7.19.2|MIT
 **[unpipe](#3a555405bd00c7e7e52b07a5600248bdaa683db613d7c286e425511cee8ed14a)**|1.0.0|MIT
 **[util-deprecate](#a1bd80d6a50b36e34032c402c5204d6276747d8212b68b164a9e3f895b90c2d6)**|1.0.2|MIT
 **[vary](#d308bd3935a6f29310b20de016cdb7b3de3aa40a7d4c3365b96e35d2c248d74a)**|1.1.2|MIT
@@ -623,37 +621,6 @@ License tags: Apache-2.0
 <a id="dda6dbabe98503ac1af20979be1778d7a1c8f355b85377124a909567193c2cd3"></a>
 ### [@tootallnate/quickjs-emscripten](https://www.npmjs.com/package/@tootallnate/quickjs-emscripten) (version 0.23.0)
 License tags: MIT
-
-
-<a id="fb8f5c8bd483ba1f0f9540c778a82434a77cbefebed5b317638ccaedaddc3e56"></a>
-### [@types/node](https://www.npmjs.com/package/@types/node) (version 25.6.0)
-License tags: MIT
-
-License files:
-* LICENSE:
-
-          MIT License
-      
-          Copyright (c) Microsoft Corporation.
-      
-          Permission is hereby granted, free of charge, to any person obtaining a copy
-          of this software and associated documentation files (the "Software"), to deal
-          in the Software without restriction, including without limitation the rights
-          to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-          copies of the Software, and to permit persons to whom the Software is
-          furnished to do so, subject to the following conditions:
-      
-          The above copyright notice and this permission notice shall be included in all
-          copies or substantial portions of the Software.
-      
-          THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-          IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-          FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-          AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-          LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-          OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-          SOFTWARE
-      
 
 
 <a id="be865b69ce581ada8d76b65df5443adba1b852f1b9a516834184708187790e83"></a>
@@ -2173,11 +2140,6 @@ License tags: MIT
 
 <a id="553e03b08501e4c9c3c118978409bc7ee42fc47ae800d6df3b665b16c38ce4ab"></a>
 ### [unbox-primitive](https://www.npmjs.com/package/unbox-primitive) (version 1.1.0)
-License tags: MIT
-
-
-<a id="b0d2c11cf977876b41bc2854498debbc94808c37e6b3c3eb5d00c3b84f2e17ed"></a>
-### [undici-types](https://www.npmjs.com/package/undici-types) (version 7.19.2)
 License tags: MIT
 
 
