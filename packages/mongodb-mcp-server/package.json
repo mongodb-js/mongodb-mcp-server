@@ -1,7 +1,7 @@
 {
   "name": "mongodb-mcp-server",
   "description": "Official MongoDB MCP server: let AI agents search and manage databases and the Atlas data platform",
-  "version": "3.3.0",
+  "version": "3.4.0",
   "type": "module",
   "mcpName": "io.github.mongodb-js/mongodb-mcp-server",
   "exports": {
