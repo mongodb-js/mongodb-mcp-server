@@ -71,6 +71,7 @@ class ConnectingManager extends ConnectionManager {
  */
 class GatedCloseManager extends FakeConnectionManager {
     public closeStarted = false;
+    public closeCalls = 0;
     private readonly closeGate: Promise<void>;
 
     constructor(closeGate: Promise<void>) {
@@ -80,6 +81,7 @@ class GatedCloseManager extends FakeConnectionManager {
 
     override async close(): Promise<void> {
         this.closeStarted = true;
+        this.closeCalls++;
         await this.closeGate;
         await super.close();
     }
@@ -989,6 +991,37 @@ describe("ConnectionRegistry", () => {
 
             expect(fast.closeStarted).toBe(false);
             expect((await registry.peek("b"))?.state.tag).toBe("connected");
+        });
+
+        it("does not start a sweep while the previous one is still running", async () => {
+            let releaseClose!: () => void;
+            const gate = new Promise<void>((resolve) => {
+                releaseClose = resolve;
+            });
+            // "a" closes slowly; "b" is idle in the same sweep snapshot.
+            const slow = new GatedCloseManager(gate);
+            const fast = new GatedCloseManager(Promise.resolve());
+            const queue: ConnectionManager[] = [slow, fast];
+            managerFactory = (): ConnectionManager => queue.shift() ?? new FakeConnectionManager();
+            const store = makeStore({
+                options: { ...defaultTestConfig, connectionIdleTimeoutMs: 1000 },
+            });
+            const registry = store.view();
+            await registry.connect({ settings: { connectionString: "mongodb://host-a:27017" } });
+            await registry.connect({ settings: { connectionString: "mongodb://host-b:27017" } });
+
+            // The first sweep snapshots both as idle and blocks on revoking "a";
+            // later ticks fire while it is still busy.
+            await vi.advanceTimersByTimeAsync(5_000);
+            expect(slow.closeCalls).toBe(1);
+            expect(fast.closeCalls).toBe(0);
+
+            releaseClose();
+            await vi.advanceTimersByTimeAsync(0);
+
+            // "b" is reaped once, by the sweep that snapshotted it.
+            expect(fast.closeCalls).toBe(1);
+            await expect(registry.find(() => true)).resolves.toHaveLength(0);
         });
 
         it("closes idle configured connections even when connectionIdleTimeoutMs is 0", async () => {

@@ -118,6 +118,8 @@ export class MCPConnectionStore {
     /** In-flight close per pinned entry (never rejects), so resolve() waits instead of reusing a closing provider. */
     private readonly pinnedCloses = new Map<string, Promise<void>>();
     private sweepTimer?: ReturnType<typeof setInterval>;
+    /** Set while a sweep runs, so a tick that fires mid-sweep is skipped instead of reaping the same entries again. */
+    private sweeping = false;
 
     constructor(options: ConnectionStoreOptions) {
         const { options: config, logger, deviceId, serverMetadata, keychain } = options;
@@ -459,7 +461,16 @@ export class MCPConnectionStore {
         }
         this.sweepTimer = setInterval(
             () => {
-                void this.sweepIdleConnections();
+                // A sweep awaits each close, which can outlast a short interval. The
+                // snapshot of a running sweep still holds entries it has not reaped
+                // yet, so an overlapping sweep would reap them a second time.
+                if (this.sweeping) {
+                    return;
+                }
+                this.sweeping = true;
+                void this.sweepIdleConnections().finally(() => {
+                    this.sweeping = false;
+                });
             },
             Math.min(...intervals)
         );
