@@ -662,7 +662,8 @@ describeWithMongoDB({
                 },
             });
             const content = getResponseContent(response);
-            expect(content).toMatch(/timed out|exceeded time limit/i);
+            expect(response.isError).toBe(true);
+            expect(content).toMatch(/timed out|exceeded time limit|timeout error/i);
             expect(response.structuredContent).toBeUndefined();
         });
     },
