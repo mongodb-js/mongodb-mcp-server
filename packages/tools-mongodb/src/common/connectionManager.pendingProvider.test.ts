@@ -85,6 +85,25 @@ describe("MCPConnectionManager pending OIDC provider", () => {
         await vi.waitFor(() => expect(manager.currentConnectionState.tag).toBe("errored"));
     });
 
+    it("disconnects a stalled dial without awaiting it, and closes the provider once it resolves", async () => {
+        const provider = gatedProvider();
+        const manager = buildManager();
+        await manager.connect({ connectionString: OIDC_CONNECTION_STRING });
+
+        // A provider that never settles must not block disconnect (which the
+        // idle sweep awaits); race it so a regression fails fast.
+        const state = await Promise.race([
+            manager.disconnect(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error("disconnect hung")), 1000)),
+        ]);
+        expect(state).toMatchObject({ tag: "disconnected" });
+
+        // The provider is still closed when it eventually resolves.
+        const close = vi.fn().mockResolvedValue(undefined);
+        provider.resolve({ close } as unknown as NodeDriverServiceProvider);
+        await vi.waitFor(() => expect(close).toHaveBeenCalled());
+    });
+
     it("leaves a connection that is no longer connecting alone", async () => {
         const provider = gatedProvider();
         const manager = buildManager();

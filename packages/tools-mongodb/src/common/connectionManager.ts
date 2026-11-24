@@ -198,6 +198,8 @@ export interface ConnectionStateConnecting extends ConnectionState {
     oidcConnectionType: OIDCConnectionAuthType;
     oidcLoginUrl?: string;
     oidcUserCode?: string;
+    /** Epoch ms the dial entered `connecting`; drives the connect deadline. */
+    startedAt: number;
 }
 
 export interface ConnectionStateDisconnected extends ConnectionState {
@@ -517,6 +519,7 @@ export class MCPConnectionManager extends ConnectionManager {
                     serviceProvider,
                     connectionStringInfo,
                     oidcConnectionType: connectionStringInfo.authType as OIDCConnectionAuthType,
+                    startedAt: Date.now(),
                 });
             }
 
@@ -555,8 +558,12 @@ export class MCPConnectionManager extends ConnectionManager {
                     await this.currentConnectionState.serviceProvider?.close();
                 }
                 if (this.currentConnectionState.tag === "connecting") {
-                    const serviceProvider = await this.currentConnectionState.serviceProvider;
-                    await serviceProvider.close();
+                    // A dial that never settles must not block teardown (or the
+                    // idle sweep that calls it): close the provider when it
+                    // resolves instead of awaiting it here.
+                    void this.currentConnectionState.serviceProvider
+                        .then((serviceProvider) => serviceProvider.close())
+                        .catch(() => undefined);
                 }
             } finally {
                 this.changeState("connection-close", {

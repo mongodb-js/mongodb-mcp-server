@@ -82,7 +82,11 @@ export {
     type CreateConnectionEntryOptions,
     type ConnectionSource,
 } from "./common/connectionRegistry.js";
-export { MCPConnectionStore, type ConnectionStoreOptions } from "./common/connectionStore.js";
+export {
+    MCPConnectionStore,
+    DEFAULT_CONNECTION_CONNECT_TIMEOUT_MS,
+    type ConnectionStoreOptions,
+} from "./common/connectionStore.js";
 export { ConnectionSummarySchema, summarizeConnection } from "./common/connectionSummary.js";
 export { FakeConnectionManager } from "./common/mocks/connectionManager.js";
 export { buildWriteStageConfirmationMessage } from "./helpers/writeStageConfirmation.js";
