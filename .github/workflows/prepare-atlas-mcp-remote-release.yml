@@ -13,8 +13,14 @@ permissions: {}
 
 jobs:
   create-pr:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
+      - name: Set up Python for permissions monitor
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Expose Python to permissions monitor's sudo PATH
+        run: sudo -n ln -sf "$pythonLocation/bin/python3.12" /usr/local/bin/python3.12
       - uses: GitHubSecurityLab/actions-permissions/monitor@bf82d13b9b10051d224345ab9184f5ede0a94289 # v1.0.2-beta9
       - uses: mongodb-js/devtools-shared/actions/setup-bot-token@94872c30ab44483d5d327da9dd764194a211f06b # main
         id: app-token
@@ -53,7 +59,7 @@ jobs:
           set -euo pipefail
 
           # Scoped to the wrapper's own tag prefix
-          LATEST_TAG=$(gh release list --exclude-drafts --exclude-pre-releases --limit 100 --json tagName --jq '[.[] | select(.tagName | test("^mongodb-atlas-mcp-remote/v[0-9]"))] | .[0].tagName // empty')
+          LATEST_TAG=$(gh release list --exclude-drafts --exclude-pre-releases --limit 100 --json tagName --jq '[.[] | select(.tagName | test("^mongodb-atlas-mcp-remote/v[0-9]"))] | .[].tagName' | sort -V | tail -n1)
           if [[ -z "$LATEST_TAG" ]]; then
             exit 0
           fi
@@ -61,7 +67,7 @@ jobs:
           LATEST="${LATEST_TAG#mongodb-atlas-mcp-remote/v}"
           NEW="${NEW_VERSION#v}"
 
-          if ! npx semver -r "< $NEW" "$LATEST" > /dev/null; then
+          if ! pnpm dlx semver@7 -r "< $NEW" "$LATEST" > /dev/null; then
             echo "VERSION_WARNING=⚠️ The new version \`${NEW_VERSION}\` is lower than the latest published release \`${LATEST_TAG}\`. Please verify this is intentional." >> "${GITHUB_OUTPUT}"
           fi
 

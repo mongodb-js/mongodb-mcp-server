@@ -21,7 +21,7 @@
   ],
   "licenseOverrides": {
     "cli-table@0.3.11": "MIT",
-    "node-addon-api@8.9.0": "MIT"
+    "node-addon-api@8.9.2": "MIT"
   },
   "doNotValidatePackages": [],
   "additionalAllowedLicenses": ["Python-2.0", "PSF-2.0", "MPL-2.0", "CC0-1.0"]

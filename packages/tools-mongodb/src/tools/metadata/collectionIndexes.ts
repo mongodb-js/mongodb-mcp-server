@@ -49,17 +49,20 @@ export class CollectionIndexesTool extends MongoDBToolBase {
         collection,
     }: ToolArgs<ReturnType<typeof this.argsShape>>): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const provider = await this.resolveConnection(connectionId);
-        const indexes = await provider.getIndexes(database, collection);
-        const classicIndexes: IndexStatus[] = indexes.map((index) => ({
-            name: index.name as string,
-            key: index.key as Record<string, unknown>,
-        }));
-
-        const searchIndexes: SearchIndexStatus[] = [];
-        if (await this.isSearchSupported(connectionId)) {
-            const searchIndexDefinitions = await provider.getSearchIndexes(database, collection);
-            searchIndexes.push(...this.extractSearchIndexDetails(searchIndexDefinitions));
-        }
+        const [classicIndexes, searchIndexes] = await Promise.all([
+            (async (): Promise<IndexStatus[]> => {
+                const indexes = await provider.getIndexes(database, collection);
+                return indexes.map((index) => ({
+                    name: index.name as string,
+                    key: index.key as Record<string, unknown>,
+                }));
+            })(),
+            (async (): Promise<SearchIndexStatus[]> => {
+                if (!(await this.isSearchSupported(connectionId))) return [];
+                const searchIndexDefinitions = await provider.getSearchIndexes(database, collection);
+                return this.extractSearchIndexDetails(searchIndexDefinitions);
+            })(),
+        ]);
 
         return {
             content: [
