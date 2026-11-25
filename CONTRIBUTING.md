@@ -266,7 +266,8 @@ All pull requests automatically run through the "Code Health" workflow, which:
 
 The [Auto vulnerability triage workflow](.github/workflows/auto-vulnerability-triage.yml)
 runs hourly on the default branch and posts or updates triage comments for Jira
-filter `63609`. It uses the repository secrets `GROVE_API_KEY` and
+filter `63609`. It uses the repository secrets
+`VULNERABILITY_TRIAGE_AI_GATEWAY_API_KEY` (passed as `GROVE_API_KEY`) and
 `JIRA_API_TOKEN` (passed as `JIRA_TOKEN`). The optional `JIRA_URL` Actions
 variable defaults to `https://jira.mongodb.org`.
 
