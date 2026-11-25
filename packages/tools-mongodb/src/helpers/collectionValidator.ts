@@ -135,17 +135,15 @@ function getSchemaDescription({ title, description }: JSONSchema): string | unde
         (part): part is string => typeof part === "string" && part.trim().length > 0
     );
     const text = [...new Set(parts.map((part) => part.trim()))].join(": ");
-    if (!text) {
-        return undefined;
-    }
-
-    return text.length > MAX_FIELD_DESCRIPTION_LENGTH ? `${text.slice(0, MAX_FIELD_DESCRIPTION_LENGTH)}…` : text;
+    return text || undefined;
 }
 
-/** The descriptions of a field and of the fields nested in it, mirroring the shape of the simplified schema. */
+/** The descriptions of a field and of what is nested in it, mirroring the shape of the simplified schema. */
 type FieldDescriptionNode = {
     descriptions: Set<string>;
     fields: Map<string, FieldDescriptionNode>;
+    /** The elements of the field when it is an array, kept apart from the fields it has as a document. */
+    items?: FieldDescriptionNode;
 };
 
 function createFieldDescriptionNode(): FieldDescriptionNode {
@@ -173,9 +171,14 @@ function getFieldDescriptions(schema: JSONSchema): FieldDescriptionNode {
             }
         }
 
-        // Array elements belong to the array's node, matching how the simplified schema nests them.
+        for (const itemSchema of [typedSchema.items, typedSchema.additionalItems].flat()) {
+            if (isDocument(itemSchema)) {
+                node.items ??= createFieldDescriptionNode();
+                collect(itemSchema, node.items);
+            }
+        }
+
         for (const branch of [
-            ...[typedSchema.items, typedSchema.additionalItems].flat(),
             ...(typedSchema.allOf ?? []),
             ...(typedSchema.anyOf ?? []),
             ...(typedSchema.oneOf ?? []),
@@ -217,7 +220,24 @@ function annotateType(
         return { ...type, fields: annotateFields(type.fields, node) };
     }
 
-    return "types" in type ? { ...type, types: type.types.map((member) => annotateType(member, node)) } : type;
+    return "types" in type ? { ...type, types: type.types.map((member) => annotateType(member, node?.items)) } : type;
+}
+
+/** A field's description, including those of its array elements, which the simplified schema cannot annotate. */
+function getFieldDescription(node: FieldDescriptionNode | undefined): string | undefined {
+    const descriptions = new Set<string>();
+    for (let current = node; current; current = current.items) {
+        for (const description of current.descriptions) {
+            descriptions.add(description);
+        }
+    }
+
+    const text = [...descriptions].join("; ");
+    if (!text) {
+        return undefined;
+    }
+
+    return text.length > MAX_FIELD_DESCRIPTION_LENGTH ? `${text.slice(0, MAX_FIELD_DESCRIPTION_LENGTH)}…` : text;
 }
 
 function annotateFields(fields: SimplifiedSchema, node: FieldDescriptionNode | undefined): AnnotatedSimplifiedSchema {
@@ -226,7 +246,7 @@ function annotateFields(fields: SimplifiedSchema, node: FieldDescriptionNode | u
         Object.entries(fields).map(([name, field]) => {
             const child = node?.fields.get(name);
             const types = field.types.map((type) => annotateType(type, child));
-            const description = child && child.descriptions.size > 0 ? [...child.descriptions].join("; ") : undefined;
+            const description = getFieldDescription(child);
             return [name, description ? { description, types } : { types }];
         })
     );

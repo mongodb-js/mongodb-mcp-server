@@ -618,6 +618,81 @@ describe("annotateFieldDescriptions", () => {
         ).toEqual(schema);
     });
 
+    it("keeps the fields of array elements apart from the fields of a document of the same name", () => {
+        const jsonSchema: JSONSchema = {
+            properties: {
+                payload: {
+                    anyOf: [
+                        { bsonType: "object", properties: { code: { description: "Document code" } } },
+                        {
+                            bsonType: "array",
+                            description: "List of payloads",
+                            items: { bsonType: "object", properties: { code: { description: "Element code" } } },
+                        },
+                    ],
+                },
+            },
+        };
+        const schema: SimplifiedSchema = {
+            payload: {
+                types: [
+                    { bsonType: "Document", fields: { code: { types: [{ bsonType: "String" }] } } },
+                    {
+                        bsonType: "Array",
+                        types: [{ bsonType: "Document", fields: { code: { types: [{ bsonType: "String" }] } } }],
+                    },
+                ],
+            },
+        };
+        expect(annotateFieldDescriptions({ schema, jsonSchema })).toEqual({
+            payload: {
+                description: "List of payloads",
+                types: [
+                    {
+                        bsonType: "Document",
+                        fields: { code: { description: "Document code", types: [{ bsonType: "String" }] } },
+                    },
+                    {
+                        bsonType: "Array",
+                        types: [
+                            {
+                                bsonType: "Document",
+                                fields: { code: { description: "Element code", types: [{ bsonType: "String" }] } },
+                            },
+                        ],
+                    },
+                ],
+            },
+        });
+    });
+
+    it("describes an array field with the descriptions of its elements", () => {
+        const result = annotateValidatorSchema({
+            properties: {
+                tags: { bsonType: "array", description: "Tags", items: { bsonType: "string", description: "A tag" } },
+                grid: {
+                    bsonType: "array",
+                    items: { bsonType: "array", items: { bsonType: "int", description: "Cell value" } },
+                },
+            },
+        });
+        expect(result.tags?.description).toEqual("Tags; A tag");
+        expect(result.grid?.description).toEqual("Cell value");
+    });
+
+    it("caps the joined description of a field described by several branches", () => {
+        const result = annotateFieldDescriptions({
+            schema: { a: { types: [{ bsonType: "String" }] } },
+            jsonSchema: {
+                allOf: [
+                    { properties: { a: { description: "x".repeat(400) } } },
+                    { properties: { a: { description: "y".repeat(400) } } },
+                ],
+            },
+        });
+        expect(result.a?.description).toEqual(`${"x".repeat(400)}; ${"y".repeat(98)}…`);
+    });
+
     it("truncates long descriptions", () => {
         const result = annotateValidatorSchema({
             properties: { a: { bsonType: "string", description: "x".repeat(600) } },
