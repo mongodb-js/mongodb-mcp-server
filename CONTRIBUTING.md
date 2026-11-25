@@ -262,6 +262,18 @@ All pull requests automatically run through the "Code Health" workflow, which:
 - Verifies code style and formatting
 - Runs tests on multiple platforms (Ubuntu, macOS, Windows)
 
+### Automated vulnerability triage
+
+The [Auto vulnerability triage workflow](.github/workflows/auto-vulnerability-triage.yml)
+runs hourly on the default branch and posts or updates triage comments for Jira
+filter `63609`. It uses the repository secrets `GROVE_API_KEY` and
+`JIRA_API_TOKEN` (passed as `JIRA_TOKEN`). The optional `JIRA_URL` Actions
+variable defaults to `https://jira.mongodb.org`.
+
+CLI output and audit files are not printed or uploaded because they can contain
+internal Jira data. To investigate a failed run, use the pinned CLI in an
+approved environment in `--mode dry-run` against a single ticket.
+
 ## `packages/mongodb-atlas-mcp-remote`
 
 `mongodb-atlas-mcp-remote` is a stdio proxy that forwards MCP requests to a
