@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ConfigResource } from "./config.js";
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
@@ -29,7 +29,7 @@ describe("config resource", () => {
                 baseUrl: config.apiBaseUrl,
                 userAgent: userAgentFromServerMetadata(testServerMetadata),
                 httpClient: {
-                    fetch: globalThis.fetch.bind(globalThis),
+                    fetch: vi.fn<typeof fetch>().mockRejectedValue(new Error("Unexpected network call in a unit test")),
                     Request: globalThis.Request,
                 },
             },

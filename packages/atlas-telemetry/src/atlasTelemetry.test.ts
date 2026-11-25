@@ -19,7 +19,7 @@ import { afterAll, afterEach, beforeEach, describe, it, vi, expect } from "vites
 
 vi.mock("./containerEnv.js", () => ({ detectContainerEnv: vi.fn().mockResolvedValue(false) }));
 import { NoopLogger, Keychain } from "@mongodb-js/mcp-core";
-import type { MockedFunction, MockInstance } from "vitest";
+import type { MockedFunction, Mock } from "vitest";
 import type { IDeviceId } from "@mongodb-js/mcp-types";
 
 function expectDefined<T>(arg: T): asserts arg is Exclude<T, undefined | null> {
@@ -1086,7 +1086,7 @@ describe("AtlasTelemetry credentials handling", () => {
     const TEST_SERVER_METADATA = { mcpServerName: "test-user-agent", version: "1.0.0" };
     const USER_AGENT = "test-user-agent/1.0.0";
 
-    let fetchSpy: MockInstance<typeof fetch>;
+    let fetchMock: Mock<typeof fetch>;
 
     const mockDeviceId = {
         get: vi.fn().mockResolvedValue("test-device-id"),
@@ -1095,12 +1095,11 @@ describe("AtlasTelemetry credentials handling", () => {
 
     beforeEach(() => {
         vi.useFakeTimers();
-        fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(new Response(null, { status: 200 }));
+        fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 200 }));
     });
 
     afterEach(() => {
         vi.useRealTimers();
-        fetchSpy.mockRestore();
         vi.clearAllMocks();
         vi.restoreAllMocks();
     });
@@ -1123,7 +1122,7 @@ describe("AtlasTelemetry credentials handling", () => {
     ])("sends telemetry events $label", async ({ clientId, clientSecret, expectedPath, expectAuthHeader }) => {
         const logger = new NoopLogger();
         const httpClient = {
-            fetch: globalThis.fetch.bind(globalThis),
+            fetch: fetchMock,
             Request: globalThis.Request,
         };
         const userAgent = userAgentFromServerMetadata(TEST_SERVER_METADATA);
@@ -1187,7 +1186,7 @@ describe("AtlasTelemetry credentials handling", () => {
         await vi.advanceTimersByTimeAsync(SEND_INTERVAL_MS);
         await emitCompleted;
 
-        const matchingCall = fetchSpy.mock.calls.find(([input]) => {
+        const matchingCall = fetchMock.mock.calls.find(([input]) => {
             const href = input instanceof URL ? input.href : typeof input === "string" ? input : input.url;
             return href === new URL(expectedPath, API_BASE).href;
         });

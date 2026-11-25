@@ -1,20 +1,16 @@
-import { AuthProviderFactory, type AuthProvider } from "@mongodb-js/mcp-atlas-api-client";
+import { AuthProviderFactory, type AuthProvider, type HttpClient } from "@mongodb-js/mcp-atlas-api-client";
 import { NoopLogger } from "@mongodb-js/mcp-core";
+import { createMockHttpClient } from "./createMockHttpClient.js";
 
 const MOCK_USER_AGENT = "test-user-agent";
 
-const defaultHttpClient = {
-    fetch: globalThis.fetch.bind(globalThis),
-    Request: globalThis.Request,
-};
-
 /**
  * Builds an AuthProvider for unit tests. Real network calls are never made
- * because an injected (or default) httpClient is supplied.
+ * because the default httpClient rejects any unexpected request.
  */
 export function createMockAuthProvider(
     baseUrl = "https://example.com",
-    httpClient = defaultHttpClient
+    httpClient: HttpClient = createMockHttpClient()
 ): AuthProvider | undefined {
     return AuthProviderFactory.create(
         {
