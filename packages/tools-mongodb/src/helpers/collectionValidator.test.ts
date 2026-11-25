@@ -5,7 +5,7 @@ import {
     type SimplifiedSchema,
     type SimplifiedSchemaType,
 } from "@mongodb-js/mongodb-schema";
-import { getJsonSchemaValidator, mergeSimplifiedSchemas } from "./collectionValidator.js";
+import { annotateFieldDescriptions, getJsonSchemaValidator, mergeSimplifiedSchemas } from "./collectionValidator.js";
 
 describe("getJsonSchemaValidator", () => {
     const jsonSchema = {
@@ -457,6 +457,183 @@ describe("mergeSimplifiedSchemas", () => {
         expect(Object.keys(merged)).toEqual(["constructor", "toString", "__proto__"]);
         expect(Object.getOwnPropertyDescriptor(merged, "__proto__")?.value).toEqual({
             types: [{ bsonType: "Boolean" }],
+        });
+    });
+});
+
+describe("annotateFieldDescriptions", () => {
+    function annotateValidatorSchema(jsonSchema: JSONSchema): ReturnType<typeof annotateFieldDescriptions> {
+        return annotateFieldDescriptions({ schema: convertMongoDBJSONSchemaToSimplified(jsonSchema), jsonSchema });
+    }
+
+    it("returns the schema unchanged when no field is annotated", () => {
+        const schema: SimplifiedSchema = { name: { types: [{ bsonType: "String" }] } };
+        const result = annotateFieldDescriptions({
+            schema,
+            jsonSchema: { title: "Users", description: "All users", properties: { name: { bsonType: "string" } } },
+        });
+        expect(result).toEqual({ name: { types: [{ bsonType: "String" }] } });
+    });
+
+    it("annotates top-level and nested fields", () => {
+        expect(
+            annotateValidatorSchema({
+                bsonType: "object",
+                properties: {
+                    c_dt: { bsonType: "date", description: "Contract signing date" },
+                    addr: {
+                        bsonType: "object",
+                        description: "Billing address",
+                        properties: { zc: { bsonType: "string", description: "Postal code" } },
+                    },
+                },
+            })
+        ).toEqual({
+            c_dt: { description: "Contract signing date", types: [{ bsonType: "Date" }] },
+            addr: {
+                description: "Billing address",
+                types: [
+                    {
+                        bsonType: "Document",
+                        fields: { zc: { description: "Postal code", types: [{ bsonType: "String" }] } },
+                    },
+                ],
+            },
+        });
+    });
+
+    it("combines title and description, skipping blank and duplicate values", () => {
+        const result = annotateValidatorSchema({
+            properties: {
+                a: { bsonType: "string", title: "Status", description: "A=active, S=suspended" },
+                b: { bsonType: "string", title: "Same", description: "Same" },
+                c: { bsonType: "string", title: "  ", description: "Only description" },
+                d: { bsonType: "string", title: "Only title" },
+            },
+        });
+        expect(Object.fromEntries(Object.entries(result).map(([name, field]) => [name, field.description]))).toEqual({
+            a: "Status: A=active, S=suspended",
+            b: "Same",
+            c: "Only description",
+            d: "Only title",
+        });
+    });
+
+    it("annotates fields of documents nested in arrays", () => {
+        expect(
+            annotateValidatorSchema({
+                properties: {
+                    li: {
+                        bsonType: "array",
+                        description: "Line items",
+                        items: {
+                            bsonType: "object",
+                            properties: { q: { bsonType: "int", description: "Quantity" } },
+                        },
+                    },
+                },
+            })
+        ).toEqual({
+            li: {
+                description: "Line items",
+                types: [
+                    {
+                        bsonType: "Array",
+                        types: [
+                            {
+                                bsonType: "Document",
+                                fields: { q: { description: "Quantity", types: [{ bsonType: "Int32" }] } },
+                            },
+                        ],
+                    },
+                ],
+            },
+        });
+    });
+
+    it("follows allOf, anyOf and oneOf branches and joins differing descriptions", () => {
+        const jsonSchema: JSONSchema = {
+            allOf: [{ properties: { a: { description: "From allOf" } } }],
+            anyOf: [{ properties: { a: { description: "From anyOf" } } }, { properties: { b: { description: "B" } } }],
+            oneOf: [{ properties: { a: { description: "From allOf" } } }],
+        };
+        const schema: SimplifiedSchema = {
+            a: { types: [{ bsonType: "String" }] },
+            b: { types: [{ bsonType: "String" }] },
+        };
+        expect(annotateFieldDescriptions({ schema, jsonSchema })).toEqual({
+            a: { description: "From allOf; From anyOf", types: [{ bsonType: "String" }] },
+            b: { description: "B", types: [{ bsonType: "String" }] },
+        });
+    });
+
+    it("annotates sampled fields and ignores described fields missing from the schema", () => {
+        const schema: SimplifiedSchema = { a: { types: [{ bsonType: "String" }] } };
+        expect(
+            annotateFieldDescriptions({
+                schema,
+                jsonSchema: { properties: { a: { description: "A" }, missing: { description: "Missing" } } },
+            })
+        ).toEqual({ a: { description: "A", types: [{ bsonType: "String" }] } });
+    });
+
+    it("does not confuse nested paths with field names containing dots", () => {
+        const schema: SimplifiedSchema = {
+            "a.b": { types: [{ bsonType: "String" }] },
+            a: { types: [{ bsonType: "Document", fields: { b: { types: [{ bsonType: "String" }] } } }] },
+        };
+        expect(
+            annotateFieldDescriptions({
+                schema,
+                jsonSchema: {
+                    properties: {
+                        "a.b": { description: "Dotted name" },
+                        a: { properties: { b: { description: "Nested" } } },
+                    },
+                },
+            })
+        ).toEqual({
+            "a.b": { description: "Dotted name", types: [{ bsonType: "String" }] },
+            a: {
+                types: [
+                    {
+                        bsonType: "Document",
+                        fields: { b: { description: "Nested", types: [{ bsonType: "String" }] } },
+                    },
+                ],
+            },
+        });
+    });
+
+    it("skips fields that are only matched by patternProperties or additionalProperties", () => {
+        const schema: SimplifiedSchema = { x_a: { types: [{ bsonType: "String" }] } };
+        expect(
+            annotateFieldDescriptions({
+                schema,
+                jsonSchema: {
+                    patternProperties: { "^x_": { description: "Extension" } },
+                    additionalProperties: { description: "Anything else" },
+                },
+            })
+        ).toEqual(schema);
+    });
+
+    it("truncates long descriptions", () => {
+        const result = annotateValidatorSchema({
+            properties: { a: { bsonType: "string", description: "x".repeat(600) } },
+        });
+        expect(result.a?.description).toEqual(`${"x".repeat(500)}…`);
+    });
+
+    it("keeps names like __proto__ as plain fields", () => {
+        const result = annotateValidatorSchema(
+            JSON.parse('{"properties":{"__proto__":{"bsonType":"string","description":"Prototype"}}}') as JSONSchema
+        );
+        expect(Object.keys(result)).toEqual(["__proto__"]);
+        expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+        expect(Object.getOwnPropertyDescriptor(result, "__proto__")?.value).toEqual({
+            description: "Prototype",
+            types: [{ bsonType: "String" }],
         });
     });
 });

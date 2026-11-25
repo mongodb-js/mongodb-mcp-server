@@ -351,7 +351,7 @@ describeWithMongoDB({
                 });
             });
 
-            it("ignores the validator when schemaSource is 'sample'", async () => {
+            it("ignores the validator's types when schemaSource is 'sample'", async () => {
                 await createCollection({ validator: { $jsonSchema: closedSchema } });
                 await integration
                     .mongoClient()
@@ -384,6 +384,96 @@ describeWithMongoDB({
                 const { items, isError } = await callTool("validator");
                 expect(isError).toBe(true);
                 expect(items[0]?.text).toEqual("The requested namespace does not exist.");
+            });
+
+            describe("with field descriptions", () => {
+                const describedSchema = {
+                    bsonType: "object",
+                    additionalProperties: false,
+                    properties: {
+                        _id: { bsonType: "objectId" },
+                        c_dt: { bsonType: "date", title: "Contract date", description: "UTC signing date" },
+                        st: { bsonType: "string", description: "A=active, S=suspended" },
+                        addr: {
+                            bsonType: "object",
+                            properties: { zc: { bsonType: "string", description: "Postal code" } },
+                        },
+                    },
+                };
+
+                it("annotates a validator-derived schema", async () => {
+                    await createCollection({ validator: { $jsonSchema: describedSchema } });
+
+                    const { items, structuredContent } = await callTool("validator");
+                    const expectedSchema = {
+                        _id: { types: [{ bsonType: "ObjectId" }] },
+                        c_dt: { description: "Contract date: UTC signing date", types: [{ bsonType: "Date" }] },
+                        st: { description: "A=active, S=suspended", types: [{ bsonType: "String" }] },
+                        addr: {
+                            types: [
+                                {
+                                    bsonType: "Document",
+                                    fields: { zc: { description: "Postal code", types: [{ bsonType: "String" }] } },
+                                },
+                            ],
+                        },
+                    };
+                    expect(structuredContent).toEqual({ schema: expectedSchema, fieldsCount: 4, source: "validator" });
+                    const { schema } = JSON.parse(getDataFromUntrustedContent(items[1]?.text ?? "{}")) as {
+                        schema: SimplifiedSchema;
+                    };
+                    expect(schema).toEqual(expectedSchema);
+                });
+
+                it.each([
+                    { name: "schemaSource is 'sample'", schemaSource: "sample", options: {} },
+                    {
+                        name: "the validator does not reject invalid writes",
+                        schemaSource: undefined,
+                        options: { validationAction: "warn" },
+                    },
+                ])("annotates a sampled schema when $name", async ({ schemaSource, options }) => {
+                    await createCollection({ validator: { $jsonSchema: describedSchema }, ...options });
+                    await integration
+                        .mongoClient()
+                        .db(integration.randomDbName())
+                        .collection("foo")
+                        .insertOne({ st: "A" });
+
+                    const { structuredContent } = await callTool(schemaSource);
+                    expect(structuredContent).toEqual({
+                        schema: {
+                            _id: { types: [{ bsonType: "ObjectId" }] },
+                            st: { description: "A=active, S=suspended", types: [{ bsonType: "String" }] },
+                        },
+                        fieldsCount: 2,
+                        source: "sample",
+                    });
+                });
+
+                it("annotates a merged schema", async () => {
+                    await createCollection({
+                        validator: {
+                            $jsonSchema: {
+                                bsonType: "object",
+                                properties: { st: { bsonType: "string", description: "A=active, S=suspended" } },
+                            },
+                        },
+                    });
+                    await integration
+                        .mongoClient()
+                        .db(integration.randomDbName())
+                        .collection("foo")
+                        .insertOne({ st: "A", other: 1 });
+
+                    const { structuredContent } = await callTool();
+                    expect(structuredContent.source).toBe("merged");
+                    expect(structuredContent.schema).toEqual({
+                        _id: { types: [{ bsonType: "ObjectId" }] },
+                        other: { types: [{ bsonType: "Number" }] },
+                        st: { description: "A=active, S=suspended", types: [{ bsonType: "String" }] },
+                    });
+                });
             });
 
             describe("when the validator cannot be read", () => {

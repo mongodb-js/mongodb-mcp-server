@@ -18,6 +18,7 @@ import { ONE_MB } from "../../helpers/constants.js";
 import { collectCursorUntilMaxBytesLimit } from "../../helpers/collectCursorUntilMaxBytes.js";
 import { isObjectEmpty } from "../../helpers/isObjectEmpty.js";
 import {
+    annotateFieldDescriptions,
     getJsonSchemaValidator,
     mergeSimplifiedSchemas,
     type JsonSchemaValidator,
@@ -106,25 +107,23 @@ export class CollectionSchemaTool extends MongoDBToolBase {
         { request }: ToolExecutionContext<IMongoDBConfig>
     ): Promise<ToolResult<ReturnType<typeof this.outputSchema>>> {
         const provider = await this.resolveConnection(connectionId);
-        // Users without the listCollections privilege can still sample documents, so a failed lookup is only fatal in
-        // validator mode.
+        // The validator is read in every mode for its field descriptions. Users without the listCollections privilege
+        // can still sample documents, so a failed lookup is only fatal in validator mode.
         let collectionInfos: Document[] = [];
         let lookupError: unknown;
-        if (schemaSource !== "sample") {
-            try {
-                collectionInfos = await provider.listCollections(
-                    database,
-                    { name: collection },
-                    this.getOperationOptions(request)
-                );
-            } catch (error) {
-                lookupError = error;
-                this.server.logger.debug({
-                    id: LogId.mongodbListCollectionsFailure,
-                    context: "collection-schema tool",
-                    message: `Failed to read the collection validator: ${getErrorMessage(error)}`,
-                });
-            }
+        try {
+            collectionInfos = await provider.listCollections(
+                database,
+                { name: collection },
+                this.getOperationOptions(request)
+            );
+        } catch (error) {
+            lookupError = error;
+            this.server.logger.debug({
+                id: LogId.mongodbListCollectionsFailure,
+                context: "collection-schema tool",
+                message: `Failed to read the collection validator: ${getErrorMessage(error)}`,
+            });
         }
         const [collectionInfo] = collectionInfos;
         const validator = getJsonSchemaValidator(collectionInfo?.options as Document | undefined);
@@ -146,8 +145,9 @@ export class CollectionSchemaTool extends MongoDBToolBase {
             };
         }
 
+        // In sample mode the validator only contributes field descriptions, never types.
         const validatorSchema: SimplifiedSchema =
-            validator && (schemaSource === "validator" || validator.isEnforced)
+            validator && (schemaSource === "validator" || (schemaSource === "auto" && validator.isEnforced))
                 ? convertMongoDBJSONSchemaToSimplified(validator.jsonSchema)
                 : {};
         const hasValidatorSchema = !isObjectEmpty(validatorSchema);
@@ -205,13 +205,21 @@ export class CollectionSchemaTool extends MongoDBToolBase {
             };
         }
 
-        const fieldsCount = Object.keys(schema).length;
+        // Descriptions come from the validator even when its types are not used.
+        const annotatedSchema = validator
+            ? annotateFieldDescriptions({ schema, jsonSchema: validator.jsonSchema })
+            : schema;
+        const fieldsCount = Object.keys(annotatedSchema).length;
         const header = CollectionSchemaTool.getResponseHeader({ fieldsCount, source, validator });
 
         return {
-            content: formatUntrustedData(this.server.config, header, JSON.stringify({ database, collection, schema })),
+            content: formatUntrustedData(
+                this.server.config,
+                header,
+                JSON.stringify({ database, collection, schema: annotatedSchema })
+            ),
             structuredContent: {
-                schema,
+                schema: annotatedSchema,
                 fieldsCount,
                 source,
             },
