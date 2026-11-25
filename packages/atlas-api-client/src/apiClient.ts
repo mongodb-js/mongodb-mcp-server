@@ -95,6 +95,8 @@ export class ApiClient {
         supportsCurrentIpLookup: boolean;
     };
 
+    private readonly httpClient: HttpClient;
+
     private client: Client<paths>;
 
     readonly logger: LoggerBase;
@@ -107,6 +109,7 @@ export class ApiClient {
     constructor({ options, logger, authProvider }: ApiClientConstruction) {
         this.logger = logger;
         this.authProvider = authProvider;
+        this.httpClient = options.httpClient;
         this.options = {
             baseUrl: options.baseUrl,
             userAgent: options.userAgent,
@@ -204,7 +207,7 @@ export class ApiClient {
 
         const endpoint = "api/private/ipinfo";
         const url = new URL(endpoint, this.options.baseUrl);
-        const response = await fetch(url, {
+        const response = await this.httpClient.fetch(url, {
             method: "GET",
             headers: {
                 ...authHeaders,
@@ -256,7 +259,7 @@ export class ApiClient {
             throw new Error("No access token available");
         }
         const authUrl = new URL("api/private/v1.0/telemetry/events", this.options.baseUrl);
-        const response = await fetch(authUrl, {
+        const response = await this.httpClient.fetch(authUrl, {
             method: "POST",
             headers: {
                 ...authHeaders,
@@ -284,7 +287,7 @@ export class ApiClient {
         };
 
         const unauthUrl = new URL("api/private/unauth/telemetry/events", this.options.baseUrl);
-        const response = await fetch(unauthUrl, {
+        const response = await this.httpClient.fetch(unauthUrl, {
             method: "POST",
             headers,
             body: JSON.stringify(events),

@@ -1,17 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiClient } from "@mongodb-js/mcp-atlas-api-client";
+import { ApiClient, ApiClientError } from "@mongodb-js/mcp-atlas-api-client";
 import type { TelemetryCommonProperties, TelemetryEvent } from "@mongodb-js/mcp-types";
 import { NoopLogger } from "@mongodb-js/mcp-core";
 import { createMockAuthProvider } from "./test-helpers/createMockAuthProvider.js";
+import { createMockHttpClient, type MockHttpClient } from "./test-helpers/createMockHttpClient.js";
 
 const TEST_USER_AGENT = "test-user-agent";
-const testHttpClient = {
-    fetch: globalThis.fetch.bind(globalThis),
-    Request: globalThis.Request,
-};
 
 describe("ApiClient", () => {
     let apiClient: ApiClient;
+    let httpClient: MockHttpClient;
 
     const mockEvents: TelemetryEvent<TelemetryCommonProperties>[] = [
         {
@@ -34,14 +32,15 @@ describe("ApiClient", () => {
     ];
 
     beforeEach(() => {
+        httpClient = createMockHttpClient();
         apiClient = new ApiClient({
             options: {
                 baseUrl: "https://example.com",
                 userAgent: TEST_USER_AGENT,
-                httpClient: testHttpClient,
+                httpClient,
             },
             logger: new NoopLogger(),
-            authProvider: createMockAuthProvider(),
+            authProvider: createMockAuthProvider("https://example.com", httpClient),
         });
 
         apiClient.authProvider!.validate = vi.fn().mockResolvedValue(true);
@@ -51,6 +50,7 @@ describe("ApiClient", () => {
     });
 
     afterEach(() => {
+        vi.restoreAllMocks();
         vi.clearAllMocks();
     });
 
@@ -72,13 +72,43 @@ describe("ApiClient", () => {
                     baseUrl: "https://example.com",
                     userAgent: TEST_USER_AGENT,
                     supportsCurrentIpLookup: false,
-                    httpClient: testHttpClient,
+                    httpClient,
                 },
                 logger: new NoopLogger(),
             });
 
             expect(client.supportsCurrentIpLookup).toBe(false);
             await expect(client.getIpInfo()).rejects.toThrow("does not support current IP detection");
+        });
+
+        it("looks up the current IP through the injected fetch", async () => {
+            httpClient.fetch.mockResolvedValueOnce(
+                new Response(JSON.stringify({ currentIpv4Address: "1.2.3.4" }), {
+                    status: 200,
+                    headers: { "Content-Type": "application/json" },
+                })
+            );
+
+            await expect(apiClient.getIpInfo()).resolves.toEqual({ currentIpv4Address: "1.2.3.4" });
+
+            expect(httpClient.fetch).toHaveBeenCalledTimes(1);
+            expect(httpClient.fetch).toHaveBeenCalledWith(
+                new URL("api/private/ipinfo", "https://example.com"),
+                expect.objectContaining({
+                    method: "GET",
+                    headers: {
+                        Authorization: "Bearer mockToken",
+                        Accept: "application/json",
+                        "User-Agent": TEST_USER_AGENT,
+                    },
+                })
+            );
+        });
+
+        it("rejects with an ApiClientError when the IP lookup fails", async () => {
+            httpClient.fetch.mockResolvedValueOnce(new Response(null, { status: 500 }));
+
+            await expect(apiClient.getIpInfo()).rejects.toBeInstanceOf(ApiClientError);
         });
     });
 
@@ -101,7 +131,7 @@ describe("ApiClient", () => {
                 .spyOn(global, "fetch")
                 .mockRejectedValue(new Error("global fetch should not be called"));
 
-            const httpClient = {
+            const injectedHttpClient = {
                 fetch: injectedFetch,
                 Request: TrackedRequest,
             };
@@ -109,7 +139,7 @@ describe("ApiClient", () => {
                 options: {
                     baseUrl: "https://example.com",
                     userAgent: TEST_USER_AGENT,
-                    httpClient,
+                    httpClient: injectedHttpClient,
                 },
                 logger: new NoopLogger(),
             });
@@ -124,7 +154,7 @@ describe("ApiClient", () => {
         it("passes the injected fetch to the auth provider it creates", () => {
             const injectedFetch = vi.fn();
 
-            const httpClient = {
+            const injectedHttpClient = {
                 fetch: injectedFetch,
                 Request: globalThis.Request,
             };
@@ -132,10 +162,10 @@ describe("ApiClient", () => {
                 options: {
                     baseUrl: "https://example.com",
                     userAgent: TEST_USER_AGENT,
-                    httpClient,
+                    httpClient: injectedHttpClient,
                 },
                 logger: new NoopLogger(),
-                authProvider: createMockAuthProvider("https://example.com", httpClient),
+                authProvider: createMockAuthProvider("https://example.com", injectedHttpClient),
             });
 
             // @ts-expect-error accessing private property for testing
@@ -145,7 +175,7 @@ describe("ApiClient", () => {
 
     describe("User-Agent", () => {
         it("should use the userAgent provided in options", async () => {
-            const mockFetch = vi.spyOn(global, "fetch");
+            const mockFetch = httpClient.fetch;
             mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
 
             await apiClient.sendEvents(mockEvents);
@@ -166,12 +196,12 @@ describe("ApiClient", () => {
                 options: {
                     baseUrl: "https://example.com",
                     userAgent: "AtlasMCP/test-version",
-                    httpClient: testHttpClient,
+                    httpClient,
                 },
                 logger: new NoopLogger(),
             });
 
-            const mockFetch = vi.spyOn(global, "fetch");
+            const mockFetch = httpClient.fetch;
             mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
 
             await clientWithoutCredentials.sendEvents(mockEvents);
@@ -343,7 +373,7 @@ describe("ApiClient", () => {
 
     describe("sendEvents", () => {
         it("should send events to authenticated endpoint when token is available and valid", async () => {
-            const mockFetch = vi.spyOn(global, "fetch");
+            const mockFetch = httpClient.fetch;
             mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
 
             await apiClient.sendEvents(mockEvents);
@@ -365,7 +395,7 @@ describe("ApiClient", () => {
         });
 
         it("should fall back to unauthenticated endpoint when token is not available via exception", async () => {
-            const mockFetch = vi.spyOn(global, "fetch");
+            const mockFetch = httpClient.fetch;
             mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
 
             apiClient.authProvider!.getAuthHeaders = vi.fn().mockRejectedValue(new Error("No access token available"));
@@ -388,7 +418,7 @@ describe("ApiClient", () => {
         });
 
         it("should fall back to unauthenticated endpoint when token is undefined", async () => {
-            const mockFetch = vi.spyOn(global, "fetch");
+            const mockFetch = httpClient.fetch;
             mockFetch.mockResolvedValueOnce(new Response(null, { status: 200 }));
 
             apiClient.authProvider!.getAuthHeaders = vi.fn().mockResolvedValue(undefined);
@@ -411,7 +441,7 @@ describe("ApiClient", () => {
         });
 
         it("should fall back to unauthenticated endpoint on 401 error", async () => {
-            const mockFetch = vi.spyOn(global, "fetch");
+            const mockFetch = httpClient.fetch;
             mockFetch
                 .mockResolvedValueOnce(new Response(null, { status: 401 }))
                 .mockResolvedValueOnce(new Response(null, { status: 200 }));
@@ -435,7 +465,7 @@ describe("ApiClient", () => {
         });
 
         it("should throw error when both authenticated and unauthenticated requests fail", async () => {
-            const mockFetch = vi.spyOn(global, "fetch");
+            const mockFetch = httpClient.fetch;
             mockFetch
                 .mockResolvedValueOnce(new Response(null, { status: 401 }))
                 .mockResolvedValueOnce(new Response(null, { status: 500 }));

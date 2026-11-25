@@ -55,7 +55,7 @@ describe("debug resource", () => {
                 baseUrl: config.apiBaseUrl,
                 userAgent: userAgentFromServerMetadata(testServerMetadata),
                 httpClient: {
-                    fetch: globalThis.fetch.bind(globalThis),
+                    fetch: vi.fn<typeof fetch>().mockRejectedValue(new Error("Unexpected network call in a unit test")),
                     Request: globalThis.Request,
                 },
             },
