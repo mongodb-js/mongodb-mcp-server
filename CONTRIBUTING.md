@@ -273,10 +273,12 @@ variable defaults to `https://jira.mongodb.org`.
 Use **Run workflow** in GitHub Actions to run triage on demand. Manual and
 scheduled runs both post or update Jira comments and process up to 100 tickets.
 
-The Actions log shows failure categories when available. Raw CLI output and audit
-files are not printed or uploaded because they can contain internal Jira data.
-For more detail, run the pinned CLI in an approved environment in `--mode dry-run`
-against a single ticket.
+After a failure, the Actions log shows recognized failure categories and stages
+and reports the results of read-only Jira ticket discovery and Grove model
+listing checks. These checks do not verify Jira writes or Grove inference. Raw
+CLI output and audit files are not printed or uploaded because they can contain
+internal Jira data. For more detail, run the pinned CLI in an approved
+environment in `--mode dry-run` against a single ticket.
 
 ## `packages/mongodb-atlas-mcp-remote`
 
