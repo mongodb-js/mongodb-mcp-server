@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
-import { UpgradeClusterTool } from "./upgradeCluster.js";
+import { UpgradeClusterTool, UpgradeClusterOutputSchema } from "./upgradeCluster.js";
 import type { IAtlasConfig } from "../../atlasTool.js";
 import type { ITelemetry, ICompositeLogger, CallToolResult } from "@mongodb-js/mcp-types";
 import { Keychain } from "@mongodb-js/mcp-core";
@@ -745,6 +745,9 @@ describe("UpgradeClusterTool", () => {
             const result = await exec({ projectId: "proj1", clusterName: "MyCluster" });
 
             expect(result.structuredContent).toMatchObject({ originalTier: "FREE", targetTier: "FLEX" });
+            expect(result.structuredContent).not.toHaveProperty("computeAutoScaling");
+            expect(result.structuredContent).not.toHaveProperty("minInstanceSize");
+            expect(result.structuredContent).not.toHaveProperty("maxInstanceSize");
         });
 
         it("returns originalTier=FREE, targetTier=M10 for FREE to M10 upgrade", async () => {
@@ -1176,6 +1179,97 @@ describe("UpgradeClusterTool", () => {
                 minInstanceSize: "M10",
                 maxInstanceSize: "M30",
             });
+        });
+    });
+
+    describe.each(["FREE", "FLEX"] as const)("%s to M10 autoscaling reporting", (sourceTier) => {
+        beforeEach(() => {
+            if (sourceTier === "FREE") {
+                mockApiClient.getCluster!.mockResolvedValue(FREE_CLUSTER_RAW);
+            } else {
+                mockApiClient.getCluster!.mockRejectedValue(notFoundError());
+                mockApiClient.getFlexCluster!.mockResolvedValue(FLEX_CLUSTER_RAW);
+            }
+        });
+
+        it.each([
+            {
+                name: "default settings",
+                args: {},
+                enabled: true,
+                min: "M10",
+                max: "M30",
+                summary: undefined,
+            },
+            {
+                name: "explicitly enabled autoscaling",
+                args: { computeAutoScaling: true },
+                enabled: true,
+                min: "M10",
+                max: "M30",
+                summary: "compute autoscaling enabled (M10-M30)",
+            },
+            {
+                name: "explicitly disabled autoscaling",
+                args: { computeAutoScaling: false },
+                enabled: false,
+                min: undefined,
+                max: undefined,
+                summary: "compute autoscaling disabled",
+            },
+            {
+                name: "explicit autoscaling bounds",
+                args: { minInstanceSize: "M10", maxInstanceSize: "M40" },
+                enabled: true,
+                min: "M10",
+                max: "M40",
+                summary: "compute autoscaling enabled (M10-M40)",
+            },
+            {
+                name: "disabled autoscaling with explicit bounds",
+                args: { computeAutoScaling: false, minInstanceSize: "M10", maxInstanceSize: "M40" },
+                enabled: false,
+                min: sourceTier === "FLEX" ? "M10" : undefined,
+                max: sourceTier === "FLEX" ? "M40" : undefined,
+                summary: "compute autoscaling disabled",
+            },
+        ])("reports $name consistently in output and telemetry", async ({ args, enabled, min, max, summary }) => {
+            const input = z.object(tool.argsShape()).parse({
+                projectId: "507f1f77bcf86cd799439011",
+                clusterName: "MyCluster",
+                targetTier: "M10",
+                ...args,
+            });
+            const result = await exec(input);
+
+            expect(result.isError).toBeFalsy();
+            const output = z.object(UpgradeClusterOutputSchema).parse(result.structuredContent);
+            expect(output.computeAutoScaling).toBe(enabled);
+            expect(output.minInstanceSize).toBe(min);
+            expect(output.maxInstanceSize).toBe(max);
+            const text = (result.content[0] as { text: string }).text;
+            if (summary === undefined) {
+                expect(text).not.toContain("compute autoscaling");
+            } else {
+                expect(text).toContain(summary);
+            }
+
+            const metadata = await tool["resolveTelemetryMetadata"](
+                {
+                    projectId: input.projectId,
+                    clusterName: input.clusterName,
+                    targetTier: input.targetTier,
+                    computeAutoScaling: input.computeAutoScaling,
+                    minInstanceSize: input.minInstanceSize,
+                    maxInstanceSize: input.maxInstanceSize,
+                    provider: input.provider,
+                    region: input.region,
+                },
+                { result }
+            );
+            expect(metadata.compute_auto_scaling).toBe(enabled ? "true" : "false");
+            expect(metadata.min_instance_size).toBe(min?.toLowerCase());
+            expect(metadata.max_instance_size).toBe(max?.toLowerCase());
         });
     });
 
