@@ -1,7 +1,7 @@
 import type { Mock } from "vitest";
 import { describe, it, expect, vi, beforeEach, type MockedFunction } from "vitest";
 import type { ZodRawShape } from "zod";
-import type { ToolExecutionContext } from "@mongodb-js/mcp-types";
+import type { DefaultMetricDefinitions, IMetrics, ToolExecutionContext } from "@mongodb-js/mcp-types";
 import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/server";
 
 /**
@@ -675,14 +675,14 @@ describe("ToolBase", () => {
         });
 
         it("rejects a metrics instance that supplies a built-in tool label", () => {
-            const server: TestServer = {
-                ...mockServer,
-                metrics: {
-                    labels: { tool_name: "spoofed" },
-                    get: () => ({ inc: vi.fn(), dec: vi.fn(), set: vi.fn(), observe: vi.fn() }),
-                    getMetrics: () => Promise.resolve(""),
-                },
+            const metrics: IMetrics<DefaultMetricDefinitions> = {
+                labels: { tool_name: "spoofed" },
+                // Only `labels` matters here: the constructor rejects it before anything is recorded.
+                withLabels: () => metrics,
+                get: () => ({ inc: vi.fn(), dec: vi.fn(), set: vi.fn(), observe: vi.fn() }),
+                getMetrics: () => Promise.resolve(""),
             };
+            const server: TestServer = { ...mockServer, metrics };
 
             expect(() => new TestTool({ server })).toThrow(/built-in tool label/);
         });
