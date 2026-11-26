@@ -265,18 +265,23 @@ All pull requests automatically run through the "Code Health" workflow, which:
 ### Automated vulnerability triage
 
 The [Auto vulnerability triage workflow](.github/workflows/auto-vulnerability-triage.yml)
-runs hourly on the default branch and posts or updates triage comments for Jira
-filter `63609`. It uses the repository secrets `GROVE_API_KEY` and
+posts or updates triage comments for Jira
+filter `63609`. It uses the repository secrets
+`VULNERABILITY_TRIAGE_AI_GATEWAY_API_KEY` (passed as `GROVE_API_KEY`) and
 `JIRA_API_TOKEN` (passed as `JIRA_TOKEN`). The optional `JIRA_URL` Actions
 variable defaults to `https://jira.mongodb.org`.
 
-Use **Run workflow** in GitHub Actions to run triage on demand. Manual and
-scheduled runs both post or update Jira comments and process up to 100 tickets.
+Hourly runs are paused pending [AII-1117](https://jira.mongodb.org/browse/AII-1117).
+**Run workflow** remains available in GitHub Actions for manual runs, which
+process up to 100 tickets and can post or update Jira comments.
 
-The Actions log shows failure categories when available. Raw CLI output and audit
-files are not printed or uploaded because they can contain internal Jira data.
-For more detail, run the pinned CLI in an approved environment in `--mode dry-run`
-against a single ticket.
+After a failure, the Actions log shows recognized failure categories and stages
+and reports the results of read-only Jira ticket discovery and Grove model
+listing checks. If either check fails, a follow-up request reports the HTTP
+status without logging the response body. These checks do not verify Jira
+writes or Grove inference. Raw CLI output and audit files are not printed or
+uploaded because they can contain internal Jira data. For more detail, run the
+pinned CLI in an approved environment in `--mode dry-run` against a single ticket.
 
 ## `packages/mongodb-atlas-mcp-remote`
 
