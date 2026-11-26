@@ -3,12 +3,6 @@ import { TOOL_EXECUTION_DURATION_LABEL_NAMES, type DefaultMetricDefinitions } fr
 import type { PrometheusMetricDefinitions } from "./types.js";
 
 /**
- * Label names the default definitions set per observation. An instance label
- * must not use one: the observation-level value always wins.
- */
-export const RESERVED_METRIC_LABEL_NAMES = [...TOOL_EXECUTION_DURATION_LABEL_NAMES, "reason"] as const;
-
-/**
  * Creates a new set of default metrics for an MCP server.
  *
  * NOTE: `registers: []` prevents prom-client from auto-registering these into

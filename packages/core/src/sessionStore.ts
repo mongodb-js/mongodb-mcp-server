@@ -9,6 +9,7 @@ import type {
     NegotiatedClientState,
     SessionStoreConstructorArgs,
 } from "@mongodb-js/mcp-types";
+import { declaredLabelNames } from "@mongodb-js/mcp-types";
 import { LogId } from "./logId.js";
 import { setManagedTimeout, type ManagedTimeout } from "./managedTimeout.js";
 
@@ -43,11 +44,6 @@ export class SessionLimitExceededError extends Error {
         super(message);
         this.name = "SessionLimitExceededError";
     }
-}
-
-/** prom-client exposes a metric's declared label names at runtime, but not in its types. */
-function declaredLabelNames(metric: unknown): readonly string[] {
-    return (metric as { labelNames?: readonly string[] }).labelNames ?? [];
 }
 
 /**
