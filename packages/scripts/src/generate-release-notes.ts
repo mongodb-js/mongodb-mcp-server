@@ -167,7 +167,7 @@ async function generateAiSummary(prevTagDate: string, targetCommitDate: string):
         ].join(" ");
 
         const { text } = await generateText({
-            model: anthropic("claude-sonnet-4-6"),
+            model: anthropic("claude-sonnet-5-5"),
             messages: [{ role: "user", content: prompt }],
             maxOutputTokens: 1000,
         });
