@@ -152,8 +152,9 @@ async function generateAiSummary(prevTagDate: string, targetCommitDate: string):
         const changeSummaries = featFixTitles.map((title) => `- ${title}`).join("\n");
 
         const anthropic = createAnthropic({
-            baseURL: "https://ai-gateway.corp.mongodb.com/anthropic/v1",
+            baseURL: "https://grove-gateway-prod.azure-api.net/grove-foundry-prod/anthropic/v1",
             apiKey: GROVE_API_KEY,
+            headers: { "api-key": GROVE_API_KEY },
         });
 
         const prompt = [
