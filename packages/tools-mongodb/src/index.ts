@@ -70,6 +70,7 @@ export {
 } from "./connectionErrorHandler.js";
 export { DeviceId } from "./helpers/deviceId.js";
 export { isObjectEmpty } from "./helpers/isObjectEmpty.js";
+export { isRecord } from "./helpers/isRecord.js";
 export { isNodeRuntime } from "./helpers/isNodeRuntime.js";
 export {
     PRECONFIGURED_CONNECTION_ID,
