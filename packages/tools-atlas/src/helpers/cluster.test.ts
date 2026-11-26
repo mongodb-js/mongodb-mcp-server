@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { formatCluster, formatFlexCluster, inspectCluster } from "./cluster.js";
+import { formatCluster, formatFlexCluster, getInfiniteMaxAutoScalingSize, inspectCluster } from "./cluster.js";
 import type {
     ApiClient,
     ClusterDescription20240805,
@@ -47,6 +47,22 @@ describe("formatCluster", () => {
         void _id;
 
         expect(formatCluster(withoutId).clusterId).toBeUndefined();
+    });
+});
+
+describe("getInfiniteMaxAutoScalingSize", () => {
+    it.each([
+        ["M10", "M30"],
+        ["M30", "M50"],
+        ["M40", "M60"],
+        ["M50", "M60"],
+        ["M60", "M60"],
+    ] as const)("defaults %s to %s, two tiers up clamped to M60", (size, expected) => {
+        expect(getInfiniteMaxAutoScalingSize(size, "AWS")).toBe(expected);
+    });
+
+    it("does not clamp a base size above M60, so min never exceeds max", () => {
+        expect(getInfiniteMaxAutoScalingSize("M80", "AWS")).toBe("M200");
     });
 });
 
