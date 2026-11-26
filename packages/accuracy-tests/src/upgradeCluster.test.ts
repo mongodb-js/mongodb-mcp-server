@@ -309,4 +309,46 @@ describeAccuracyTests([
             },
         ],
     },
+    {
+        prompt: `Upgrade the Flex cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" to Atlas Infinite`,
+        mockedTools: {
+            ...mockListProjects,
+            ...mockInspectCluster,
+            "atlas-upgrade-cluster": mockUpgradeResponse(CLUSTER_NAME, "Flex", "Atlas Infinite"),
+        },
+        expectedToolCalls: [
+            ...optionalListProjects,
+            ...optionalInspectCluster,
+            {
+                toolName: "atlas-upgrade-cluster",
+                parameters: {
+                    projectId: PROJECT_ID,
+                    clusterName: CLUSTER_NAME,
+                    targetEdition: "INFINITE",
+                    targetTier: Matcher.anyOf(Matcher.value("M10"), Matcher.undefined),
+                },
+            },
+        ],
+    },
+    {
+        prompt: `Upgrade my free cluster "${CLUSTER_NAME}" in project "${PROJECT_ID}" to Atlas Infinite with an M50 tier`,
+        mockedTools: {
+            ...mockListProjects,
+            ...mockInspectCluster,
+            "atlas-upgrade-cluster": mockUpgradeResponse(CLUSTER_NAME, "Free", "Atlas Infinite"),
+        },
+        expectedToolCalls: [
+            ...optionalListProjects,
+            ...optionalInspectCluster,
+            {
+                toolName: "atlas-upgrade-cluster",
+                parameters: {
+                    projectId: PROJECT_ID,
+                    clusterName: CLUSTER_NAME,
+                    targetEdition: "INFINITE",
+                    targetTier: "M50",
+                },
+            },
+        ],
+    },
 ]);

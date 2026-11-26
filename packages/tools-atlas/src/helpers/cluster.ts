@@ -16,6 +16,12 @@ export const standardInstanceSizeEnum = z.enum(["M10", "M20", "M30", "M40", "M50
 
 export type StandardInstanceSize = z.infer<typeof standardInstanceSizeEnum>;
 
+// Atlas Infinite clusters run on a disaggregated storage architecture and are
+// selected via databaseEdition: INFINITE on the cluster description.
+export const databaseEditionEnum = z.enum(["CORE", "INFINITE"]);
+
+export type DatabaseEdition = z.infer<typeof databaseEditionEnum>;
+
 // M60 and M80 extend beyond the selectable range. M140 is not supported on Azure.
 export function getMaxAutoScalingSize(size: StandardInstanceSize, provider: string): string {
     if (size === "M80") {
@@ -25,6 +31,20 @@ export function getMaxAutoScalingSize(size: StandardInstanceSize, provider: stri
         return provider === "AZURE" ? "M200" : "M140";
     }
     return standardInstanceSizeEnum.options[standardInstanceSizeEnum.options.indexOf(size) + 2] ?? "M80";
+}
+
+// Default compute autoscaling max for an Atlas Infinite cluster: two tiers
+// above `size`, clamped to M60, the public preview ceiling. A base size already
+// above M60 is not clamped, so min <= max still holds and the API rejects the
+// unsupported tier with its own error instead of a min/max conflict.
+export function getInfiniteMaxAutoScalingSize(size: StandardInstanceSize, provider: string): string {
+    const options = standardInstanceSizeEnum.options;
+    const ceiling = options.indexOf("M60");
+    const index = options.indexOf(size);
+    if (index > ceiling) {
+        return getMaxAutoScalingSize(size, provider);
+    }
+    return options[Math.min(index + 2, ceiling)] ?? "M60";
 }
 
 type AtlasProcessId = `${string}:${number}`;
@@ -47,6 +67,7 @@ export interface Cluster {
     clusterId?: string;
     state?: "IDLE" | "CREATING" | "UPDATING" | "DELETING" | "REPAIRING";
     mongoDBVersion?: string;
+    databaseEdition?: DatabaseEdition;
     connectionStrings?: ClusterConnectionStrings;
     processIds?: Array<string>;
 }
@@ -115,9 +136,26 @@ export function formatCluster(cluster: ClusterDescription20240805): Cluster {
         paused: cluster.paused ?? false,
         state: cluster.stateName,
         mongoDBVersion: cluster.mongoDBVersion,
+        databaseEdition: extractDatabaseEdition(cluster),
         connectionStrings: cluster.connectionStrings,
         processIds: extractProcessIds(cluster.connectionStrings?.standard ?? ""),
     };
+}
+
+// Resolves the cluster's database edition from its description. Reads prefer
+// effectiveDatabaseEdition (always set on newer API responses) and fall back to
+// the storageSystem field, which the server sets for Infinite clusters created
+// before the edition field existed. Undefined means the API did not report an
+// edition (e.g. older pinned API versions), not that the cluster is Core.
+function extractDatabaseEdition(cluster: ClusterDescription20240805): DatabaseEdition | undefined {
+    const raw = cluster as { effectiveDatabaseEdition?: string; storageSystem?: string };
+    if (raw.effectiveDatabaseEdition === "INFINITE" || raw.storageSystem === "DISAGGREGATED_STORAGE") {
+        return "INFINITE";
+    }
+    if (raw.effectiveDatabaseEdition === "CORE") {
+        return "CORE";
+    }
+    return undefined;
 }
 
 export async function inspectCluster({
