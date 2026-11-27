@@ -85,6 +85,13 @@ export class ExportTool extends MongoDBToolBase {
             );
         }
 
+        const exportTimeoutOptions = {
+            ...this.getOperationOptions(request),
+            ...(this.resolveConfig(context).exportTimeoutMs !== undefined && {
+                timeoutMS: this.resolveConfig(context).exportTimeoutMs,
+            }),
+        };
+
         let cursor: FindCursor | AggregationCursor;
         if (exportTarget.name === "find") {
             const { filter, projection, sort, limit } = exportTarget.arguments;
@@ -95,7 +102,7 @@ export class ExportTool extends MongoDBToolBase {
                 limit,
                 promoteValues: false,
                 bsonRegExp: true,
-                ...this.getOperationOptions(request),
+                ...exportTimeoutOptions,
             });
         } else {
             const { pipeline } = exportTarget.arguments;
@@ -108,7 +115,7 @@ export class ExportTool extends MongoDBToolBase {
                 promoteValues: false,
                 bsonRegExp: true,
                 allowDiskUse: true,
-                ...this.getOperationOptions(request),
+                ...exportTimeoutOptions,
             });
         }
 

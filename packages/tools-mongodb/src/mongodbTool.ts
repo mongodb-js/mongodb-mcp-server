@@ -52,6 +52,12 @@ export type IMongoDBConfig = IToolConfig & {
     httpHost: string;
     queryCountTimeoutMs: number;
     aggregationCountTimeoutMs: number;
+    /**
+     * Time in milliseconds after which an export expires. The export tool also
+     * uses it as the driver `timeoutMS` for the export's cursor, replacing the
+     * connection-level `timeoutMs`.
+     */
+    exportTimeoutMs?: number;
 };
 
 /**

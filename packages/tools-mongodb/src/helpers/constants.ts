@@ -15,6 +15,15 @@ export const QUERY_COUNT_MAX_TIME_MS_CAP: number = 10_000;
  */
 export const AGG_COUNT_MAX_TIME_MS_CAP: number = 60_000;
 
+/**
+ * Default client-side operation timeout (driver `timeoutMS`) applied to every
+ * connection when neither the `timeoutMs` config nor the connection's own driver
+ * options specify one. Bounds runaway operations (e.g. unindexed `$lookup`
+ * aggregations) that would otherwise keep executing on the server after the
+ * client has given up. Set `timeoutMs` to `0` to disable.
+ */
+export const DEFAULT_OPERATION_TIMEOUT_MS: number = 120_000;
+
 export const ONE_MB: number = 1 * 1024 * 1024;
 
 /**

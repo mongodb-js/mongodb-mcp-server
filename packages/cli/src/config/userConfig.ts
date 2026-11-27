@@ -325,7 +325,7 @@ const ServerConfigSchema = z.object({
         .min(0, "timeoutMs must be non-negative")
         .optional()
         .describe(
-            "The maximum time in milliseconds that MongoDB operations are allowed to run, applied as the driver's timeoutMS (client-side operation timeout, CSOT) on each connection. It bounds the entire operation, including server selection and network round trips."
+            "The maximum time in milliseconds that MongoDB operations are allowed to run, applied as the driver's timeoutMS (client-side operation timeout, CSOT) on each connection. It bounds the entire operation, including server selection and network round trips. Defaults to 120000 (2 minutes) when unset; set to 0 to disable."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
     /** @deprecated Use `timeoutMs` instead. */
