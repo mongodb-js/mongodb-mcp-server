@@ -10,6 +10,9 @@ export { createMockLogger, asCompositeLogger, type MockLogger } from "./mockLogg
 
 export { createEnvironment, useClearEnvironment } from "./testUtils.js";
 
+export { startMockTelemetryServer, type MockTelemetryServer, type ReceivedTelemetryEvent } from "./telemetryServer.js";
+export { useMockTelemetry } from "./useMockTelemetry.js";
+
 export {
     MongoDBClusterProcess,
     type MongoClusterConfiguration,

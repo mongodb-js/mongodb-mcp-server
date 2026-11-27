@@ -1,4 +1,5 @@
 import { ErrorCodes, MongoDBError } from "../common/errors.js";
+import { isRecord } from "./isRecord.js";
 
 /**
  * Operators that execute server-side JavaScript. These can be used to run
@@ -167,8 +168,4 @@ function resolveNamespace(target: unknown, defaultDatabase: string): string | un
     }
 
     return undefined;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === "object" && value !== null && !Array.isArray(value);
 }

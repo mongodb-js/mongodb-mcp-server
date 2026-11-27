@@ -1,6 +1,6 @@
 {
   "name": "@mongodb-js/mcp-cli",
-  "version": "3.2.2",
+  "version": "3.4.0",
   "type": "module",
   "description": "Generic CLI helpers for building MCP servers",
   "license": "Apache-2.0",
@@ -40,9 +40,8 @@
     "@mongodb-js/mcp-atlas-api-client": "workspace:*",
     "@mongodb-js/mcp-tools-atlas-local": "workspace:*",
     "@mongodb-js/mcp-tools-mongodb": "workspace:*",
-    "bson": "^7.2.0",
     "@mongosh/arg-parser": "^5.0.2",
-    "mongodb-log-writer": "^2.5.7",
+    "mongodb-log-writer": "^3.0.6",
     "ts-levenshtein": "^1.0.7",
     "zod": "^4.4.2"
   },

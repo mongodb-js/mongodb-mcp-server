@@ -1,7 +1,7 @@
 import { packageInfo } from "mongodb-mcp-server";
 import { expect } from "vitest";
 
-import type { ReceivedTelemetryEvent } from "../mocks/telemetryServer.js";
+import type { ReceivedTelemetryEvent } from "@mongodb-js/mcp-test-utils";
 import { DEFAULT_CLIENT_NAME, DEFAULT_CLIENT_VERSION } from "./connectClient.js";
 
 /** Property keys the server stamps on every tool event in the stdio setup. */

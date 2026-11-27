@@ -552,6 +552,7 @@ describe("StreamsTeardownTool", () => {
                 resourceName: "pl-1",
             });
             expect(msg).toContain("PrivateLink");
+            expect(msg).toContain("lose private connectivity");
         });
 
         it("should return peering deletion warning", () => {

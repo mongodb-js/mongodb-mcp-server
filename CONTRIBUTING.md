@@ -165,7 +165,7 @@ pnpm run inspect
 This is equivalent to:
 
 ```shell
-npx @modelcontextprotocol/inspector -- node dist/esm/index.js
+pnpm dlx @modelcontextprotocol/inspector@2.14.0 -- node dist/esm/index.js
 ```
 
 ## Pull Request Guidelines
@@ -261,6 +261,27 @@ All pull requests automatically run through the "Code Health" workflow, which:
 
 - Verifies code style and formatting
 - Runs tests on multiple platforms (Ubuntu, macOS, Windows)
+
+### Automated vulnerability triage
+
+The [Auto vulnerability triage workflow](.github/workflows/auto-vulnerability-triage.yml)
+posts or updates triage comments for Jira
+filter `63609`. It uses the repository secrets
+`VULNERABILITY_TRIAGE_AI_GATEWAY_API_KEY` (passed as `GROVE_API_KEY`) and
+`JIRA_API_TOKEN` (passed as `JIRA_TOKEN`). The optional `JIRA_URL` Actions
+variable defaults to `https://jira.mongodb.org`.
+
+Hourly runs are paused pending [AII-1117](https://jira.mongodb.org/browse/AII-1117).
+**Run workflow** remains available in GitHub Actions for manual runs, which
+process up to 100 tickets and can post or update Jira comments.
+
+After a failure, the Actions log shows recognized failure categories and stages
+and reports the results of read-only Jira ticket discovery and Grove model
+listing checks. If either check fails, a follow-up request reports the HTTP
+status without logging the response body. These checks do not verify Jira
+writes or Grove inference. Raw CLI output and audit files are not printed or
+uploaded because they can contain internal Jira data. For more detail, run the
+pinned CLI in an approved environment in `--mode dry-run` against a single ticket.
 
 ## `packages/mongodb-atlas-mcp-remote`
 

@@ -1,10 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ConfigResource } from "./config.js";
 import { CompositeLogger, Keychain } from "@mongodb-js/mcp-core";
 import { AtlasTelemetry } from "@mongodb-js/mcp-atlas-telemetry";
 import { ApiClient, userAgentFromServerMetadata } from "@mongodb-js/mcp-atlas-api-client";
 import { UserConfigSchema, type UserConfig, type CliServer } from "@mongodb-js/mcp-cli";
-import { DeviceId, MCPConnectionStore } from "@mongodb-js/mcp-tools-mongodb";
+import { DeviceId, MCPConnectionStore, PRECONFIGURED_CONNECTION_ID } from "@mongodb-js/mcp-tools-mongodb";
 
 const defaultTestConfig: UserConfig = {
     ...UserConfigSchema.parse({}),
@@ -29,7 +29,7 @@ describe("config resource", () => {
                 baseUrl: config.apiBaseUrl,
                 userAgent: userAgentFromServerMetadata(testServerMetadata),
                 httpClient: {
-                    fetch: globalThis.fetch.bind(globalThis),
+                    fetch: vi.fn<typeof fetch>().mockRejectedValue(new Error("Unexpected network call in a unit test")),
                     Request: globalThis.Request,
                 },
             },
@@ -48,6 +48,7 @@ describe("config resource", () => {
                 config,
                 logger,
                 keychain,
+                tools: [],
                 telemetry,
                 connectionRegistry,
             } as unknown as CliServer,
@@ -57,7 +58,7 @@ describe("config resource", () => {
     it("should not leak AWS KMS credentials in connectOptions", () => {
         const config = {
             ...defaultTestConfig,
-            connectionString: "mongodb://localhost:27017",
+            connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: "mongodb://localhost:27017" },
             awsAccessKeyId: "AKIAIOSFODNN7EXAMPLE",
             awsSecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
             awsSessionToken: "FwoGZXIvYXdzEXAMPLESESSIONTOKEN",
@@ -74,7 +75,7 @@ describe("config resource", () => {
     it("should summarize autoEncryption instead of emitting it verbatim", () => {
         const config = {
             ...defaultTestConfig,
-            connectionString: "mongodb://localhost:27017",
+            connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: "mongodb://localhost:27017" },
             awsAccessKeyId: "AKIAIOSFODNN7EXAMPLE",
             awsSecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
         } as unknown as UserConfig;
@@ -88,7 +89,7 @@ describe("config resource", () => {
     it("should redact keychain-registered secrets as a backstop", () => {
         const config = {
             ...defaultTestConfig,
-            connectionString: "mongodb://localhost:27017",
+            connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: "mongodb://localhost:27017" },
         } as unknown as UserConfig;
 
         // Seed a keychain with a secret that would otherwise appear in the output (logPath).
@@ -96,5 +97,20 @@ describe("config resource", () => {
 
         const output = resource.toOutput();
         expect(output).not.toContain(config.logPath);
+    });
+
+    it("lists named connections without their connection strings", () => {
+        const config = {
+            ...defaultTestConfig,
+            connectionStrings: { analytics: "mongodb://user:s3cr3t@analytics.example.com/" },
+        } as unknown as UserConfig;
+
+        const output = createResource(config).toOutput();
+        const parsed = JSON.parse(output) as { connectionString: string; connectionStrings: string };
+
+        expect(parsed.connectionString).toMatch(/^not set; use one of the named connections/);
+        expect(parsed.connectionStrings).toContain('"analytics"');
+        expect(output).not.toContain("s3cr3t");
+        expect(output).not.toContain("analytics.example.com");
     });
 });

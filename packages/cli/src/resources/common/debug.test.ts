@@ -55,7 +55,7 @@ describe("debug resource", () => {
                 baseUrl: config.apiBaseUrl,
                 userAgent: userAgentFromServerMetadata(testServerMetadata),
                 httpClient: {
-                    fetch: globalThis.fetch.bind(globalThis),
+                    fetch: vi.fn<typeof fetch>().mockRejectedValue(new Error("Unexpected network call in a unit test")),
                     Request: globalThis.Request,
                 },
             },
@@ -163,7 +163,10 @@ describe("debug resource", () => {
     });
 
     it("should list the undialed preconfigured connection", async () => {
-        setup({ ...defaultTestConfig, connectionString: "mongodb://localhost:27017" });
+        setup({
+            ...defaultTestConfig,
+            connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: "mongodb://localhost:27017" },
+        });
 
         const output = await debugResource.toOutput();
 
@@ -173,7 +176,10 @@ describe("debug resource", () => {
     });
 
     it("should contain the last error when a connection attempt failed", async () => {
-        setup({ ...defaultTestConfig, connectionString: "mongodb://localhost:27017" });
+        setup({
+            ...defaultTestConfig,
+            connectionStrings: { [PRECONFIGURED_CONNECTION_ID]: "mongodb://localhost:27017" },
+        });
         expect(managers[0]).toBeDefined();
         (managers[0] as FakeConnectionManager).failNextConnect = new Error("Error message from the server");
         await expect(registry.resolve(PRECONFIGURED_CONNECTION_ID)).rejects.toThrow();

@@ -1,4 +1,4 @@
-import type { Secret } from "mongodb-redact";
+import type { Secret } from "@mongodb-js/mongodb-redact";
 import type { LoggerType, LogLevel, LogPayload } from "./loggingTypes.js";
 import { LoggerBase } from "./loggerBase.js";
 

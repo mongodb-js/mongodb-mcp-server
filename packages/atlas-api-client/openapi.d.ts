@@ -335,7 +335,7 @@ export interface paths {
         put?: never;
         /**
          * Create One Database User in One Project
-         * @description Creates one database user in the specified project. This MongoDB Cloud supports a maximum of 100 database users per project. If you require more than 100 database users on a project, contact Support.
+         * @description Creates one database user in the specified project. This MongoDB Cloud supports a default limit of 100 and a maximum of 900 database users per project. If you require more than 900 database users on a project, contact Support.
          */
         post: operations["createGroupDatabaseUser"];
         delete?: never;
@@ -1138,6 +1138,7 @@ export interface components {
                 | "M140_GEN_2"
                 | "M200_GEN_2"
                 | "M300_GEN_2"
+                | "M700_GEN_2"
                 | "R40_GEN_2"
                 | "R50_GEN_2"
                 | "R60_GEN_2"
@@ -1259,6 +1260,7 @@ export interface components {
                 | "M140_GEN_2"
                 | "M200_GEN_2"
                 | "M300_GEN_2"
+                | "M700_GEN_2"
                 | "R40_GEN_2"
                 | "R50_GEN_2"
                 | "R60_GEN_2"
@@ -1312,6 +1314,7 @@ export interface components {
                 | "M140_GEN_2"
                 | "M200_GEN_2"
                 | "M300_GEN_2"
+                | "M700_GEN_2"
                 | "R40_GEN_2"
                 | "R50_GEN_2"
                 | "R60_GEN_2"
@@ -1475,6 +1478,7 @@ export interface components {
                 | "M140_GEN_2"
                 | "M200_GEN_2"
                 | "M300_GEN_2"
+                | "M700_GEN_2"
                 | "R40_GEN_2"
                 | "R50_GEN_2"
                 | "R60_GEN_2"
@@ -1601,6 +1605,8 @@ export interface components {
         AdvancedAutoScalingSettings: {
             compute?: components["schemas"]["AdvancedComputeAutoScaling"];
             diskGB?: components["schemas"]["DiskGBAutoScaling"];
+            /** @description Available in Public Preview: Settings that determine the per-shard data-size limit for this cluster. Applies only to Atlas INFINITE clusters. MongoDB Cloud accepts these settings only on `autoScaling` and rejects them on `analyticsAutoScaling`, including when you send them as `null`. In a request that includes `replicationSpecs`, omitting `storageConfig` or sending it as `null` or `{}` clears the limit. Omitting `replicationSpecs` preserves it. */
+            storageConfig?: components["schemas"]["StorageConfig"] | null;
         };
         /**
          * Automatic Compute Scaling Settings
@@ -1645,10 +1651,10 @@ export interface components {
                 | "TLS_AES_128_CCM_SHA256"
             )[];
             /**
-             * @description Minimum Transport Layer Security (TLS) version that the cluster accepts for incoming connections. Clusters using TLS 1.0 or 1.1 should consider setting TLS 1.2 as the minimum TLS protocol version.
+             * @description Minimum Transport Layer Security (TLS) version that the cluster accepts for incoming connections.
              * @enum {string}
              */
-            minimumEnabledTlsProtocol?: "TLS1_0" | "TLS1_1" | "TLS1_2" | "TLS1_3";
+            minimumEnabledTlsProtocol?: "TLS1_2" | "TLS1_3";
             /**
              * @description The TLS cipher suite configuration mode. The default mode uses the default cipher suites. The custom mode allows you to specify custom cipher suites for both TLS 1.2 and TLS 1.3.
              * @enum {string}
@@ -1730,6 +1736,18 @@ export interface components {
                 [key: string]: Record<string, never>;
             };
         };
+        /** @description Information on scaling the cluster to a tier that supports the requested feature. Present only when the feature is unavailable on the cluster's current tier. */
+        ApiClusterScaleView: {
+            /** @description Documentation page describing feature availability by cluster tier. */
+            readonly docsUrl?: string | null;
+            /**
+             * @description Lowest cluster tier that supports the requested feature.
+             * @example M10
+             */
+            readonly minimumTier?: string;
+            /** @description Link to the Atlas UI page that scales the cluster, with the minimum supported tier pre-selected. */
+            readonly scaleUrl?: string;
+        };
         ApiError: {
             badRequestDetail?: components["schemas"]["BadRequestDetail"];
             /** @description Describes the specific conditions or reasons that cause each type of error. */
@@ -1743,6 +1761,8 @@ export interface components {
             readonly errorCode: string;
             /** @description Parameters used to give more information about the error. */
             readonly parameters?: Record<string, never>[];
+            /** @description Atlas Resource Policies that caused the request to be denied. Returned only when `errorCode` is `ATLAS_RESOURCE_POLICIES_VIOLATION_NOT_AUTHORIZED`. */
+            readonly policiesCausingDecision?: components["schemas"]["ResourcePolicyReference"][];
             /** @description Application error message returned with this error. */
             readonly reason?: string | null;
         };
@@ -1769,12 +1789,21 @@ export interface components {
          * @description Atlas Streams Azure Regions.
          * @enum {string}
          */
-        ApiStreamsAzureRegionView: "eastus" | "westus" | "eastus2" | "westeurope" | "brazilsouth" | "australiaeast";
+        ApiStreamsAzureRegionView:
+            | "eastus"
+            | "westus"
+            | "eastus2"
+            | "westeurope"
+            | "brazilsouth"
+            | "australiaeast"
+            | "northeurope"
+            | "eastasia"
+            | "southeastasia";
         /**
          * @description Atlas Streams GCP Regions.
          * @enum {string}
          */
-        ApiStreamsGCPRegionView: "US_CENTRAL1" | "EUROPE_WEST1" | "US_EAST4";
+        ApiStreamsGCPRegionView: "US_CENTRAL1" | "EUROPE_WEST1" | "US_EAST4" | "US_WEST1" | "ASIA_SOUTH1";
         /**
          * App Services Alerts
          * @description App Services alert notifies different activities about a BAAS application.
@@ -1837,6 +1866,11 @@ export interface components {
              * @description Date and time that this alert changed to `"status" : "CLOSED"`. This parameter expresses its value in the ISO 8601 timestamp format in UTC. The resource returns this parameter once `"status" : "CLOSED"`.
              */
             readonly resolved?: string;
+            /**
+             * @description Severity of the event.
+             * @enum {string}
+             */
+            readonly severity?: "INFO" | "WARNING" | "ERROR" | "CRITICAL";
             /**
              * @description State of this alert at the time you requested its details. TRACKING indicates the alert condition exists but has not persisted for the minimum notification delay. OPEN indicates the alert condition currently exists. CLOSED indicates the alert condition has been resolved.
              * @example OPEN
@@ -1921,16 +1955,19 @@ export interface components {
              */
             acceptDataRisksAndForceReplicaSetReconfig?: string;
             /**
-             * @description Governs adaptive capacity behavior of Azure nodes in single-cloud Azure clusters or multi-cloud clusters that include Azure nodes. Adaptive capacity enables fallback hardware selection when the primary instance family is unavailable. ``ENABLED`` means the cluster explicitly opts in to adaptive capacity. ``DISABLED`` means the cluster explicitly opts out; the cluster receives capacity errors instead of being placed on fallback hardware. ``null`` means the field is unset; Azure clusters use adaptive capacity by default when the feature is enabled at the group level. Setting this field for single-cloud AWS or GCP clusters is a no-op.
+             * @description Governs adaptive capacity behavior of nodes in clusters on providers that support fallback hardware, including those providers' nodes in multi-cloud clusters. Adaptive capacity enables fallback hardware selection when the primary instance family is unavailable. ``ENABLED`` means the cluster explicitly opts in to adaptive capacity. ``DISABLED`` means the cluster explicitly opts out; the cluster receives capacity errors instead of being placed on fallback hardware. ``null`` means the field is unset; clusters use adaptive capacity by default on a provider that supports it.
              * @enum {string|null}
              */
             adaptiveCapacity?: "ENABLED" | "DISABLED" | null;
             advancedConfiguration?: components["schemas"]["ApiAtlasClusterAdvancedConfigurationView"];
             /**
-             * @description Flag that indicates whether the cluster can perform backups. If set to `true`, the cluster can perform backups. You must set this value to `true` for NVMe clusters. Backup uses Cloud Backups for dedicated clusters and [Shared Cluster Backups](https://docs.atlas.mongodb.com/backup/shared-tier/overview/) for tenant clusters. If set to `false`, the cluster doesn't use backups.
-             * @default false
+             * @description Flag that indicates whether Atlas backs up the cluster.
+             *
+             *     On Atlas Core clusters, dedicated clusters use [Cloud Backups](https://www.mongodb.com/docs/atlas/backup/cloud-backup/overview/) and Flex clusters use [Flex Cluster Backups](https://www.mongodb.com/docs/atlas/backup/cloud-backup/flex-cluster-backup/). Default value is `false`. For clusters that use local [NVMe SSDs](https://www.mongodb.com/docs/atlas/manage-clusters/#nvme-storage) for storage, you can't disable backup, so you must set `backupEnabled` to `true`.
+             *
+             *     On Atlas Infinite clusters, the `backupEnabled` flag controls Additional Backup Retention, not whether backups run. To retain snapshots beyond the 24-hour window, set `backupEnabled` to `true`. For Atlas Infinite clusters, continuous cloud backups are enabled by default, always run, and include a 24-hour window in which you can restore to any point in time. Atlas then applies your snapshot retention policies. To keep only the included window under an Atlas-managed retention policy that you can't edit, set `backupEnabled` to `false`. A cluster covered by a Data Protection policy has this flag set to `true` regardless of the requested value. Default value is `true`.
              */
-            backupEnabled: boolean;
+            backupEnabled?: boolean;
             biConnector?: components["schemas"]["BiConnector"];
             /**
              * @description Configuration of nodes that comprise the cluster.
@@ -1955,11 +1992,21 @@ export interface components {
              */
             readonly createDate?: string;
             /**
+             * @description Available in Public Preview: Optional field that indicates whether your cluster will be Atlas INFINITE or CORE. You can set it only when you create the cluster, or when you upgrade a Free or Flex cluster to a dedicated cluster. This value is immutable once the dedicated cluster exists; attempting to change it on an update request returns an error.
+             * @enum {string}
+             */
+            databaseEdition?: "CORE" | "INFINITE";
+            /**
              * @description Disk warming mode selection.
              * @default FULLY_WARMED
              * @enum {string}
              */
-            diskWarmingMode: "FULLY_WARMED" | "VISIBLE_EARLIER" | "ENHANCED_FULLY_WARMED";
+            diskWarmingMode: "FULLY_WARMED" | "VISIBLE_EARLIER";
+            /**
+             * @description Available in Public Preview: Field that represents whether your cluster is Atlas INFINITE or CORE. This is read-only and always returned in the response. It reflects the actual cluster state. This value matches `databaseEdition` if it was set, otherwise it reflects the default database edition assigned to the cluster.
+             * @enum {string}
+             */
+            readonly effectiveDatabaseEdition?: "CORE" | "INFINITE";
             /** @description List of settings that represent the actual cluster state. This is read-only and always returned in the response. It reflects the current cluster configuration, which may differ from `replicationSpecs` due to system-managed changes. */
             readonly effectiveReplicationSpecs?: components["schemas"]["ReplicationSpec20240805"][];
             /**
@@ -2023,7 +2070,11 @@ export interface components {
             name: string;
             /** @description Flag that indicates whether the cluster is paused. */
             paused?: boolean;
-            /** @description Flag that indicates whether the cluster uses continuous cloud backups. */
+            /**
+             * @description Flag that indicates whether the cluster uses continuous cloud backups.
+             *
+             *     For Atlas Infinite clusters, continuous cloud backups always run. Omit this field or set it to `true`. Setting it to `false` returns an invalid attribute error.
+             */
             pitEnabled?: boolean;
             /**
              * @description Enable or disable log redaction.
@@ -2060,6 +2111,7 @@ export interface components {
              * @enum {string}
              */
             rootCertType: "ISRGROOTX1";
+            searchAutoMigration?: components["schemas"]["SearchAutoMigration"];
             /**
              * @description Human-readable label that indicates any current activity being taken on this cluster by the Atlas control plane. With the exception of CREATING and DELETING states, clusters should always be available and have a Primary node even when in states indicating ongoing activity.
              *
@@ -2693,6 +2745,7 @@ export interface components {
                   | "M140_GEN_2"
                   | "M200_GEN_2"
                   | "M300_GEN_2"
+                  | "M700_GEN_2"
                   | "R40_GEN_2"
                   | "R50_GEN_2"
                   | "R60_GEN_2"
@@ -2760,6 +2813,8 @@ export interface components {
                   | "M80_GEN_2"
                   | "M140_GEN_2"
                   | "M200_GEN_2"
+                  | "M300_GEN_2"
+                  | "M700_GEN_2"
                   | "R40_GEN_2"
                   | "R50_GEN_2"
                   | "R60_GEN_2"
@@ -2936,6 +2991,8 @@ export interface components {
                 | "M80_GEN_2"
                 | "M140_GEN_2"
                 | "M200_GEN_2"
+                | "M300_GEN_2"
+                | "M700_GEN_2"
                 | "R40_GEN_2"
                 | "R50_GEN_2"
                 | "R60_GEN_2"
@@ -3780,6 +3837,11 @@ export interface components {
              */
             readonly resolved?: string;
             /**
+             * @description Severity of the event.
+             * @enum {string}
+             */
+            readonly severity?: "INFO" | "WARNING" | "ERROR" | "CRITICAL";
+            /**
              * @description State of this alert at the time you requested its details. TRACKING indicates the alert condition exists but has not persisted for the minimum notification delay. OPEN indicates the alert condition currently exists. CLOSED indicates the alert condition has been resolved.
              * @example OPEN
              * @enum {string}
@@ -3824,17 +3886,26 @@ export interface components {
          * @description Collection of Uniform Resource Locators that point to the MongoDB database.
          */
         ClusterConnectionStrings: {
-            /** @description Private endpoint-aware connection strings that use AWS-hosted clusters with Amazon Web Services (AWS) PrivateLink. Each key identifies an Amazon Web Services (AWS) interface endpoint. Each value identifies the related `mongodb://` connection string that you use to connect to MongoDB Cloud through the interface endpoint that the key names. */
+            /**
+             * @deprecated
+             * @description Private endpoint-aware connection strings that use AWS-hosted clusters with Amazon Web Services (AWS) PrivateLink. Each key identifies an Amazon Web Services (AWS) interface endpoint. Each value identifies the related `mongodb://` connection string that you use to connect to MongoDB Cloud through the interface endpoint that the key names. This field is deprecated. Use the Private Endpoint Connection Strings resource instead.
+             */
             readonly awsPrivateLink?: {
                 [key: string]: string;
             };
-            /** @description Private endpoint-aware connection strings that use AWS-hosted clusters with Amazon Web Services (AWS) PrivateLink. Each key identifies an Amazon Web Services (AWS) interface endpoint. Each value identifies the related `mongodb://` connection string that you use to connect to Atlas through the interface endpoint that the key names. If the cluster uses an optimized connection string, `awsPrivateLinkSrv` contains the optimized connection string. If the cluster has the non-optimized (legacy) connection string, `awsPrivateLinkSrv` contains the non-optimized connection string even if an optimized connection string is also present. */
+            /**
+             * @deprecated
+             * @description Private endpoint-aware connection strings that use AWS-hosted clusters with Amazon Web Services (AWS) PrivateLink. Each key identifies an Amazon Web Services (AWS) interface endpoint. Each value identifies the related `mongodb://` connection string that you use to connect to Atlas through the interface endpoint that the key names. If the cluster uses an optimized connection string, `awsPrivateLinkSrv` contains the optimized connection string. If the cluster has the non-optimized (legacy) connection string, `awsPrivateLinkSrv` contains the non-optimized connection string even if an optimized connection string is also present. This field is deprecated. Use the Private Endpoint Connection Strings resource instead.
+             */
             readonly awsPrivateLinkSrv?: {
                 [key: string]: string;
             };
             /** @description Network peering connection strings for each interface Virtual Private Cloud (VPC) endpoint that you configured to connect to this cluster. This connection string uses the `mongodb+srv://` protocol. The resource returns this parameter once someone creates a network peering connection to this cluster. This protocol tells the application to look up the host seed list in the Domain Name System (DNS). This list synchronizes with the nodes in a cluster. If the connection string uses this Uniform Resource Identifier (URI) format, you don't need to append the seed list or change the URI if the nodes change. Use this URI format if your driver supports it. If it doesn't, use `connectionStrings.private`. For Amazon Web Services (AWS) clusters, this resource returns this parameter only if you enable custom DNS. */
             readonly private?: string;
-            /** @description List of private endpoint-aware connection strings that you can use to connect to this cluster through a private endpoint. This parameter returns only if you deployed a private endpoint to all regions to which you deployed this clusters' nodes. */
+            /**
+             * @deprecated
+             * @description List of private endpoint-aware connection strings that you can use to connect to this cluster through a private endpoint. This parameter returns only if you deployed a private endpoint to all regions to which you deployed this clusters' nodes. This field is deprecated. Use the Private Endpoint Connection Strings resource instead.
+             */
             readonly privateEndpoint?: components["schemas"]["ClusterDescriptionConnectionStringsPrivateEndpoint"][];
             /** @description Network peering connection strings for each interface Virtual Private Cloud (VPC) endpoint that you configured to connect to this cluster. This connection string uses the `mongodb+srv://` protocol. The resource returns this parameter when someone creates a network peering connection to this cluster. This protocol tells the application to look up the host seed list in the Domain Name System (DNS). This list synchronizes with the nodes in a cluster. If the connection string uses this Uniform Resource Identifier (URI) format, you don't need to append the seed list or change the Uniform Resource Identifier (URI) if the nodes change. Use this Uniform Resource Identifier (URI) format if your driver supports it. If it doesn't, use `connectionStrings.private`. For Amazon Web Services (AWS) clusters, this parameter returns only if you [enable custom DNS](https://docs.atlas.mongodb.com/reference/api/aws-custom-dns-update/). */
             readonly privateSrv?: string;
@@ -3851,16 +3922,19 @@ export interface components {
              */
             acceptDataRisksAndForceReplicaSetReconfig?: string;
             /**
-             * @description Governs adaptive capacity behavior of Azure nodes in single-cloud Azure clusters or multi-cloud clusters that include Azure nodes. Adaptive capacity enables fallback hardware selection when the primary instance family is unavailable. ``ENABLED`` means the cluster explicitly opts in to adaptive capacity. ``DISABLED`` means the cluster explicitly opts out; the cluster receives capacity errors instead of being placed on fallback hardware. ``null`` means the field is unset; Azure clusters use adaptive capacity by default when the feature is enabled at the group level. Setting this field for single-cloud AWS or GCP clusters is a no-op.
+             * @description Governs adaptive capacity behavior of nodes in clusters on providers that support fallback hardware, including those providers' nodes in multi-cloud clusters. Adaptive capacity enables fallback hardware selection when the primary instance family is unavailable. ``ENABLED`` means the cluster explicitly opts in to adaptive capacity. ``DISABLED`` means the cluster explicitly opts out; the cluster receives capacity errors instead of being placed on fallback hardware. ``null`` means the field is unset; clusters use adaptive capacity by default on a provider that supports it.
              * @enum {string|null}
              */
             adaptiveCapacity?: "ENABLED" | "DISABLED" | null;
             advancedConfiguration?: components["schemas"]["ApiAtlasClusterAdvancedConfigurationView"];
             /**
-             * @description Flag that indicates whether the cluster can perform backups. If set to `true`, the cluster can perform backups. You must set this value to `true` for NVMe clusters. Backup uses Cloud Backups for dedicated clusters and [Shared Cluster Backups](https://docs.atlas.mongodb.com/backup/shared-tier/overview/) for tenant clusters. If set to `false`, the cluster doesn't use backups.
-             * @default false
+             * @description Flag that indicates whether Atlas backs up the cluster.
+             *
+             *     On Atlas Core clusters, dedicated clusters use [Cloud Backups](https://www.mongodb.com/docs/atlas/backup/cloud-backup/overview/) and Flex clusters use [Flex Cluster Backups](https://www.mongodb.com/docs/atlas/backup/cloud-backup/flex-cluster-backup/). Default value is `false`. For clusters that use local [NVMe SSDs](https://www.mongodb.com/docs/atlas/manage-clusters/#nvme-storage) for storage, you can't disable backup, so you must set `backupEnabled` to `true`.
+             *
+             *     On Atlas Infinite clusters, the `backupEnabled` flag controls Additional Backup Retention, not whether backups run. To retain snapshots beyond the 24-hour window, set `backupEnabled` to `true`. For Atlas Infinite clusters, continuous cloud backups are enabled by default, always run, and include a 24-hour window in which you can restore to any point in time. Atlas then applies your snapshot retention policies. To keep only the included window under an Atlas-managed retention policy that you can't edit, set `backupEnabled` to `false`. A cluster covered by a Data Protection policy has this flag set to `true` regardless of the requested value. Default value is `true`.
              */
-            backupEnabled: boolean;
+            backupEnabled?: boolean;
             biConnector?: components["schemas"]["BiConnector"];
             /**
              * @description Configuration of nodes that comprise the cluster.
@@ -3885,11 +3959,21 @@ export interface components {
              */
             readonly createDate?: string;
             /**
+             * @description Available in Public Preview: Optional field that indicates whether your cluster will be Atlas INFINITE or CORE. You can set it only when you create the cluster, or when you upgrade a Free or Flex cluster to a dedicated cluster. This value is immutable once the dedicated cluster exists; attempting to change it on an update request returns an error.
+             * @enum {string}
+             */
+            databaseEdition?: "CORE" | "INFINITE";
+            /**
              * @description Disk warming mode selection.
              * @default FULLY_WARMED
              * @enum {string}
              */
-            diskWarmingMode: "FULLY_WARMED" | "VISIBLE_EARLIER" | "ENHANCED_FULLY_WARMED";
+            diskWarmingMode: "FULLY_WARMED" | "VISIBLE_EARLIER";
+            /**
+             * @description Available in Public Preview: Field that represents whether your cluster is Atlas INFINITE or CORE. This is read-only and always returned in the response. It reflects the actual cluster state. This value matches `databaseEdition` if it was set, otherwise it reflects the default database edition assigned to the cluster.
+             * @enum {string}
+             */
+            readonly effectiveDatabaseEdition?: "CORE" | "INFINITE";
             /** @description List of settings that represent the actual cluster state. This is read-only and always returned in the response. It reflects the current cluster configuration, which may differ from `replicationSpecs` due to system-managed changes. */
             readonly effectiveReplicationSpecs?: components["schemas"]["ReplicationSpec20240805"][];
             /**
@@ -3953,7 +4037,11 @@ export interface components {
             name?: string;
             /** @description Flag that indicates whether the cluster is paused. */
             paused?: boolean;
-            /** @description Flag that indicates whether the cluster uses continuous cloud backups. */
+            /**
+             * @description Flag that indicates whether the cluster uses continuous cloud backups.
+             *
+             *     For Atlas Infinite clusters, continuous cloud backups always run. Omit this field or set it to `true`. Setting it to `false` returns an invalid attribute error.
+             */
             pitEnabled?: boolean;
             /**
              * @description Enable or disable log redaction.
@@ -3990,6 +4078,7 @@ export interface components {
              * @enum {string}
              */
             rootCertType: "ISRGROOTX1";
+            searchAutoMigration?: components["schemas"]["SearchAutoMigration"];
             /**
              * @description Human-readable label that indicates any current activity being taken on this cluster by the Atlas control plane. With the exception of CREATING and DELETING states, clusters should always be available and have a Primary node even when in states indicating ongoing activity.
              *
@@ -4987,6 +5076,11 @@ export interface components {
              */
             readonly resolved?: string;
             /**
+             * @description Severity of the event.
+             * @enum {string}
+             */
+            readonly severity?: "INFO" | "WARNING" | "ERROR" | "CRITICAL";
+            /**
              * @description State of this alert at the time you requested its details. TRACKING indicates the alert condition exists but has not persisted for the minimum notification delay. OPEN indicates the alert condition currently exists. CLOSED indicates the alert condition has been resolved.
              * @example OPEN
              * @enum {string}
@@ -5280,6 +5374,7 @@ export interface components {
                       | "FTS_INDEXES_RESTORE_FAILED"
                       | "FTS_INDEXES_SYNONYM_MAPPING_INVALID"
                   )
+                | ("SEARCH_AUTO_MIGRATION_ADVISORY" | "SEARCH_AUTO_MIGRATION_STARTED" | "SEARCH_AUTO_MIGRATION_FAILED")
                 | (
                       | "USERS_WITHOUT_MULTI_FACTOR_AUTH"
                       | "ENCRYPTION_AT_REST_KMS_NETWORK_ACCESS_DENIED"
@@ -5288,6 +5383,7 @@ export interface components {
                       | "GROUP_SERVICE_ACCOUNT_SECRETS_EXPIRED"
                       | "ACTIVE_LEGACY_TLS_CONNECTIONS"
                       | "WEBHOOK_TEMPLATE_RENDER_FAILED"
+                      | "ENCRYPTION_AT_REST_CONFIG_UPDATE_STALLED"
                   )
                 | "MONGOTUNE_ALERT"
                 | (
@@ -5337,16 +5433,19 @@ export interface components {
                       | "COMPUTE_AUTO_SCALE_MAX_INSTANCE_SIZE_FAIL_ANALYTICS"
                       | "COMPUTE_AUTO_SCALE_OPLOG_FAIL_BASE"
                       | "COMPUTE_AUTO_SCALE_OPLOG_FAIL_ANALYTICS"
+                      | "COMPUTE_AUTO_SCALE_CAPACITY_CONSTRAINT_FAIL_BASE"
+                      | "COMPUTE_AUTO_SCALE_CAPACITY_CONSTRAINT_FAIL_ANALYTICS"
                       | "DISK_AUTO_SCALE_INITIATED"
                       | "DISK_AUTO_SCALE_MAX_DISK_SIZE_FAIL"
                       | "DISK_AUTO_SCALE_OPLOG_FAIL"
+                      | "COMPUTE_AUTO_SCALE_DOWNSCALE_SKIPPED_FALLBACK_BASE"
+                      | "COMPUTE_AUTO_SCALE_DOWNSCALE_SKIPPED_FALLBACK_ANALYTICS"
+                      | "CLUSTER_AUTO_SHARDING_INITIATED"
+                      | "CLUSTER_RESHARDING_COMPLETED"
                       | "PREDICTIVE_COMPUTE_AUTO_SCALE_INITIATED_BASE"
                       | "PREDICTIVE_COMPUTE_AUTO_SCALE_MAX_INSTANCE_SIZE_FAIL_BASE"
                       | "PREDICTIVE_COMPUTE_AUTO_SCALE_OPLOG_FAIL_BASE"
-                      | "CLUSTER_AUTO_SHARDING_INITIATED"
-                      | "CLUSTER_RESHARDING_COMPLETED"
-                      | "COMPUTE_AUTO_SCALE_DOWNSCALE_SKIPPED_FALLBACK_BASE"
-                      | "COMPUTE_AUTO_SCALE_DOWNSCALE_SKIPPED_FALLBACK_ANALYTICS"
+                      | "PREDICTIVE_COMPUTE_AUTO_SCALE_CAPACITY_CONSTRAINT_FAIL_BASE"
                   )
                 | (
                       | "CPS_DATA_PROTECTION_ENABLE_REQUESTED"
@@ -5380,6 +5479,12 @@ export interface components {
                       | "HOST_SECURITY_CHECKUP_NOT_MET"
                       | "ALERT_HOST_SSH_SESSION_STARTED"
                       | "PROFILER_CONFIGURED_TOO_WIDELY"
+                  )
+                | "PROACTIVE_REMEDIATION_NEEDED"
+                | (
+                      | "STREAMS_PRIVATE_LINK_ENDPOINT_UNUSED_FIRST_WARNING"
+                      | "STREAMS_PRIVATE_LINK_ENDPOINT_UNUSED_SECOND_WARNING"
+                      | "STREAMS_PRIVATE_LINK_ENDPOINT_UNUSED_DELETED"
                   );
             /**
              * @description Unique 24-hexadecimal digit string that identifies the project that owns this alert.
@@ -5408,6 +5513,11 @@ export interface components {
              * @description Date and time that this alert changed to `"status" : "CLOSED"`. This parameter expresses its value in the ISO 8601 timestamp format in UTC. The resource returns this parameter once `"status" : "CLOSED"`.
              */
             readonly resolved?: string;
+            /**
+             * @description Severity of the event.
+             * @enum {string}
+             */
+            readonly severity?: "INFO" | "WARNING" | "ERROR" | "CRITICAL";
             /**
              * @description State of this alert at the time you requested its details. TRACKING indicates the alert condition exists but has not persisted for the minimum notification delay. OPEN indicates the alert condition currently exists. CLOSED indicates the alert condition has been resolved.
              * @example OPEN
@@ -5693,6 +5803,10 @@ export interface components {
              * @description Usage count (since last restart) of index.
              */
             accessCount?: number;
+            /** @description Collation this index was built with. An index only serves a query that runs with the same collation. Absent when the index uses the default (simple) collation. */
+            collation?: {
+                [key: string]: unknown;
+            };
             /** @description List that contains documents that specify a key in the index and its sort order. */
             index?: Record<string, never>[];
             /** @description Name of index. */
@@ -5716,8 +5830,11 @@ export interface components {
         DropIndexSuggestionsResponse: {
             /** @description List that contains the documents with information about the hidden indexes that the Performance Advisor suggests to remove. */
             readonly hiddenIndexes?: components["schemas"]["DropIndexSuggestionsIndex"][];
+            /** @description Explanation of Performance Advisor availability limitations on the current tier. */
+            readonly message?: string;
             /** @description List that contains the documents with information about the redundant indexes that the Performance Advisor suggests to remove. */
             readonly redundantIndexes?: components["schemas"]["DropIndexSuggestionsIndex"][];
+            scale?: components["schemas"]["ApiClusterScaleView"];
             /** @description List that contains the documents with information about the unused indexes that the Performance Advisor suggests to remove. */
             readonly unusedIndexes?: components["schemas"]["DropIndexSuggestionsIndex"][];
         };
@@ -5822,6 +5939,11 @@ export interface components {
              */
             readonly createDate?: string;
             /**
+             * @description Available in Public Preview: Optional field that indicates whether your tenant cluster will be upgraded to Atlas INFINITE or CORE.
+             * @enum {string}
+             */
+            databaseEdition?: "CORE" | "INFINITE";
+            /**
              * @description Unique 24-hexadecimal character string that identifies the project.
              * @example 32b6e34b3d91647abb20e7b8
              */
@@ -5868,6 +5990,11 @@ export interface components {
          * @description Settings that you can specify when you create a flex cluster.
          */
         FlexClusterDescriptionCreate20241113: {
+            /**
+             * @description Available in Public Preview: Optional field that indicates whether your tenant cluster will be upgraded to Atlas INFINITE or CORE.
+             * @enum {string}
+             */
+            databaseEdition?: "CORE" | "INFINITE";
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
             /** @description Human-readable label that identifies the instance. */
@@ -5964,6 +6091,11 @@ export interface components {
              * @description Date and time that this alert changed to `"status" : "CLOSED"`. This parameter expresses its value in the ISO 8601 timestamp format in UTC. The resource returns this parameter once `"status" : "CLOSED"`.
              */
             readonly resolved?: string;
+            /**
+             * @description Severity of the event.
+             * @enum {string}
+             */
+            readonly severity?: "INFO" | "WARNING" | "ERROR" | "CRITICAL";
             /**
              * @description State of this alert at the time you requested its details. TRACKING indicates the alert condition exists but has not persisted for the minimum notification delay. OPEN indicates the alert condition currently exists. CLOSED indicates the alert condition has been resolved.
              * @example OPEN
@@ -6180,6 +6312,8 @@ export interface components {
                 | "M80_GEN_2"
                 | "M140_GEN_2"
                 | "M200_GEN_2"
+                | "M300_GEN_2"
+                | "M700_GEN_2"
                 | "R40_GEN_2"
                 | "R50_GEN_2"
                 | "R60_GEN_2"
@@ -6220,6 +6354,8 @@ export interface components {
                 | "M80_GEN_2"
                 | "M140_GEN_2"
                 | "M200_GEN_2"
+                | "M300_GEN_2"
+                | "M700_GEN_2"
                 | "R40_GEN_2"
                 | "R50_GEN_2"
                 | "R60_GEN_2"
@@ -6256,6 +6392,20 @@ export interface components {
         };
         GCPHardwareSpec20240805: {
             /**
+             * Format: int32
+             * @description Target IOPS (Input/Output Operations Per Second) desired for storage attached to this hardware. Only configurable for Gen 2 instance sizes.
+             *
+             *      Change this parameter if you:
+             *
+             *     - set `"replicationSpecs[n].regionConfigs[m].providerName" : "GCP"`.
+             *     - set `"replicationSpecs[n].regionConfigs[m].electableSpecs.instanceSize"` to a Gen 2 instance size (`"M30_GEN_2"` or greater).
+             *
+             *     The maximum input/output operations per second (IOPS) depend on the selected `.instanceSize` and `.diskSizeGB`.
+             *     This parameter defaults to the standard IOPS value for the selected `.diskSizeGB`.
+             *     Changing this value impacts cluster cost.
+             */
+            diskIOPS?: number;
+            /**
              * Format: double
              * @description Storage capacity of instance data volumes expressed in gigabytes. Increase this number to add capacity.
              *
@@ -6272,6 +6422,11 @@ export interface components {
              *      The maximum value for disk storage cannot exceed 50 times the maximum RAM for the selected cluster. If you require more storage space, consider upgrading your cluster to a higher tier.
              */
             diskSizeGB?: number;
+            /**
+             * Format: int32
+             * @description Throughput (in MiB/s) provisioned for storage attached to this hardware. Only returned for Gen 2 instance sizes.
+             */
+            readonly diskThroughput?: number;
             /**
              * GCP Instance Sizes
              * @description Hardware specification for the instance sizes in this region in this shard. Each instance size has a default storage and memory capacity. Electable nodes and read-only nodes (known as "base nodes") within a single shard must use the same instance size. Analytics nodes can scale independently from base nodes within a shard. Both base nodes and analytics nodes can scale independently from their equivalents in other shards.
@@ -6305,6 +6460,8 @@ export interface components {
                 | "M80_GEN_2"
                 | "M140_GEN_2"
                 | "M200_GEN_2"
+                | "M300_GEN_2"
+                | "M700_GEN_2"
                 | "R40_GEN_2"
                 | "R50_GEN_2"
                 | "R60_GEN_2"
@@ -6719,6 +6876,11 @@ export interface components {
              */
             readonly resolved?: string;
             /**
+             * @description Severity of the event.
+             * @enum {string}
+             */
+            readonly severity?: "INFO" | "WARNING" | "ERROR" | "CRITICAL";
+            /**
              * @description State of this alert at the time you requested its details. TRACKING indicates the alert condition exists but has not persisted for the minimum notification delay. OPEN indicates the alert condition currently exists. CLOSED indicates the alert condition has been resolved.
              * @example OPEN
              * @enum {string}
@@ -6846,6 +7008,11 @@ export interface components {
              */
             readonly resolved?: string;
             /**
+             * @description Severity of the event.
+             * @enum {string}
+             */
+            readonly severity?: "INFO" | "WARNING" | "ERROR" | "CRITICAL";
+            /**
              * @description State of this alert at the time you requested its details. TRACKING indicates the alert condition exists but has not persisted for the minimum notification delay. OPEN indicates the alert condition currently exists. CLOSED indicates the alert condition has been resolved.
              * @example OPEN
              * @enum {string}
@@ -6951,6 +7118,11 @@ export interface components {
              */
             readonly createDate?: string;
             /**
+             * @description Available in Public Preview: Optional field that indicates whether your cluster will be Atlas INFINITE or CORE. This field applies only to flex and shared clusters. You can set it only when you create the cluster, or when you upgrade a flex cluster to a dedicated cluster. This value is immutable once the dedicated cluster exists; attempting to change it on an update request returns an error.
+             * @enum {string}
+             */
+            databaseEdition?: "CORE" | "INFINITE";
+            /**
              * Format: int32
              * @description Number of hours after cluster creation that this cluster will be automatically deleted.
              *
@@ -6994,7 +7166,12 @@ export interface components {
              * @default FULLY_WARMED
              * @enum {string}
              */
-            diskWarmingMode: "FULLY_WARMED" | "VISIBLE_EARLIER" | "ENHANCED_FULLY_WARMED";
+            diskWarmingMode: "FULLY_WARMED" | "VISIBLE_EARLIER";
+            /**
+             * @description Available in Public Preview: Field that represents whether your cluster is Atlas INFINITE or CORE. This field applies only to flex and shared clusters. This is read-only and always returned in the response. It reflects the actual cluster state. This value matches `databaseEdition` if it was set, otherwise it reflects the default database edition assigned to the cluster.
+             * @enum {string}
+             */
+            readonly effectiveDatabaseEdition?: "CORE" | "INFINITE";
             /**
              * @description Cloud service provider that manages your customer keys to provide an additional layer of encryption at rest for the cluster. To enable customer key management for encryption at rest, the cluster `replicationSpecs[n].regionConfigs[m].{type}Specs.instanceSize` setting must be `M10` or higher and `"backupEnabled" : false` or omitted entirely.
              * @enum {string}
@@ -7180,6 +7357,11 @@ export interface components {
              */
             readonly createDate?: string;
             /**
+             * @description Available in Public Preview: Optional field that indicates whether your cluster will be Atlas INFINITE or CORE. This field applies only to flex and shared clusters. You can set it only when you create the cluster, or when you upgrade a flex cluster to a dedicated cluster. This value is immutable once the dedicated cluster exists; attempting to change it on an update request returns an error.
+             * @enum {string}
+             */
+            databaseEdition?: "CORE" | "INFINITE";
+            /**
              * Format: int32
              * @description Number of hours after cluster creation that this cluster will be automatically deleted.
              *
@@ -7223,7 +7405,12 @@ export interface components {
              * @default FULLY_WARMED
              * @enum {string}
              */
-            diskWarmingMode: "FULLY_WARMED" | "VISIBLE_EARLIER" | "ENHANCED_FULLY_WARMED";
+            diskWarmingMode: "FULLY_WARMED" | "VISIBLE_EARLIER";
+            /**
+             * @description Available in Public Preview: Field that represents whether your cluster is Atlas INFINITE or CORE. This field applies only to flex and shared clusters. This is read-only and always returned in the response. It reflects the actual cluster state. This value matches `databaseEdition` if it was set, otherwise it reflects the default database edition assigned to the cluster.
+             * @enum {string}
+             */
+            readonly effectiveDatabaseEdition?: "CORE" | "INFINITE";
             /**
              * @description Cloud service provider that manages your customer keys to provide an additional layer of encryption at rest for the cluster. To enable customer key management for encryption at rest, the cluster `replicationSpecs[n].regionConfigs[m].{type}Specs.instanceSize` setting must be `M10` or higher and `"backupEnabled" : false` or omitted entirely.
              * @enum {string}
@@ -7424,7 +7611,7 @@ export interface components {
              *       "MONGOS"
              *     ]
              */
-            logTypes: ("MONGOD" | "MONGOS" | "MONGOD_AUDIT" | "MONGOS_AUDIT")[];
+            logTypes: ("MONGOD" | "MONGOS" | "MONGOD_AUDIT" | "MONGOS_AUDIT" | "EVENTS")[];
             /**
              * @description Type of log integration. Identifies which service will receive the exported logs. This value cannot be modified after the integration is created.
              * @enum {string}
@@ -7461,7 +7648,7 @@ export interface components {
              *       "MONGOS"
              *     ]
              */
-            logTypes: ("MONGOD" | "MONGOS" | "MONGOD_AUDIT" | "MONGOS_AUDIT")[];
+            logTypes: ("MONGOD" | "MONGOS" | "MONGOD_AUDIT" | "MONGOS_AUDIT" | "EVENTS")[];
             /**
              * @description Type of log integration. Identifies which service will receive the exported logs. This value cannot be modified after the integration is created.
              * @enum {string}
@@ -7626,6 +7813,11 @@ export interface components {
              */
             readonly resolved?: string;
             /**
+             * @description Severity of the event.
+             * @enum {string}
+             */
+            readonly severity?: "INFO" | "WARNING" | "ERROR" | "CRITICAL";
+            /**
              * @description State of this alert at the time you requested its details. TRACKING indicates the alert condition exists but has not persisted for the minimum notification delay. OPEN indicates the alert condition currently exists. CLOSED indicates the alert condition has been resolved.
              * @example OPEN
              * @enum {string}
@@ -7731,6 +7923,178 @@ export interface components {
             readonly planType?: string;
             /** @description List of human-readable labels that categorize the specified project. MongoDB Cloud returns an empty array. */
             readonly tags?: string[];
+        };
+        /** @description HTTP header with name and value. */
+        OrgLogIntegrationHeader: {
+            /**
+             * @description Header name.
+             * @example Authorization
+             */
+            name: string;
+            /**
+             * Format: password
+             * @description Header value. Redacted in responses.
+             * @example Bearer token123
+             */
+            value: string;
+        };
+        /**
+         * Organization Log Integration Request
+         * @description Request schema for creating an organization-level log integration.
+         */
+        OrgLogIntegrationRequest: {
+            /**
+             * @description Array of log types exported by this integration.
+             * @example [
+             *       "EVENTS"
+             *     ]
+             */
+            logTypes: "EVENTS"[];
+            /**
+             * @description Type of log integration. Identifies which service will receive the exported events. This value cannot be modified after the integration is created.
+             * @enum {string}
+             */
+            type: "OTEL_LOG_EXPORT";
+        } & components["schemas"]["OrgOtelLogIntegrationRequest"];
+        /**
+         * Organization Log Integration Response
+         * @description Response schema for organization-level log integration operations.
+         */
+        OrgLogIntegrationResponse: {
+            /**
+             * @description Unique 24-character hexadecimal digit string that identifies the log integration configuration.
+             * @example 507f1f77bcf86cd799439011
+             */
+            readonly id: string;
+            /**
+             * @description Array of log types exported by this integration.
+             * @example [
+             *       "EVENTS"
+             *     ]
+             */
+            logTypes: "EVENTS"[];
+            /**
+             * @description Type of log integration. Identifies which service will receive the exported events. This value cannot be modified after the integration is created.
+             * @enum {string}
+             */
+            type: "OTEL_LOG_EXPORT";
+        } & components["schemas"]["OrgOtelLogIntegrationResponse"];
+        /**
+         * Organization Log Integration Update Request
+         * @description Request schema for updating an organization-level log integration.
+         */
+        OrgLogIntegrationUpdateRequest: {
+            /**
+             * @description Array of log types exported by this integration.
+             * @example [
+             *       "EVENTS"
+             *     ]
+             */
+            logTypes: "EVENTS"[];
+            /**
+             * @description Type of log integration. Identifies which service will receive the exported events. This value cannot be modified after the integration is created.
+             * @enum {string}
+             */
+            type: "OTEL_LOG_EXPORT";
+        } & components["schemas"]["OrgOtelLogIntegrationUpdateRequest"];
+        /**
+         * Organization OTel Log Integration Request
+         * @description Request schema for creating an organization-level OpenTelemetry log integration.
+         */
+        OrgOtelLogIntegrationRequest: Omit<
+            WithRequired<components["schemas"]["OrgLogIntegrationRequest"], "logTypes" | "type">,
+            "type"
+        > & {
+            /**
+             * @description OpenTelemetry collector endpoint URL. Must be HTTPS and not exceed 2048 characters.
+             * @example https://otel-collector.example.com:4318/v1/logs
+             */
+            otelEndpoint: string;
+            /** @description HTTP headers for authentication and configuration. Maximum 10 headers, total size limit 2KB. */
+            otelSuppliedHeaders: components["schemas"]["OrgLogIntegrationHeader"][];
+            /**
+             * @description Human-readable label that identifies the service to which you want to integrate with Atlas. The value must match the log integration type. This value cannot be modified after the integration is created.
+             * @enum {string}
+             */
+            type: "OTEL_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "OTEL_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "OTEL_LOG_EXPORT";
+        };
+        /**
+         * Organization OTel Log Integration Response
+         * @description Details to integrate OpenTelemetry event export with one Atlas organization.
+         */
+        OrgOtelLogIntegrationResponse: Omit<
+            WithRequired<components["schemas"]["OrgLogIntegrationResponse"], "id" | "logTypes" | "type">,
+            "type"
+        > & {
+            /**
+             * @description OpenTelemetry collector endpoint URL.
+             * @example https://otel-collector.example.com:4318/v1/logs
+             */
+            otelEndpoint: string;
+            /** @description HTTP headers for authentication and configuration. Maximum 10 headers, total size limit 2KB. Values are redacted. */
+            otelSuppliedHeaders: components["schemas"]["OrgLogIntegrationHeader"][];
+            /**
+             * @description Human-readable label that identifies the service to which you want to integrate with Atlas. The value must match the log integration type. This value cannot be modified after the integration is created.
+             * @enum {string}
+             */
+            type: "OTEL_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "OTEL_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "OTEL_LOG_EXPORT";
+        };
+        /**
+         * Organization OTel Log Integration Update Request
+         * @description Request schema for updating an organization-level OpenTelemetry log integration.
+         */
+        OrgOtelLogIntegrationUpdateRequest: Omit<
+            WithRequired<components["schemas"]["OrgLogIntegrationUpdateRequest"], "logTypes" | "type">,
+            "type"
+        > & {
+            /**
+             * @description OpenTelemetry collector endpoint URL. Must be HTTPS and not exceed 2048 characters.
+             * @example https://otel-collector.example.com:4318/v1/logs
+             */
+            otelEndpoint: string;
+            /** @description HTTP headers for authentication and configuration. Maximum 10 headers, total size limit 2KB. */
+            otelSuppliedHeaders: components["schemas"]["OrgLogIntegrationHeader"][];
+            /**
+             * @description Human-readable label that identifies the service to which you want to integrate with Atlas. The value must match the log integration type. This value cannot be modified after the integration is created.
+             * @enum {string}
+             */
+            type: "OTEL_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "OTEL_LOG_EXPORT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "OTEL_LOG_EXPORT";
         };
         OrgPendingUserResponse: Omit<
             WithRequired<components["schemas"]["OrgUserResponse"], "id" | "orgMembershipStatus" | "roles" | "username">,
@@ -7872,7 +8236,7 @@ export interface components {
             readonly results: components["schemas"]["AlertViewForNdsGroup"][];
             /**
              * Format: int32
-             * @description Total number of documents available. MongoDB Cloud omits this value if `includeCount` is set to `false`. The total number is an estimate and may not be exact.
+             * @description Total number of documents available. When `includeCount` is set to `false`, MongoDB Cloud may omit this value or return it when the count is available without additional calculation. The total number is an estimate and may not be exact.
              */
             readonly totalCount?: number;
         };
@@ -7884,7 +8248,7 @@ export interface components {
             readonly results: components["schemas"]["CloudDatabaseUser"][];
             /**
              * Format: int32
-             * @description Total number of documents available. MongoDB Cloud omits this value if `includeCount` is set to `false`. The total number is an estimate and may not be exact.
+             * @description Total number of documents available. When `includeCount` is set to `false`, MongoDB Cloud may omit this value or return it when the count is available without additional calculation. The total number is an estimate and may not be exact.
              */
             readonly totalCount?: number;
         };
@@ -7895,7 +8259,7 @@ export interface components {
             readonly results: components["schemas"]["StreamsConnection"][];
             /**
              * Format: int32
-             * @description Total number of documents available. MongoDB Cloud omits this value if `includeCount` is set to `false`. The total number is an estimate and may not be exact.
+             * @description Total number of documents available. When `includeCount` is set to `false`, MongoDB Cloud may omit this value or return it when the count is available without additional calculation. The total number is an estimate and may not be exact.
              */
             readonly totalCount?: number;
         };
@@ -7906,7 +8270,7 @@ export interface components {
             readonly results: components["schemas"]["StreamsPrivateLinkConnection"][];
             /**
              * Format: int32
-             * @description Total number of documents available. MongoDB Cloud omits this value if `includeCount` is set to `false`. The total number is an estimate and may not be exact.
+             * @description Total number of documents available. When `includeCount` is set to `false`, MongoDB Cloud may omit this value or return it when the count is available without additional calculation. The total number is an estimate and may not be exact.
              */
             readonly totalCount?: number;
         };
@@ -7917,7 +8281,7 @@ export interface components {
             readonly results: components["schemas"]["StreamsProcessorWithStats"][];
             /**
              * Format: int32
-             * @description Total number of documents available. MongoDB Cloud omits this value if `includeCount` is set to `false`. The total number is an estimate and may not be exact.
+             * @description Total number of documents available. When `includeCount` is set to `false`, MongoDB Cloud may omit this value or return it when the count is available without additional calculation. The total number is an estimate and may not be exact.
              */
             readonly totalCount?: number;
         };
@@ -7928,7 +8292,7 @@ export interface components {
             readonly results: components["schemas"]["StreamsTenant"][];
             /**
              * Format: int32
-             * @description Total number of documents available. MongoDB Cloud omits this value if `includeCount` is set to `false`. The total number is an estimate and may not be exact.
+             * @description Total number of documents available. When `includeCount` is set to `false`, MongoDB Cloud may omit this value or return it when the count is available without additional calculation. The total number is an estimate and may not be exact.
              */
             readonly totalCount?: number;
         };
@@ -7939,7 +8303,7 @@ export interface components {
             readonly results: components["schemas"]["Group"][];
             /**
              * Format: int32
-             * @description Total number of documents available. MongoDB Cloud omits this value if `includeCount` is set to `false`. The total number is an estimate and may not be exact.
+             * @description Total number of documents available. When `includeCount` is set to `false`, MongoDB Cloud may omit this value or return it when the count is available without additional calculation. The total number is an estimate and may not be exact.
              */
             readonly totalCount?: number;
         };
@@ -7950,7 +8314,7 @@ export interface components {
             readonly results: components["schemas"]["ClusterDescription20240805"][];
             /**
              * Format: int32
-             * @description Total number of documents available. MongoDB Cloud omits this value if `includeCount` is set to `false`. The total number is an estimate and may not be exact.
+             * @description Total number of documents available. When `includeCount` is set to `false`, MongoDB Cloud may omit this value or return it when the count is available without additional calculation. The total number is an estimate and may not be exact.
              */
             readonly totalCount?: number;
         };
@@ -7961,7 +8325,7 @@ export interface components {
             readonly results: components["schemas"]["FlexClusterDescription20241113"][];
             /**
              * Format: int32
-             * @description Total number of documents available. MongoDB Cloud omits this value if `includeCount` is set to `false`. The total number is an estimate and may not be exact.
+             * @description Total number of documents available. When `includeCount` is set to `false`, MongoDB Cloud may omit this value or return it when the count is available without additional calculation. The total number is an estimate and may not be exact.
              */
             readonly totalCount?: number;
         };
@@ -7972,7 +8336,7 @@ export interface components {
             readonly results: components["schemas"]["NetworkPermissionEntry"][];
             /**
              * Format: int32
-             * @description Total number of documents available. MongoDB Cloud omits this value if `includeCount` is set to `false`. The total number is an estimate and may not be exact.
+             * @description Total number of documents available. When `includeCount` is set to `false`, MongoDB Cloud may omit this value or return it when the count is available without additional calculation. The total number is an estimate and may not be exact.
              */
             readonly totalCount?: number;
         };
@@ -7983,7 +8347,7 @@ export interface components {
             readonly results: components["schemas"]["OrgGroup"][];
             /**
              * Format: int32
-             * @description Total number of documents available. MongoDB Cloud omits this value if `includeCount` is set to `false`. The total number is an estimate and may not be exact.
+             * @description Total number of documents available. When `includeCount` is set to `false`, MongoDB Cloud may omit this value or return it when the count is available without additional calculation. The total number is an estimate and may not be exact.
              */
             readonly totalCount?: number;
         };
@@ -7994,7 +8358,7 @@ export interface components {
             readonly results: components["schemas"]["AtlasOrganization"][];
             /**
              * Format: int32
-             * @description Total number of documents available. MongoDB Cloud omits this value if `includeCount` is set to `false`. The total number is an estimate and may not be exact.
+             * @description Total number of documents available. When `includeCount` is set to `false`, MongoDB Cloud may omit this value or return it when the count is available without additional calculation. The total number is an estimate and may not be exact.
              */
             readonly totalCount?: number;
         };
@@ -8004,6 +8368,10 @@ export interface components {
              * @description The average size of an object in the collection of this index.
              */
             readonly avgObjSize?: number;
+            /** @description Collation the queries behind this suggestion run with. An index only serves a query when the two share a collation, so an index created from this suggestion must be created with it. Absent when those queries use the default (simple) collation. */
+            readonly collation?: {
+                [key: string]: unknown;
+            };
             /**
              * @description Unique 24-hexadecimal digit string that identifies this index.
              * @example 32b6e34b3d91647abb20e7b8
@@ -8047,12 +8415,20 @@ export interface components {
             readonly ts?: number;
         };
         PerformanceAdvisorOperationView: {
-            /** @description List that contains the search criteria that the query uses. To use the values in key-value pairs in these predicates requires **Project Data Access Read Only** permissions or greater. Otherwise, MongoDB Cloud redacts these values. */
+            /** @description List that contains the search criteria that the query uses. To use the values in key-value pairs in these predicates requires **Project Observability Viewer** or **Project Data Access Read Only** permissions or greater. Otherwise, MongoDB Cloud redacts these values. */
             readonly predicates?: Record<string, never>[];
+            /**
+             * @description Opaque serialized raw slow query log line or query shape for the query shape to be improved with index suggestions. The format isn't stable, so don't parse this value. Accessing this value requires **Project Observability Viewer** or **Project Data Access Read Only** permissions or greater. Otherwise, MongoDB Cloud returns `null`.
+             * @example {"t":{"$date":"2026-08-17T22:04:15.133+00:00"},"s":"I","c":"COMMAND","id":51803,"ctx":"conn0","msg":"Slow query","attr":{"type":"command","ns":"<db>.<collection>","command":{"find":"<collection>","filter":{"<field>":"<value>"},"$db":"<db>"},"planSummary":"COLLSCAN","keysExamined":0,"docsExamined":10000,"nreturned":1,"remote":"<client>","durationMillis":108}}
+             */
+            readonly raw?: string | null;
             stats?: components["schemas"]["PerformanceAdvisorOpStats"];
         };
         /** @description Response that contains Performance Advisor suggested indexes and query shapes. */
         PerformanceAdvisorResponse: {
+            /** @description Explanation of Performance Advisor availability limitations on the current tier. */
+            readonly message?: string;
+            scale?: components["schemas"]["ApiClusterScaleView"];
             /** @description List of query predicates, sorts, and projections that the Performance Advisor suggests. */
             readonly shapes?: components["schemas"]["PerformanceAdvisorShape"][];
             /** @description List that contains the documents with information about the indexes that the Performance Advisor suggests. */
@@ -8159,6 +8535,65 @@ export interface components {
              */
             readonly tokensUsed?: number;
         };
+        /** @description Entries were collected by rate-limiting read queries. */
+        QueryStatsCollectionRateLimitedResponse: Omit<
+            WithRequired<components["schemas"]["QueryStatsCollectionResponse"], "mode">,
+            "mode"
+        > & {
+            /**
+             * Format: int32
+             * @description Maximum read queries recorded per second.
+             * @example 100
+             */
+            readonly rateLimitPerSecond: number;
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            mode: "RATE_LIMITED";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            mode: "RATE_LIMITED";
+        };
+        /** @description How `queryStats` entries were collected on this cluster's processes. Reflects the collection mode of the cluster's processes regardless of any host or process type filters in the request. Omitted when the collection mode cannot be determined. Sample-based collection requires MongoDB 9.0 or later but may not be enabled on every such cluster; this reflects the mode in effect on the cluster. */
+        QueryStatsCollectionResponse: {
+            /**
+             * @description Method used to collect `queryStats` entries on the cluster's processes.
+             * @enum {string}
+             */
+            readonly mode: "RATE_LIMITED" | "SAMPLED";
+        } & (
+            | components["schemas"]["QueryStatsCollectionSampledResponse"]
+            | components["schemas"]["QueryStatsCollectionRateLimitedResponse"]
+        );
+        /** @description Entries were collected by sampling each operation. */
+        QueryStatsCollectionSampledResponse: Omit<
+            WithRequired<components["schemas"]["QueryStatsCollectionResponse"], "mode">,
+            "mode"
+        > & {
+            /**
+             * Format: double
+             * @description Fraction of operations recorded. Dividing reported counts by this rate yields an unbiased estimate of the true totals.
+             * @example 0.01
+             */
+            readonly sampleRate: number;
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            mode: "SAMPLED";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            mode: "SAMPLED";
+        };
         RawMetricAlertView: {
             /**
              * Format: date-time
@@ -8242,6 +8677,11 @@ export interface components {
              * @description Date and time that this alert changed to `"status" : "CLOSED"`. This parameter expresses its value in the ISO 8601 timestamp format in UTC. The resource returns this parameter once `"status" : "CLOSED"`.
              */
             readonly resolved?: string;
+            /**
+             * @description Severity of the event.
+             * @enum {string}
+             */
+            readonly severity?: "INFO" | "WARNING" | "ERROR" | "CRITICAL";
             /**
              * @description State of this alert at the time you requested its details. TRACKING indicates the alert condition exists but has not persisted for the minimum notification delay. OPEN indicates the alert condition currently exists. CLOSED indicates the alert condition has been resolved.
              * @example OPEN
@@ -8385,6 +8825,11 @@ export interface components {
              */
             readonly resolved?: string;
             /**
+             * @description Severity of the event.
+             * @enum {string}
+             */
+            readonly severity?: "INFO" | "WARNING" | "ERROR" | "CRITICAL";
+            /**
              * @description State of this alert at the time you requested its details. TRACKING indicates the alert condition exists but has not persisted for the minimum notification delay. OPEN indicates the alert condition currently exists. CLOSED indicates the alert condition has been resolved.
              * @example OPEN
              * @enum {string}
@@ -8435,6 +8880,16 @@ export interface components {
             /** @description Human-readable label that describes the zone this shard belongs to in a Global Cluster. Provide this value only if `clusterType` : `GEOSHARDED` but not `selfManagedSharding` : `true`. */
             zoneName?: string;
         };
+        /** @description Atlas Resource Policy that caused the request to be denied. */
+        ResourcePolicyReference: {
+            /**
+             * @description Unique 24-hexadecimal character string that identifies the Atlas Resource Policy.
+             * @example 32b6e34b3d91647abb20e7b8
+             */
+            readonly id: string;
+            /** @description Human-readable label that identifies the Atlas Resource Policy. */
+            readonly name: string;
+        };
         /**
          * Resource Tag
          * @description Key-value pair that tags and categorizes a MongoDB Cloud organization, project, or cluster. For example, `environment : production`.
@@ -8479,7 +8934,7 @@ export interface components {
              */
             type: "S3_LOG_EXPORT";
             /** @description When true, uses the legacy daily-folder path structure compatible with Push-Based Log Export: `{prefix}/{cluster}/{hostname}/{logType}/{YYYY-MM-DD}/{timestamp}-{logType}.log`. When false (default), uses the flat timestamped structure: `{prefix}/{cluster}/{hostname}/{logType}/{timestamp}-{logType}.log`. */
-            useLegacyPathStructure?: boolean | null;
+            useLegacyPathStructure?: boolean;
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -8527,7 +8982,7 @@ export interface components {
              */
             type: "S3_LOG_EXPORT";
             /** @description When true, uses the legacy daily-folder path structure compatible with Push-Based Log Export: `{prefix}/{cluster}/{hostname}/{logType}/{YYYY-MM-DD}/{timestamp}-{logType}.log`. When false (default), uses the flat timestamped structure: `{prefix}/{cluster}/{hostname}/{logType}/{timestamp}-{logType}.log`. */
-            useLegacyPathStructure?: boolean | null;
+            useLegacyPathStructure?: boolean;
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -8593,8 +9048,11 @@ export interface components {
         };
         /** @description Response that contains Performance Advisor schema suggestions. */
         SchemaAdvisorResponse: {
+            /** @description Explanation of Performance Advisor availability limitations on the current tier. */
+            readonly message?: string;
             /** @description List that contains the documents with information about the schema advice that Performance Advisor suggests. */
             readonly recommendations?: components["schemas"]["SchemaAdvisorItemRecommendation"][];
+            scale?: components["schemas"]["ApiClusterScaleView"];
         };
         SchemaAdvisorTriggerDetails: {
             /** @description Description of the trigger type. */
@@ -8623,6 +9081,14 @@ export interface components {
             | components["schemas"]["ConfluentUserInfoAuthentication"]
             | components["schemas"]["ConfluentSaslInheritAuthentication"]
         );
+        /** @description Configuration for automatically adding Dedicated Search Nodes on eligible Atlas Infinite clusters. This setting has no effect on Atlas Core clusters. */
+        SearchAutoMigration: {
+            /**
+             * @description Flag that disables future automatic Search Node provisioning. Defaults to false on creation. Omission on update preserves the stored choice. Disabling retains existing Search Nodes and allows in-flight migrations to continue. Enabling does not bypass resource policies; if indexes exceed the migration threshold, the next eligible evaluation may start provisioning.
+             * @default false
+             */
+            disabled: boolean;
+        };
         /** Search Host Status Detail */
         SearchHostStatusDetail: {
             /** @description Hostname that corresponds to the status detail. */
@@ -8839,7 +9305,7 @@ export interface components {
             latestDefinitionVersion?: components["schemas"]["SearchIndexDefinitionVersion"];
             /** @description Label that identifies this index. Within each namespace, the names of all indexes must be unique. */
             name?: string;
-            /** @description Flag that indicates whether the index is queryable on all hosts. */
+            /** @description Flag that indicates whether the index is queryable on the nodes currently receiving query traffic. */
             queryable?: boolean;
             /**
              * @description Condition of the search index when you made this request.
@@ -9042,6 +9508,118 @@ export interface components {
              */
             providerName: "AWS" | "AZURE";
         };
+        /** @description One sharding recommendation for the cluster or one of its collections. */
+        ShardingRecommendation: {
+            /** @description Monitored conditions that fired and produced this recommendation. */
+            readonly triggers: components["schemas"]["ShardingRecommendationTrigger"][];
+            /** @description Recommendation type that produced this recommendation. */
+            readonly type: string;
+        } & (
+            | components["schemas"]["ShardingRecommendationAddShards"]
+            | components["schemas"]["ShardingRecommendationShardCollection"]
+            | components["schemas"]["ShardingRecommendationShardCluster"]
+        );
+        /** @description Recommendation to add shards to the cluster. */
+        ShardingRecommendationAddShards: Omit<
+            WithRequired<components["schemas"]["ShardingRecommendation"], "triggers" | "type">,
+            "type"
+        > & {
+            /**
+             * Format: int32
+             * @description Recommended total number of shards for the cluster.
+             */
+            readonly recommendedShardCount: number;
+            /**
+             * @description Recommendation type that produced this recommendation.
+             * @enum {string}
+             */
+            readonly type: "ADD_SHARDS";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "ADD_SHARDS";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "ADD_SHARDS";
+        };
+        /** @description Recommendation to convert the replica set to a sharded cluster. */
+        ShardingRecommendationShardCluster: Omit<
+            WithRequired<components["schemas"]["ShardingRecommendation"], "triggers" | "type">,
+            "type"
+        > & {
+            /**
+             * @description Recommendation type that produced this recommendation.
+             * @enum {string}
+             */
+            readonly type: "SHARD_CLUSTER";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "SHARD_CLUSTER";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "SHARD_CLUSTER";
+        };
+        /** @description Recommendation to shard one collection. */
+        ShardingRecommendationShardCollection: Omit<
+            WithRequired<components["schemas"]["ShardingRecommendation"], "triggers" | "type">,
+            "type"
+        > & {
+            /** @description Namespace of the collection to shard, in `<database>.<collection>` form. */
+            readonly namespace: string;
+            /**
+             * @description Recommendation type that produced this recommendation.
+             * @enum {string}
+             */
+            readonly type: "SHARD_COLLECTION";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "SHARD_COLLECTION";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "SHARD_COLLECTION";
+        };
+        /** @description One monitored condition that fired, observed on one entity. */
+        ShardingRecommendationTrigger: {
+            /**
+             * @description Identifier of the monitored condition that fired.
+             * @example HIGH_DISK_SPACE_PERCENT_USED
+             */
+            readonly name: string;
+            /** @description Entity the condition was observed on: a namespace in `<database>.<collection>` form, a host name, or a replica set (shard) name, as identified by `targetType`. Present if and only if `targetType` is present; both are absent for cluster-wide conditions, such as `UNSHARDED_COLLECTION_COUNT`, which are not tied to a single entity. The cluster is already identified in the request path. */
+            readonly target?: string;
+            /**
+             * @description Kind of entity that `target` identifies. Present if and only if `target` is present; both are absent for cluster-wide conditions.
+             * @enum {string}
+             */
+            readonly targetType?: "REPLICA_SET" | "HOST" | "NAMESPACE";
+            /**
+             * @description Unit of the measured trigger value.
+             * @enum {string}
+             */
+            readonly unit: "BYTES" | "PERCENT" | "SCALAR" | "MICROSECONDS";
+            /**
+             * Format: double
+             * @description Measured value of the trigger metric for this entity. This parameter is absent when no finite measurement was available.
+             */
+            readonly value?: number;
+        };
         /**
          * Splunk Log Export Integration Request
          * @description Request schema for creating or updating a Splunk log export integration.
@@ -9116,6 +9694,13 @@ export interface components {
              */
             type: "SPLUNK_LOG_EXPORT";
         };
+        StorageConfig: {
+            /**
+             * Format: int32
+             * @description Available in Public Preview: Maximum data size that MongoDB Cloud allows each shard of this cluster to reach, expressed in gigabytes. MongoDB Cloud rejects writes to a shard that reaches the limit that it enforces. In `replicationSpecs`, this field reports the limit that you configured, and MongoDB Cloud omits it when you never configured one. In `effectiveReplicationSpecs`, this field reports the limit that MongoDB Cloud enforces: usually the limit that you configured, otherwise the default limit that MongoDB Cloud assigns when it creates or updates the cluster. This value may differ from the limit that you configured due to system-managed changes. This limit applies to every shard of the cluster; set the same value on each region configuration's `autoScaling`, as MongoDB Cloud rejects requests that specify differing values. You can set this only on Atlas INFINITE clusters: MongoDB Cloud rejects any request that names this field, including as `null`, for a cluster or node type that doesn't support it. In a request that includes `replicationSpecs`, omitting `shardSizeLimitGB` or sending it as `null` clears the limit. Omitting `replicationSpecs` preserves it.
+             */
+            shardSizeLimitGB?: number | null;
+        } | null;
         /** @description Configuration options for an Atlas Stream Processing Workspace. */
         StreamConfig: {
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
@@ -9216,6 +9801,11 @@ export interface components {
              */
             readonly resolved?: string;
             /**
+             * @description Severity of the event.
+             * @enum {string}
+             */
+            readonly severity?: "INFO" | "WARNING" | "ERROR" | "CRITICAL";
+            /**
              * @description State of this alert at the time you requested its details. TRACKING indicates the alert condition exists but has not persisted for the minimum notification delay. OPEN indicates the alert condition currently exists. CLOSED indicates the alert condition has been resolved.
              * @example OPEN
              * @enum {string}
@@ -9233,7 +9823,7 @@ export interface components {
             readonly links?: components["schemas"]["Link"][];
             /** @description Amazon Resource Name (ARN) that identifies the Amazon Web Services (AWS) Identity and Access Management (IAM) role that MongoDB Cloud assumes when it accesses resources in your AWS account. */
             roleArn?: string;
-            /** @description The name of an S3 bucket used to check authorization of the passed-in IAM role ARN. */
+            /** @description The name of an S3 bucket used to check authorization of the passed-in IAM role ARN. This field applies only to S3 connections and is ignored for all other connection types and configurations. */
             testBucket?: string;
         };
         /** @description The configuration for AWS Kinesis Data Stream connections. */
@@ -9298,9 +9888,9 @@ export interface components {
              * @description Tier floor for autoscaling (scale-down limit).
              *
              *     - **Omitted:**
-             *       - On `CREATE`: falls back to the workspace default tier (there is no current bound to preserve).
+             *       - On `CREATE`: defaults to the lower of the processor `tier` and the workspace default tier (there is no current bound to preserve).
              *       - On `MODIFY` or `:startWith`: the current bound is preserved.
-             *     - **`null`** on `CREATE`, `MODIFY`, or `:startWith`: resets the bound to the workspace default tier.
+             *     - **`null`** on `CREATE`, `MODIFY`, or `:startWith`: resets the bound to the lower of the processor `tier` and the workspace default tier.
              *     - **A tier value** on `CREATE`, `MODIFY`, or `:startWith`: sets the bound to that tier.
              * @enum {string|null}
              */
@@ -9344,6 +9934,8 @@ export interface components {
         };
         /** @description Settings that define a connection to an external data store. */
         StreamsConnection: {
+            /** @description Connection error message. */
+            readonly errorMessage?: string;
             /** @description Unique identifier of the connection. */
             readonly id?: string;
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
@@ -9370,7 +9962,8 @@ export interface components {
                 | "AWSLambda"
                 | "AWSKinesisDataStreams"
                 | "SchemaRegistry"
-                | "GCPPubSub";
+                | "GCPPubSub"
+                | "DataCatalog";
         } & (
             | components["schemas"]["StreamsSampleConnection"]
             | components["schemas"]["StreamsClusterConnection"]
@@ -9382,6 +9975,7 @@ export interface components {
             | components["schemas"]["StreamsSchemaRegistryConnection"]
             | components["schemas"]["StreamsAzureBlobStorageConnection"]
             | components["schemas"]["StreamsGCPPubSubConnection"]
+            | components["schemas"]["StreamsDataCatalogConnection"]
         );
         /** @description Dead letter queue for the stream processor. */
         StreamsDLQ: {
@@ -9394,6 +9988,30 @@ export interface components {
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
         };
+        /** @description The configuration for Iceberg Data Catalog connections. */
+        StreamsDataCatalogConnection: (Omit<components["schemas"]["StreamsConnection"], "type"> & {
+            /**
+             * Format: uri
+             * @description Base HTTPS URL of the catalog. Must be on the provider's domain: `*.cloud.databricks.com` or `*.azuredatabricks.net` for Databricks Unity, and `*.snowflakecomputing.com` for Snowflake Horizon.
+             */
+            catalogUrl: string;
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "DataCatalog";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "DataCatalog";
+        }) &
+            (
+                | components["schemas"]["StreamsDatabricksUnityCatalogConnection"]
+                | components["schemas"]["StreamsSnowflakeHorizonCatalogConnection"]
+            );
         /** @description Information about the cloud provider region in which MongoDB Cloud processes the stream. */
         StreamsDataProcessRegion: {
             /**
@@ -9404,6 +10022,35 @@ export interface components {
             /** @description List of one or more Uniform Resource Locators (URLs) that point to API sub-resources, related API resources, or both. RFC 5988 outlines these relationships. */
             readonly links?: components["schemas"]["Link"][];
             region: components["schemas"]["BaseStreamsRegion"];
+        };
+        /** @description Databricks service principal credentials used to obtain an OAuth token. */
+        StreamsDatabricksAuthentication: {
+            /** @description OAuth client ID of the Databricks service principal. */
+            clientId: string;
+            /**
+             * Format: password
+             * @description OAuth client secret of the Databricks service principal. Never returned in responses; omit or leave blank on update to keep the stored secret.
+             */
+            clientSecret: string;
+        };
+        /** @description Databricks settings for a connection. */
+        StreamsDatabricksConnectionConfig: {
+            authentication: components["schemas"]["StreamsDatabricksAuthentication"];
+        };
+        /** @description The configuration for a Databricks Unity Catalog connection. */
+        StreamsDatabricksUnityCatalogConnection: Omit<components["schemas"]["StreamsDataCatalogConnection"], "type"> & {
+            /**
+             * @description Catalog system the connection points at. Cannot be changed after creation.
+             * @enum {string}
+             */
+            catalogProvider: "DATABRICKS_UNITY";
+            databricks: components["schemas"]["StreamsDatabricksConnectionConfig"];
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            catalogProvider: "DATABRICKS_UNITY";
         };
         StreamsFailoverClusterConnection: Omit<components["schemas"]["StreamsFailoverConnection"], "type"> & {
             /** @description Unique 24-hexadecimal digit string that identifies the project that contains the configured cluster. Required if the ID does not match the project containing the streams workspace. You must first enable the organization setting. */
@@ -9642,8 +10289,7 @@ export interface components {
             /** @description New pipeline for the stream processor. */
             pipeline?: components["schemas"]["Document"][];
             /**
-             * Stream Workspace Tier
-             * @description Selected tier for the Stream Workspace. Configures Memory or VCPU allowances.
+             * @description Baseline processing tier requested by the user.
              * @enum {string}
              */
             tier?: "SP50" | "SP30" | "SP10" | "SP5" | "SP2";
@@ -9740,8 +10386,7 @@ export interface components {
              */
             readonly _id?: string;
             /**
-             * Stream Workspace Tier
-             * @description Selected tier for the Stream Workspace. Configures Memory or VCPU allowances.
+             * @description Tier the stream processor is currently running on. The server sets this value from `tier` on create and on every start or restart, may move it within [`minTier`, `maxTier`] while autoscaling is enabled, and restores it to `tier` when autoscaling is disabled. Patching `tier` does not change it directly; the new tier takes effect at the next start or restart.
              * @enum {string}
              */
             readonly effectiveTier: "SP50" | "SP30" | "SP10" | "SP5" | "SP2";
@@ -9755,8 +10400,22 @@ export interface components {
             /** @description Stream aggregation pipeline you want to apply to your streaming data. */
             pipeline?: components["schemas"]["Document"][];
             /**
-             * Stream Workspace Tier
-             * @description Selected tier for the Stream Workspace. Configures Memory or VCPU allowances.
+             * @description Baseline tier of the stream processor. The processor starts or restarts on this tier; `effectiveTier` reports the tier it is currently running.
+             * @enum {string}
+             */
+            tier?: "SP50" | "SP30" | "SP10" | "SP5" | "SP2";
+        };
+        /** @description Details to create a stream processor. */
+        StreamsProcessorRequest: {
+            /** @description Flag that enables or disables failover for the stream processor. */
+            failoverEnabled?: boolean;
+            /** @description Human-readable name of the stream processor. */
+            name: string;
+            options?: components["schemas"]["StreamsOptions"];
+            /** @description Stream aggregation pipeline you want to apply to your streaming data. */
+            pipeline: components["schemas"]["Document"][];
+            /**
+             * @description Baseline processing tier requested by the user.
              * @enum {string}
              */
             tier?: "SP50" | "SP30" | "SP10" | "SP5" | "SP2";
@@ -9786,8 +10445,7 @@ export interface components {
              */
             readonly _id: string;
             /**
-             * Stream Workspace Tier
-             * @description Selected tier for the Stream Workspace. Configures Memory or VCPU allowances.
+             * @description Tier the stream processor is currently running on. The server sets this value from `tier` on create and on every start or restart, may move it within [`minTier`, `maxTier`] while autoscaling is enabled, and restores it to `tier` when autoscaling is disabled. Patching `tier` does not change it directly; the new tier takes effect at the next start or restart.
              * @enum {string}
              */
             readonly effectiveTier: "SP50" | "SP30" | "SP10" | "SP5" | "SP2";
@@ -9811,8 +10469,7 @@ export interface components {
                 [key: string]: Record<string, never>;
             };
             /**
-             * Stream Workspace Tier
-             * @description Selected tier for the Stream Workspace. Configures Memory or VCPU allowances.
+             * @description Baseline tier of the stream processor. The processor starts or restarts on this tier; `effectiveTier` reports the tier it is currently running.
              * @enum {string}
              */
             tier?: "SP50" | "SP30" | "SP10" | "SP5" | "SP2";
@@ -9902,6 +10559,42 @@ export interface components {
              */
             type: "SchemaRegistry";
         };
+        /** @description Snowflake service user and key pair used to authenticate to Snowflake. */
+        StreamsSnowflakeAuthentication: {
+            /** @description Snowflake account identifier. */
+            account: string;
+            /**
+             * Format: password
+             * @description Private key of the service user's key pair. Never returned in responses; omit or leave blank on update to keep the stored key.
+             */
+            privateKey: string;
+            /** @description Snowflake role the service user assumes. */
+            role: string;
+            /** @description Snowflake service user. */
+            user: string;
+        };
+        /** @description Snowflake settings for a connection. */
+        StreamsSnowflakeConnectionConfig: {
+            authentication: components["schemas"]["StreamsSnowflakeAuthentication"];
+        };
+        /** @description The configuration for a Snowflake Horizon catalog connection. */
+        StreamsSnowflakeHorizonCatalogConnection: Omit<
+            components["schemas"]["StreamsDataCatalogConnection"],
+            "type"
+        > & {
+            /**
+             * @description Catalog system the connection points at. Cannot be changed after creation.
+             * @enum {string}
+             */
+            catalogProvider: "SNOWFLAKE_HORIZON";
+            snowflake: components["schemas"]["StreamsSnowflakeConnectionConfig"];
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            catalogProvider: "SNOWFLAKE_HORIZON";
+        };
         /** @description Failover options for starting a stream processor. */
         StreamsStartProcessorFailover: {
             /** @description If true, clears the checkpoint so the failover processor does not resume from it. Applies only to FORCED failover; clearing may cause duplicate or missing records in the output. */
@@ -9933,8 +10626,7 @@ export interface components {
              */
             startAtOperationTime?: string;
             /**
-             * Stream Workspace Tier
-             * @description Selected tier for the Stream Workspace. Configures Memory or VCPU allowances.
+             * @description Baseline processing tier requested by the user.
              * @enum {string}
              */
             tier?: "SP50" | "SP30" | "SP10" | "SP5" | "SP2";
@@ -10380,6 +11072,11 @@ export interface components {
              * @description Date and time that this alert changed to `"status" : "CLOSED"`. This parameter expresses its value in the ISO 8601 timestamp format in UTC. The resource returns this parameter once `"status" : "CLOSED"`.
              */
             readonly resolved?: string;
+            /**
+             * @description Severity of the event.
+             * @enum {string}
+             */
+            readonly severity?: "INFO" | "WARNING" | "ERROR" | "CRITICAL";
             /**
              * @description State of this alert at the time you requested its details. TRACKING indicates the alert condition exists but has not persisted for the minimum notification delay. OPEN indicates the alert condition currently exists. CLOSED indicates the alert condition has been resolved.
              * @example OPEN
@@ -11218,6 +11915,15 @@ export interface components {
                 "application/json": components["schemas"]["ApiError"];
             };
         };
+        /** @description Forbidden. Atlas Resource Policy details are returned only when an Atlas Resource Policy denies the request. */
+        forbiddenOrResourcePolicyViolation: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ApiError"];
+            };
+        };
         /** @description Internal Server Error. */
         internalServerError: {
             headers: {
@@ -11316,7 +12022,7 @@ export interface components {
          *     **NOTE**: Groups and projects are synonymous terms. Your group id is the same as your project id. For existing groups, your group/project id remains the same. The resource and corresponding endpoints use the term groups.
          */
         groupId: string;
-        /** @description Flag that indicates whether the response returns the total number of items (`totalCount`) in the response. */
+        /** @description Flag that indicates whether MongoDB Cloud calculates the total number of items for the response. When set to `false`, MongoDB Cloud may skip an additional count operation. The response may still include `totalCount` when the count is available without additional calculation. */
         includeCount: boolean;
         /** @description Number of items that the response returns per page. */
         itemsPerPage: number;
@@ -11357,6 +12063,7 @@ export type ApiAtlasClusterAdvancedConfigurationView =
     components["schemas"]["ApiAtlasClusterAdvancedConfigurationView"];
 export type ApiAtlasFtsAnalyzersViewManual = components["schemas"]["ApiAtlasFTSAnalyzersViewManual"];
 export type ApiAtlasFtsMappingsViewManual = components["schemas"]["ApiAtlasFTSMappingsViewManual"];
+export type ApiClusterScaleView = components["schemas"]["ApiClusterScaleView"];
 export type ApiError = components["schemas"]["ApiError"];
 export type ApiStreamsAwsRegionView = components["schemas"]["ApiStreamsAWSRegionView"];
 export type ApiStreamsAzureRegionView = components["schemas"]["ApiStreamsAzureRegionView"];
@@ -11554,6 +12261,13 @@ export type NumberMetricValueView = components["schemas"]["NumberMetricValueView
 export type OnlineArchiveSchedule = components["schemas"]["OnlineArchiveSchedule"];
 export type OrgActiveUserResponse = components["schemas"]["OrgActiveUserResponse"];
 export type OrgGroup = components["schemas"]["OrgGroup"];
+export type OrgLogIntegrationHeader = components["schemas"]["OrgLogIntegrationHeader"];
+export type OrgLogIntegrationRequest = components["schemas"]["OrgLogIntegrationRequest"];
+export type OrgLogIntegrationResponse = components["schemas"]["OrgLogIntegrationResponse"];
+export type OrgLogIntegrationUpdateRequest = components["schemas"]["OrgLogIntegrationUpdateRequest"];
+export type OrgOtelLogIntegrationRequest = components["schemas"]["OrgOtelLogIntegrationRequest"];
+export type OrgOtelLogIntegrationResponse = components["schemas"]["OrgOtelLogIntegrationResponse"];
+export type OrgOtelLogIntegrationUpdateRequest = components["schemas"]["OrgOtelLogIntegrationUpdateRequest"];
 export type OrgPendingUserResponse = components["schemas"]["OrgPendingUserResponse"];
 export type OrgUserResponse = components["schemas"]["OrgUserResponse"];
 export type OrgUserRolesResponse = components["schemas"]["OrgUserRolesResponse"];
@@ -11580,6 +12294,9 @@ export type PerformanceAdvisorShape = components["schemas"]["PerformanceAdvisorS
 export type PerformanceAdvisorSlowQuery = components["schemas"]["PerformanceAdvisorSlowQuery"];
 export type PerformanceAdvisorSlowQueryList = components["schemas"]["PerformanceAdvisorSlowQueryList"];
 export type PerformanceAdvisorSlowQueryMetrics = components["schemas"]["PerformanceAdvisorSlowQueryMetrics"];
+export type QueryStatsCollectionRateLimitedResponse = components["schemas"]["QueryStatsCollectionRateLimitedResponse"];
+export type QueryStatsCollectionResponse = components["schemas"]["QueryStatsCollectionResponse"];
+export type QueryStatsCollectionSampledResponse = components["schemas"]["QueryStatsCollectionSampledResponse"];
 export type RawMetricAlertView = components["schemas"]["RawMetricAlertView"];
 export type RawMetricUnits = components["schemas"]["RawMetricUnits"];
 export type RawMetricValueView = components["schemas"]["RawMetricValueView"];
@@ -11588,6 +12305,7 @@ export type ReplicaSetAlertViewForNdsGroup = components["schemas"]["ReplicaSetAl
 export type ReplicaSetEventTypeViewForNdsGroupAlertable =
     components["schemas"]["ReplicaSetEventTypeViewForNdsGroupAlertable"];
 export type ReplicationSpec20240805 = components["schemas"]["ReplicationSpec20240805"];
+export type ResourcePolicyReference = components["schemas"]["ResourcePolicyReference"];
 export type ResourceTag = components["schemas"]["ResourceTag"];
 export type S3LogIntegrationRequest = components["schemas"]["S3LogIntegrationRequest"];
 export type S3LogIntegrationResponse = components["schemas"]["S3LogIntegrationResponse"];
@@ -11597,6 +12315,7 @@ export type SchemaAdvisorNamespaceTriggers = components["schemas"]["SchemaAdviso
 export type SchemaAdvisorResponse = components["schemas"]["SchemaAdvisorResponse"];
 export type SchemaAdvisorTriggerDetails = components["schemas"]["SchemaAdvisorTriggerDetails"];
 export type SchemaRegistryAuthentication = components["schemas"]["SchemaRegistryAuthentication"];
+export type SearchAutoMigration = components["schemas"]["SearchAutoMigration"];
 export type SearchHostStatusDetail = components["schemas"]["SearchHostStatusDetail"];
 export type SearchIndex = components["schemas"]["SearchIndex"];
 export type SearchIndexCreateRequest = components["schemas"]["SearchIndexCreateRequest"];
@@ -11611,8 +12330,14 @@ export type SearchTypeSets = components["schemas"]["SearchTypeSets"];
 export type ServerlessAwsTenantEndpointUpdate = components["schemas"]["ServerlessAWSTenantEndpointUpdate"];
 export type ServerlessAzureTenantEndpointUpdate = components["schemas"]["ServerlessAzureTenantEndpointUpdate"];
 export type ServerlessTenantEndpointUpdate = components["schemas"]["ServerlessTenantEndpointUpdate"];
+export type ShardingRecommendation = components["schemas"]["ShardingRecommendation"];
+export type ShardingRecommendationAddShards = components["schemas"]["ShardingRecommendationAddShards"];
+export type ShardingRecommendationShardCluster = components["schemas"]["ShardingRecommendationShardCluster"];
+export type ShardingRecommendationShardCollection = components["schemas"]["ShardingRecommendationShardCollection"];
+export type ShardingRecommendationTrigger = components["schemas"]["ShardingRecommendationTrigger"];
 export type SplunkLogIntegrationRequest = components["schemas"]["SplunkLogIntegrationRequest"];
 export type SplunkLogIntegrationResponse = components["schemas"]["SplunkLogIntegrationResponse"];
+export type StorageConfig = components["schemas"]["StorageConfig"];
 export type StreamConfig = components["schemas"]["StreamConfig"];
 export type StreamProcessorAlertViewForNdsGroup = components["schemas"]["StreamProcessorAlertViewForNdsGroup"];
 export type StreamsAwsConnectionConfig = components["schemas"]["StreamsAWSConnectionConfig"];
@@ -11623,7 +12348,11 @@ export type StreamsAzureBlobStorageConnection = components["schemas"]["StreamsAz
 export type StreamsClusterConnection = components["schemas"]["StreamsClusterConnection"];
 export type StreamsConnection = components["schemas"]["StreamsConnection"];
 export type StreamsDlq = components["schemas"]["StreamsDLQ"];
+export type StreamsDataCatalogConnection = components["schemas"]["StreamsDataCatalogConnection"];
 export type StreamsDataProcessRegion = components["schemas"]["StreamsDataProcessRegion"];
+export type StreamsDatabricksAuthentication = components["schemas"]["StreamsDatabricksAuthentication"];
+export type StreamsDatabricksConnectionConfig = components["schemas"]["StreamsDatabricksConnectionConfig"];
+export type StreamsDatabricksUnityCatalogConnection = components["schemas"]["StreamsDatabricksUnityCatalogConnection"];
 export type StreamsFailoverClusterConnection = components["schemas"]["StreamsFailoverClusterConnection"];
 export type StreamsFailoverConnection = components["schemas"]["StreamsFailoverConnection"];
 export type StreamsFailoverKafkaConnection = components["schemas"]["StreamsFailoverKafkaConnection"];
@@ -11640,6 +12369,7 @@ export type StreamsModifyStreamProcessorOptions = components["schemas"]["Streams
 export type StreamsOptions = components["schemas"]["StreamsOptions"];
 export type StreamsPrivateLinkConnection = components["schemas"]["StreamsPrivateLinkConnection"];
 export type StreamsProcessor = components["schemas"]["StreamsProcessor"];
+export type StreamsProcessorRequest = components["schemas"]["StreamsProcessorRequest"];
 export type StreamsProcessorStatus = components["schemas"]["StreamsProcessorStatus"];
 export type StreamsProcessorWithStats = components["schemas"]["StreamsProcessorWithStats"];
 export type StreamsPublicPrivateLinkNetworking = components["schemas"]["StreamsPublicPrivateLinkNetworking"];
@@ -11649,6 +12379,10 @@ export type StreamsS3Connection = components["schemas"]["StreamsS3Connection"];
 export type StreamsSampleConnection = components["schemas"]["StreamsSampleConnection"];
 export type StreamsSampleConnections = components["schemas"]["StreamsSampleConnections"];
 export type StreamsSchemaRegistryConnection = components["schemas"]["StreamsSchemaRegistryConnection"];
+export type StreamsSnowflakeAuthentication = components["schemas"]["StreamsSnowflakeAuthentication"];
+export type StreamsSnowflakeConnectionConfig = components["schemas"]["StreamsSnowflakeConnectionConfig"];
+export type StreamsSnowflakeHorizonCatalogConnection =
+    components["schemas"]["StreamsSnowflakeHorizonCatalogConnection"];
 export type StreamsStartProcessorFailover = components["schemas"]["StreamsStartProcessorFailover"];
 export type StreamsStartStreamProcessorWith = components["schemas"]["StreamsStartStreamProcessorWith"];
 export type StreamsTenant = components["schemas"]["StreamsTenant"];
@@ -11712,6 +12446,7 @@ export type Tokenizerwhitespace = components["schemas"]["tokenizerwhitespace"];
 export type ResponseBadRequest = components["responses"]["badRequest"];
 export type ResponseConflict = components["responses"]["conflict"];
 export type ResponseForbidden = components["responses"]["forbidden"];
+export type ResponseForbiddenOrResourcePolicyViolation = components["responses"]["forbiddenOrResourcePolicyViolation"];
 export type ResponseInternalServerError = components["responses"]["internalServerError"];
 export type ResponseNotFound = components["responses"]["notFound"];
 export type ResponsePaymentRequired = components["responses"]["paymentRequired"];
@@ -11734,7 +12469,7 @@ export interface operations {
             query?: {
                 /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
                 envelope?: components["parameters"]["envelope"];
-                /** @description Flag that indicates whether the response returns the total number of items (`totalCount`) in the response. */
+                /** @description Flag that indicates whether MongoDB Cloud calculates the total number of items for the response. When set to `false`, MongoDB Cloud may skip an additional count operation. The response may still include `totalCount` when the count is available without additional calculation. */
                 includeCount?: components["parameters"]["includeCount"];
                 /** @description Number of items that the response returns per page. */
                 itemsPerPage?: components["parameters"]["itemsPerPage"];
@@ -11771,7 +12506,7 @@ export interface operations {
             query?: {
                 /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
                 envelope?: components["parameters"]["envelope"];
-                /** @description Flag that indicates whether the response returns the total number of items (`totalCount`) in the response. */
+                /** @description Flag that indicates whether MongoDB Cloud calculates the total number of items for the response. When set to `false`, MongoDB Cloud may skip an additional count operation. The response may still include `totalCount` when the count is available without additional calculation. */
                 includeCount?: components["parameters"]["includeCount"];
                 /** @description Number of items that the response returns per page. */
                 itemsPerPage?: components["parameters"]["itemsPerPage"];
@@ -11932,7 +12667,7 @@ export interface operations {
             query?: {
                 /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
                 envelope?: components["parameters"]["envelope"];
-                /** @description Flag that indicates whether the response returns the total number of items (`totalCount`) in the response. */
+                /** @description Flag that indicates whether MongoDB Cloud calculates the total number of items for the response. When set to `false`, MongoDB Cloud may skip an additional count operation. The response may still include `totalCount` when the count is available without additional calculation. */
                 includeCount?: components["parameters"]["includeCount"];
                 /** @description Number of items that the response returns per page. */
                 itemsPerPage?: components["parameters"]["itemsPerPage"];
@@ -11977,7 +12712,7 @@ export interface operations {
             query?: {
                 /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
                 envelope?: components["parameters"]["envelope"];
-                /** @description Flag that indicates whether the response returns the total number of items (`totalCount`) in the response. */
+                /** @description Flag that indicates whether MongoDB Cloud calculates the total number of items for the response. When set to `false`, MongoDB Cloud may skip an additional count operation. The response may still include `totalCount` when the count is available without additional calculation. */
                 includeCount?: components["parameters"]["includeCount"];
                 /** @description Number of items that the response returns per page. */
                 itemsPerPage?: components["parameters"]["itemsPerPage"];
@@ -12017,7 +12752,7 @@ export interface operations {
             };
             400: components["responses"]["badRequest"];
             401: components["responses"]["unauthorized"];
-            403: components["responses"]["forbidden"];
+            403: components["responses"]["forbiddenOrResourcePolicyViolation"];
             404: components["responses"]["notFound"];
             429: components["responses"]["tooManyRequests"];
             500: components["responses"]["internalServerError"];
@@ -12063,8 +12798,9 @@ export interface operations {
                     "application/vnd.atlas.2023-01-01+json": unknown;
                 };
             };
+            400: components["responses"]["badRequest"];
             401: components["responses"]["unauthorized"];
-            403: components["responses"]["forbidden"];
+            403: components["responses"]["forbiddenOrResourcePolicyViolation"];
             404: components["responses"]["notFound"];
             429: components["responses"]["tooManyRequests"];
             500: components["responses"]["internalServerError"];
@@ -12075,7 +12811,7 @@ export interface operations {
             query?: {
                 /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
                 envelope?: components["parameters"]["envelope"];
-                /** @description Flag that indicates whether the response returns the total number of items (`totalCount`) in the response. */
+                /** @description Flag that indicates whether MongoDB Cloud calculates the total number of items for the response. When set to `false`, MongoDB Cloud may skip an additional count operation. The response may still include `totalCount` when the count is available without additional calculation. */
                 includeCount?: components["parameters"]["includeCount"];
                 /** @description Number of items that the response returns per page. */
                 itemsPerPage?: components["parameters"]["itemsPerPage"];
@@ -12215,7 +12951,7 @@ export interface operations {
             query?: {
                 /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
                 envelope?: components["parameters"]["envelope"];
-                /** @description Flag that indicates whether the response returns the total number of items (`totalCount`) in the response. */
+                /** @description Flag that indicates whether MongoDB Cloud calculates the total number of items for the response. When set to `false`, MongoDB Cloud may skip an additional count operation. The response may still include `totalCount` when the count is available without additional calculation. */
                 includeCount?: components["parameters"]["includeCount"];
                 /** @description Number of items that the response returns per page. */
                 itemsPerPage?: components["parameters"]["itemsPerPage"];
@@ -12497,7 +13233,7 @@ export interface operations {
             };
             400: components["responses"]["badRequest"];
             401: components["responses"]["unauthorized"];
-            403: components["responses"]["forbidden"];
+            403: components["responses"]["forbiddenOrResourcePolicyViolation"];
             404: components["responses"]["notFound"];
             409: components["responses"]["conflict"];
             429: components["responses"]["tooManyRequests"];
@@ -12647,7 +13383,7 @@ export interface operations {
             query?: {
                 /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
                 envelope?: components["parameters"]["envelope"];
-                /** @description Flag that indicates whether the response returns the total number of items (`totalCount`) in the response. */
+                /** @description Flag that indicates whether MongoDB Cloud calculates the total number of items for the response. When set to `false`, MongoDB Cloud may skip an additional count operation. The response may still include `totalCount` when the count is available without additional calculation. */
                 includeCount?: components["parameters"]["includeCount"];
                 /** @description Number of items that the response returns per page. */
                 itemsPerPage?: components["parameters"]["itemsPerPage"];
@@ -12878,7 +13614,7 @@ export interface operations {
             };
             400: components["responses"]["badRequest"];
             401: components["responses"]["unauthorized"];
-            403: components["responses"]["forbidden"];
+            403: components["responses"]["forbiddenOrResourcePolicyViolation"];
             404: components["responses"]["notFound"];
             409: components["responses"]["conflict"];
             429: components["responses"]["tooManyRequests"];
@@ -12890,7 +13626,7 @@ export interface operations {
             query?: {
                 /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
                 envelope?: components["parameters"]["envelope"];
-                /** @description Flag that indicates whether the response returns the total number of items (`totalCount`) in the response. */
+                /** @description Flag that indicates whether MongoDB Cloud calculates the total number of items for the response. When set to `false`, MongoDB Cloud may skip an additional count operation. The response may still include `totalCount` when the count is available without additional calculation. */
                 includeCount?: components["parameters"]["includeCount"];
                 /** @description Number of items that the response returns per page. */
                 itemsPerPage?: components["parameters"]["itemsPerPage"];
@@ -12971,7 +13707,7 @@ export interface operations {
             400: components["responses"]["badRequest"];
             401: components["responses"]["unauthorized"];
             402: components["responses"]["paymentRequired"];
-            403: components["responses"]["forbidden"];
+            403: components["responses"]["forbiddenOrResourcePolicyViolation"];
             404: components["responses"]["notFound"];
             409: components["responses"]["conflict"];
             429: components["responses"]["tooManyRequests"];
@@ -13104,7 +13840,7 @@ export interface operations {
             400: components["responses"]["badRequest"];
             401: components["responses"]["unauthorized"];
             402: components["responses"]["paymentRequired"];
-            403: components["responses"]["forbidden"];
+            403: components["responses"]["forbiddenOrResourcePolicyViolation"];
             404: components["responses"]["notFound"];
             409: components["responses"]["conflict"];
             429: components["responses"]["tooManyRequests"];
@@ -14105,7 +14841,7 @@ export interface operations {
         /** @description Details to create an Atlas Streams Processor. */
         requestBody: {
             content: {
-                "application/vnd.atlas.2024-05-30+json": components["schemas"]["StreamsProcessor"];
+                "application/vnd.atlas.2024-05-30+json": components["schemas"]["StreamsProcessorRequest"];
             };
         };
         responses: {
@@ -14411,7 +15147,7 @@ export interface operations {
                 itemsPerPage?: components["parameters"]["itemsPerPage"];
                 /** @description Number of the page that displays the current set of the total objects that the response returns. */
                 pageNum?: components["parameters"]["pageNum"];
-                /** @description Flag that indicates whether the response returns the total number of items (`totalCount`) in the response. */
+                /** @description Flag that indicates whether MongoDB Cloud calculates the total number of items for the response. When set to `false`, MongoDB Cloud may skip an additional count operation. The response may still include `totalCount` when the count is available without additional calculation. */
                 includeCount?: components["parameters"]["includeCount"];
             };
             header?: never;
@@ -14545,7 +15281,7 @@ export interface operations {
             query?: {
                 /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
                 envelope?: components["parameters"]["envelope"];
-                /** @description Flag that indicates whether the response returns the total number of items (`totalCount`) in the response. */
+                /** @description Flag that indicates whether MongoDB Cloud calculates the total number of items for the response. When set to `false`, MongoDB Cloud may skip an additional count operation. The response may still include `totalCount` when the count is available without additional calculation. */
                 includeCount?: components["parameters"]["includeCount"];
                 /** @description Number of items that the response returns per page. */
                 itemsPerPage?: components["parameters"]["itemsPerPage"];
@@ -14587,7 +15323,7 @@ export interface operations {
             query?: {
                 /** @description Flag that indicates whether Application wraps the response in an `envelope` JSON object. Some API clients cannot access the HTTP response headers or status code. To remediate this, set envelope=true in the query. Endpoints that return a list of results use the results object as an envelope. Application adds the status parameter to the response body. */
                 envelope?: components["parameters"]["envelope"];
-                /** @description Flag that indicates whether the response returns the total number of items (`totalCount`) in the response. */
+                /** @description Flag that indicates whether MongoDB Cloud calculates the total number of items for the response. When set to `false`, MongoDB Cloud may skip an additional count operation. The response may still include `totalCount` when the count is available without additional calculation. */
                 includeCount?: components["parameters"]["includeCount"];
                 /** @description Number of items that the response returns per page. */
                 itemsPerPage?: components["parameters"]["itemsPerPage"];

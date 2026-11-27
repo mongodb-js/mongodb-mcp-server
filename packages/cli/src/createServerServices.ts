@@ -15,7 +15,9 @@ import { CliServer } from "./cliServer.js";
 import {
     connectionErrorHandler,
     DeviceId,
+    isObjectEmpty,
     MCPConnectionStore,
+    PRECONFIGURED_CONNECTION_ID,
     validateConnectionString,
     type ConnectionRegistry,
 } from "@mongodb-js/mcp-tools-mongodb";
@@ -63,6 +65,8 @@ export type SharedServerServices = {
     /** Shared, app-level registry view over {@link connectionStore}. */
     connectionRegistry: ConnectionRegistry;
     apiClient: ApiClient;
+    /** API client used only for telemetry; equals {@link apiClient} unless `telemetryBaseUrl` is set. */
+    telemetryApiClient: ApiClient;
     exportsManager: ExportsManager;
     telemetry: AtlasTelemetry;
     atlasLocalClient: AtlasLocalClient | undefined;
@@ -84,13 +88,14 @@ export async function validateAppConfig({
     logger: CompositeLogger;
     apiClient: ApiClient;
 }): Promise<void> {
-    // Validate connection string
-    if (config.connectionString) {
+    // Validate connection strings
+    for (const [connectionId, connectionString] of Object.entries(config.connectionStrings)) {
         try {
-            validateConnectionString(config.connectionString, false);
+            validateConnectionString(connectionString, false);
         } catch (error) {
+            const subject = connectionId === PRECONFIGURED_CONNECTION_ID ? "" : ` for connection "${connectionId}"`;
             throw new Error(
-                "Connection string validation failed with error: " +
+                `Connection string validation failed${subject} with error: ` +
                     (error instanceof Error ? error.message : String(error)),
                 { cause: error }
             );
@@ -119,7 +124,7 @@ export async function validateAppConfig({
 
             await apiClient.validateAuthConfig();
         } catch (error) {
-            if (config.connectionString === undefined) {
+            if (isObjectEmpty(config.connectionStrings)) {
                 throw new Error(
                     `Failed to connect to MongoDB Atlas instance using the credentials from the config: ${error instanceof Error ? error.message : String(error)}`,
                     { cause: error }
@@ -140,7 +145,10 @@ export async function createSharedServicesFromConfig(
     options: CreateServerServicesOptions
 ): Promise<SharedServerServices> {
     const { config, serverMetadata, logger, keychain } = options;
-    const metrics = new PrometheusMetrics({ definitions: createDefaultMetrics() });
+    const metrics = new PrometheusMetrics({
+        definitions: createDefaultMetrics(),
+        collectProcessMetrics: config.monitoringServerFeatures.includes("process-metrics"),
+    });
     const monitoringServer = createMonitoringServerFromConfig({ config, logger, metrics });
 
     const deviceId = DeviceId.create(logger);
@@ -162,11 +170,21 @@ export async function createSharedServicesFromConfig(
     // Validate app-fixed config once at startup (see {@link validateAppConfig}).
     await validateAppConfig({ config, logger, apiClient });
 
+    // Second client only when telemetry targets a different host than the API.
+    const telemetryApiClient =
+        config.telemetryBaseUrl && config.telemetryBaseUrl !== config.apiBaseUrl
+            ? createApiClientFromConfig({
+                  config: { ...config, apiBaseUrl: config.telemetryBaseUrl },
+                  serverMetadata,
+                  logger,
+              })
+            : apiClient;
+
     const telemetry = createTelemetryFromConfig({
         config,
         logger,
         deviceId,
-        apiClient,
+        apiClient: telemetryApiClient,
         keychain,
         serverMetadata,
     });
@@ -185,6 +203,7 @@ export async function createSharedServicesFromConfig(
         connectionStore,
         connectionRegistry,
         apiClient,
+        telemetryApiClient,
         exportsManager,
         telemetry,
         atlasLocalClient,
@@ -244,15 +263,25 @@ function connectionScopeBySessionId(request: TransportRequestContext): string | 
  */
 export function connectionScopeFromConfig(config: UserConfig): ConnectionScopePolicy {
     if (config.connectionScope === "global") {
-        return () => GLOBAL_CONNECTION_SCOPE;
+        // One scope shared across every client: never owned, so it survives a
+        // session closing.
+        return () => ({ scope: GLOBAL_CONNECTION_SCOPE, owned: false });
     }
     return (request) => {
         const id = connectionScopeBySessionId(request);
+        if (id) {
+            // A session id names a session-private scope on the sessionful path
+            // (reaped when that session ends). On the stateless path the id is
+            // client-supplied and must outlive the request, so it stays shared.
+            return { scope: id, owned: request.sessionful === true };
+        }
         // No usable session id. On the sessionless (2026-07-28) path this server
         // has no session machinery, so share the global scope so anonymous
         // clients can still persist connections. The legacy sessionful path
         // always has a server-issued session; leave it ephemeral (undefined).
-        return id ?? (request.mcp_client_protocol === "2026-07-28" ? GLOBAL_CONNECTION_SCOPE : undefined);
+        return request.mcp_client_protocol === "2026-07-28"
+            ? { scope: GLOBAL_CONNECTION_SCOPE, owned: false }
+            : undefined;
     };
 }
 
@@ -316,13 +345,11 @@ export function createServerFromConfig({
     // yields an ephemeral scope with no cross-request state. Non-HTTP (no
     // request): the shared registry.
     //
-    // `owned` decides what happens when the request-scoped server closes (for
-    // the legacy sessionful path: when the session ends). An ephemeral scope
-    // dies with its session, so its view is owned and `close()` reaps its
-    // connections (the v2.x `connectionScope: "session"` behavior). A stable
-    // scope key (a named client, a verified principal, the global scope) is
-    // meant to survive the request/session that created the view, so its view
-    // is unowned and `close()` leaves the connections alone.
+    // `owned` decides what happens when the request-scoped server closes: an
+    // ephemeral scope is owned (it exists only for this server), and a named
+    // scope is owned only when the policy says so — so a scope shared across
+    // servers (the global scope, an embedder's per-user scope) survives one of
+    // them closing.
     let requestConnectionRegistry: ConnectionRegistry = connectionRegistry;
     if (request) {
         if (!connectionScope) {
@@ -330,11 +357,10 @@ export function createServerFromConfig({
                 "createServerFromConfig: an HTTP request was provided but no connectionScope policy was set."
             );
         }
-        const scope = connectionScope(request);
-        requestConnectionRegistry =
-            scope !== undefined
-                ? connectionStore.view({ scope, owned: false })
-                : connectionStore.view({ scope: ephemeralClientScope(), owned: true });
+        const resolved = connectionScope(request);
+        const scope = typeof resolved === "object" ? resolved.scope : resolved;
+        const owned = scope === undefined || (typeof resolved === "object" && resolved.owned === true);
+        requestConnectionRegistry = connectionStore.view({ scope: scope ?? ephemeralClientScope(), owned });
     }
 
     const mcpServer = new McpServer({
@@ -378,7 +404,8 @@ export function createServerFromConfig({
  * it), then telemetry flushes last.
  */
 export async function closeSharedServices(sharedServices: SharedServerServices): Promise<void> {
-    const { telemetry, connectionStore, exportsManager, apiClient } = sharedServices;
+    const { telemetry, connectionStore, exportsManager, apiClient, telemetryApiClient } = sharedServices;
     await Promise.allSettled([connectionStore.closeAll(), exportsManager.close()]);
-    await Promise.allSettled([apiClient.close(), telemetry.close()]);
+    const apiClients = telemetryApiClient === apiClient ? [apiClient] : [apiClient, telemetryApiClient];
+    await Promise.allSettled([...apiClients.map((client) => client.close()), telemetry.close()]);
 }

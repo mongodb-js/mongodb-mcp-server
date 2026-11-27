@@ -70,9 +70,11 @@ export {
 } from "./connectionErrorHandler.js";
 export { DeviceId } from "./helpers/deviceId.js";
 export { isObjectEmpty } from "./helpers/isObjectEmpty.js";
+export { isRecord } from "./helpers/isRecord.js";
 export { isNodeRuntime } from "./helpers/isNodeRuntime.js";
 export {
     PRECONFIGURED_CONNECTION_ID,
+    CONNECTION_NAME_PATTERN,
     ConnectionEntry,
     atlasClusterSlug,
     buildEntryName,
@@ -81,7 +83,11 @@ export {
     type CreateConnectionEntryOptions,
     type ConnectionSource,
 } from "./common/connectionRegistry.js";
-export { MCPConnectionStore, type ConnectionStoreOptions } from "./common/connectionStore.js";
+export {
+    MCPConnectionStore,
+    DEFAULT_CONNECTION_CONNECT_TIMEOUT_MS,
+    type ConnectionStoreOptions,
+} from "./common/connectionStore.js";
 export { ConnectionSummarySchema, summarizeConnection } from "./common/connectionSummary.js";
 export { FakeConnectionManager } from "./common/mocks/connectionManager.js";
 export { buildWriteStageConfirmationMessage } from "./helpers/writeStageConfirmation.js";

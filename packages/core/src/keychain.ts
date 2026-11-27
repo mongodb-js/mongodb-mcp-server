@@ -1,5 +1,5 @@
-import { redact as redactValue } from "mongodb-redact";
-import type { Secret } from "mongodb-redact";
+import { redact as redactValue } from "@mongodb-js/mongodb-redact";
+import type { Secret } from "@mongodb-js/mongodb-redact";
 import type { IKeychain } from "@mongodb-js/mcp-types";
 
 /** The category a secret is redacted as (e.g. `password`, `mongodb uri`). */

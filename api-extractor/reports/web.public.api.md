@@ -22,7 +22,7 @@ import type { McpServer } from '@modelcontextprotocol/server';
 import { MongoClient } from 'mongodb';
 import { NodeDriverServiceProvider } from '@mongosh/service-provider-node-driver';
 import type { RequestMeta } from '@modelcontextprotocol/server';
-import { Secret } from 'mongodb-redact';
+import { Secret } from '@mongodb-js/mongodb-redact';
 import type { ServerContext } from '@modelcontextprotocol/server';
 import { ToolAnnotations } from '@modelcontextprotocol/server';
 import { z } from 'zod';
@@ -392,6 +392,7 @@ export interface ConnectionStateConnecting extends ConnectionState {
     oidcUserCode?: string;
     // (undocumented)
     serviceProvider: Promise<NodeDriverServiceProvider>;
+    startedAt: number;
     // (undocumented)
     tag: "connecting";
 }
@@ -473,7 +474,7 @@ export class Elicitation implements IElicitation {
     inputRequired(input: ElicitInputRequiredParams): InputRequiredResult;
     readConfirmation(inputResponses: ElicitationInputResponses): boolean | undefined;
     readInput(inputResponses: ElicitationInputResponses, key: string): ElicitedInputResult | undefined;
-    supportsElicitation(): boolean;
+    supportsElicitation(request: ElicitationRequestContext): boolean;
 }
 
 // @public (undocumented)
@@ -850,6 +851,7 @@ export type TransportRequestContext = {
     query?: Record<string, string | string[] | undefined>;
     authInfo?: RequestAuthInfo;
     mcp_client_protocol?: McpProtocol;
+    sessionful?: boolean;
 };
 
 // @public

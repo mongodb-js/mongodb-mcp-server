@@ -1,10 +1,6 @@
 import { afterEach, beforeEach } from "vitest";
 
-import {
-    startMockTelemetryServer,
-    type MockTelemetryServer,
-    type ReceivedTelemetryEvent,
-} from "../mocks/telemetryServer.js";
+import { startMockTelemetryServer, type MockTelemetryServer, type ReceivedTelemetryEvent } from "./telemetryServer.js";
 
 /**
  * Starts a mock telemetry endpoint in `beforeEach` and closes it in `afterEach`. The returned

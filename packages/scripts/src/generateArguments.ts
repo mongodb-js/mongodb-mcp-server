@@ -45,6 +45,7 @@ interface ArgumentInfo {
     configKey: string;
     defaultValue?: unknown;
     defaultValueDescription?: string;
+    cliArgument: boolean;
 }
 
 interface ConfigMetadata {
@@ -52,6 +53,7 @@ interface ConfigMetadata {
     defaultValue?: unknown;
     defaultValueDescription?: string;
     isSecret?: boolean;
+    cliArgument?: boolean;
     type: "string" | "number" | "boolean" | "array";
 }
 
@@ -126,6 +128,7 @@ function extractZodDescriptions(): Record<string, ConfigMetadata> {
         let defaultValue: unknown = undefined;
         let defaultValueDescription: string | undefined = undefined;
         let isSecret: boolean | undefined = undefined;
+        let cliArgument: boolean | undefined = undefined;
         if (schema.def && "defaultValue" in schema.def) {
             defaultValue = schema.def.defaultValue;
         }
@@ -134,6 +137,7 @@ function extractZodDescriptions(): Record<string, ConfigMetadata> {
         if (registryMeta) {
             defaultValueDescription = registryMeta.defaultValueDescription;
             isSecret = registryMeta.isSecret;
+            cliArgument = registryMeta.cliArgument;
         }
 
         result[key] = {
@@ -141,6 +145,7 @@ function extractZodDescriptions(): Record<string, ConfigMetadata> {
             defaultValue,
             defaultValueDescription,
             isSecret,
+            cliArgument,
             type: derivedType,
         };
     }
@@ -169,6 +174,7 @@ function getArgumentInfo(zodMetadata: Record<string, ConfigMetadata>): ArgumentI
             configKey: key,
             defaultValue: metadata.defaultValue,
             defaultValueDescription: metadata.defaultValueDescription,
+            cliArgument: metadata.cliArgument ?? true,
         });
     }
 
@@ -182,8 +188,8 @@ function generatePackageArguments(envVars: ArgumentInfo[]): unknown[] {
     // Generate positional arguments from the same config options (only documented ones)
     const documentedVars = envVars.filter((v) => !v.description.startsWith("Configuration option:"));
 
-    // Generate named arguments from the same config options
-    for (const argument of documentedVars) {
+    // Generate named arguments from the same config options, except env/config-file only ones
+    for (const argument of documentedVars.filter((v) => v.cliArgument)) {
         const arg: Record<string, unknown> = {
             type: "named",
             name: "--" + argument.configKey,
@@ -207,8 +213,9 @@ function updateServerJsonEnvVars(envVars: ArgumentInfo[]): void {
     const packageJsonPath = join(__dirname, "..", "..", "..", "packages", "mongodb-mcp-server", "package.json");
 
     const content = readFileSync(serverJsonPath, "utf-8");
-    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8")) as { version: string };
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8")) as { version: string; description: string };
     const serverJson = JSON.parse(content) as {
+        description?: string;
         version?: string;
         packages: {
             registryType?: string;
@@ -235,6 +242,9 @@ function updateServerJsonEnvVars(envVars: ArgumentInfo[]): void {
     // Generate package arguments (named arguments in camelCase)
     const packageArguments = generatePackageArguments(envVars);
 
+    // The registry description is sourced from package.json so the two cannot drift
+    serverJson.description = packageJson.description;
+
     // Update version at root level
     serverJson.version = process.env.VERSION || version;
 
@@ -258,6 +268,28 @@ function updateServerJsonEnvVars(envVars: ArgumentInfo[]): void {
     console.log(`✓ Updated server.json (version ${version})`);
 }
 
+function updateDockerfileDescription(): void {
+    const packageDir = join(__dirname, "..", "..", "..", "packages", "mongodb-mcp-server");
+    const dockerfilePath = join(packageDir, "Dockerfile");
+    const { description } = JSON.parse(readFileSync(join(packageDir, "package.json"), "utf-8")) as {
+        description: string;
+    };
+
+    const labelPattern = /^LABEL description=".*"$/m;
+    const dockerfile = readFileSync(dockerfilePath, "utf-8");
+    if (!labelPattern.test(dockerfile)) {
+        throw new Error(`Could not find a LABEL description line in ${dockerfilePath}`);
+    }
+
+    const escaped = description.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    writeFileSync(
+        dockerfilePath,
+        dockerfile.replace(labelPattern, () => `LABEL description="${escaped}"`),
+        "utf-8"
+    );
+    console.log("✓ Updated Dockerfile description label");
+}
+
 function generateReadmeConfigTable(argumentInfos: ArgumentInfo[]): string {
     const rows = [
         "| Environment Variable / CLI Option      | Default                                                                     | Description                                                                                                                                                                                             |",
@@ -268,8 +300,8 @@ function generateReadmeConfigTable(argumentInfos: ArgumentInfo[]): string {
     const documentedVars = argumentInfos.filter((v) => !v.description.startsWith("Configuration option:"));
 
     for (const argumentInfo of documentedVars) {
-        const cliOption = `\`--${argumentInfo.configKey}\``;
         const envVarName = `\`${argumentInfo.name}\``;
+        const option = argumentInfo.cliArgument ? `${envVarName} / \`--${argumentInfo.configKey}\`` : envVarName;
 
         const defaultValue = argumentInfo.defaultValue;
 
@@ -298,9 +330,7 @@ function generateReadmeConfigTable(argumentInfos: ArgumentInfo[]): string {
         }
 
         const desc = argumentInfo.description.replace(/\|/g, "\\|"); // Escape pipes in description
-        rows.push(
-            `| ${`${envVarName} / ${cliOption}`.padEnd(89)} | ${defaultValueString.padEnd(75)} | ${desc.padEnd(199)} |`
-        );
+        rows.push(`| ${option.padEnd(89)} | ${defaultValueString.padEnd(75)} | ${desc.padEnd(199)} |`);
     }
 
     return rows.join("\n");
@@ -329,5 +359,6 @@ export function generateArguments(): void {
     const zodMetadata = extractZodDescriptions();
     const argumentInfo = getArgumentInfo(zodMetadata);
     updateServerJsonEnvVars(argumentInfo);
+    updateDockerfileDescription();
     updateReadmeConfigTable(argumentInfo);
 }

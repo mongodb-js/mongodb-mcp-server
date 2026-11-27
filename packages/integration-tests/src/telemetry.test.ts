@@ -1,13 +1,13 @@
 import { CompositeLogger } from "@mongodb-js/mcp-core";
+import { useMockTelemetry } from "@mongodb-js/mcp-test-utils";
 import { DeviceId } from "@mongodb-js/mcp-tools-mongodb";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { connectClient } from "./helpers/connectClient.js";
 import { expectToolEvent } from "./helpers/expectToolEvent.js";
 import { useBinaryServer } from "./helpers/useBinaryServer.js";
-import { useMockTelemetry } from "./helpers/useMockTelemetry.js";
 
-const SERVER_ARGS = ["--disabledTools", "atlas-local"];
+const SERVER_ARGS = ["--disabledTools", "atlas-local", "--loggers", "mcp"];
 
 let actualDeviceId: string;
 
@@ -98,9 +98,6 @@ describe("telemetry over the AI SDK MCP client", () => {
             expect(result.isError).toBe(false);
 
             await client.close();
-            // Let the server shut down so any cached flush completes.
-            await new Promise((resolve) => setTimeout(resolve, 1_000));
-
             expect(telemetry.received).toEqual([]);
         });
     });

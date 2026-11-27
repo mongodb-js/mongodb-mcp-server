@@ -14,7 +14,12 @@ import type {
     CreateConnectionEntryOptions,
     CreateConnectionOptions,
 } from "./connectionRegistry.js";
-import { buildEntryName, ConnectionEntry, PRECONFIGURED_CONNECTION_ID } from "./connectionRegistry.js";
+import {
+    buildEntryName,
+    CONNECTION_NAME_PATTERN,
+    ConnectionEntry,
+    PRECONFIGURED_CONNECTION_ID,
+} from "./connectionRegistry.js";
 
 /**
  * Structural subset of the embedder's configuration that the store reads: the
@@ -27,13 +32,25 @@ import { buildEntryName, ConnectionEntry, PRECONFIGURED_CONNECTION_ID } from "./
  * the store depending on it directly.
  */
 export type ConnectionStoreConfig = ConnectionDriverConfig & {
-    connectionString?: string;
+    /**
+     * Configured connection strings, keyed by connectionId. Each one seeds a
+     * pinned entry that is dialed on first use.
+     */
+    connectionStrings: Record<string, string>;
     maxActiveConnections: number;
     /**
      * Milliseconds a connection may stay unused before the idle reaper closes
      * it. `0` disables reaping (default 600_000 / 10 minutes).
      */
     connectionIdleTimeoutMs: number;
+    /**
+     * Milliseconds a connection may stay in the `connecting` state before the
+     * reaper closes it, so a stalled dial cannot pin a connection forever. `0`
+     * disables it. Separate from `connectionIdleTimeoutMs` so lowering the idle
+     * timeout does not abort a legitimate multi-minute OIDC flow. Optional;
+     * defaults to {@link DEFAULT_CONNECTION_CONNECT_TIMEOUT_MS}.
+     */
+    connectionConnectTimeoutMs?: number;
     transport: "stdio" | "http";
     httpHost: string;
     /** Client-side operation timeout (CSOT) applied as the driver `timeoutMS`. */
@@ -41,6 +58,12 @@ export type ConnectionStoreConfig = ConnectionDriverConfig & {
     /** @deprecated Use `timeoutMs`. Resolved here so directly-constructed configs keep working. */
     maxTimeMS?: number;
 };
+
+/**
+ * Default deadline (ms) a connection may stay `connecting` before the reaper
+ * closes it. Shared with the CLI's `connectionConnectTimeoutMs` schema default.
+ */
+export const DEFAULT_CONNECTION_CONNECT_TIMEOUT_MS = 600_000;
 
 /**
  * Fallback server metadata used when the embedder does not supply any. The cli
@@ -95,8 +118,10 @@ export class MCPConnectionStore {
     private readonly deviceId: DeviceId;
     private readonly serverMetadata: ServerMetadata;
     private readonly connectionIdleTimeoutMs: number;
+    private readonly connectionConnectTimeoutMs: number;
     private readonly keychain: Keychain;
-    private preconfiguredDial?: Promise<unknown>;
+    /** In-flight dial per pinned entry, keyed by connectionId, so concurrent resolves share one dial. */
+    private readonly preconfiguredDials = new Map<string, Promise<void>>();
     private sweepTimer?: ReturnType<typeof setInterval>;
 
     constructor(options: ConnectionStoreOptions) {
@@ -106,21 +131,38 @@ export class MCPConnectionStore {
         this.deviceId = deviceId;
         this.serverMetadata = serverMetadata ?? DEFAULT_SERVER_METADATA;
         this.connectionIdleTimeoutMs = config.connectionIdleTimeoutMs;
+        this.connectionConnectTimeoutMs = config.connectionConnectTimeoutMs ?? DEFAULT_CONNECTION_CONNECT_TIMEOUT_MS;
         this.keychain = keychain;
 
         this.startSweeper();
 
-        if (this.options.connectionString) {
-            this.entries.set(PRECONFIGURED_CONNECTION_ID, {
-                entry: new ConnectionEntry({
-                    connectionId: PRECONFIGURED_CONNECTION_ID,
-                    name: PRECONFIGURED_CONNECTION_ID,
-                    source: "preconfigured",
-                    manager: this.createConnectionManager(),
-                    keychain,
-                }),
-            });
+        for (const connectionId of Object.keys(this.options.connectionStrings)) {
+            // Validated here as well as in the CLI config schema, since embedders construct the store directly.
+            if (!CONNECTION_NAME_PATTERN.test(connectionId)) {
+                throw new Error(
+                    `Invalid connection name "${connectionId}": names may only contain letters, digits, '.', '_' and '-' (max 64 characters).`
+                );
+            }
+            this.seedPreconfigured(connectionId);
         }
+    }
+
+    /**
+     * Registers a pinned entry for a configured connection string. Nothing is
+     * dialed here: the entry connects on its first resolve and redials after a
+     * disconnect or failure, so configuring many deployments costs no
+     * connections until they are used.
+     */
+    private seedPreconfigured(connectionId: string): void {
+        this.entries.set(connectionId, {
+            entry: new ConnectionEntry({
+                connectionId,
+                name: connectionId,
+                source: "preconfigured",
+                manager: this.createConnectionManager(),
+                keychain: this.keychain,
+            }),
+        });
     }
 
     /**
@@ -151,7 +193,7 @@ export class MCPConnectionStore {
             serverMetadata: this.serverMetadata,
             connectionInfo: this.connectionInfo(),
             // The store options are a ConnectionDriverConfig superset;
-            // the extra store-level fields (connectionString,
+            // the extra store-level fields (connectionStrings,
             // maxActiveConnections, transport, httpHost) are not read
             // by mongosh's arg-parser, so passing the whole object is
             // equivalent to passing just the driver fields.
@@ -201,6 +243,10 @@ export class MCPConnectionStore {
                 );
             }
             if (entry.source === "preconfigured") {
+                // A startup dial may still be in flight; wait for it first,
+                // otherwise this close is a no-op (the manager is still
+                // disconnected) and the dial's connection survives it.
+                await this.preconfiguredDials.get(entry.connectionId)?.catch(() => undefined);
                 await entry.close();
                 return;
             }
@@ -249,11 +295,13 @@ export class MCPConnectionStore {
                     );
                 }
 
-                if (
-                    entry.source === "preconfigured" &&
-                    (entry.state.tag === "disconnected" || entry.state.tag === "errored")
-                ) {
-                    await this.dialPreconfigured(entry);
+                if (entry.source === "preconfigured") {
+                    if (entry.state.tag === "disconnected" || entry.state.tag === "errored") {
+                        await this.dialPreconfigured(entry);
+                    }
+                    // Configured connections wait for OIDC auth so the first tool call
+                    // succeeds; explicit connections fail fast (caller can retry).
+                    return entry.getServiceProviderWhenReady();
                 }
 
                 return entry.getServiceProvider();
@@ -273,6 +321,28 @@ export class MCPConnectionStore {
         };
     }
 
+    /**
+     * Dials the preconfigured connection ahead of the first tool call so
+     * interactive auth flows get a head start. No-op without a configured
+     * connection string or when already dialing; failures are logged, not
+     * thrown, so startup is never blocked (the lazy path retries). Named
+     * connections are not dialed here: they connect on first use, so a server
+     * configured with many deployments does not open them all (or start
+     * several auth flows) at startup.
+     */
+    async connectPreconfigured(): Promise<void> {
+        const entry = this.entries.get(PRECONFIGURED_CONNECTION_ID)?.entry;
+        if (!entry || entry.state.tag === "connected" || entry.state.tag === "connecting") {
+            return;
+        }
+
+        try {
+            await this.dialPreconfigured(entry);
+        } catch {
+            // dialPreconfigured already logged the failure; a later resolve retries.
+        }
+    }
+
     /** Closes and removes every entry, including the preconfigured one. For process/runner shutdown. */
     async closeAll(): Promise<void> {
         this.stopSweeper();
@@ -289,43 +359,48 @@ export class MCPConnectionStore {
      * {@link revoke} so temp-user cleanup, list-connections removal, and the
      * revocation log behave exactly as an LRU overflow.
      *
-     * The preconfigured connection is pinned (auto-redials on next resolve) and
-     * an in-progress dial is left alone (it may take minutes).
+     * The preconfigured connection is pinned (auto-redials on next resolve).
+     * A dial is left alone until it exceeds {@link connectionConnectTimeoutMs}.
      */
     private async sweepIdleConnections(): Promise<void> {
-        if (this.connectionIdleTimeoutMs <= 0) {
-            return;
-        }
         const now = Date.now();
-        const idle: ConnectionEntry[] = [];
+        const expired: ConnectionEntry[] = [];
         for (const { entry } of this.entries.values()) {
             if (entry.source === "preconfigured") {
                 continue;
             }
             if (entry.state.tag === "connecting") {
+                // Measure from when the dial started, not lastUsedAt: resolving
+                // a stalled connection refreshes lastUsedAt and would reset the
+                // deadline.
+                if (
+                    this.connectionConnectTimeoutMs > 0 &&
+                    now - entry.state.startedAt > this.connectionConnectTimeoutMs
+                ) {
+                    expired.push(entry);
+                }
                 continue;
             }
-            if (now - entry.lastUsedAt.getTime() > this.connectionIdleTimeoutMs) {
-                idle.push(entry);
+            if (this.connectionIdleTimeoutMs > 0 && now - entry.lastUsedAt.getTime() > this.connectionIdleTimeoutMs) {
+                expired.push(entry);
             }
         }
-        for (const entry of idle) {
+        for (const entry of expired) {
             this.entries.delete(entry.connectionId);
             await this.revoke(entry);
         }
     }
 
     private startSweeper(): void {
-        if (this.connectionIdleTimeoutMs <= 0) {
+        // Reap on the shortest enabled timeout's cadence; a `0` timeout disables its rule.
+        const cadences = [this.connectionIdleTimeoutMs, this.connectionConnectTimeoutMs].filter((ms) => ms > 0);
+        if (cadences.length === 0) {
             return;
         }
-        // Reap on the timeout cadence itself, so an entry is released within one
-        // interval of crossing the threshold. 0 (handled above) disables; the
-        // connectionIdleTimeoutMs schema rejects negatives, so a tiny but positive
-        // value here simply makes the reaper run more often.
+        const cadence = Math.min(...cadences);
         this.sweepTimer = setInterval(() => {
             void this.sweepIdleConnections();
-        }, this.connectionIdleTimeoutMs);
+        }, cadence);
         // Browser-safe: unref() is a Node-only method that keeps the timer from
         // holding the process open; skip it when unavailable (e.g. in a web build).
         if (typeof this.sweepTimer?.unref === "function") {
@@ -367,27 +442,40 @@ export class MCPConnectionStore {
     }
 
     private async dialPreconfigured(entry: ConnectionEntry): Promise<void> {
-        this.preconfiguredDial ??= (async (): Promise<void> => {
-            const connectionInfo = generateConnectionInfoFromCliArgs({
-                // Same rationale as in the constructor: mongosh only consumes
-                // known CLI-option keys, so spreading the whole store config is
-                // fine and keeps the preconfigured dial on equal footing with
-                // tool-initiated connects.
-                ...this.options,
-                connectionSpecifier: this.options.connectionString,
+        const { connectionId } = entry;
+        let dial = this.preconfiguredDials.get(connectionId);
+        if (!dial) {
+            dial = (async (): Promise<void> => {
+                const connectionInfo = generateConnectionInfoFromCliArgs({
+                    // Same rationale as in the constructor: mongosh only consumes
+                    // known CLI-option keys, so spreading the whole store config is
+                    // fine and keeps the preconfigured dial on equal footing with
+                    // tool-initiated connects.
+                    ...this.options,
+                    // Read at dial time rather than captured at seeding, like the
+                    // single connection string always was.
+                    connectionSpecifier: this.options.connectionStrings[connectionId],
+                });
+                await entry.connect(connectionInfo);
+                // The store may have been closed while the dial was in flight, in
+                // which case the entry is no longer reachable — close the provider
+                // we just created instead of leaking it.
+                if (this.entries.get(connectionId)?.entry !== entry) {
+                    await entry.close().catch(() => undefined);
+                }
+            })().finally(() => {
+                this.preconfiguredDials.delete(connectionId);
             });
-            await entry.connect(connectionInfo);
-        })().finally(() => {
-            this.preconfiguredDial = undefined;
-        });
+            this.preconfiguredDials.set(connectionId, dial);
+        }
 
         try {
-            await this.preconfiguredDial;
+            await dial;
         } catch (error: unknown) {
             this.logger.error({
                 id: LogId.connectionRegistryDialFailure,
                 context: "connectionRegistry",
-                message: `Failed to connect using the configured connection string: ${error as string}`,
+                message: `Failed to connect using the configured connection string for "${connectionId}": ${error as string}`,
             });
             const fallbackMessage = error instanceof Error ? error.message : String(error);
             throw new MongoDBError(ErrorCodes.MisconfiguredConnectionString, entry.lastError ?? fallbackMessage);

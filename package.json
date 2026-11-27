@@ -2,7 +2,7 @@
   "name": "mongodb-mcp-server-monorepo",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@11.5.1",
+  "packageManager": "pnpm@12.21.0",
   "scripts": {
     "start": "pnpm --filter mongodb-mcp-server start",
     "start:stdio": "pnpm --filter mongodb-mcp-server start:stdio",
@@ -78,5 +78,5 @@
   "engines": {
     "node": "^20.19.0 || ^22.13.0 || >= 24.0.0"
   },
-  "version": "3.2.2"
+  "version": "3.4.0"
 }

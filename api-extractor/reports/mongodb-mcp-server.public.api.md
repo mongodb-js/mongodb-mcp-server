@@ -31,7 +31,7 @@ import type { ReadResourceCallback } from '@modelcontextprotocol/server';
 import { Registry } from 'prom-client';
 import type { RequestMeta } from '@modelcontextprotocol/server';
 import type { ResourceMetadata } from '@modelcontextprotocol/server';
-import { Secret } from 'mongodb-redact';
+import { Secret } from '@mongodb-js/mongodb-redact';
 import type { ServerContext } from '@modelcontextprotocol/server';
 import { NodeStreamableHTTPServerTransport as StreamableHTTPServerTransport } from '@modelcontextprotocol/node';
 import { ToolAnnotations } from '@modelcontextprotocol/server';
@@ -495,6 +495,7 @@ export interface ConnectionStateConnecting extends ConnectionState {
     oidcUserCode?: string;
     // (undocumented)
     serviceProvider: Promise<NodeDriverServiceProvider>;
+    startedAt: number;
     // (undocumented)
     tag: "connecting";
 }
@@ -577,7 +578,7 @@ export class Elicitation implements IElicitation {
     inputRequired(input: ElicitInputRequiredParams): InputRequiredResult;
     readConfirmation(inputResponses: ElicitationInputResponses): boolean | undefined;
     readInput(inputResponses: ElicitationInputResponses, key: string): ElicitedInputResult | undefined;
-    supportsElicitation(): boolean;
+    supportsElicitation(request: ElicitationRequestContext): boolean;
 }
 
 // @public (undocumented)
@@ -1063,6 +1064,7 @@ export type TransportRequestContext = {
     query?: Record<string, string | string[] | undefined>;
     authInfo?: RequestAuthInfo;
     mcp_client_protocol?: McpProtocol;
+    sessionful?: boolean;
 };
 
 // @public
@@ -1080,10 +1082,12 @@ export type UserConfig = z.infer<typeof UserConfigSchema>;
 // @public (undocumented)
 export const UserConfigSchema: z.ZodObject<{
     apiBaseUrl: z.ZodDefault<z.ZodString>;
+    telemetryBaseUrl: z.ZodOptional<z.ZodString>;
     assistantBaseUrl: z.ZodDefault<z.ZodString>;
     apiClientId: z.ZodOptional<z.ZodString>;
     apiClientSecret: z.ZodOptional<z.ZodString>;
     connectionString: z.ZodOptional<z.ZodString>;
+    connectionStrings: z.ZodDefault<z.ZodRecord<z.ZodString, z.ZodString>>;
     loggers: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
         stderr: "stderr";
         disk: "disk";
@@ -1122,6 +1126,7 @@ export const UserConfigSchema: z.ZodObject<{
     httpBodyLimit: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     maxActiveConnections: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     connectionIdleTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    connectionConnectTimeoutMs: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     connectionScope: z.ZodDefault<z.ZodEnum<{
         session: "session";
         global: "global";
@@ -1160,6 +1165,7 @@ export const UserConfigSchema: z.ZodObject<{
     monitoringServerFeatures: z.ZodDefault<z.ZodPreprocess<z.ZodArray<z.ZodEnum<{
         "health-check": "health-check";
         metrics: "metrics";
+        "process-metrics": "process-metrics";
     }>>, string | string[] | undefined>>;
     gssapiHostName: z.ZodOptional<z.ZodString>;
     sslFIPSMode: z.ZodOptional<z.ZodBoolean>;

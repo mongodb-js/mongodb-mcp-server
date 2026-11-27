@@ -623,7 +623,7 @@ export abstract class ToolBase<
         };
 
         try {
-            if (this.requiresConfirmation() && this.server.elicitation.supportsElicitation()) {
+            if (this.requiresConfirmation() && this.server.elicitation.supportsElicitation(context.request)) {
                 // Multi-round-trip elicitation (protocol revision 2026-07-28):
                 // the first entry returns an `inputRequired` result asking the
                 // user to confirm; on re-entry the answers are read back from
