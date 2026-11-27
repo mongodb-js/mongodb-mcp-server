@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
+import http from "http";
 import type express from "express";
 import { MCPHttpServer } from "./mcpHttpServer.js";
 import type { LegacyMcpHandler, LegacySessionOptions } from "./legacyMcpHttpHandler.js";
@@ -849,5 +850,140 @@ describe("MCPHttpServer client protocol reporting", () => {
         const reported = seen.map((request) => request.mcp_client_protocol);
         expect(reported).toContain("legacy");
         expect(reported).not.toContain("2025-06-18");
+    });
+});
+
+describe("MCPHttpServer Host and Origin validation (DNS rebinding protection)", () => {
+    let server: MCPHttpServer<BaseServer> | undefined;
+
+    function makeConfiguredServer(overrides: Partial<HttpServerOptions> = {}): MCPHttpServer<BaseServer> {
+        const opts: HttpServerOptions = {
+            host: "127.0.0.1",
+            port: 0,
+            responseType: "json",
+            ...overrides,
+        };
+        class ConfiguredServer extends MCPHttpServer<BaseServer> {
+            constructor() {
+                super({
+                    options: { http: opts },
+                    logger: new InMemoryLogger(),
+                    metrics: new MockMetrics(),
+                });
+            }
+
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            protected override createServerForRequest(_request: TransportRequestContext): Promise<BaseServer> {
+                return Promise.resolve(makeFakeServer());
+            }
+        }
+        return new ConfiguredServer();
+    }
+
+    function sendRawPost(
+        serverAddress: string,
+        headers: Record<string, string>,
+        body: string
+    ): Promise<{ statusCode: number; body: string }> {
+        const url = new URL(`${serverAddress}/mcp`);
+        return new Promise((resolve, reject) => {
+            const req = http.request(
+                {
+                    hostname: url.hostname,
+                    port: Number(url.port),
+                    path: url.pathname,
+                    method: "POST",
+                    headers: {
+                        "content-type": "application/json",
+                        accept: "application/json, text/event-stream",
+                        "content-length": Buffer.byteLength(body).toString(),
+                        ...headers,
+                    },
+                },
+                (res) => {
+                    const chunks: Buffer[] = [];
+                    res.on("data", (chunk: Buffer) => chunks.push(chunk));
+                    res.on("end", () => {
+                        resolve({
+                            statusCode: res.statusCode ?? 0,
+                            body: Buffer.concat(chunks).toString("utf8"),
+                        });
+                    });
+                }
+            );
+            req.on("error", reject);
+            req.write(body);
+            req.end();
+        });
+    }
+
+    afterEach(async () => {
+        await server?.stop();
+        server = undefined;
+    });
+
+    it("rejects forged Host header with 403 before JSON body parsing", async () => {
+        server = makeConfiguredServer();
+        await server.start();
+
+        // Send deliberately invalid JSON to prove Host validation runs before express.json()
+        const res = await sendRawPost(server.serverAddress, { Host: "evil.example:3000" }, "{not-valid-json");
+        expect(res.statusCode).toBe(403);
+        expect(JSON.parse(res.body)).toEqual({ error: "Invalid Host header" });
+    });
+
+    it("rejects forged Origin header with 403 even with a valid loopback Host", async () => {
+        server = makeConfiguredServer();
+        await server.start();
+
+        const port = new URL(server.serverAddress).port;
+        const res = await sendRawPost(
+            server.serverAddress,
+            {
+                Host: `127.0.0.1:${port}`,
+                Origin: `http://evil.example:${port}`,
+            },
+            MODERN_BODY
+        );
+        expect(res.statusCode).toBe(403);
+        expect(JSON.parse(res.body)).toEqual({ error: "Invalid Origin header" });
+    });
+
+    it("accepts requests with valid resolved loopback Host and matching Origin", async () => {
+        server = makeConfiguredServer();
+        await server.start();
+
+        const port = new URL(server.serverAddress).port;
+        const res = await sendRawPost(
+            server.serverAddress,
+            {
+                Host: `localhost:${port}`,
+                Origin: `http://localhost:${port}`,
+                "mcp-method": "tools/list",
+                "mcp-protocol-version": "2026-07-28",
+            },
+            MODERN_BODY
+        );
+        expect(res.statusCode).toBe(200);
+    });
+
+    it("accepts configured allowedHosts and allowedOrigins", async () => {
+        server = makeConfiguredServer({
+            allowedHosts: ["mcp.example.com"],
+            allowedOrigins: ["https://app.example.com"],
+        });
+        await server.start();
+
+        const res = await sendRawPost(
+            server.serverAddress,
+            {
+                Host: "mcp.example.com",
+                Origin: "https://app.example.com",
+                "mcp-method": "tools/list",
+                "mcp-protocol-version": "2026-07-28",
+            },
+            MODERN_BODY
+        );
+        expect(res.statusCode).toBe(200);
     });
 });

@@ -23,6 +23,7 @@ import {
     SessionStore,
 } from "@mongodb-js/mcp-core";
 import { ExpressBasedHttpServer } from "./expressBasedHttpServer.js";
+import { createHostOriginValidationMiddleware } from "./hostOriginValidation.js";
 import { LegacyMcpHttpHandler, type LegacyMcpHandler, type LegacySessionOptions } from "./legacyMcpHttpHandler.js";
 
 /**
@@ -203,6 +204,20 @@ export abstract class MCPHttpServer<
 
     // eslint-disable-next-line @typescript-eslint/require-await -- Required for override signature
     protected override async setupRoutes(): Promise<void> {
+        // Validate Host/Origin before body parsing to block DNS rebinding
+        // and cross-origin browser requests before express.json() runs.
+        this.app.use(
+            createHostOriginValidationMiddleware({
+                getResolvedPort: () => {
+                    const address = this.httpServer?.address();
+                    return typeof address === "object" && address ? address.port : this.httpOptions.port;
+                },
+                bindHost: this.httpOptions.host,
+                allowedHosts: this.httpOptions.allowedHosts,
+                allowedOrigins: this.httpOptions.allowedOrigins,
+            })
+        );
+
         this.app.use(express.json({ limit: this.httpOptions.bodyLimit ?? 1024 * 1024 }));
 
         const headers = this.httpOptions.headers;

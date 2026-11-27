@@ -227,6 +227,8 @@ describe("configOverrides", () => {
                         "httpPort",
                         "httpHost",
                         "httpHeaders",
+                        "httpAllowedHosts",
+                        "httpAllowedOrigins",
                         "httpBodyLimit",
                         "connectionConnectTimeoutMs",
                         "maxSessions",

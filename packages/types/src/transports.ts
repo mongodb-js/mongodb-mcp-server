@@ -19,6 +19,19 @@ export type HttpServerOptions = {
      * explicitly only when the server is intentionally exposed to the network.
      */
     dangerousHostBinding?: boolean;
+    /**
+     * Additional allowed `Host` header values (for example, reverse-proxy
+     * hostnames such as `"mcp.example.com"` or `"mcp.example.com:8443"`).
+     * Loopback hosts and the bound `host` (with the resolved listening port)
+     * are always allowed by default.
+     */
+    allowedHosts?: string[];
+    /**
+     * Additional allowed `Origin` header values (for example,
+     * `"https://app.example.com"`). Loopback origins and the bound `host`
+     * origin (with the resolved listening port) are always allowed by default.
+     */
+    allowedOrigins?: string[];
 };
 
 /**
