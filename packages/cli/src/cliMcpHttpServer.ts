@@ -90,6 +90,8 @@ export function createHttpTransportRunnerFromConfig(sharedServices: SharedServer
                 responseType: config.httpResponseType,
                 headers: config.httpHeaders,
                 dangerousHostBinding: config.dangerousHostBinding,
+                allowedHosts: config.httpAllowedHosts,
+                allowedOrigins: config.httpAllowedOrigins,
             },
             // The CLI's own runner is a local, unauthenticated deployment: the
             // policy comes from the `connectionScope` config option — "session"

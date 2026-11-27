@@ -55,6 +55,8 @@ const expectedDefaults = {
     evictionIdleGraceMS: 120000,
     externallyManagedSessions: false,
     httpHeaders: {},
+    httpAllowedHosts: [],
+    httpAllowedOrigins: [],
     connectionStrings: {},
     dangerousHostBinding: false,
     httpBodyLimit: TRANSPORT_PAYLOAD_LIMITS.http,

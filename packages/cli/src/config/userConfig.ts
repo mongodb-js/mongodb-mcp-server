@@ -211,6 +211,20 @@ const ServerConfigSchema = z.object({
             "Header that the HTTP server will validate when making requests (only used when transport is 'http')."
         )
         .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    httpAllowedHosts: z
+        .preprocess((val: string | string[] | undefined) => commaSeparatedToArray(val), z.array(z.string()))
+        .default([])
+        .describe(
+            "Additional allowed Host header values for the HTTP server (only used when transport is 'http'). Loopback hosts and the bound httpHost are allowed by default."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
+    httpAllowedOrigins: z
+        .preprocess((val: string | string[] | undefined) => commaSeparatedToArray(val), z.array(z.string()))
+        .default([])
+        .describe(
+            "Additional allowed Origin header values for the HTTP server (only used when transport is 'http'). Loopback origins and the bound httpHost origin are allowed by default."
+        )
+        .register(configRegistry, { overrideBehavior: "not-allowed" }),
     dangerousHostBinding: z
         .preprocess(parseBoolean, z.boolean())
         .default(false)
