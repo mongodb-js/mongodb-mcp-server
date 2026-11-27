@@ -28,7 +28,7 @@
     "@mongodb-js/mcp-atlas-telemetry": "workspace:*",
     "@mongodb-js/mcp-core": "workspace:*",
     "@mongodb-js/mcp-types": "workspace:*",
-    "@mongodb-js/mongodb-build-info": "^1.9.19",
+    "@mongodb-js/mongodb-build-info": "^1.9.21",
     "@mongosh/arg-parser": "^5.0.2",
     "@mongosh/service-provider-node-driver": "^5.6.12",
     "bson": "^7.2.0",
