@@ -11,6 +11,7 @@ import type { DeviceId } from "../helpers/deviceId.js";
 import { MongoDBError, ErrorCodes } from "./errors.js";
 import { type LoggerBase, LogId } from "@mongodb-js/mcp-core";
 import { type AppNameComponents, setAppNameParamIfMissing } from "../helpers/connectionOptions.js";
+import { DEFAULT_OPERATION_TIMEOUT_MS } from "../helpers/constants.js";
 import {
     getConnectionStringInfo,
     type ConnectionStringInfo,
@@ -67,7 +68,7 @@ export const defaultDriverOptions: MongoshConnectionInfo["driverOptions"] = {
     writeConcern: {
         w: "majority",
     },
-    timeoutMS: 30_000,
+    timeoutMS: DEFAULT_OPERATION_TIMEOUT_MS,
     proxy: { useEnvironmentVariableProxies: true },
     applyProxyToOIDC: true,
 };
@@ -331,7 +332,7 @@ export type ConnectionManagerOptions = {
     /**
      * Client-side operation timeout (CSOT) applied as the driver `timeoutMS`
      * on every connection, overriding the MCP default. When unset, the
-     * {@link defaultDriverOptions} value is used.
+     * connection's own driver `timeoutMS` or {@link DEFAULT_OPERATION_TIMEOUT_MS} is used.
      */
     timeoutMs?: number;
     /** Optional event emitter shared with the OIDC plugin to receive `mongodb-oidc-plugin:auth-*` notifications. */
@@ -475,8 +476,10 @@ export class MCPConnectionManager extends ConnectionManager {
                 ...mongoshConnectionInfo.driverOptions,
                 // Applied here rather than through the arg-parser, which drops
                 // unknown driver options (including `timeoutMS`) from the derived
-                // path. The server config wins over any caller-supplied value.
-                ...(this.timeoutMs !== undefined && { timeoutMS: this.timeoutMs }),
+                // path. Precedence: server config, then the connection's own
+                // driver options, then the default.
+                timeoutMS:
+                    this.timeoutMs ?? mongoshConnectionInfo.driverOptions.timeoutMS ?? DEFAULT_OPERATION_TIMEOUT_MS,
             };
             serviceProvider = settings.mongoClient
                 ? Promise.resolve(

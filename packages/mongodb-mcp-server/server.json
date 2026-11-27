@@ -368,7 +368,7 @@
         },
         {
           "name": "MDB_MCP_TIMEOUT_MS",
-          "description": "The maximum time in milliseconds that MongoDB operations are allowed to run, applied as the driver's timeoutMS (client-side operation timeout, CSOT) on each connection. It bounds the entire operation, including server selection and network round trips.",
+          "description": "The maximum time in milliseconds that MongoDB operations are allowed to run, applied as the driver's timeoutMS (client-side operation timeout, CSOT) on each connection. It bounds the entire operation, including server selection and network round trips. Defaults to 120000 (2 minutes) when unset; set to 0 to disable.",
           "isRequired": false,
           "format": "number",
           "isSecret": false
@@ -716,7 +716,7 @@
         {
           "type": "named",
           "name": "--timeoutMs",
-          "description": "The maximum time in milliseconds that MongoDB operations are allowed to run, applied as the driver's timeoutMS (client-side operation timeout, CSOT) on each connection. It bounds the entire operation, including server selection and network round trips.",
+          "description": "The maximum time in milliseconds that MongoDB operations are allowed to run, applied as the driver's timeoutMS (client-side operation timeout, CSOT) on each connection. It bounds the entire operation, including server selection and network round trips. Defaults to 120000 (2 minutes) when unset; set to 0 to disable.",
           "isRequired": false,
           "format": "number"
         },
@@ -1093,7 +1093,7 @@
         },
         {
           "name": "MDB_MCP_TIMEOUT_MS",
-          "description": "The maximum time in milliseconds that MongoDB operations are allowed to run, applied as the driver's timeoutMS (client-side operation timeout, CSOT) on each connection. It bounds the entire operation, including server selection and network round trips.",
+          "description": "The maximum time in milliseconds that MongoDB operations are allowed to run, applied as the driver's timeoutMS (client-side operation timeout, CSOT) on each connection. It bounds the entire operation, including server selection and network round trips. Defaults to 120000 (2 minutes) when unset; set to 0 to disable.",
           "isRequired": false,
           "format": "number",
           "isSecret": false
@@ -1441,7 +1441,7 @@
         {
           "type": "named",
           "name": "--timeoutMs",
-          "description": "The maximum time in milliseconds that MongoDB operations are allowed to run, applied as the driver's timeoutMS (client-side operation timeout, CSOT) on each connection. It bounds the entire operation, including server selection and network round trips.",
+          "description": "The maximum time in milliseconds that MongoDB operations are allowed to run, applied as the driver's timeoutMS (client-side operation timeout, CSOT) on each connection. It bounds the entire operation, including server selection and network round trips. Defaults to 120000 (2 minutes) when unset; set to 0 to disable.",
           "isRequired": false,
           "format": "number"
         },

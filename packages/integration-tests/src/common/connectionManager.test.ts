@@ -393,6 +393,60 @@ describeWithMongoDB({
         downloadOptions: { search: true },
     },
 });
+describeWithMongoDB({
+    name: "Connection Manager operation timeout",
+    fn: (integration) => {
+        type TimeoutCase = {
+            name: string;
+            timeoutMs?: number;
+            driverOptions?: { timeoutMS: number };
+            expected: number;
+        };
+        const cases: TimeoutCase[] = [
+            { name: "defaults to 120000 when nothing is configured", expected: 120_000 },
+            { name: "uses the timeoutMs option when provided", timeoutMs: 5_000, expected: 5_000 },
+            { name: "allows disabling the timeout with timeoutMs 0", timeoutMs: 0, expected: 0 },
+            {
+                name: "falls back to the default when explicit driver options omit timeoutMS",
+                driverOptions: {} as { timeoutMS: number },
+                expected: 120_000,
+            },
+            {
+                name: "honours timeoutMS from explicit driver options",
+                driverOptions: { timeoutMS: 7_000 },
+                expected: 7_000,
+            },
+            {
+                name: "prefers timeoutMs over explicit driver options",
+                timeoutMs: 5_000,
+                driverOptions: { timeoutMS: 7_000 },
+                expected: 5_000,
+            },
+        ];
+        for (const testCase of cases) {
+            it(testCase.name, async () => {
+                const manager = new MCPConnectionManager({
+                    logger: new CompositeLogger(),
+                    deviceId: DeviceId.create(new CompositeLogger()),
+                    serverMetadata: { mcpServerName: "test-server", version: "1.0" },
+                    connectionInfo: { transport: "stdio", httpHost: "localhost" },
+                    ...(testCase.timeoutMs !== undefined && { timeoutMs: testCase.timeoutMs }),
+                });
+                try {
+                    const state = await manager.connect({
+                        connectionString: integration.connectionString(),
+                        ...(testCase.driverOptions && { driverOptions: testCase.driverOptions }),
+                    });
+                    expect(state.tag).toEqual("connected");
+                    const { serviceProvider } = state as ConnectionStateConnected;
+                    expect(serviceProvider.mongoClient.timeoutMS).toEqual(testCase.expected);
+                } finally {
+                    await manager.close().catch(() => undefined);
+                }
+            });
+        }
+    },
+});
 describe("Connection Manager connection type inference", () => {
     const testCases = [
         { userConfig: {}, connectionString: "mongodb://localhost:27017", connectionType: "scram" },

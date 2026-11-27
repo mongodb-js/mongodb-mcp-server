@@ -1,11 +1,12 @@
 import path from "path";
 import { Long } from "bson";
 import fs from "fs/promises";
-import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CallToolResult } from "@mongodb-js/mcp-types";
 import {
     databaseCollectionParameters,
     defaultTestConfig,
+    expectDefined,
     getResponseContent,
     resourceChangedNotification,
     validateThrowsForInvalidArguments,
@@ -643,6 +644,60 @@ describeWithMongoDB({
     },
     config: {
         getUserConfig: () => userConfig,
+        serverOptions: { resources: [ExportedData] },
+    },
+});
+describeWithMongoDB({
+    name: "export tool operation timeout",
+    fn: (integration) => {
+        beforeEach(async () => {
+            await integration
+                .mongoClient()
+                .db(integration.randomDbName())
+                .collection("foo")
+                .insertMany([{ name: "foo" }, { name: "bar" }]);
+        });
+        const targets = [
+            {
+                name: "find",
+                method: "find" as const,
+                exportTarget: [{ name: "find", arguments: { filter: {} } }],
+            },
+            {
+                name: "aggregate",
+                method: "aggregate" as const,
+                exportTarget: [{ name: "aggregate", arguments: { pipeline: [{ $match: {} }] } }],
+            },
+        ];
+        for (const { name, method, exportTarget } of targets) {
+            it(`applies exportTimeoutMs as the ${name} cursor timeoutMS`, async () => {
+                const connectionId = await integration.connectMcpClient();
+                const entry = await integration.mcpServer().connectionRegistry.peek(connectionId);
+                expectDefined(entry);
+                const spy = vi.spyOn(entry.getServiceProvider(), method);
+                const response = await integration.mcpClient().callTool({
+                    name: "export",
+                    arguments: {
+                        connectionId,
+                        database: integration.randomDbName(),
+                        collection: "foo",
+                        exportTitle: `Export timeout for ${name}`,
+                        exportTarget,
+                    },
+                });
+                const content = response.content as CallToolResult["content"];
+                await resourceChangedNotification(
+                    integration.mcpClient(),
+                    contentWithResourceURILink(content)?.uri as string
+                );
+                expect(spy).toHaveBeenCalledOnce();
+                const options = spy.mock.calls[0]?.[3] as { timeoutMS?: number } | undefined;
+                expect(options?.timeoutMS).toEqual(60_000);
+            });
+        }
+    },
+    config: {
+        getUserConfig: () => ({ ...userConfig, exportTimeoutMs: 60_000, timeoutMs: 5_000 }),
         serverOptions: { resources: [ExportedData] },
     },
 });
